@@ -16,6 +16,15 @@
 <h1>Kısıtlar, trigger, view, ALTER</h1>
 <p class="lead">Ch 7'nin ikinci yarısı: tabloların ötesine geçen genel kısıtlar (assertion), olaylara tepki veren kurallar (trigger), sanal tablolar (view) ve var olan bir şemayı değiştirmek (DROP, ALTER).</p>
 
+<div class="callout goals">
+  <ul>
+    <li>Assertion'ın ne zaman gerektiğini ve CHECK'ten farkını açıklamak.</li>
+    <li>Bir trigger'ı olay, koşul ve eylem (ECA) olarak okumak ve yazmak.</li>
+    <li>View tanımlamak, query modification ile materialization'ı ayırmak; bir view'un güncellenebilir olup olmadığına karar vermek.</li>
+    <li>DROP (CASCADE/RESTRICT) ve ALTER TABLE'ın şemaya etkisini söylemek.</li>
+  </ul>
+</div>
+
 <h2>Assertion: genel kısıtlar (7.2.1)</h2>
 <p><code>CREATE ASSERTION</code>, tek bir tabloya bağlı olmayan, deklaratif bir kısıttır. Bir ad ve bir <code>CHECK</code> koşulu alır; koşul, veritabanının <em>her</em> durumunda TRUE olmalıdır. Kalıp: "ihlal eden satırları bulan bir sorgu yaz, başına <code>NOT EXISTS</code> koy."</p>
 <pre class="sql">
@@ -149,6 +158,14 @@ SELECT * FROM DEPT_INFO;          -- after: Research lost one employee, Headquar
   <li><strong>Gruplama ve aggregate</strong> içeren view'lar güncellenemez: <code>DEPT_INFO.Total_sal</code>'ı değiştirmenin temel tablolarda tek bir anlamı yoktur.</li>
   <li>SQL'de güncellenebilir olması amaçlanan bir view'a <code>WITH CHECK OPTION</code> eklenir: view üzerinden yapılan ekleme ve güncellemeler view'un koşulunu sağlamak zorundadır, yoksa reddedilir.</li>
 </ul>
+<div class="callout example" data-label="Adım adım: bu view güncellenebilir mi?">
+  <ol>
+    <li><strong>Kaç temel tablo var?</strong> Birden çoksa (join), güncelleme genellikle belirsizdir: standart SQL'de güncellenemez.</li>
+    <li><strong>Gruplama, aggregate ya da DISTINCT var mı?</strong> Varsa bir view satırı birçok temel satırdan hesaplanmıştır: güncellenemez.</li>
+    <li><strong>Temel tablonun primary key'i ve NOT NULL (DEFAULT'suz) sütunları view'da mı?</strong> Değilse view'a INSERT yapılamaz (eksik sütunlara değer verilemez); UPDATE ve DELETE yine de mümkün olabilir.</li>
+  </ol>
+  <p>Uygulayın: WORKS_ON1 üç tablo üzerinde join (1. soruda takılır). DEPT_INFO <code>GROUP BY</code> ve <code>COUNT</code>/<code>SUM</code> içerir (2. soruda takılır). Aşağıdaki DEPT5_EMPS tek tablo, aggregate yok, Ssn içinde: güncellenebilir.</p>
+</div>
 <pre class="sql">
 -- UV1: Smith moves from ProductX to ProductY? or ProductX is renamed? Ambiguous:
 UPDATE WORKS_ON1 SET Pname = 'ProductY'
@@ -219,6 +236,27 @@ WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POS
 <p>Kitapta <code>DROP COLUMN</code> için <code>CASCADE</code> (sütuna başvuran kısıt ve view'lar da silinir) ya da <code>RESTRICT</code> (başvuran yoksa silinir) seçilmelidir; MySQL bu sözcükleri kullanmaz. Kısıtı kaldırabilmek için <em>adı olmalıdır</em>: Ch 6'da kısıtlara ad vermenin nedeni budur. (MySQL foreign key için <code>DROP FOREIGN KEY ad</code>, diğer kısıtlar için <code>DROP CONSTRAINT ad</code> ya da <code>DROP CHECK ad</code> yazar.)</p>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3">
+  <p><code>CREATE VIEW V AS SELECT Ssn, Lname, Salary FROM EMPLOYEE WHERE Salary &gt; 30000 WITH CHECK OPTION;</code> Bu view üzerinden hangi güncelleme <em>reddedilir</em>?</p>
+  <ol>
+    <li data-why="Wong 40000 kazanıyor; 45000 yine 30000'den büyük: satır view'da kalır, kabul edilir."><code>UPDATE V SET Salary = 45000 WHERE Lname = 'Wong'</code></li>
+    <li data-why="Soyadı değişikliği view'un koşulunu (Salary &gt; 30000) etkilemez; kabul edilir."><code>UPDATE V SET Lname = 'Wang' WHERE Lname = 'Wong'</code></li>
+    <li data-why="Doğru: yeni maaş 30000'den büyük değil; satır view'dan çıkacağı için CHECK OPTION reddeder."><code>UPDATE V SET Salary = 28000 WHERE Lname = 'Wong'</code></li>
+    <li data-why="View'dan satır silmek koşulu bozmaz; DELETE CHECK OPTION'a takılmaz (ama EMPLOYEE'nin foreign key'lerine takılabilir)."><code>DELETE FROM V WHERE Lname = 'Wong'</code></li>
+  </ol>
+  <div class="explain">WITH CHECK OPTION, view üzerinden yapılan INSERT ve UPDATE'in sonucunda satırın hâlâ view'un koşulunu sağlamasını ister. Maaşı 28000'e indirilen Wong view'dan "kaybolacağı" için güncelleme reddedilir.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Bir trigger'ı "bir çalışan eklendiğinde ya da maaşı değiştiğinde, maaş amirininkini geçiyorsa amiri bilgilendir" diye okuyorsanız, ECA bileşenleri hangileridir?</p>
+  <ol>
+    <li data-why="Doğru: olay = INSERT ya da UPDATE OF Salary; koşul = NEW.Salary &gt; amirin maaşı; eylem = amiri bilgilendirmek.">Olay: INSERT ya da Salary güncellemesi · Koşul: yeni maaş &gt; amirin maaşı · Eylem: amiri bilgilendirmek</li>
+    <li data-why="'Maaş amirininkini geçiyor' bir koşuldur, olay değil: veritabanında bir değişikliğin kendisi değil, o değişiklikten sonra sınanan bir şey.">Olay: maaşın amirininkini geçmesi · Koşul: INSERT · Eylem: amiri bilgilendirmek</li>
+    <li data-why="Bilgilendirmek yapılacak iştir (eylem), koşul değil; ayrıca bu cümlede bir koşul var.">Olay: INSERT ya da Salary güncellemesi · Koşul: amiri bilgilendirmek · Eylem: yok</li>
+    <li data-why="Trigger'ın eylemi çalışmayı reddetmek değil, burada amiri bilgilendirmek; kısıt zorlayan trigger'lar ise ihlalde işlemi reddeder.">Olay: maaş güncellemesi · Koşul: yok · Eylem: güncellemeyi reddetmek</li>
+  </ol>
+  <div class="explain">Önce "ne olunca?" (olay: bir INSERT/UPDATE/DELETE), sonra "hangi durumda?" (koşul, isteğe bağlı), sonra "ne yapılsın?" (eylem). Kitaptaki SALARY_VIOLATION trigger'ı bu cümlenin SQL'idir.</div>
+</div>
+
 <div class="quiz" data-answer="2">
   <p><code>CREATE VIEW V AS SELECT Dno, AVG(Salary) AS Avg_sal FROM EMPLOYEE GROUP BY Dno;</code> view'u için hangisi doğrudur?</p>
   <ol>

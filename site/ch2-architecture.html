@@ -16,6 +16,15 @@
 <h1>Mimari ve veri modelleri</h1>
 <p class="lead">Bir DBMS veriyi kullanıcıya hangi soyutlama düzeylerinde gösterir? Şema ile veri neden ayrıdır ve bu ayrım programları değişikliklerden nasıl korur?</p>
 
+<div class="callout goals">
+  <ul>
+    <li>Şema ile durumu (intension/extension) bir örnek üzerinde ayırmak.</li>
+    <li>Üç-şema mimarisini çizip düzeyleri ve mapping'leri açıklamak.</li>
+    <li>Bir değişikliğin mantıksal mı fiziksel mi veri bağımsızlığı örneği olduğunu söylemek.</li>
+    <li>Bir komutun hangi dile (DDL, SDL, VDL, DML) ait olduğunu ve 2-tier / 3-tier farkını söylemek.</li>
+  </ul>
+</div>
+
 <h2>Veri modelleri</h2>
 <p><strong>Data model</strong> (veri modeli): bir veritabanının yapısını tanımlamak için kullanılan kavramlar topluluğu: veri tipleri, ilişkiler ve kısıtlar. Çoğu model ayrıca temel işlemleri (<em>basic operations</em>) ve kullanıcı tanımlı işlemleri (<em>dynamic aspect / behavior</em>) içerir.</p>
 <table class="simple">
@@ -162,6 +171,16 @@ DROP VIEW EMP_DEPT;
 </ul>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p>Bir şirket EMPLOYEE tablosunu ikiye böldü: kişisel bilgiler EMP_PERSONAL'a, maaş bilgileri EMP_PAY'e taşındı. Eski programlar <code>EMPLOYEE</code> adlı bir view üzerinden hiç değişmeden çalışmaya devam ediyor. Bu hangisinin örneğidir?</p>
+  <ol>
+    <li data-why="Fiziksel bağımsızlık internal şemadaki (depolama, index) değişikliklerle ilgilidir; burada tabloların kendisi, yani kavramsal şema değişti.">Physical data independence</li>
+    <li data-why="Doğru: kavramsal şema değişti, external şema (view) ve programlar aynı kaldı.">Logical data independence</li>
+    <li data-why="Program-operation independence, nesne yönelimli sistemlerde işlem arayüzünün gerçekleştirimden ayrılmasıdır.">Program-operation independence</li>
+    <li data-why="Bu bir şema değişikliğidir (schema evolution) ama soru, programların neden etkilenmediğini soruyor: view'un sağladığı bağımsızlık.">Hiçbiri; bu yalnızca bir veri güncellemesidir</li>
+  </ol>
+  <div class="explain">Tabloları bölmek conceptual şemayı değiştirir. Programlar external şemaya (view) bağlı olduğu için yalnızca external/conceptual mapping (view tanımı) güncellenir: mantıksal veri bağımsızlığı. Ch 2'deki EMP_DEPT kutusu aynı fikri gösteriyor.</div>
+</div>
 <div class="quiz" data-answer="2">
   <p>EMPLOYEE tablosuna yeni bir index eklendi; tüm uygulamalar hiç değiştirilmeden aynı sonuçları vermeye devam ediyor. Bu, hangisinin örneğidir?</p>
   <ol>

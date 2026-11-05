@@ -16,6 +16,15 @@
 <h1>Join, gruplama, WITH</h1>
 <p class="lead">FROM'da açık join'ler (iç ve dış), aggregate fonksiyonlar, gruplama ve grup koşulları, ara sonuçlar için WITH, koşullu değerler için CASE ve özyinelemeli sorgular.</p>
 
+<div class="callout goals">
+  <ul>
+    <li>Inner, left/right/full outer, natural ve cross join'in sonuçlarını önceden söylemek.</li>
+    <li>COUNT, SUM, AVG, MIN, MAX'i kullanmak ve NULL'ları nasıl işlediklerini bilmek.</li>
+    <li>GROUP BY ve HAVING ile grup sorguları yazmak; WHERE ile HAVING'i doğru yere koymak ve kavramsal değerlendirme sırasını izlemek.</li>
+    <li>WITH, CASE ve WITH RECURSIVE'i okumak ve basit örneklerini yazmak.</li>
+  </ul>
+</div>
+
 <h2>Joined tables (açık join)</h2>
 <p>Join koşulunu <code>WHERE</code>'e karıştırmak yerine FROM'da yazmak sorguyu okunur kılar ve dış join'leri mümkün kılar.</p>
 <pre class="sql run" data-title="Q1A · Research'te çalışanlar, JOIN … ON ile">
@@ -86,11 +95,18 @@ WHERE  (SELECT COUNT(*) FROM DEPENDENT WHERE Ssn = Essn) >= 2;
 
 <h2>GROUP BY ve HAVING</h2>
 <p><code>GROUP BY</code> satırları gruplama sütunlarının değerlerine göre gruplara ayırır; aggregate'ler her gruba ayrı uygulanır. <strong>Kural:</strong> SELECT listesinde yalnızca <em>gruplama sütunları</em> ve <em>aggregate'ler</em> olabilir.</p>
-<pre class="sql run" data-title="Q24 · Her departman için çalışan sayısı ve ortalama maaş">
+<p>Gruplamayı görmek için önce gruplamadan, satırları Dno'ya göre sıralı listeleyin. Aynı Dno'lu satırlar bir grup olacak; her grup sonuçta <em>tek bir satıra</em> iner. <strong>Tahmin edin:</strong> ikinci sorgu kaç satır döndürür, 5 numaralı departmanın ortalama maaşı ne olur?</p>
+<pre class="sql run" data-title="Q24 · Her departman için çalışan sayısı ve ortalama maaş (önce gruplamadan)">
+-- the rows before grouping: three groups by Dno (1, 4, 5)
+SELECT   Dno, Lname, Salary
+FROM     EMPLOYEE
+ORDER BY Dno;
+-- Q24: one row per group
 SELECT   Dno, COUNT(*), AVG(Salary)
 FROM     EMPLOYEE
 GROUP BY Dno;
 </pre>
+<p>5 numaralı grupta dört satır var (Smith 30000, Wong 40000, Narayan 38000, English 25000): COUNT(*) = 4, AVG = 133000 / 4 = 33250. Lname SELECT'te olamaz, çünkü grubun dört farklı Lname'inden hangisinin yazılacağı belirsizdir.</p>
 <pre class="sql run" data-title="Q25 · Her proje için numarası, adı ve çalışan sayısı (join + GROUP BY)">
 SELECT   Pnumber, Pname, COUNT(*)
 FROM     PROJECT, WORKS_ON
@@ -196,6 +212,28 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
 <p class="small muted">Kitaptaki Q29'da base sorguda <code>IS NOT NULL</code> yoktur; Borg'un NULL amiri sonuçta bir (NULL, Borg) satırı üretir. Seviye bilgisini de tutan bir sürüm için <a href="notebook.html#ex10">notebook Alıştırma 10</a>.</p>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE">
+  <p><code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE Salary &gt;= 30000 GROUP BY Dno HAVING COUNT(*) &gt;= 2;</code> kaç satır döndürür? (Maaşlar: dept 5'te 30000, 40000, 38000, 25000; dept 4'te 25000, 43000, 25000; dept 1'de 55000.)</p>
+  <ol>
+    <li data-why="3, gruplamadan önceki departman sayısıdır. Ama WHERE bazı satırları atıyor ve HAVING bazı grupları atıyor.">3</li>
+    <li data-why="Doğru: WHERE'den sonra dept 5'te 3, dept 4'te 1, dept 1'de 1 satır kalır; HAVING COUNT(*) &gt;= 2 yalnızca dept 5'i bırakır.">1</li>
+    <li data-why="2 olması için iki departmanda en az ikişer çalışanın 30000 ve üstü kazanması gerekirdi; dept 4'te yalnızca Wallace (43000) kalıyor.">2</li>
+    <li data-why="Dept 5'te 30000 ve üstü kazanan üç kişi (Smith, Wong, Narayan) var; boş değil.">0</li>
+  </ol>
+  <div class="explain">Sırayla uygulayın: WHERE önce satırları süzer (English, Zelaya, Jabbar atılır), sonra GROUP BY kalanları gruplar (5: 3 kişi, 4: 1 kişi, 1: 1 kişi), sonra HAVING grupları süzer. Sonuç tek satır: (5, 3).</div>
+  <pre class="sql run" data-title="Kontrol edin">SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE Salary >= 30000 GROUP BY Dno HAVING COUNT(*) >= 2;</pre>
+</div>
+<div class="quiz" data-answer="4" data-tables="EMPLOYEE DEPENDENT">
+  <p>"Her çalışan ve bağımlı sayısı (bağımlısı olmayanlar 0 ile)" için <code>FROM EMPLOYEE E LEFT JOIN DEPENDENT D ON E.Ssn = D.Essn GROUP BY E.Ssn</code> yazdınız. SELECT'te ne saymalısınız?</p>
+  <ol>
+    <li data-why="COUNT(*) satırları sayar: bağımlısı olmayan bir çalışan da LEFT JOIN'den NULL'lu bir satırla gelir ve 1 sayılır, 0 değil.">COUNT(*)</li>
+    <li data-why="E.Ssn her satırda doludur (sol tablo); bağımlısı olmayan çalışan için de 1 sayılır.">COUNT(E.Ssn)</li>
+    <li data-why="SUM bir sayıyı toplar; bağımlı sayısını değil. Ayrıca Essn metin bir sütun.">SUM(D.Essn)</li>
+    <li data-why="Doğru: COUNT(sütun) NULL'ları saymaz; bağımlısı olmayan çalışanın tek satırında D.Essn NULL olduğu için sonuç 0 olur.">COUNT(D.Essn)</li>
+  </ol>
+  <div class="explain">Outer join eşleşmeyen satırı NULL'larla tutar. COUNT(*) o satırı sayar (1); COUNT(D.Essn) NULL'u atlar (0). Notebook'un 6. alıştırması tam olarak budur.</div>
+</div>
+
 <div class="quiz" data-answer="2" data-tables="EMPLOYEE DEPENDENT">
   <p>EMPLOYEE'de 8 satır var; DEPENDENT'ta yalnızca 3 farklı çalışanın bağımlıları var (Wong 3, Wallace 1, Smith 3: toplam 7 satır). <code>SELECT COUNT(*) FROM EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn</code> kaç döndürür?</p>
   <ol>

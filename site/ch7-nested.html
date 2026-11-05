@@ -16,6 +16,15 @@
 <h1>NULL ve iç içe sorgular</h1>
 <p class="lead">Ch 7'nin ilk yarısı: NULL'ların karşılaştırmaları nasıl etkilediği (üç değerli mantık), bir sorgunun içinde başka bir sorgu kullanmak, ve SQL'de "her" (∀) sorusunun nasıl sorulacağı.</p>
 
+<div class="callout goals">
+  <ul>
+    <li>NULL içeren bir koşulun TRUE, FALSE ya da UNKNOWN olduğunu söylemek; IS NULL kullanmak.</li>
+    <li>IN, ANY/ALL ve EXISTS ile iç içe sorgu yazmak; bir alt sorgunun correlated olup olmadığını tanımak.</li>
+    <li>NOT IN'in NULL tuzağını açıklamak ve NOT EXISTS ile kaçınmak.</li>
+    <li>"Her …" (bölme) sorusunu çift NOT EXISTS ya da EXCEPT ile yazmak.</li>
+  </ul>
+</div>
+
 <h2>NULL ve üç değerli mantık</h2>
 <p>NULL'un üç anlamı vardır: <strong>unknown value</strong> (değer var ama bilinmiyor: doğum tarihi bilinmiyor), <strong>unavailable / withheld value</strong> (var ama saklanıyor: ev telefonu gizli), <strong>not applicable attribute</strong> (uygulanamaz: üniversite mezunu olmayanın <code>LastCollegeDegree</code>'si). SQL bunları ayırt etmez.</p>
 <p>Her NULL farklı kabul edilir; bu yüzden NULL içeren bir karşılaştırmanın sonucu ne TRUE ne FALSE'tur: <strong>UNKNOWN</strong>. SQL bu nedenle üç değerli bir mantık kullanır:</p>
@@ -44,6 +53,18 @@ SELECT COUNT(*) AS all_rows         FROM WORKS_ON;   -- 16, not 9 + 6
 <p>Bir sorgunun <code>WHERE</code> (ya da <code>FROM</code>, <code>SELECT</code>) kısmına yazılan tam bir <code>SELECT</code>'e <strong>nested query</strong> (inner query, subquery), onu içeren sorguya <strong>outer query</strong> denir.</p>
 <h3>IN</h3>
 <p><code>v IN V</code>: v değeri V çoklu kümesinin bir elemanı ise TRUE.</p>
+<p>İç içe bir sorguyu okumanın en kolay yolu <strong>içeriden dışarıya</strong> gitmektir: önce iç sorguyu tek başına çalıştırıp ne döndürdüğüne bakın, sonra dış sorguda onun yerine o değerleri koyun. Aşağıdaki kutu bunu adım adım yapıyor:</p>
+<pre class="sql run" data-title="İçeriden dışarıya: Research'te çalışanlar">
+-- step 1: the inner query alone: which department number is Research?
+SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research';
+-- step 2: the outer query with that value written in by hand
+SELECT Fname, Lname FROM EMPLOYEE WHERE Dno IN (5);
+-- step 3: the nested query: the same answer, without knowing the number in advance
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  Dno IN (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research');
+</pre>
+<p>Q4A aynı fikri iki iç sorguyla kullanır: biri "Smith'in yönettiği departmanın projeleri", diğeri "Smith'in çalıştığı projeler". Dış sorgu, bu iki kümeden birinde olan projeleri seçer (OR).</p>
 <pre class="sql run" data-title="Q4A · Smith soyadlı birinin çalışan ya da yönetici olarak dahil olduğu projeler (IN ile)">
 SELECT DISTINCT Pnumber
 FROM   PROJECT
@@ -96,7 +117,10 @@ WHERE  NOT EXISTS (SELECT * FROM EMPLOYEE S WHERE S.Super_ssn = E.Ssn);
 <p>Nitelenmemiş bir sütun adı, onu içeren <em>en içteki</em> sorgunun tablolarına aittir. İç ve dış sorguda aynı tablo kullanılıyorsa alias kullanmak gerekir. Kural: iç sorguda bir tabloda bulunamayan ad, dışarıdaki tablolarda aranır.</p>
 
 <h2>Correlated nested queries</h2>
-<p>İç sorgunun <code>WHERE</code>'i dış sorgunun bir sütununa başvuruyorsa sorgular <strong>correlated</strong>'dır. İç sorgu, dış sorgunun <em>her satırı için bir kez</em> değerlendirilir (kavramsal olarak).</p>
+<p>İç sorgunun <code>WHERE</code>'i dış sorgunun bir sütununa başvuruyorsa sorgular <strong>correlated</strong>'dır. İç sorgu, dış sorgunun <em>her satırı için bir kez</em> değerlendirilir (kavramsal olarak). Bu yüzden "içeriden dışarıya" okuma burada tek adımda olmaz: iç sorgunun sonucu, dış sorgunun o an baktığı satıra göre değişir.</p>
+<div class="callout example" data-label="Bir satır için izleyin">
+  <p>Aşağıdaki Q16'da dış sorgu E = Wong satırına baktığında iç sorgu <code>WHERE 'Franklin' = D.Dependent_name AND 'M' = D.Sex</code> olur: Wong'un bağımlıları Alice, Theodore ve Joy; hiçbiri Franklin değil, iç sorgu boş döner, Wong seçilmez. Sonra E = Smith için iç sorgu <code>'John' = Dependent_name AND 'M' = Sex</code> olur, yine boş. Sekiz çalışanın her biri için iç sorgu yeniden, o çalışanın değerleriyle hesaplanır.</p>
+</div>
 <pre class="sql run" data-title="Q16 · Kendisiyle aynı ad ve cinsiyette bir bağımlısı olan çalışanlar">
 SELECT E.Fname, E.Lname
 FROM   EMPLOYEE AS E
@@ -133,6 +157,18 @@ WHERE  EXISTS (SELECT * FROM DEPENDENT  WHERE Ssn = Essn)
   <li><strong>Küme farkı ile</strong>: (Y kümesi) <code>EXCEPT</code> (X'in ilişkili olduğu küme) boş ise. <code>NOT EXISTS ( … EXCEPT … )</code>.</li>
   <li><strong>Çift olumsuzlama ile</strong>: ∀y P(x, y) ≡ ¬∃y ¬P(x, y). "X'in ilişkili <em>olmadığı</em> bir Y elemanı <em>yoktur</em>": iki iç içe <code>NOT EXISTS</code>.</li>
 </ol>
+<p>Q3A'yı parça parça kuralım. Soru: "5 numaralı departmanın kontrol ettiği <em>her</em> projede çalışanlar". Tek bir çalışan, Wong için düşünün:</p>
+<pre class="sql run" data-title="Bölmeyi parça parça kurmak (Wong için)">
+-- (1) the set Y: the projects of department 5
+SELECT Pnumber FROM PROJECT WHERE Dnum = 5;
+-- (2) the projects Wong works on
+SELECT Pno FROM WORKS_ON WHERE Essn = '333445555';
+-- (3) Y EXCEPT Wong's projects: the projects of department 5 that Wong does NOT work on
+SELECT Pnumber FROM PROJECT WHERE Dnum = 5
+EXCEPT
+SELECT Pno FROM WORKS_ON WHERE Essn = '333445555';
+</pre>
+<p>(3) boş olsaydı Wong 5'in her projesinde çalışıyor demekti; ama sonuçta 1 (ProductX) var, yani Wong seçilmez. Q3A bu kontrolü her çalışan için yapar: <code>'333445555'</code> yerine dış sorgunun satırını (<code>Ssn</code>) koyar ve (3)'ün boş olmasını <code>NOT EXISTS</code> ile sınar.</p>
 <pre class="sql run" data-title="Q3A · 5 numaralı departmanın kontrol ettiği HER projede çalışanlar (EXCEPT ile)">
 SELECT Fname, Lname
 FROM   EMPLOYEE
@@ -179,6 +215,28 @@ WHERE  E.Super_ssn = S.Ssn;
 </pre>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="1" data-tables="EMPLOYEE">
+  <p><code>SELECT Lname FROM EMPLOYEE WHERE Salary &gt; ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 7)</code> ne döndürür? (7 numaralı departman yok.)</p>
+  <ol>
+    <li data-why="Doğru: iç sorgu boş; 'boş kümenin her elemanından büyük' her değer için TRUE'dur.">Bütün çalışanları</li>
+    <li data-why="Bu, ANY'nin davranışıdır: boş kümede 'en az birinden büyük' hiçbir zaman sağlanmaz. ALL boş kümede TRUE'dur.">Hiç kimseyi</li>
+    <li data-why="Boş bir alt sorgu hata değildir; yalnızca sonuç kümesi boştur.">Hata verir: alt sorgu boş</li>
+    <li data-why="Karşılaştırılacak değer olmadığı için en yüksek maaş da seçilemez; ALL boş kümede koşulsuz TRUE'dur.">Yalnızca en yüksek maaşlıyı (Borg)</li>
+  </ol>
+  <div class="explain">x &gt; ALL V, "V'de x'ten büyük ya da ona eşit bir eleman yok" demektir; V boşsa bu her zaman doğrudur. Bu yüzden ALL kullanırken alt sorgunun boş gelme ihtimalini düşünün.</div>
+  <pre class="sql run" data-title="Kontrol edin">SELECT Lname FROM EMPLOYEE WHERE Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 7);</pre>
+</div>
+<div class="quiz" data-answer="3" data-tables="EMPLOYEE DEPENDENT">
+  <p>Hangi sorgu "en az bir bağımlısı olan çalışanlar" sorusunun <em>doğru</em> cevabı <em>değildir</em>?</p>
+  <ol>
+    <li data-why="Doğru bir cevap: Ssn, DEPENDENT'taki Essn'ler arasındaysa en az bir bağımlı vardır."><code>SELECT Lname FROM EMPLOYEE WHERE Ssn IN (SELECT Essn FROM DEPENDENT)</code></li>
+    <li data-why="Doğru bir cevap: correlated EXISTS, çalışanın en az bir DEPENDENT satırı olup olmadığını sınar."><code>SELECT Lname FROM EMPLOYEE E WHERE EXISTS (SELECT * FROM DEPENDENT D WHERE D.Essn = E.Ssn)</code></li>
+    <li data-why="Doğru cevap bu değil: join her bağımlı için bir satır üretir, DISTINCT olmadığından Wong ve Smith üçer kez görünür. Soru 'çalışanlar' istiyor, tekrarsız."><code>SELECT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
+    <li data-why="Doğru bir cevap: join'den gelen tekrarları DISTINCT siler."><code>SELECT DISTINCT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
+  </ol>
+  <div class="explain">IN ve EXISTS her çalışanı en fazla bir kez seçer; join ise eşleşen her satır çifti için bir satır üretir. Wong'un üç, Smith'in üç, Wallace'ın bir bağımlısı var: C yedi satır döndürür, diğerleri üç. (Aynı soyadlı iki çalışan olsaydı D de onları birleştirirdi; bunun için <code>SELECT DISTINCT Ssn, Lname</code> daha güvenlidir.)</div>
+</div>
+
 <div class="quiz" data-answer="3">
   <p>Salary'si NULL olan bir çalışan için <code>WHERE Salary &gt; 30000 OR Dno = 5</code> koşulunun sonucu nedir? (Çalışanın Dno'su 5.)</p>
   <ol>

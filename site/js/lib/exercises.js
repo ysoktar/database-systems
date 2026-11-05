@@ -188,3 +188,64 @@ SELECT Lname, Level FROM SUP_EMP;`,
     explain: "Başlangıç (base) sorgusu Wong ve Wallace'ı (seviye 1) bulur; özyinelemeli adım onların astlarını (Smith, Narayan, English → Wong; Zelaya, Jabbar → Wallace) seviye 2 ile ekler; sonraki adım yeni satır üretmeyince durur. Kitaptaki Q29 (slayt 7-39) aynı yapıdadır ama seviye tutmaz.",
   },
 ];
+
+// A second, larger hint for each exercise: the shape of the query with the parts to fill in (___). The first hint
+// says where to look; this one is for when the first was not enough.
+const SKELETONS = {
+  1: `SELECT ___, ___, ___
+FROM   EMPLOYEE
+WHERE  ___ = 'F'
+ORDER BY ___ DESC, ___;`,
+  2: `SELECT P.Pname, D.Dname
+FROM   PROJECT P JOIN DEPARTMENT D ON ___ = ___
+WHERE  ___ = 'Houston';`,
+  3: `SELECT Fname, Lname, Salary
+FROM   EMPLOYEE
+WHERE  Address LIKE '___'
+  AND  Salary BETWEEN ___ AND ___;`,
+  4: `SELECT E.Lname, E.Dno, S.Lname, S.Dno
+FROM   EMPLOYEE AS E, EMPLOYEE AS S     -- E: the employee, S: the supervisor
+WHERE  E.___ = S.___                    -- join: E's supervisor is S
+  AND  ___ <> ___;                      -- different departments`,
+  5: `SELECT   P.Pname, COUNT(*) AS Num_emps, SUM(___) AS Total_hours
+FROM     PROJECT P JOIN WORKS_ON W ON ___ = ___
+GROUP BY P.Pnumber, P.Pname
+HAVING   ___ > 40
+ORDER BY ___ DESC, P.Pname;`,
+  6: `SELECT   E.Fname, E.Lname, COUNT(___) AS Num_dependents   -- count a DEPENDENT column, not *
+FROM     EMPLOYEE E ___ JOIN DEPENDENT D ON E.Ssn = D.Essn
+GROUP BY E.Ssn, E.Fname, E.Lname
+ORDER BY ___ DESC, E.Lname;`,
+  7: `SELECT E.Fname, E.Lname
+FROM   EMPLOYEE E
+WHERE  EXISTS (SELECT *
+               FROM   WORKS_ON W JOIN PROJECT P ON W.Pno = P.Pnumber
+               WHERE  W.Essn = ___          -- a project E works on ...
+                 AND  P.Dnum ___ E.Dno);    -- ... that E's department does not control`,
+  8: `SELECT E.Fname, E.Lname
+FROM   EMPLOYEE E
+WHERE  NOT (E.Fname = 'John' AND E.Lname = 'Smith')
+  AND  NOT EXISTS (                       -- there is no project of Smith ...
+         SELECT W.Pno
+         FROM   WORKS_ON W JOIN EMPLOYEE S ON W.Essn = S.Ssn
+         WHERE  S.Fname = 'John' AND S.Lname = 'Smith'
+           AND  NOT EXISTS (              -- ... that E does not work on
+                  SELECT *
+                  FROM   WORKS_ON W2
+                  WHERE  W2.Essn = ___ AND W2.Pno = ___));`,
+  9: `SELECT D.Dname, E.Fname, E.Lname, E.Salary
+FROM   EMPLOYEE E JOIN DEPARTMENT D ON E.Dno = D.Dnumber
+WHERE  E.Salary = (SELECT ___(E2.Salary)
+                   FROM   EMPLOYEE E2
+                   WHERE  E2.Dno = ___);    -- the same department as E`,
+  10: `WITH RECURSIVE SUP_EMP (Ssn, Lname, Level) AS (
+    SELECT E.Ssn, E.Lname, 1                     -- level 1: Borg's direct supervisees
+    FROM   EMPLOYEE E JOIN EMPLOYEE B ON E.Super_ssn = B.Ssn
+    WHERE  B.Fname = 'James' AND B.Lname = 'Borg'
+  UNION ALL
+    SELECT E.Ssn, E.Lname, ___                   -- one level deeper
+    FROM   EMPLOYEE E JOIN SUP_EMP S ON E.Super_ssn = ___
+)
+SELECT Lname, Level FROM SUP_EMP;`,
+};
+for (const e of EXERCISES) e.skeleton = SKELETONS[e.n];

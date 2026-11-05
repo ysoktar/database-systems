@@ -18,6 +18,7 @@
 
 <h2>Nasıl çalışılır?</h2>
 <ol>
+  <li><a href="#approach">Soru tiplerine yaklaşım</a> tablosunu okuyun: dört soru kalıbı ve her biri için adımlar.</li>
   <li>Her bölümün <strong>bilmeniz gerekenler</strong> listesini okuyun. Bilmediğiniz bir madde varsa bağlantılı sayfaya dönün.</li>
   <li><strong>Çözümlü problemleri</strong> (ER tasarımı, kısıt ihlalleri, anahtarlar, NULL) önce kâğıt üzerinde çözün, sonra cevabı açın.</li>
   <li><a href="notebook.html">Notebook'un 10 alıştırmasını</a> ve aşağıdaki <a href="#sql-problems">8 SQL problemini</a> sitenin MySQL'ine kontrol ettirerek çözün. Sınavda kâğıt üzerinde yazacağınızı düşünerek, önce çalıştırmadan yazın.</li>
@@ -25,7 +26,28 @@
   <li><a href="#practice">Deneme setini</a> ilk denemede %80'i geçene kadar tekrarlayın.</li>
 </ol>
 
+<h2 id="approach">Soru tiplerine yaklaşım</h2>
+<p>Arasınavdaki soruların çoğu dört kalıptan birine uyar. Her biri için sitede çalışılmış bir yöntem var; sınavda aynı sırayla ilerleyin.</p>
+<table class="simple">
+  <thead><tr><th>Soru tipi</th><th>Adımlar</th><th>Çalışmak için</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Gereksinimden ER/EER çizmek</strong></td>
+      <td>(1) İsimleri varlık, fiilleri ilişki adayı olarak işaretleyin. (2) Her varlığın anahtarını bulun ("benzersiz"); bulamıyorsanız zayıf varlık olabilir. (3) Öznitelik türlerini belirleyin (bileşik, çok değerli, türetilmiş). (4) Her ilişki için iki soru: en çok kaç (kardinalite), en az kaç (katılım). (5) Alt gruplar varsa: iki alt sınıfta birden olabilir mi (d/o), hiçbirinde olmayabilir mi (total/partial)?</td>
+      <td><a href="ch3-er.html#ikili-iliskilerde-yapisal-kisitlar">Ch 3: cümleden kısıta</a>, <a href="ch4-eer.html#ozellestirme-kisitlari">Ch 4: kısıtlara karar vermek</a>, aşağıdaki problem 1</td></tr>
+    <tr><td><strong>Bir işlem hangi kısıtı ihlal eder?</strong></td>
+      <td>(1) PK alanı NULL mı? → entity integrity. (2) PK/UNIQUE değeri zaten var mı? → key. (3) FK değeri başvurulan tabloda var mı? Silmede: bu satıra başvuran var mı? → referential integrity. (4) Değer tipine/aralığına uyuyor mu? → domain. Sonra DBMS'in seçeneklerini yazın: reject, cascade, set null (FK PK'nın parçası değilse), set default.</td>
+      <td><a href="ch5-relational.html#guncelleme-islemleri-ve-kisit-ihlalleri">Ch 5: güncelleme işlemleri</a>, aşağıdaki problem 2</td></tr>
+    <tr><td><strong>Anahtar bulmak</strong></td>
+      <td>(1) Her kuraldan "bunlar birlikte tek bir satırı belirler" diyen öznitelik kümelerini çıkarın. (2) Her kümenin minimal olduğunu kontrol edin: bir öznitelik çıkarınca kural bozuluyor mu? (3) Minimal olanlar candidate key; birini primary key seçin, diğerleri UNIQUE.</td>
+      <td><a href="ch5-relational.html#key-kisitlari">Ch 5: key kısıtları</a>, aşağıdaki problem 3</td></tr>
+    <tr><td><strong>SQL yazmak</strong></td>
+      <td>(1) Ne isteniyor → SELECT. (2) Hangi tablolarda → FROM. (3) Tablolar foreign key'lerle nasıl bağlanıyor → n tablo için n − 1 join koşulu. (4) Hangi satırlar → WHERE. Sonra kontrol: "her" kelimesi varsa bölme (çift NOT EXISTS); "her … için sayı/toplam" varsa GROUP BY; grup koşulu varsa HAVING; "hiç olmayanlar da 0 ile" varsa LEFT JOIN + COUNT(sütun); tekrar olabilir mi → DISTINCT.</td>
+      <td><a href="ch6-sql.html#select-from-where">Ch 6: soruyu SQL'e çevirmek</a>, <a href="notebook.html">notebook</a>, aşağıdaki SQL problemleri</td></tr>
+  </tbody>
+</table>
+
 <h2>Bölüm bölüm bilmeniz gerekenler</h2>
+
 <table class="simple">
   <thead><tr><th>Bölüm</th><th>Bilmeniz gerekenler</th><th>Sayfa</th></tr></thead>
   <tbody>

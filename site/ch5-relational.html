@@ -16,6 +16,15 @@
 <h1>İlişkisel model ve kısıtlar</h1>
 <p class="lead">İlişkisel model veritabanını <strong>ilişkiler</strong> (relations) topluluğu olarak görür: kabaca, her biri bir değerler tablosu. Bu sayfa modelin biçimsel kavramlarını ve verinin doğruluğunu koruyan <strong>kısıtları</strong> anlatır.</p>
 
+<div class="callout goals">
+  <ul>
+    <li>Relation, tuple, attribute, domain, degree, cardinality terimlerini COMPANY üzerinde göstermek.</li>
+    <li>Superkey, key, candidate key ve primary key'i ayırmak; bir öznitelik kümesinin superkey/key olup olmadığına karar vermek.</li>
+    <li>Entity integrity ve referential integrity'yi tanımlamak; foreign key'leri şemada göstermek.</li>
+    <li>Bir INSERT/DELETE/UPDATE'in hangi kısıtları ihlal ettiğini söylemek ve DBMS'in seçeneklerini (reject, cascade, set null, set default) sıralamak.</li>
+  </ul>
+</div>
+
 <h2>Kavramlar</h2>
 <table class="simple">
   <thead><tr><th>Biçimsel terim</th><th>Gayriresmî (tablo) karşılığı</th><th>Tanım</th></tr></thead>
@@ -29,6 +38,17 @@
     <tr><td><strong>Relational database schema</strong> S</td><td>Bütün tablolar</td><td>S = {R<sub>1</sub>, …, R<sub>m</sub>} ve bir bütünlük kısıtları kümesi IC.</td></tr>
   </tbody>
 </table>
+<div class="callout example" data-label="Terimler COMPANY'de">
+  <p>DEPARTMENT ilişkisine bakın (satırlarını aşağıdaki düğmeden açabilirsiniz):</p>
+  <ul>
+    <li><strong>Relation schema</strong>: DEPARTMENT(Dname, Dnumber, Mgr_ssn, Mgr_start_date). Dört öznitelik: <strong>degree</strong> = 4.</li>
+    <li><strong>Relation state</strong>: bugünkü üç satır (Research, Administration, Headquarters): <strong>cardinality</strong> = 3. Bir departman eklenince state değişir, schema değişmez.</li>
+    <li><strong>Tuple</strong>: t = &lt;'Research', 5, '333445555', '1988-05-22'&gt;. t[Dname] = 'Research', t[Dnumber, Mgr_ssn] = &lt;5, '333445555'&gt;.</li>
+    <li><strong>Domain</strong>: dom(Mgr_ssn) = 9 karakterlik Ssn'ler, dom(Mgr_start_date) = tarihler. Mgr_ssn ile EMPLOYEE.Ssn aynı domain'dendir; foreign key'in ilk şartı budur (aşağıda).</li>
+    <li><strong>Relational database schema</strong>: COMPANY = {EMPLOYEE, DEPARTMENT, DEPT_LOCATIONS, PROJECT, WORKS_ON, DEPENDENT} ve kısıtları.</li>
+  </ul>
+</div>
+<div class="company-data" data-tables="DEPARTMENT"></div>
 <p>Ör. <code>STUDENT(Name, Ssn, Home_phone, Address, Office_phone, Age, Gpa)</code> derecesi 7 olan bir şemadır. Öznitelikleri tipleriyle yazmak da mümkün: <code>STUDENT(Name: string, Ssn: string, …, Gpa: real)</code>. t[A<sub>i</sub>] ya da t.A<sub>i</sub>, t'nin A<sub>i</sub> değeridir; t[A<sub>u</sub>, A<sub>w</sub>, …] bir alt tuple'dır.</p>
 
 <h3>İlişkinin özellikleri</h3>
@@ -200,6 +220,17 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
 </ul>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2" data-tables="WORKS_ON">
+  <p>COMPANY'nin başlangıç verisinde WORKS_ON(Essn, Pno, Hours) ilişkisinin degree'si ve cardinality'si nedir?</p>
+  <ol>
+    <li data-why="Sırası ters: degree öznitelik (sütun) sayısı, cardinality tuple (satır) sayısıdır.">degree 16, cardinality 3</li>
+    <li data-why="Doğru: üç öznitelik, on altı tuple.">degree 3, cardinality 16</li>
+    <li data-why="2, primary key'in öznitelik sayısıdır (Essn, Pno); degree bütün öznitelikleri sayar.">degree 2, cardinality 16</li>
+    <li data-why="8 çalışan sayısıdır; ama bir çalışan birden çok projede çalıştığı için WORKS_ON'da daha çok satır var.">degree 3, cardinality 8</li>
+  </ol>
+  <div class="explain">Degree şemanın özelliğidir (kaç öznitelik) ve değişmez; cardinality durumun özelliğidir (kaç tuple) ve her INSERT/DELETE ile değişir.</div>
+</div>
+
 <div class="quiz" data-answer="3">
   <p>R(A, B, C, D) ilişkisinde {A, B} bir key'dir. Hangisi <em>kesinlikle</em> doğrudur?</p>
   <ol>
