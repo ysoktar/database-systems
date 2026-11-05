@@ -24,12 +24,12 @@ FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
 WHERE  Dname = 'Research';
 </pre>
 <h3>NATURAL JOIN</h3>
-<p>Koşul yazılmaz: iki tabloda <strong>aynı adlı</strong> her sütun çifti için eşitlik koşulu kendiliğinden eklenir ve bu sütunlar sonuçta bir kez görünür. Adlar farklıysa önce yeniden adlandırılır:</p>
+<p>Koşul yazılmaz: iki tabloda <strong>aynı adlı</strong> her sütun çifti için eşitlik koşulu kendiliğinden eklenir ve bu sütunlar sonuçta bir kez görünür. EMPLOYEE'de departman numarası <code>Dno</code>, DEPARTMENT'ta <code>Dnumber</code> adını taşır; ortak ad olmadığı için önce DEPARTMENT'ın sütunları yeniden adlandırılır. Kitap bunu <code>(EMPLOYEE NATURAL JOIN (DEPARTMENT AS DEPT (Dname, Dno, Mssn, Msdate)))</code> diye yazar. MySQL temel tablolarda sütun listesiyle yeniden adlandırmayı kabul etmediği için aynı şey bir alt sorguyla yapılır:</p>
 <pre class="sql run" data-title="Q1B · NATURAL JOIN: DEPARTMENT'ın sütunları, EMPLOYEE.Dno ile eşleşecek şekilde yeniden adlandırılıyor">
 SELECT Fname, Lname, Address
--- the book writes (EMPLOYEE NATURAL JOIN (DEPARTMENT AS DEPT (Dname, Dno, Mssn, Msdate)));
--- PostgreSQL does not accept the parentheses around a single renamed table, so they are dropped here
-FROM   EMPLOYEE NATURAL JOIN DEPARTMENT AS DEPT (Dname, Dno, Mssn, Msdate)
+FROM   EMPLOYEE NATURAL JOIN
+       (SELECT Dname, Dnumber AS Dno, Mgr_ssn AS Mssn, Mgr_start_date AS Msdate
+        FROM   DEPARTMENT) AS DEPT          -- now the only common column is Dno
 WHERE  Dname = 'Research';
 </pre>
 <div class="callout gotcha">
@@ -39,7 +39,7 @@ WHERE  Dname = 'Research';
 <div id="joins"></div>
 <ul>
   <li><strong>INNER JOIN</strong> (varsayılan <code>JOIN</code>): yalnız eşleşen çiftler.</li>
-  <li><strong>LEFT / RIGHT / FULL OUTER JOIN</strong>: eşleşmeyen satırlar da kalır, karşı tarafı NULL ile doldurulur. (Eski Oracle sözdizimi: <code>+=</code>, <code>=+</code>, <code>+=+</code>.)</li>
+  <li><strong>LEFT / RIGHT / FULL OUTER JOIN</strong>: eşleşmeyen satırlar da kalır, karşı tarafı NULL ile doldurulur. (Eski Oracle sözdizimi: <code>+=</code>, <code>=+</code>, <code>+=+</code>.) MySQL'de <code>FULL OUTER JOIN</code> yoktur; aynı sonuç LEFT ve RIGHT join'in <code>UNION</code>'ı ile elde edilir (yukarıdaki karşılaştırmanın FULL sekmesi).</li>
   <li><strong>CROSS JOIN</strong>: kartezyen çarpım. <strong>NATURAL LEFT OUTER JOIN</strong> gibi birleşimler de geçerlidir.</li>
   <li>Join'ler iç içe yazılabilir (<em>multiway join</em>):</li>
 </ul>
@@ -73,7 +73,7 @@ SELECT COUNT(DISTINCT Salary) FROM EMPLOYEE;                          -- Q23
   <p><strong>Aggregate'ler ve NULL:</strong> <code>COUNT(*)</code> satırları sayar (NULL'lar dahil). <code>COUNT(A)</code>, <code>SUM(A)</code>, <code>AVG(A)</code>, <code>MAX(A)</code>, <code>MIN(A)</code> A'nın NULL olmayan değerleri üzerinden hesaplanır. Boş bir kümede <code>COUNT</code> 0, diğerleri NULL döndürür. <code>COUNT(DISTINCT A)</code> tekrarları atar.</p>
 </div>
 <pre class="sql run" data-title="NULL'un aggregate'lere etkisi (WORKS_ON'da bir saat NULL)">
-SELECT COUNT(*) AS rows, COUNT(Hours) AS non_null_hours,
+SELECT COUNT(*) AS all_rows, COUNT(Hours) AS non_null_hours,
        SUM(Hours) AS total, AVG(Hours) AS avg_non_null,
        SUM(Hours) / COUNT(*) AS avg_if_null_were_0
 FROM   WORKS_ON;
@@ -147,7 +147,7 @@ GROUP BY Dno;
 <p class="small muted">İkinci sorguda eşik, farkı göstermek için 30000'e indirildi. Yanlış sorgu boş döner (40000 üstü kazanan en çok bir kişi var); doğru sorgu Research (5) için 2, Administration (4) için 1 döndürür.</p>
 
 <div class="callout gotcha">
-  <p><strong>Gruplanmamış sütun hatası.</strong> <code>SELECT Dno, Lname, COUNT(*) FROM EMPLOYEE GROUP BY Dno</code> geçersizdir: her grupta birçok Lname var, hangisinin gösterileceği belirsiz. PostgreSQL'in hata mesajı tam olarak bunu söyler: "column must appear in the GROUP BY clause or be used in an aggregate function".</p>
+  <p><strong>Gruplanmamış sütun hatası.</strong> <code>SELECT Dno, Lname, COUNT(*) FROM EMPLOYEE GROUP BY Dno</code> geçersizdir: her grupta birçok Lname var, hangisinin gösterileceği belirsiz. MySQL 8 bunu 1055 numaralı hatayla reddeder ("nonaggregated column … is not functionally dependent on columns in GROUP BY clause"; bu kural <code>ONLY_FULL_GROUP_BY</code> ayarıdır). Eski MySQL sürümleri ya da bu ayar kapatılmışsa sorgu çalışır ama her grup için <em>rastgele</em> bir Lname gösterir; sınavda bu sorgu yanlış kabul edilir.</p>
 </div>
 <pre class="sql run" data-expect-error data-title="Deneyin: gruplanmamış sütun">
 SELECT Dno, Lname, COUNT(*) FROM EMPLOYEE GROUP BY Dno;
@@ -196,43 +196,44 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
 <p class="small muted">Kitaptaki Q29'da base sorguda <code>IS NOT NULL</code> yoktur; Borg'un NULL amiri sonuçta bir (NULL, Borg) satırı üretir. Seviye bilgisini de tutan bir sürüm için <a href="notebook.html#ex10">notebook Alıştırma 10</a>.</p>
 
 <h2>Kendinizi sınayın</h2>
-<div class="quiz" data-answer="2">
-  <p>EMPLOYEE'de 8 satır var; DEPENDENT'ta yalnızca 3 farklı çalışanın bağımlıları var (toplam 7 satır). <code>SELECT COUNT(*) FROM EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn</code> kaç döndürür?</p>
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE DEPENDENT">
+  <p>EMPLOYEE'de 8 satır var; DEPENDENT'ta yalnızca 3 farklı çalışanın bağımlıları var (Wong 3, Wallace 1, Smith 3: toplam 7 satır). <code>SELECT COUNT(*) FROM EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn</code> kaç döndürür?</p>
   <ol>
-    <li>7</li>
-    <li>12</li>
-    <li>8</li>
-    <li>56</li>
+    <li data-why="7, iç join'in (INNER JOIN) sonucudur: yalnızca bağımlısı olan çalışanların satırları. LEFT OUTER JOIN bağımlısı olmayan çalışanları da tutar.">7</li>
+    <li data-why="Doğru: bağımlılı 3 çalışandan 7 satır + bağımlısı olmayan 5 çalışandan NULL'lu birer satır.">12</li>
+    <li data-why="Her çalışan bir kez sayılsaydı 8 olurdu; ama birden çok bağımlısı olan çalışan, her bağımlısı için ayrı bir satır üretir (Wong 3 satır).">8</li>
+    <li data-why="56 = 8 × 7, join koşulu olmayan kartezyen çarpımdır (CROSS JOIN). ON koşulu satırları eşleştirir.">56</li>
   </ol>
   <div class="explain">Bağımlısı olan 3 çalışan 7 satır üretir (her bağımlı için bir). Bağımlısı olmayan 5 çalışan NULL'larla birer satır: 7 + 5 = 12.</div>
 </div>
 <div class="quiz" data-answer="4">
   <p>Hangi sorgu geçersizdir?</p>
   <ol>
-    <li><code>SELECT Dno, MAX(Salary) FROM EMPLOYEE GROUP BY Dno</code></li>
-    <li><code>SELECT Dno FROM EMPLOYEE GROUP BY Dno HAVING AVG(Salary) &gt; 30000</code></li>
-    <li><code>SELECT COUNT(*) FROM EMPLOYEE WHERE Salary &gt; 30000</code></li>
-    <li><code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE COUNT(*) &gt; 2 GROUP BY Dno</code></li>
+    <li data-why="Geçerli: SELECT'te yalnızca gruplama sütunu (Dno) ve bir aggregate var."><code>SELECT Dno, MAX(Salary) FROM EMPLOYEE GROUP BY Dno</code></li>
+    <li data-why="Geçerli: HAVING'de, SELECT listesinde olmayan bir aggregate de kullanılabilir."><code>SELECT Dno FROM EMPLOYEE GROUP BY Dno HAVING AVG(Salary) &gt; 30000</code></li>
+    <li data-why="Geçerli: GROUP BY olmadan aggregate, WHERE'den kalan satırların tamamını tek bir grup olarak özetler."><code>SELECT COUNT(*) FROM EMPLOYEE WHERE Salary &gt; 30000</code></li>
+    <li data-why="Geçersiz olan bu: WHERE gruplar oluşmadan önce satır satır çalışır, aggregate kullanamaz."><code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE COUNT(*) &gt; 2 GROUP BY Dno</code></li>
   </ol>
   <div class="explain">Aggregate'ler WHERE'de kullanılamaz: WHERE gruplar oluşmadan önce, satır satır değerlendirilir. Doğrusu <code>HAVING COUNT(*) &gt; 2</code>.</div>
 </div>
-<div class="quiz" data-answer="1">
+<div class="quiz" data-answer="1" data-tables="WORKS_ON">
   <p><code>SELECT AVG(Hours) FROM WORKS_ON</code>, WORKS_ON'da 16 satır, bir tanesinin Hours'u NULL ve toplam 275 ise ne döndürür?</p>
   <ol>
-    <li>275 / 15 ≈ 18.33</li>
-    <li>275 / 16 ≈ 17.19</li>
-    <li>NULL</li>
-    <li>Hata</li>
+    <li data-why="Doğru: AVG NULL olmayan 15 değerin ortalamasını alır.">275 / 15 ≈ 18.33</li>
+    <li data-why="Bu, NULL'u 0 saymak olurdu (SUM(Hours) / COUNT(*)). AVG NULL'ları hesaba katmaz.">275 / 16 ≈ 17.19</li>
+    <li data-why="Aggregate'ler NULL'ları atlar; sonuç ancak bütün değerler NULL ise (ya da tablo boşsa) NULL olur.">NULL</li>
+    <li data-why="NULL içeren bir sütunun ortalamasını almak hata değildir.">Hata</li>
   </ol>
   <div class="explain">AVG NULL'ları atar: NULL olmayan 15 değerin ortalaması. NULL'u 0 saymak isteseydik <code>SUM(Hours)/COUNT(*)</code> ya da <code>AVG(COALESCE(Hours, 0))</code> yazmalıydık.</div>
 </div>
 <div class="quiz" data-answer="3">
   <p>WHERE ile HAVING arasındaki fark nedir?</p>
   <ol>
-    <li>Fark yok; HAVING, WHERE'in GROUP BY ile kullanılan eş anlamlısıdır.</li>
-    <li>HAVING satırlara, WHERE gruplara uygulanır.</li>
-    <li>WHERE gruplamadan önce satırlara, HAVING gruplamadan sonra gruplara uygulanır.</li>
-    <li>HAVING yalnızca ORDER BY ile birlikte kullanılabilir.</li>
+    <li data-why="Fark sonucu değiştirir: WHERE'de atılan satır hiçbir grubun COUNT/SUM'una katılmaz (Q28 tuzağı).">Fark yok; HAVING, WHERE'in GROUP BY ile kullanılan eş anlamlısıdır.</li>
+    <li data-why="Tam tersi: WHERE satırlara (gruplamadan önce), HAVING gruplara (gruplamadan sonra) uygulanır.">HAVING satırlara, WHERE gruplara uygulanır.</li>
+    <li data-why="Doğru: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY.">WHERE gruplamadan önce satırlara, HAVING gruplamadan sonra gruplara uygulanır.</li>
+    <li data-why="HAVING, GROUP BY ile (ya da tek grup olarak tüm sonuçla) kullanılır; ORDER BY ile ilgisi yoktur.">HAVING yalnızca ORDER BY ile birlikte kullanılabilir.</li>
+
   </ol>
   <div class="explain">Sıra: FROM → WHERE (satırlar) → GROUP BY → HAVING (gruplar) → SELECT → ORDER BY. Bir satır WHERE'de atılırsa hiçbir grubun aggregate'ine katılmaz (Q28 tuzağı).</div>
 </div>

@@ -1,8 +1,8 @@
-// ER studio: the language, the ER → relational mapping (run on PostgreSQL), reverse engineering, round trips and the
+// ER studio: the language, the ER → relational mapping (run on the site's MySQL engine), reverse engineering, round trips and the
 // exercise checker.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PGlite } from "@electric-sql/pglite";
+import { companyDB, firstError } from "./helpers.mjs";
 import { parseER, toDSL } from "../site/js/lib/ermodel.js";
 import { mapER, toDDL } from "../site/js/lib/ermap.js";
 import { reverseER, catalogSQL, catalogFromRows } from "../site/js/lib/erreverse.js";
@@ -11,15 +11,20 @@ import { ER_EXERCISES, compareER, solutionModel } from "../site/js/lib/er-exerci
 import { autoLayout, toDiagram } from "../site/js/lib/erlayout.js";
 import { SCHEMA_SQL } from "../site/js/lib/company.js";
 
-const db = await PGlite.create();
+const db = await companyDB();
 let n = 0;
+/** Run DDL in a fresh database (throws on the first error), then go back to COMPANY. */
+function inDatabase(name, ddl) {
+  const err = firstError(db, `CREATE DATABASE ${name}; USE ${name};\n` + ddl);
+  db.query("USE company");
+  if (err) throw new Error(`${err.code} ${err.message}`);
+}
+const rows = (sql) => { const r = db.query(sql); if (r.error) throw new Error(r.error.message); return r.rows; };
 async function reverse(ddl) {
   const schema = `rv${++n}`;
-  await db.exec(`CREATE SCHEMA ${schema}; SET search_path TO ${schema};` + ddl);
+  inDatabase(schema, ddl);
   const [a, b] = catalogSQL(schema);
-  const cols = (await db.query(a, [], { rowMode: "array" })).rows;
-  const cons = (await db.query(b, [], { rowMode: "array" })).rows;
-  return reverseER(catalogFromRows(cols, cons));
+  return reverseER(catalogFromRows(rows(a), rows(b)));
 }
 const model = (id) => parseER(ER_EXAMPLES.find((e) => e.id === id).dsl).model;
 const table = (res, name) => res.tables.find((t) => t.name === name);
@@ -33,10 +38,10 @@ for (const ex of ER_EXAMPLES) {
     assert.equal(toDSL(again.model), toDSL(r.model));
   });
   for (const spec of ex.kind === "EER" ? ["8A", "8B", "8C", "8D"] : ["8A"]) {
-    test(`example ${ex.id}: mapping ${spec} gives DDL that PostgreSQL accepts`, async () => {
+    test(`example ${ex.id}: mapping ${spec} gives DDL that MySQL accepts`, async () => {
       const { tables } = mapER(model(ex.id), { spec });
       assert.ok(tables.length > 0);
-      await db.exec(`CREATE SCHEMA m${++n}; SET search_path TO m${n};` + toDDL(tables));
+      inDatabase(`m${++n}`, toDDL(tables));
     });
   }
   test(`example ${ex.id}: layout places every node`, () => {

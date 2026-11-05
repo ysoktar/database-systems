@@ -1,4 +1,4 @@
-// A row of buttons, each showing the result of one SQL query from the page's PostgreSQL.
+// A row of buttons, each showing the result of one SQL query from the page's MySQL.
 // Used for "conceptual evaluation order" walkthroughs and for comparing join types.
 //   steps: [{ label, note (HTML), sql, flag: "col" (boolean column: false rows are dimmed and the column hidden),
 //             group: "col" (alternate shading per value), pad: true (shade NULL cells produced by an outer join),
@@ -21,7 +21,7 @@ export function queryStepper(steps, { intro } = {}) {
     note.innerHTML = s.note || "";
     code.innerHTML = `<code>${highlightSQL(s.display || s.sql)}</code>`;
     code.hidden = s.showSql === false;
-    out.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "PostgreSQL çalışıyor …"));
+    out.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "MySQL çalışıyor …"));
     const my = ++token;
     const res = await runSQL(s.sql);
     if (my !== token) return;

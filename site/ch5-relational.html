@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>İlişkisel model ve kısıtlar · Veritabanı Sistemleri</title>
-<meta name="description" content="Elmasri & Navathe Ch 5: ilişkisel modelin kavramları, ilişkinin özellikleri, domain/key/NULL kısıtları, superkey ve candidate key, entity integrity, referential integrity, foreign key, güncelleme işlemleri ve kısıt ihlalleri; hepsi çalıştırılabilir PostgreSQL örnekleriyle.">
+<meta name="description" content="Elmasri & Navathe Ch 5: ilişkisel modelin kavramları, ilişkinin özellikleri, domain/key/NULL kısıtları, superkey ve candidate key, entity integrity, referential integrity, foreign key, güncelleme işlemleri ve kısıt ihlalleri; hepsi çalıştırılabilir MySQL örnekleriyle.">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
@@ -101,11 +101,20 @@ INSERT INTO WORKS_ON VALUES ('123456789', 3, 1000.0);
 <p class="small"><a href="er-studio.html#example=company&amp;section=to-tables">ER stüdyosunda</a> diyagramı değiştirip sonucun nasıl değiştiğini görebilir ya da kendi tablolarınızı ER'e geri çevirebilirsiniz.</p>
 
 <h2>Güncelleme işlemleri ve kısıt ihlalleri</h2>
-<p>Üç temel güncelleme işlemi vardır: <strong>Insert</strong>, <strong>Delete</strong>, <strong>Update</strong> (Modify). Her biri bazı kısıtları ihlal edebilir. Aşağıdaki kutular kitabın Section 5.3'teki örneklerinin aynısıdır. Hepsini sırayla çalıştırın: DBMS'in hangi kısıtı, hangi mesajla zorladığını göreceksiniz. (Gerektiğinde <em>Veritabanını sıfırla</em>.)</p>
+<p>Üç temel güncelleme işlemi vardır: <strong>Insert</strong>, <strong>Delete</strong>, <strong>Update</strong> (Modify). Her biri bazı kısıtları ihlal edebilir. Aşağıdaki kutular kitabın Section 5.3'teki örneklerinin aynısıdır ve COMPANY'nin Şekil 5.6'daki durumu üzerinde çalışır. Hepsini sırayla çalıştırın: DBMS'in hangi kısıtı, hangi mesajla zorladığını göreceksiniz. (Gerektiğinde <em>Veritabanını sıfırla</em>.)</p>
+<div class="callout note">
+  <p><strong>Kutulardaki komutları okumak için yeterli SQL</strong> (ayrıntısı Ch 6'da):</p>
+  <ul>
+    <li><code>INSERT INTO EMPLOYEE VALUES (…)</code> bir satır ekler. Değerler tablonun sütun sırasıyla yazılır: <code>(Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary, Super_ssn, Dno)</code>. Yani Insert 1'deki dördüncü değer (<code>NULL</code>) Ssn'dir, sondaki <code>4</code> Dno'dur.</li>
+    <li><code>DELETE FROM T WHERE koşul</code>, koşulu sağlayan satırları siler.</li>
+    <li><code>UPDATE T SET sütun = değer WHERE koşul</code>, koşulu sağlayan satırlarda sütunu değiştirir.</li>
+  </ul>
+  <p>Hata mesajı MySQL istemcisindeki gibi yazılır: <code>HATA 1062 (23000): …</code>. Sayı MySQL'in hata numarasıdır: 1062 key (duplicate), 1048 NULL olamaz, 1452 / 1451 foreign key (eklenen satır / silinen satır), 1264 değer aralık dışı.</p>
+</div>
 
 <h3>Insert</h3>
 <p>Dört kısıtı da ihlal edebilir: domain (değer domain'de değil), key (PK ya da UNIQUE değeri zaten var), entity integrity (PK NULL), referential integrity (FK, başvurulan ilişkide olmayan bir değere başvuruyor). İhlalde varsayılan davranış işlemi <strong>reddetmek</strong>tir (ve kullanıcıya nedenini söylemek).</p>
-<p class="small muted">PostgreSQL primary key sütunlarını kendiliğinden NOT NULL yaptığı için Insert 1'in mesajı "not-null constraint" der; kitaptaki adı entity integrity ihlalidir.</p>
+<p class="small muted">MySQL primary key sütunlarını kendiliğinden NOT NULL yaptığı için Insert 1'in mesajı "non-nullable" (1048) der; kitaptaki adı entity integrity ihlalidir.</p>
 <pre class="sql run" data-expect-error data-title="Insert 1 · Entity integrity: Ssn NULL">
 INSERT INTO EMPLOYEE VALUES ('Cecilia', 'F', 'Kolonsky', NULL, '1960-04-05',
        '6357 Windy Lane, Katy, TX', 'F', 28000, NULL, 4);
@@ -129,7 +138,7 @@ SELECT Fname, Lname, Ssn, Dno FROM EMPLOYEE WHERE Ssn = '677678989';
 <ul>
   <li><strong>Restrict / reject</strong> (<code>NO ACTION</code>, <code>RESTRICT</code>): silmeyi reddet.</li>
   <li><strong>Cascade</strong> (<code>ON DELETE CASCADE</code>): başvuran tuple'ları da sil.</li>
-  <li><strong>Set null</strong> (<code>ON DELETE SET NULL</code>) ya da <strong>set default</strong> (<code>ON DELETE SET DEFAULT</code>): başvuran FK değerlerini NULL'a ya da varsayılana çek. FK PK'nın parçasıysa set null kullanılamaz (entity integrity).</li>
+  <li><strong>Set null</strong> (<code>ON DELETE SET NULL</code>) ya da <strong>set default</strong> (<code>ON DELETE SET DEFAULT</code>): başvuran FK değerlerini NULL'a ya da varsayılana çek. FK PK'nın parçasıysa set null kullanılamaz (entity integrity). (MySQL'in standart depolama motoru InnoDB, <code>SET DEFAULT</code>'u kabul etmez; standart SQL'de ve kitapta vardır.)</li>
 </ul>
 <pre class="sql run" data-title="Delete 1 · Geçerli: bir WORKS_ON tuple'ı">
 DELETE FROM WORKS_ON WHERE Essn = '999887777' AND Pno = 10;
@@ -152,12 +161,17 @@ UPDATE EMPLOYEE SET Dno = 1 WHERE Ssn = '999887777';
 <pre class="sql run" data-expect-error data-title="Update 3 · Referential integrity: 7 numaralı departman yok">
 UPDATE EMPLOYEE SET Dno = 7 WHERE Ssn = '999887777';
 </pre>
-<pre class="sql run" data-expect-error data-title="Update 4 · Key kısıtı: 987654321 zaten var (Wallace)">
+<pre class="sql run" data-expect-error data-title="Update 4 · PK değişikliği: 987654321 zaten var (Wallace) ve 999887777'ye başvuranlar var">
 UPDATE EMPLOYEE SET Ssn = '987654321' WHERE Ssn = '999887777';
+</pre>
+<p class="small muted">Kitap bu örneği key ihlali olarak verir. Ama Zelaya'nın Ssn'ine WORKS_ON ve EMPLOYEE.Super_ssn'deki satırlar da başvuruyor: PK'yı değiştirmek aynı anda referential integrity'yi de ihlal eder ve DBMS karşılaştığı ilk ihlali bildirir (bu motorda foreign key). Yalnızca key kısıtını görmek için, kimsenin başvurmadığı bir tabloda aynı şeyi yapın:</p>
+<pre class="sql run" data-expect-error data-title="Update 5 · Yalnız key kısıtı: (5, 'Houston') zaten var">
+-- department 5 is in Bellaire, Sugarland and Houston; moving Bellaire to Houston duplicates the key (Dnumber, Dlocation)
+UPDATE DEPT_LOCATIONS SET Dlocation = 'Houston' WHERE Dnumber = 5 AND Dlocation = 'Bellaire';
 </pre>
 
 <h3>Referential triggered actions: CASCADE ve SET NULL'ı görmek</h3>
-<p>COMPANY şemasında (Figure 6.2) <code>EMPLOYEE.Super_ssn</code> için <code>ON DELETE SET NULL ON UPDATE CASCADE</code>, <code>DEPT_LOCATIONS.Dnumber</code> için <code>ON DELETE CASCADE ON UPDATE CASCADE</code> tanımlı. Etkilerini görelim:</p>
+<p>COMPANY şemasında (Figure 6.2) <code>EMPLOYEE.Super_ssn</code> için <code>ON DELETE SET NULL ON UPDATE CASCADE</code>, <code>DEPT_LOCATIONS.Dnumber</code> için <code>ON DELETE CASCADE ON UPDATE CASCADE</code> tanımlı. Etkilerini görelim. Kutuları çalıştırmadan önce sonucu tahmin edin: hangi satırlar değişecek?</p>
 <pre class="sql run" data-title="ON UPDATE CASCADE: bir departman numarasını değiştirmek">
 -- department 4 becomes 6; EMPLOYEE.Dno and DEPT_LOCATIONS.Dnumber follow (ON UPDATE CASCADE).
 -- PROJECT.Dnum has no ON UPDATE action, so first move the projects out of the way:
@@ -189,40 +203,41 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
 <div class="quiz" data-answer="3">
   <p>R(A, B, C, D) ilişkisinde {A, B} bir key'dir. Hangisi <em>kesinlikle</em> doğrudur?</p>
   <ol>
-    <li>{A} bir superkey'dir.</li>
-    <li>{A, B} primary key olmak zorundadır.</li>
-    <li>{A, B, C} bir superkey'dir ama key değildir.</li>
-    <li>{C, D} bir superkey değildir.</li>
+    <li data-why="{A}, key'in uygun bir alt kümesi. {A} superkey olsaydı {A, B} minimal olmazdı, yani key olamazdı.">{A} bir superkey'dir.</li>
+    <li data-why="Bir ilişkinin birden çok candidate key'i olabilir; primary key bunlardan <em>seçilen</em> biridir. {A, B} seçilmeyebilir.">{A, B} primary key olmak zorundadır.</li>
+    <li data-why="Doğru: superkey'e öznitelik eklemek yine superkey verir; C çıkarılınca hâlâ superkey kaldığı için minimal değildir.">{A, B, C} bir superkey'dir ama key değildir.</li>
+    <li data-why="Bilemeyiz: {C, D} başka bir candidate key olabilir. Verilen bilgi yalnızca {A, B} hakkında.">{C, D} bir superkey değildir.</li>
   </ol>
   <div class="explain">Bir superkey'e öznitelik eklemek yine superkey verir, ama minimal olmadığı için key değildir. {A} key'in uygun alt kümesidir, dolayısıyla minimallik gereği superkey olamaz. {A,B} birden çok candidate key'den biri olabilir. {C,D} de başka bir candidate key olabilir; bunu bilemeyiz.</div>
 </div>
-<div class="quiz" data-answer="2">
+<div class="quiz" data-answer="2" data-tables="WORKS_ON">
   <p>WORKS_ON(<u>Essn</u>, <u>Pno</u>, Hours) tablosuna <code>(NULL, 10, 5.0)</code> eklenmeye çalışılıyor. Hangi kısıt ihlal edilir?</p>
   <ol>
     <li data-why="Bir FK NULL olabilir. Ama Essn burada aynı zamanda PK'nın parçası.">Yalnız referential integrity</li>
-    <li>Entity integrity (PK'nın bir parçası NULL)</li>
+    <li data-why="Doğru: Essn primary key'in parçası; PK'nın hiçbir parçası NULL olamaz.">Entity integrity (PK'nın bir parçası NULL)</li>
     <li data-why="(NULL, 10) değeri tabloda var olan bir anahtar değeriyle eşleşmiyor.">Key kısıtı</li>
-    <li>Hiçbiri; FK'lar NULL olabilir</li>
+    <li data-why="Bir FK tek başına NULL olabilir; ama Essn aynı zamanda PK'nın parçası olduğu için entity integrity onu yasaklar.">Hiçbiri; FK'lar NULL olabilir</li>
   </ol>
   <div class="explain">Essn hem FK hem PK'nın parçasıdır. FK tek başına olsaydı NULL olabilirdi; ama PK'nın hiçbir parçası NULL olamaz.</div>
 </div>
 <div class="quiz" data-answer="4">
   <p>Hangi güncelleme işlemi <em>yalnızca</em> referential integrity'yi ihlal edebilir?</p>
   <ol>
-    <li>Insert</li>
-    <li>PK'yı değiştiren update</li>
-    <li>FK'yı değiştiren update</li>
-    <li>Delete</li>
+    <li data-why="Insert dört kısıtın hepsini ihlal edebilir: domain, key, entity integrity, referential integrity.">Insert</li>
+    <li data-why="PK değiştirmek silip yeniden eklemek gibidir: key, entity integrity ve referential integrity'yi etkiler.">PK'yı değiştiren update</li>
+    <li data-why="Yeni FK değeri tipine uymayabilir: referential integrity'nin yanında domain'i de ihlal edebilir.">FK'yı değiştiren update</li>
+    <li data-why="Doğru: silme yeni değer getirmez; tek risk, silinen satıra başka satırların başvurması.">Delete</li>
   </ol>
   <div class="explain">Silme yeni değer getirmediği için domain, key ve entity integrity'yi ihlal edemez. Tek risk, silinen tuple'a başka tuple'ların başvuruyor olmasıdır. FK değiştiren update referential integrity'nin yanında domain'i de ihlal edebilir.</div>
 </div>
 <div class="quiz" data-answer="1">
   <p>DEPENDENT.Essn → EMPLOYEE.Ssn için hangi silme seçeneği <em>anlamsızdır</em>?</p>
   <ol>
-    <li><code>ON DELETE SET NULL</code></li>
-    <li><code>ON DELETE CASCADE</code></li>
-    <li><code>ON DELETE RESTRICT</code></li>
-    <li><code>ON DELETE NO ACTION</code></li>
+    <li data-why="Doğru: Essn, DEPENDENT'ın PK'sının parçası; NULL yapılırsa entity integrity bozulur."><code>ON DELETE SET NULL</code></li>
+    <li data-why="Anlamlı, hatta en doğal seçim: sahibi silinen zayıf varlığın bağımlıları da silinir."><code>ON DELETE CASCADE</code></li>
+    <li data-why="Anlamlı: bağımlıları olan çalışanın silinmesini reddeder (önce bağımlılar silinmeli)."><code>ON DELETE RESTRICT</code></li>
+    <li data-why="Anlamlı: RESTRICT gibi silmeyi reddeder (fark yalnızca kontrolün zamanlamasında)."><code>ON DELETE NO ACTION</code></li>
+
   </ol>
   <div class="explain">Essn, DEPENDENT'ın PK'sının (Essn, Dependent_name) parçasıdır; NULL yapılamaz. Zayıf bir varlığın sahibi silinince bağımlılar için en doğal seçim CASCADE'dir.</div>
 </div>

@@ -292,6 +292,20 @@ table.simple th { color: var(--text-2); font-weight: 600; font-size: 0.85rem; }
 .verdict.no { color: var(--critical); }
 .verdict.meh { color: var(--text-2); }
 
+/* ---------- which tables a SQL box / quiz is about ---------- */
+.sqlbox-ctx { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--muted); }
+.sqlbox-ctx[hidden] { display: none; }
+.ctx-db { font-weight: 600; margin-right: 2px; }
+.ctx-db::after { content: " ·"; font-weight: 400; }
+.ctx-chip { font: inherit; font-family: var(--mono); font-size: 0.76rem; padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-2); cursor: pointer; }
+.ctx-chip::after { content: " ▾"; color: var(--muted); }
+.ctx-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.ctx-chip[aria-pressed="true"]::after { content: " ▴"; }
+.ctx-chip:hover { background: var(--surface-2); }
+.ctx-panel { flex-basis: 100%; margin-top: 4px; color: var(--text); }
+.ctx-panel[hidden] { display: none; }
+.quiz > .sqlbox-ctx { border: 1px solid var(--border); border-radius: 8px; margin: 6px 0 10px; background: var(--surface-2); }
+
 /* ---------- quiz ---------- */
 .quiz { margin: 1.5rem 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
 .quiz-q { font-weight: 600; margin-bottom: 8px; }
@@ -306,7 +320,13 @@ table.simple th { color: var(--text-2); font-weight: 600; font-size: 0.85rem; }
 .quiz-options button.correct { border-color: var(--good); background: color-mix(in srgb, var(--good) 10%, var(--surface)); }
 .quiz-options button.wrong { border-color: var(--critical); background: color-mix(in srgb, var(--critical) 8%, var(--surface)); }
 .quiz-feedback { margin-top: 8px; font-size: 0.9rem; color: var(--text-2); }
-.quiz-feedback .verdict { margin-right: 6px; }
+.quiz-feedback .verdict { margin-right: 6px; font-weight: 650; }
+.quiz-feedback .verdict.ok { color: var(--good); }
+.quiz-feedback .verdict.no { color: var(--critical); }
+.quiz-whys { margin: 8px 0 0; padding-left: 1.1rem; display: grid; gap: 4px; }
+.quiz-after[hidden] { display: none; }
+.quiz-after { margin-top: 10px; }
+.link-btn { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
 
 /* ---------- cards (home page) ---------- */
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; align-items: center; margin: 0 0 2rem; }

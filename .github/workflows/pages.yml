@@ -28,10 +28,18 @@ jobs:
           node-version: 22
           cache: npm
 
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: engine/go.mod
+          cache-dependency-path: engine/go.sum
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests (exercise solutions on PostgreSQL, site structure)
+      - name: Build the MySQL engine (go-mysql-server → WebAssembly)
+        run: npm run engine
+
+      - name: Run tests (exercise solutions on MySQL, site structure)
         run: npm test
 
       - name: Build site

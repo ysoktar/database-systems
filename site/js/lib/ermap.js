@@ -339,17 +339,25 @@ export function mapER(model, options = {}) {
 }
 
 /** CREATE TABLE statements (foreign keys added afterwards with ALTER TABLE, so cycles such as EMPLOYEE ↔ DEPARTMENT work). */
+// MySQL reserved words that make sensible attribute names; such names are written in backquotes
+const RESERVED = new Set(["RANK", "ORDER", "GROUP", "KEY", "KEYS", "INDEX", "DESC", "ASC", "CONDITION", "RANGE", "ROW", "ROWS",
+  "DIV", "MOD", "INTERVAL", "READ", "WRITE", "RELEASE", "REPEAT", "USAGE", "OPTION", "CHANGE", "CHECK", "COLUMN", "DEFAULT",
+  "SELECT", "FROM", "WHERE", "TABLE", "USER", "LEAD", "LAG", "WINDOW", "OVER", "FUNCTION", "SYSTEM", "GROUPS", "CUBE", "MATCH",
+  "LIMIT", "LINES", "LOAD", "PRIMARY", "REFERENCES", "SCHEMA", "SIGNAL", "TRIGGER", "UNIQUE", "VALUES", "YEAR_MONTH", "INT", "TO"]);
+export const ident = (n) => (RESERVED.has(String(n).toUpperCase()) ? `\`${n}\`` : n);
+
 export function toDDL(tables, { schema = null } = {}) {
-  const q = (n) => (schema ? `${schema}.${n}` : n);
+  const q = (n) => (schema ? `${schema}.${ident(n)}` : ident(n));
+  const cs = (list) => list.map(ident).join(", ");
   const out = [];
   for (const t of tables) {
-    const lines = t.cols.map((c) => `  ${c.name.padEnd(18)} ${c.type}${c.notNull ? " NOT NULL" : ""}`);
-    if (t.pk.length) lines.push(`  PRIMARY KEY (${t.pk.join(", ")})`);
-    for (const u of t.uniques) lines.push(`  UNIQUE (${u.join(", ")})`);
+    const lines = t.cols.map((c) => `  ${ident(c.name).padEnd(18)} ${c.type}${c.notNull ? " NOT NULL" : ""}`);
+    if (t.pk.length) lines.push(`  PRIMARY KEY (${cs(t.pk)})`);
+    for (const u of t.uniques) lines.push(`  UNIQUE (${cs(u)})`);
     out.push(`CREATE TABLE ${q(t.name)} (\n${lines.join(",\n")}\n);`);
   }
   for (const t of tables) for (const [i, f] of t.fks.entries()) {
-    out.push(`ALTER TABLE ${q(t.name)} ADD CONSTRAINT ${t.name}_FK${i + 1}\n  FOREIGN KEY (${f.cols.join(", ")}) REFERENCES ${q(f.ref)} (${f.refCols.join(", ")})${f.onDelete ? ` ON DELETE ${f.onDelete}` : ""};`);
+    out.push(`ALTER TABLE ${q(t.name)} ADD CONSTRAINT ${t.name}_FK${i + 1}\n  FOREIGN KEY (${cs(f.cols)}) REFERENCES ${q(f.ref)} (${cs(f.refCols)})${f.onDelete ? ` ON DELETE ${f.onDelete}` : ""};`);
   }
   return out.join("\n\n") + "\n";
 }

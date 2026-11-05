@@ -2,16 +2,14 @@
   "name": "database-systems",
   "version": "1.0.0",
   "private": true,
-  "description": "BIL372/BIL071 Veritabanı Sistemleri: Elmasri & Navathe Ch 1-7 için etkileşimli arasınav çalışma sitesi",
+  "description": "BIL372/BIL071 Veritabanı Sistemleri: Elmasri & Navathe Ch 1-7 için etkileşimli arasınav çalışma sitesi (tarayıcıda MySQL)",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/serve.mjs",
     "start": "node scripts/build.mjs && node scripts/serve.mjs dist",
-    "test": "node --test test/*.test.mjs"
-  },
-  "devDependencies": {
-    "@electric-sql/pglite": "0.5.8"
+    "test": "node --test test/*.test.mjs",
+    "engine": "sh engine/build.sh"
   },
   "engines": {
     "node": ">=20"

@@ -51,6 +51,7 @@ function updateMapping() {
 updateMapping();
 
 // ---- tables → ER
+// MySQL ignores REFERENCES written inside a column definition: foreign keys are written as table constraints
 const SAMPLE_DDL = `CREATE TABLE TEACHER (
   Tid    INT PRIMARY KEY,
   Name   VARCHAR(30) NOT NULL,
@@ -59,29 +60,35 @@ const SAMPLE_DDL = `CREATE TABLE TEACHER (
 CREATE TABLE CLASS (
   Code     VARCHAR(10) PRIMARY KEY,
   Title    VARCHAR(40),
-  Teacher  INT NOT NULL REFERENCES TEACHER(Tid)
+  Teacher  INT NOT NULL,
+  FOREIGN KEY (Teacher) REFERENCES TEACHER(Tid)
 );
 CREATE TABLE PUPIL (
   Pno   INT PRIMARY KEY,
   Name  VARCHAR(30),
-  Buddy INT REFERENCES PUPIL(Pno)
+  Buddy INT,
+  FOREIGN KEY (Buddy) REFERENCES PUPIL(Pno)
 );
 CREATE TABLE ATTENDS (
-  Pno   INT REFERENCES PUPIL(Pno),
-  Code  VARCHAR(10) REFERENCES CLASS(Code),
+  Pno   INT,
+  Code  VARCHAR(10),
   Grade DECIMAL(4,2),
-  PRIMARY KEY (Pno, Code)
+  PRIMARY KEY (Pno, Code),
+  FOREIGN KEY (Pno) REFERENCES PUPIL(Pno),
+  FOREIGN KEY (Code) REFERENCES CLASS(Code)
 );
 CREATE TABLE PUPIL_PHONE (
-  Pno   INT REFERENCES PUPIL(Pno),
+  Pno   INT,
   Phone VARCHAR(15),
-  PRIMARY KEY (Pno, Phone)
+  PRIMARY KEY (Pno, Phone),
+  FOREIGN KEY (Pno) REFERENCES PUPIL(Pno)
 );
 CREATE TABLE HOMEWORK (
-  Code  VARCHAR(10) REFERENCES CLASS(Code) ON DELETE CASCADE,
+  Code  VARCHAR(10),
   Hw_no INT,
   Due   DATE,
-  PRIMARY KEY (Code, Hw_no)
+  PRIMARY KEY (Code, Hw_no),
+  FOREIGN KEY (Code) REFERENCES CLASS(Code) ON DELETE CASCADE
 );
 `;
 const ddlBox = h("textarea", { rows: 14, spellcheck: "false", style: { width: "100%", fontFamily: "var(--mono)", fontSize: "0.82rem" }, "aria-label": "CREATE TABLE komutları" });
@@ -95,18 +102,20 @@ $("#load-sample-ddl").addEventListener("click", () => { ddlBox.value = SAMPLE_DD
 
 let revCount = 0;
 async function reverse() {
-  revOut.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "Tablolar PostgreSQL'de oluşturuluyor …"));
+  revOut.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "Tablolar MySQL'de oluşturuluyor …"));
   const schema = `rev_${++revCount}`;
-  const created = await runSQL(`DROP SCHEMA IF EXISTS ${schema} CASCADE;\nCREATE SCHEMA ${schema};\nSET search_path TO ${schema};\n${ddlBox.value}`);
-  await runSQL("SET search_path TO company, public");
+  const created = await runSQL(`DROP DATABASE IF EXISTS ${schema};\nCREATE DATABASE ${schema};\nUSE ${schema};\n${ddlBox.value}`);
   if (created.error) {
-    revOut.replaceChildren(h("div", { class: "res-msg error" }, `PostgreSQL hatası: ${created.error.message}${created.error.index > 3 ? ` (komut ${created.error.index - 3})` : ""}`));
+    revOut.replaceChildren(h("div", { class: "res-msg error" }, `MySQL hatası ${created.error.code}: ${created.error.message}${created.error.index > 3 ? ` (komut ${created.error.index - 3})` : ""}`));
     return;
   }
   const [qCols, qCons] = catalogSQL(schema);
   const cols = (await runSQL(qCols)).last?.rows || [];
   const cons = (await runSQL(qCons)).last?.rows || [];
   const { model, steps, notes } = reverseER(catalogFromRows(cols, cons));
+  // a column-level REFERENCES is accepted by MySQL but creates no foreign key
+  const inline = ddlBox.value.split("\n").filter((l) => /\bREFERENCES\b/i.test(l) && !/FOREIGN\s+KEY/i.test(l) && !/^\s*(ON|--)/i.test(l));
+  if (inline.length) notes.unshift(`MySQL, sütun tanımının içine yazılan <code>REFERENCES</code>'ı kabul eder ama <strong>yok sayar</strong>: foreign key oluşmaz. ${inline.length} satırda böyle bir tanım var (ör. <code>${inline[0].trim().replace(/</g, "&lt;")}</code>). Foreign key için tablo kısıtı yazın: <code>FOREIGN KEY (sütun) REFERENCES T(sütun)</code>.`);
   if (!model.entities.length) { revOut.replaceChildren(h("div", { class: "res-msg warn" }, "Hiç tablo bulunamadı.")); return; }
   const pos = autoLayout(model);
   const spec = toDiagram(model, pos, {});

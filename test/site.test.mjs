@@ -34,7 +34,10 @@ for (const p of pages) {
 
 test("splitSQL splits like the notebook's _split_sql", () => {
   assert.deepEqual(splitSQL("SELECT 1; SELECT ';' -- x;\n; /* ; */ SELECT 2;"), ["SELECT 1", "SELECT ';' -- x;", "/* ; */ SELECT 2"]);
-  assert.deepEqual(splitSQL("CREATE FUNCTION f() RETURNS int AS $$ BEGIN RETURN 1; END $$ LANGUAGE plpgsql; SELECT f();").length, 2);
+  // DELIMITER, as in the mysql client: a trigger body keeps its own semicolons
+  assert.deepEqual(splitSQL("DELIMITER //\nCREATE TRIGGER t BEFORE INSERT ON x FOR EACH ROW BEGIN SET NEW.a = 1; END//\nDELIMITER ;\nSELECT 2;"),
+    ["CREATE TRIGGER t BEFORE INSERT ON x FOR EACH ROW BEGIN SET NEW.a = 1; END", "SELECT 2"]);
+  assert.deepEqual(splitSQL("SELECT 'it\\'s; ok', `a;b` FROM t # c;\nWHERE 1; SELECT 3"), ["SELECT 'it\\'s; ok', `a;b` FROM t # c;\nWHERE 1", "SELECT 3"]);
   assert.deepEqual(splitSQL("-- only a comment\n;"), []);
   // a comment after ';' on the same line stays with its statement
   assert.deepEqual(splitSQL("SET x = 1;   -- why\nSELECT 2;"), ["SET x = 1 -- why", "SELECT 2"]);
@@ -50,8 +53,9 @@ test("number normalization matches Python's Decimal.quantize(ROUND_HALF_EVEN)", 
   assert.equal(quantize2("-1.005"), "-1.00");
   assert.equal(quantize2("9.999"), "10.00");
   assert.equal(pyDumps([["a", null], ["ş"]]), '[["a", null], ["\\u015f"]]');
-  assert.equal(commandTag("insert into t values (1)", 1), "INSERT 0 1");
-  assert.equal(commandTag("CREATE OR REPLACE VIEW v AS SELECT 1", 0), "CREATE VIEW");
+  assert.equal(commandTag("insert into t values (1)", 1), "INSERT: Query OK, 1 row affected");
+  assert.equal(commandTag("DELETE FROM t", 3), "DELETE: Query OK, 3 rows affected");
+  assert.equal(commandTag("CREATE OR REPLACE VIEW v AS SELECT 1", 0), "CREATE VIEW: Query OK");
 });
 
 test("result captions come from the statement's own comment", () => {

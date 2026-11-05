@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ER stüdyosu · Veritabanı Sistemleri</title>
-<meta name="description" content="ER/EER diyagramlarını sürükle-bırak ya da metinle çizin, Elmasri Ch 9 algoritmasıyla adım adım tablolara dönüştürün ve PostgreSQL'de oluşturun; kendi CREATE TABLE'larınızı ER diyagramına geri çevirin; gereksinimden ER tasarımı alıştırmaları otomatik kontrol edilir.">
+<meta name="description" content="ER/EER diyagramlarını sürükle-bırak ya da metinle çizin, Elmasri Ch 9 algoritmasıyla adım adım tablolara dönüştürün ve MySQL'de oluşturun; kendi CREATE TABLE'larınızı ER diyagramına geri çevirin; gereksinimden ER tasarımı alıştırmaları otomatik kontrol edilir.">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
@@ -14,7 +14,7 @@
 <main><div class="content">
 
 <h1>ER stüdyosu</h1>
-<p class="lead">ER ve EER diyagramlarını çizin, otomatik olarak tablolara dönüştürün, tabloları PostgreSQL'de oluşturun; ya da kendi tablolarınızı yazıp ER diyagramına geri çevirin. Gidiş ve dönüş aynı yerde.</p>
+<p class="lead">ER ve EER diyagramlarını çizin, otomatik olarak tablolara dönüştürün, tabloları MySQL'de oluşturun; ya da kendi tablolarınızı yazıp ER diyagramına geri çevirin. Gidiş ve dönüş aynı yerde.</p>
 
 <h2 id="editor">1 · Diyagram</h2>
 <p>Bir örnekle başlayın ya da boş bir diyagramla kendinizinkini çizin. Öğelere tıklayıp sağdaki panelden düzenleyin, sürükleyerek yerleştirin. Çalışmanız bu tarayıcıda saklanır.</p>
@@ -36,7 +36,7 @@
 <div id="mapping"></div>
 
 <h2 id="to-er">3 · Tablolar → ER</h2>
-<p>Kendi <code>CREATE TABLE</code> komutlarınızı yazın (PRIMARY KEY, FOREIGN KEY ve UNIQUE kısıtlarıyla). Tablolar PostgreSQL'de ayrı bir şemada oluşturulur, kısıtlar katalogdan okunur ve eşleme kurallarının tersiyle bir ER diyagramı çıkarılır. Buna <em>reverse engineering</em> denir.</p>
+<p>Kendi <code>CREATE TABLE</code> komutlarınızı yazın (PRIMARY KEY, FOREIGN KEY ve UNIQUE kısıtlarıyla). Tablolar MySQL'de ayrı bir veritabanında oluşturulur, kısıtlar <code>information_schema</code>'dan okunur ve eşleme kurallarının tersiyle bir ER diyagramı çıkarılır. Buna <em>reverse engineering</em> denir.</p>
 <div class="btn-row">
   <button type="button" class="btn small" id="load-company-ddl">Kitabın COMPANY DDL'i</button>
   <button type="button" class="btn small" id="load-diagram-ddl">Yukarıdaki diyagramın DDL'i (gidiş-dönüş)</button>
