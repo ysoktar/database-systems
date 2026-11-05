@@ -9,7 +9,8 @@ let dbPromise = null;
 let queue = Promise.resolve(); // statements of different boxes never interleave
 const listeners = new Set();
 export let state = "idle"; // idle | loading | ready | failed
-const setState = (s, info) => { state = s; for (const fn of listeners) fn(s, info); };
+export let stateInfo = null; // loading: { stage: "download" | "compile" | "setup", mb }; failed: { error }
+const setState = (s, info = null) => { state = s; stateInfo = info; for (const fn of listeners) fn(s, info); };
 export const onState = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
 
 let inTransaction = false;
@@ -26,11 +27,57 @@ function loadGlue() {
   });
 }
 
+const STALL_MS = 45000;      // the download is given up when no byte arrives for this long
+const COMPILE_MS = 180000;   // and the start when compiling takes longer than this
+const nextFrame = () => new Promise((r) => setTimeout(r, 30)); // let the page paint the new stage
+
+/** The engine's bytes, with progress events; fails (instead of hanging) when the download stalls. */
+async function download(url) {
+  const ctrl = new AbortController();
+  let stall = 0;
+  const arm = () => { clearTimeout(stall); stall = setTimeout(() => ctrl.abort(), STALL_MS); };
+  arm();
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`mysql.wasm indirilemedi (HTTP ${res.status})`);
+    if (!res.body?.getReader) return new Uint8Array(await res.arrayBuffer());
+    const reader = res.body.getReader();
+    const chunks = [];
+    let n = 0, painted = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      n += value.length;
+      arm();
+      if (performance.now() - painted > 250) { painted = performance.now(); setState("loading", { stage: "download", mb: n / 1e6 }); }
+    }
+    const bytes = new Uint8Array(n);
+    let at = 0;
+    for (const c of chunks) { bytes.set(c, at); at += c.length; }
+    return bytes;
+  } catch (e) {
+    if (ctrl.signal.aborted) throw new Error(`indirme ${STALL_MS / 1000} saniyedir ilerlemiyor`);
+    throw new Error(`mysql.wasm indirilemedi (${e?.message || e})`);
+  } finally {
+    clearTimeout(stall);
+  }
+}
+
 async function create() {
-  setState("loading");
+  setState("loading", { stage: "download", mb: 0 });
   const t0 = performance.now();
   await loadGlue();
-  const db = await startEngine(fetch(new URL("mysql.wasm", base)));
+  const bytes = await download(new URL("mysql.wasm", base));
+  setState("loading", { stage: "compile" });
+  await nextFrame();
+  let timer = 0;
+  const db = await Promise.race([
+    startEngine(bytes),
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`motor ${COMPILE_MS / 1000} saniyede başlamadı`)), COMPILE_MS); }),
+  ]).finally(() => clearTimeout(timer));
+  setState("loading", { stage: "setup" });
+  await nextFrame();
   resetCompany(db);
   setState("ready", { ms: performance.now() - t0 });
   return db;
@@ -52,7 +99,9 @@ export function resetCompany(db) {
 }
 
 export function reset() {
-  return (queue = queue.then(async () => resetCompany(await getDB())));
+  const job = queue.then(async () => resetCompany(await getDB()));
+  queue = job.catch(() => {}); // a failed start must not block the boxes that run after it
+  return job;
 }
 
 const ROW_WORDS = new Set(["SELECT", "WITH", "VALUES", "TABLE", "EXPLAIN", "SHOW", "DESCRIBE", "DESC"]);
@@ -64,10 +113,18 @@ const word2 = (s) => firstWord(s.replace(/^\s*\S+/, ""));
  * Every box starts in `database` (COMPANY unless told otherwise), so a USE in one box never changes what the next
  * box sees. Returns { items, last, error, inTransaction }.
  * items: {kind: "result", cols, types, rows, caption} | {kind: "status", text} | {kind: "error", …}
+ * If the engine cannot start, the result has one {kind: "startup", message} item and error.startup = true (it never
+ * rejects, so no caller is left with a spinner).
  */
 export function runSQL(text, { expectError = false, database = "company" } = {}) {
   const job = queue.then(async () => {
-    const db = await getDB();
+    let db;
+    try {
+      db = await getDB();
+    } catch (e) {
+      const message = e?.message || String(e);
+      return { items: [{ kind: "startup", message }], last: null, error: { startup: true, message: `MySQL başlatılamadı: ${message}` }, inTransaction: false };
+    }
     const stmts = splitSQL(text);
     db.query(`USE ${database}`);
     const multi = stmts.filter((s) => ROW_WORDS.has(firstWord(s))).length > 1;

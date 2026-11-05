@@ -3,7 +3,7 @@
 //   <pre class="sql run" data-expect-error>…</pre>         the error is the point (constraint violations, …)
 //   <pre class="sql">…</pre>                              display only, highlighted
 import { h, $$, highlightSQL, dedent, button } from "./ui.js";
-import { runSQL, reset, onState, state, getDB } from "./db.js";
+import { runSQL, reset, onState, state, stateInfo, getDB } from "./db.js";
 import { checkResult, resultHash } from "./sqlcore.js";
 import { companyData, tablesIn } from "./companydata.js";
 
@@ -42,6 +42,7 @@ export function renderItems(out, items) {
       else out.append(relationTable(it.cols, it.types, []));
     } else if (it.kind === "status") out.append(h("div", { class: "res-msg status" }, it.text));
     else if (it.kind === "notice") out.append(h("div", { class: "res-msg status" }, it.text));
+    else if (it.kind === "startup") out.append(startError(it.message));
     else if (it.kind === "error") {
       // as the mysql client prints it: ERROR 1062 (23000): Duplicate entry …
       const lines = [`${it.expected ? "BEKLENEN HATA" : "HATA"} ${it.code || ""} (${it.state || "HY000"}): ${it.message}`];
@@ -92,9 +93,29 @@ export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow
   return el;
 }
 
+/** What the engine is doing right now, in words (shown next to the spinner). */
+export function loadingText(info) {
+  if (info?.stage === "compile") return "MySQL derleniyor … (yavaş bilgisayarlarda 10–30 saniye sürebilir)";
+  if (info?.stage === "setup") return "COMPANY veritabanı kuruluyor …";
+  const mb = info?.mb ? `${Math.round(info.mb)} / ≈ 87 MB` : "başlıyor";
+  return `MySQL tarayıcınıza indiriliyor: ${mb} (yalnızca ilk seferde; sonra tarayıcının önbelleğinden gelir)`;
+}
+
 function loadingLine() {
-  const el = h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "MySQL tarayıcınızda başlatılıyor (ilk seferde ≈ 23 MB indirilir, sonra önbellekte) …");
+  const text = h("span", {}, loadingText(stateInfo));
+  const el = h("div", { class: "loading-db" }, h("span", { class: "spinner" }), text);
+  const off = onState((s, info) => { if (s === "loading" && el.isConnected) text.textContent = loadingText(info); else if (s !== "loading") off(); });
   return el;
+}
+
+/** The engine failed to start: the reason and what the reader can do about it. */
+export function startError(e) {
+  return h("div", { class: "res-msg error" },
+    `MySQL başlatılamadı: ${e?.message || e}\n`
+    + "Yapabilecekleriniz: (1) Tekrar ▶ Çalıştır'a basın, ya da sayfayı yenileyin. "
+    + "(2) Bağlantınızı kontrol edin: motor ilk seferde ≈ 24 MB sıkıştırılmış olarak indirilir. "
+    + "(3) Reklam engelleyici ya da kurum/okul ağının filtresi .wasm dosyalarını engelliyor olabilir; başka bir ağda ya da gizli pencerede deneyin. "
+    + "(4) Güncel Chrome, Edge, Firefox ya da Safari kullanın; bilgisayarın belleği çok azsa diğer sekmeleri kapatın.");
 }
 
 let boxCount = 0;
@@ -139,8 +160,12 @@ export function createSqlBox(opts = {}) {
   if (opts.resetButton !== false) {
     actions.append(button("Veritabanını sıfırla", async () => {
       out.replaceChildren(loadingLine());
-      await reset();
-      out.replaceChildren(h("div", { class: "res-msg ok" }, "COMPANY başlangıç verisine döndürüldü (yaptığınız değişiklikler geri alındı)."));
+      try {
+        await reset();
+        out.replaceChildren(h("div", { class: "res-msg ok" }, "COMPANY başlangıç verisine döndürüldü (yaptığınız değişiklikler geri alındı)."));
+      } catch (e) {
+        out.replaceChildren(startError(e));
+      }
     }, { title: "COMPANY tablolarını kitaptaki ilk hâline döndür (yaptığınız INSERT/UPDATE/DELETE geri alınır)" }));
   }
   const head = h("div", { class: "sqlbox-head" }, h("div", { class: "sqlbox-title", html: opts.title || "SQL" }), actions);
@@ -164,10 +189,11 @@ export function createSqlBox(opts = {}) {
       if (opts.setup) await runSQL(opts.setup, { database: opts.database }); // prerequisites (e.g. a view defined in an earlier box), output not shown
       res = await runSQL(text, { expectError: !!opts.expectError, database: opts.database });
     } catch (e) {
-      out.replaceChildren(h("div", { class: "res-msg error" }, "MySQL başlatılamadı: " + (e?.message || e)));
+      out.replaceChildren(startError(e));
       runBtn.disabled = false;
       return null;
     }
+    if (res.error?.startup) { out.replaceChildren(startError(res.error.message.replace(/^MySQL başlatılamadı: /, ""))); runBtn.disabled = false; return res; }
     out.replaceChildren();
     renderItems(out, res.items);
     if (opts.expectError && !res.error) out.append(h("div", { class: "res-msg warn" }, "UYARI: bu kutunun hata vermesi bekleniyordu ama tüm komutlar başarılı oldu."));
@@ -234,9 +260,9 @@ export function engineBadge() {
   const el = h("span", { class: "small muted" });
   const paint = (s, info) => {
     el.textContent = s === "ready" ? `MySQL hazır${info?.ms ? ` (${(info.ms / 1000).toFixed(1)} s)` : ""}`
-      : s === "loading" ? "MySQL yükleniyor …" : s === "failed" ? "MySQL yüklenemedi" : "MySQL ilk kullanımda yüklenecek";
+      : s === "loading" ? loadingText(info) : s === "failed" ? `MySQL yüklenemedi: ${info?.error?.message || ""}` : "MySQL ilk kullanımda yüklenecek";
   };
-  paint(state);
+  paint(state, stateInfo);
   onState(paint);
   return el;
 }

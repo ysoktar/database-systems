@@ -5,7 +5,7 @@
 //             showSql: true }]
 import { h, $$, highlightSQL } from "./ui.js";
 import { runSQL } from "./db.js";
-import { relationTable } from "./sqlbox.js";
+import { relationTable, startError } from "./sqlbox.js";
 
 export function queryStepper(steps, { intro } = {}) {
   const seg = h("div", { class: "stepper-steps", role: "group" });
@@ -26,6 +26,7 @@ export function queryStepper(steps, { intro } = {}) {
     const res = await runSQL(s.sql);
     if (my !== token) return;
     out.replaceChildren();
+    if (res.error?.startup) { out.append(startError(res.items[0].message)); return; }
     if (res.error) { out.append(h("div", { class: "res-msg error" }, res.error.message)); return; }
     let { cols, types, rows } = res.last;
     let rowClass = null;

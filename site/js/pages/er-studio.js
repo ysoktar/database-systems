@@ -10,6 +10,7 @@ import { reverseER, catalogSQL, catalogFromRows } from "../lib/erreverse.js";
 import { toDSL, emptyModel } from "../lib/ermodel.js";
 import { SCHEMA_SQL } from "../lib/company.js";
 import { runSQL } from "../lib/db.js";
+import { startError } from "../lib/sqlbox.js";
 import { erFigure } from "../lib/erd.js";
 import { autoLayout, toDiagram } from "../lib/erlayout.js";
 
@@ -105,6 +106,7 @@ async function reverse() {
   revOut.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "Tablolar MySQL'de oluşturuluyor …"));
   const schema = `rev_${++revCount}`;
   const created = await runSQL(`DROP DATABASE IF EXISTS ${schema};\nCREATE DATABASE ${schema};\nUSE ${schema};\n${ddlBox.value}`);
+  if (created.error?.startup) { revOut.replaceChildren(startError(created.items[0].message)); return; }
   if (created.error) {
     revOut.replaceChildren(h("div", { class: "res-msg error" }, `MySQL hatası ${created.error.code}: ${created.error.message}${created.error.index > 3 ? ` (komut ${created.error.index - 3})` : ""}`));
     return;
