@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veritabanı Sistemleri · BIL372 arasınav çalışma sitesi</title>
+<meta name="description" content="BIL372/BIL071 Veritabanı Sistemleri arasınavı için etkileşimli çalışma sitesi: Elmasri & Navathe Ch 1–7, ER/EER, ilişkisel model, SQL; tarayıcıda çalışan gerçek PostgreSQL ile notebook alıştırmaları.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/index.js"></script>
+</head>
+<body data-page="index">
+<main><div class="content">
+
+<section class="hero">
+  <div>
+    <div class="kicker"><span>BIL372/BIL071 Veritabanı Sistemleri · 2026–2027 Güz · Elmasri &amp; Navathe, 7. baskı, Ch 1–7</span></div>
+    <h1>Veritabanı Sistemleri</h1>
+    <p class="question">Bir şirketin verisini nasıl modelleriz, tablolara nasıl dökeriz, SQL ile nasıl sorgularız?</p>
+    <p class="lead">Arasınavın tüm kapsamı tek yerde: kavramlar, ER/EER modelleme, ilişkisel model ve SQL. Sayfalardaki her SQL kutusu
+      <strong>tarayıcınızda çalışan gerçek bir PostgreSQL</strong>'e bağlı: kitabın COMPANY veritabanı üzerinde sorguları değiştirip hemen çalıştırabilirsiniz.</p>
+    <div class="btn-row" style="margin-top:1rem">
+      <a class="btn primary" href="exam-midterm.html">Arasınav rehberi →</a>
+      <a class="btn" href="notebook.html">Notebook alıştırmaları</a>
+      <a class="btn" href="lab.html">SQL laboratuvarı</a>
+    </div>
+  </div>
+  <div class="hero-viz" id="hero"></div>
+</section>
+
+<h2>Duyuru özeti</h2>
+<div class="callout key">
+  <p><strong>Arasınav, Ch 7'nin sonuna kadar.</strong> Yani Elmasri &amp; Navathe Ch 1–7: veritabanı kavramları, mimari, ER, EER, ilişkisel model, temel SQL ve ileri SQL (iç içe sorgular, join'ler, gruplama, trigger, view, şema değişikliği).</p>
+</div>
+<table class="simple schedule">
+  <thead><tr><th>Gün</th><th>Ne var</th></tr></thead>
+  <tbody>
+    <tr><td>Pazartesi</td><td>Sınıfta lab yok. Onun yerine <a href="notebook.html">notebook</a>'a çalışın (teslim yok). 12:20–13:00 ofis saatinde Colab soruları sorulabilir.</td></tr>
+    <tr><td>Perşembe 9:00–10:20</td><td>Ch 8 (ilişkisel cebir) anlatılacak: <strong>arasınavda değil, finalde</strong>. Ders çıkışında Colab soruları sorulabilir.</td></tr>
+    <tr><td>Cuma</td><td>Sınavdan hemen önce olduğu için ders yok. Sınavın kesin saati ve yeri için Piazza'ya bakın.</td></tr>
+  </tbody>
+</table>
+<p class="small muted">Notlandırma: arasınav %30, lab %10, proje %20, genel sınav %40.</p>
+
+<h2>Plan</h2>
+<p>Sayfalar kitabın bölüm sırasını izler. Her sayfa tanımlar, kitaptaki COMPANY örnekleri, sık yapılan hatalar ve kısa sınamalarla biter; SQL sayfalarındaki örneklerin hepsi çalıştırılabilir.</p>
+<div class="cards" id="parts"></div>
+
+<h2>Konular nasıl bağlanıyor?</h2>
+<p>Bir veritabanı projesi bu sırayla ilerler, kitap da öyle:</p>
+<ol>
+  <li><strong>Gereksinimler → kavramsal şema (Ch 3–4).</strong> "Her çalışan bir departmanda çalışır" gibi cümleler ER/EER diyagramına dönüşür: varlıklar, ilişkiler, kardinalite ve katılım kısıtları.</li>
+  <li><strong>Kavramsal şema → ilişkisel şema (Ch 5, eşleme Ch 9'da).</strong> Varlıklar ve ilişkiler tablolara, anahtarlar primary key ve foreign key'lere dönüşür; bütünlük kısıtları veriyi korur.</li>
+  <li><strong>İlişkisel şema → SQL (Ch 6–7).</strong> <code>CREATE TABLE</code> şemayı tanımlar; <code>SELECT</code> sorgular, <code>INSERT/UPDATE/DELETE</code> günceller; view, trigger ve assertion ek kurallar ekler.</li>
+  <li><strong>Hepsinin altında DBMS (Ch 1–2).</strong> Üç-şema mimarisi ve veri bağımsızlığı, programların şema değişikliklerinden etkilenmemesini sağlar.</li>
+</ol>
+
+<h2>Örnek veritabanı: COMPANY</h2>
+<p>Kitap boyunca (ve notebook'ta) kullanılan veritabanı: 8 çalışan, 3 departman, 6 proje. Sayfalardaki her sorgu bu verinin üzerinde çalışır (Figure 5.6). Altı çizili sütunlar primary key, mavi olanlar foreign key.</p>
+<div id="schema"></div>
+
+<h2>Sitenin kullanımı</h2>
+<div class="two-col">
+  <div>
+    <h3>SQL kutuları</h3>
+    <p>Kutudaki sorguyu değiştirin ve <strong>▶ Çalıştır</strong>'a basın (ya da <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). İlk çalıştırmada PostgreSQL tarayıcınıza indirilir (≈ 5 MB, sonra önbellekte). INSERT/UPDATE/DELETE verileri değiştirir; <strong>Veritabanını sıfırla</strong> her şeyi kitaptaki hâline döndürür.</p>
+  </div>
+  <div>
+    <h3>Kutular</h3>
+    <div class="callout key"><p>Bölümden akılda kalması gereken kural.</p></div>
+    <div class="callout gotcha"><p>Sınavda sık yapılan hata ve nasıl kaçınılacağı.</p></div>
+  </div>
+</div>
+<pre class="sql run" data-title="Deneyin: en yüksek maaşlı üç çalışan">
+SELECT Fname, Lname, Salary
+FROM   EMPLOYEE
+ORDER BY Salary DESC
+LIMIT 3;
+</pre>
+
+<div class="callout note">
+  <p>Bu site resmî ders materyali değildir; ders slaytlarının ve kitabın yerini tutmaz. Kapsam duyurudaki bilgiye göre hazırlandı (Ch 1–7). Notebook alıştırmalarının kontrolcüsü notebook'takiyle aynı parmak izlerini (hash) kullanır.</p>
+</div>
+
+</div></main>
+</body>
+</html>
