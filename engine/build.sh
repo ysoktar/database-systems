@@ -138,6 +138,30 @@ s = s.replace(old, """				if _, ok := e.(*expression.Not); ok {
 open(p, "w").write(s)
 EOF
 
+# 7. MySQL 8 knows functional dependencies: grouping by a table's whole primary key allows selecting the table's
+#    other columns (SELECT Pnumber, Pname ... GROUP BY Pnumber). The helpers are in patches/group_by_fd.go.
+cp patches/group_by_fd.go vendor/github.com/dolthub/go-mysql-server/sql/analyzer/group_by_fd.go
+python3 - "$rules" <<'EOF'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+old = """		for _, expr := range gb.SelectedExprs {
+			if gf, ok := expr.(*expression.GetField); ok && aggArgs[strings.ToLower(gf.String())] {
+				continue
+			}
+			if _, ok := expr.(sql.Aggregation); !ok {
+				if !expressionReferencesOnlyGroupBys(groupBys, expr) {"""
+assert old in s, "functional dependency patch no longer applies"
+s = s.replace(old, """		determined := groupedKeyTables(gb, groupBys)
+		for _, expr := range gb.SelectedExprs {
+			if gf, ok := expr.(*expression.GetField); ok && aggArgs[strings.ToLower(gf.String())] {
+				continue
+			}
+			if _, ok := expr.(sql.Aggregation); !ok {
+				if !expressionReferencesOnlyGroupBys(groupBys, expr) && !onlyDeterminedColumns(expr, groupBys, determined) {""", 1)
+open(p, "w").write(s)
+EOF
+
 mkdir -p dist
 GOOS=js GOARCH=wasm go build -mod=vendor -trimpath -ldflags="-s -w" -o dist/mysql.wasm .
 cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" dist/wasm_exec.js 2>/dev/null || cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" dist/wasm_exec.js

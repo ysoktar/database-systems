@@ -14,7 +14,15 @@
 <main><div class="content">
 
 <h1>EER modeli</h1>
-<p class="lead">Enhanced ER (EER), ER modeline alt sınıf/üst sınıf ilişkisini ve kalıtımı ekler. Bu sayfadaki her kavram bir kez tanımlanır; şekiller kitaptaki gösterimle çizilmiştir.</p>
+<p class="lead">Enhanced ER (EER), ER modeline alt sınıf/üst sınıf ilişkisini ve kalıtımı ekler. Şekiller kitaptaki gösterimle çizilmiştir.</p>
+
+<h2>Neden EER?</h2>
+<p>COMPANY'de bütün çalışanlar tek bir EMPLOYEE tipindedir. Şimdi şirketin şunları da tutmak istediğini düşünün: sekreterlerin yazma hızı, mühendislerin mühendislik türü, saatlik çalışanların saat ücreti; ayrıca yalnızca mühendislerin projelere teknik lider olabildiği. ER ile iki kötü seçenek var:</p>
+<ul>
+  <li>Hepsini EMPLOYEE'nin özniteliği yapmak: <code>Typing_speed</code> sekreter olmayan herkes için NULL kalır; "yalnızca mühendisler teknik lider olabilir" kuralı diyagramda görünmez.</li>
+  <li>SECRETARY, ENGINEER, … diye ayrı entity type'lar açmak: o zaman bir mühendis ile aynı kişinin EMPLOYEE kaydı iki ayrı varlık gibi görünür; ad, maaş gibi ortak öznitelikler her tipte tekrar eder.</li>
+</ul>
+<p>EER'in cevabı: ENGINEER ayrı bir varlık değil, EMPLOYEE'nin bir <em>alt kümesidir</em>. Ortak özellikleri EMPLOYEE'den miras alır, yalnızca kendine özgü olanları ekler.</p>
 
 <h2>Alt sınıf, üst sınıf, kalıtım</h2>
 <ul>
@@ -51,7 +59,19 @@
   </tbody>
 </table>
 <p>İki kısıt bağımsızdır; dört birleşimin hepsi mümkündür. Tek değerli bir defining attribute ile yapılan özelleştirme kendiliğinden disjoint'tir; genelleştirmeden çıkan üst sınıf genellikle total'dir.</p>
+<div class="callout example" data-label="Adım adım: kısıtlara karar vermek">
+  <p>Gereksinimden iki soru sorun:</p>
+  <ol>
+    <li><strong>Bir varlık aynı anda iki alt sınıfta olabilir mi?</strong> Evet → overlapping (o); hayır → disjoint (d).</li>
+    <li><strong>Hiçbir alt sınıfa girmeyen bir varlık olabilir mi?</strong> Evet → partial (tek çizgi); hayır → total (çift çizgi).</li>
+  </ol>
+  <p>EMPLOYEE → {SECRETARY, TECHNICIAN, ENGINEER}: bir çalışanın tek bir iş tipi var (d); yöneticiler gibi bu üçünden hiçbiri olmayan çalışanlar var (partial). PART → {MANUFACTURED_PART, PURCHASED_PART} (aşağıdaki şekil): bir parça hem üretilip hem satın alınabilir (o); her parça ikisinden en az biridir (total).</p>
+</div>
 <div id="spec-part"></div>
+<div class="callout gotcha">
+  <p><strong>Çift çizgi iki farklı şey anlatır.</strong> ER'de bir varlıktan ilişkiye çift çizgi <em>total participation</em> demektir (her varlık ilişkiye katılır). EER'de üst sınıftan özelleştirme dairesine çift çizgi <em>total specialization</em> demektir (her varlık bir alt sınıftadır). Sembol aynı, fikir benzer ("hepsi"), ama biri ilişkiye, diğeri alt sınıflara dairdir.</p>
+</div>
+
 <div class="callout example" data-label="Kısıtlardan doğan kurallar">
   <ul>
     <li>Üst sınıftan silinen varlık, bütün alt sınıflarından da silinir.</li>

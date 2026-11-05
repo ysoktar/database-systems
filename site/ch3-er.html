@@ -23,9 +23,10 @@
   <li><strong>Logical design</strong> (<em>data model mapping</em>): kavramsal şemanın DBMS'in modeline (ör. ilişkisel) çevrilmesi. ER→ilişkisel eşleme kitapta Ch 9'dadır.</li>
   <li><strong>Physical design</strong>: iç depolama yapıları, index'ler, erişim yolları.</li>
 </ol>
+<p>Bu sayfa 2. adımı anlatır: gereksinim metnini okuyup bir ER diyagramı çizmek. Sınavda tipik soru budur: bir paragraf verilir, varlıkları, öznitelikleri, ilişkileri ve kısıtlarını diyagramla göstermeniz istenir. Sayfanın sonunda bunu bir hastane örneğiyle kendiniz yapacaksınız.</p>
 
 <h2>Gösterim</h2>
-<p>Kitap Chen gösterimini kullanır. Bu sitenin bütün diyagramları aynı sembollerle çizilir:</p>
+<p>Kitap Chen gösterimini kullanır. Bu sitenin bütün diyagramları aynı sembollerle çizilir. Sembollerin anlamı aşağıdaki bölümlerde tek tek anlatılıyor; şimdi ezberlemeniz gerekmiyor, okurken bu tabloya geri dönebilirsiniz:</p>
 <div id="legend"></div>
 
 <h2>Varlıklar ve öznitelikler</h2>
@@ -55,7 +56,7 @@
 </ul>
 
 <h2>COMPANY: gereksinimlerden şemaya</h2>
-<p>Kitaptaki gereksinimler (Section 3.2):</p>
+<p>Kavramları bir örnek üzerinde görelim. Kitaptaki gereksinimler (Section 3.2) aşağıda; diyagram bunlardan çizildi. Diyagramda henüz anlatılmamış yapılar var (ilişkiler, 1/N sayıları, çift çizgiler, zayıf varlık); bunlar <a href="#iliski-tipleri">ilişki tipleri</a>, <a href="#ikili-iliskilerde-yapisal-kisitlar">yapısal kısıtlar</a> ve <a href="#zayif-varliklar-weak-entity-types">zayıf varlıklar</a> bölümlerinde açıklanıyor. Şimdilik varlıklara (dikdörtgenler) ve özniteliklere (elipsler) bakın.</p>
 <ol>
   <li>Şirket <strong>departmanlara</strong> ayrılmıştır. Her departmanın benzersiz bir adı, benzersiz bir numarası ve onu <strong>yöneten</strong> belirli bir çalışanı vardır; yöneticinin göreve başlama tarihi tutulur. Bir departmanın <strong>birden çok yeri</strong> olabilir.</li>
   <li>Her departman birkaç <strong>projeyi kontrol eder</strong>. Her projenin benzersiz adı, benzersiz numarası ve tek bir yeri vardır.</li>
@@ -75,11 +76,8 @@
   <li><strong>Role name</strong>: bir varlığın ilişkideki rolü. Aynı entity type ilişkiye farklı rollerle iki kez katılıyorsa (<strong>recursive</strong> / <em>self-referencing</em> ilişki) rol adları zorunludur: SUPERVISION'da EMPLOYEE hem <em>supervisor</em> hem <em>supervisee</em>.</li>
 </ul>
 
-<h3>İlişki örnekleri ve kardinalite</h3>
-<p>Aşağıdaki şekiller COMPANY'nin gerçek verisinden (Figure 5.6) çizildi. İlişki tipini değiştirin ve kardinalite ile katılımın nasıl göründüğüne bakın:</p>
-<div id="instances"></div>
-
 <h2>İkili ilişkilerde yapısal kısıtlar</h2>
+<p>Bir ilişki tipi iki soruyla kısıtlanır: bir varlık bu ilişkiye <em>en çok</em> kaç kez katılabilir (kardinalite) ve <em>en az</em> kaç kez katılmak zorundadır (katılım)?</p>
 <div class="two-col">
   <div>
     <h3>Cardinality ratio (kardinalite oranı)</h3>
@@ -94,11 +92,22 @@
     </ul>
   </div>
 </div>
+<h3>Veride görmek: ilişki örnekleri</h3>
+<p>Aşağıdaki şekiller COMPANY'nin gerçek verisinden (Figure 5.6) çizildi: solda bir varlık kümesi, sağda diğeri; ortadaki her küçük eşkenar dörtgen bir ilişki örneğidir ve iki varlığı birbirine bağlar. Bir ilişki tipi seçin ve iki soruyu şekil üzerinde cevaplayın: bir varlıktan en çok kaç çizgi çıkıyor (kardinalite)? Hiç çizgisi olmayan varlık var mı (varsa o taraf partial)?</p>
+<div id="instances"></div>
 <h3>(min, max) gösterimi</h3>
 <p>Kardinalite <em>en çok</em>u, katılım <em>en az</em>ı söyler; ikisi birlikte ilişkinin <strong>yapısal kısıtları</strong>dır. (min, max) ikisini tek gösterimde birleştirir: E'nin R'ye her katılımı için bir (min, max) çifti: 0 ≤ min ≤ max, max ≥ 1. E'deki her varlık, R'nin en az min, en çok max örneğine katılır. <strong>min = 0 → partial</strong>, <strong>min ≥ 1 → total</strong>.</p>
 <div id="minmax"></div>
 <div class="callout gotcha">
   <p><strong>Okuma yönü tuzağı.</strong> 1:N gösteriminde N, "karşı taraftaki" varlıkların sayısıdır: EMPLOYEE —N— WORKS_FOR —1— DEPARTMENT, "bir departmanda N çalışan, bir çalışan 1 departmanda" diye okunur. (min,max) gösteriminde ise sayı, <em>kendi tarafındaki</em> varlığın katılımıdır: EMPLOYEE (1,1) — WORKS_FOR — (1,N) DEPARTMENT. Bu yüzden N:1 bir ilişkinin (min,max) diyagramında "N" tarafı <em>tersine</em> döner. Sınavda iki gösterim arasında çeviri sorulabilir.</p>
+</div>
+<div class="callout example" data-label="Adım adım: cümleden kısıta">
+  <p>Gereksinim: "Her departman birkaç projeyi kontrol eder; her proje tek bir departman tarafından kontrol edilir. Proje kontrol etmeyen departmanlar olabilir."</p>
+  <ol>
+    <li><strong>Bir PROJECT</strong> kaç CONTROLS örneğine katılır? En az 1 ("her proje"), en çok 1 ("tek bir departman"): <strong>(1,1)</strong>. min = 1 olduğu için PROJECT tarafı <strong>total</strong> (çift çizgi).</li>
+    <li><strong>Bir DEPARTMENT</strong> kaç CONTROLS örneğine katılır? En az 0 ("kontrol etmeyen olabilir"), en çok çok ("birkaç"): <strong>(0,N)</strong>. min = 0 olduğu için DEPARTMENT tarafı <strong>partial</strong>.</li>
+    <li>Kardinalite oranı iki max'tan okunur: departman çok projeye, proje tek departmana bağlı: DEPARTMENT:PROJECT = <strong>1:N</strong>. 1:N gösteriminde "1" DEPARTMENT'ın yanına, "N" PROJECT'in yanına yazılır; (min,max)'ta ise (0,N) DEPARTMENT'ın, (1,1) PROJECT'in yanındadır.</li>
+  </ol>
 </div>
 <table class="simple">
   <thead><tr><th>İlişki</th><th>Kardinalite</th><th>Katılım</th><th>(min,max)</th></tr></thead>
@@ -124,7 +133,7 @@
 <ul>
   <li>Kendi anahtarı olmayan entity type. Varlıkları, başka bir entity type'ın (<strong>identifying / owner entity type</strong>) belirli bir varlığıyla ilişkilendirilerek tanımlanır.</li>
   <li>Bu bağı kuran ilişki <strong>identifying relationship</strong>'tir (çift eşkenar dörtgen). Zayıf varlığın bu ilişkiye katılımı her zaman <strong>total</strong>'dir (sahibi olmadan var olamaz: <em>existence dependency</em>).</li>
-  <li><strong>Partial key</strong> (<em>discriminator</em>): aynı sahibe bağlı zayıf varlıkları birbirinden ayıran öznitelik(ler); kesik çizgiyle altı çizili. DEPENDENT'ın partial key'i <code>Dependent_name</code>; tam tanımlayıcı (Essn, Dependent_name).</li>
+  <li><strong>Partial key</strong> (<em>discriminator</em>): aynı sahibe bağlı zayıf varlıkları birbirinden ayıran öznitelik(ler); kesik çizgiyle altı çizili. DEPENDENT'ın partial key'i <code>Dependent_name</code>: Wong'un da Smith'in de Alice adlı bir kızı var, ama aynı çalışanın iki bağımlısı aynı adı taşımaz. Bir bağımlıyı tam olarak tanımlayan, sahibin anahtarı ile partial key'in birleşimidir: (EMPLOYEE'nin Ssn'i, Dependent_name). İlişkisel şemada bu, DEPENDENT'ın primary key'i (Essn, Dependent_name) olur (Ch 5).</li>
   <li>Her existence dependency zayıf varlık üretmez: DRIVER_LICENSE, PERSON'a total katılımla bağlıdır ama kendi anahtarı (lisans numarası) olduğu için zayıf değildir.</li>
   <li>Zayıf varlık bazen bir <em>complex (composite, multivalued)</em> öznitelik olarak da modellenebilir; bağımsız ilişkilere katılıyorsa varlık yapmak gerekir.</li>
 </ul>
@@ -135,8 +144,12 @@
   <li>Üçlü bir ilişki, üç ikili ilişkiyle <em>genellikle aynı bilgiyi taşımaz</em>: CAN_SUPPLY(s,p), USES(j,p), SUPPLIES(s,j) doğru olsa bile s'nin j'ye p'yi sağladığı sonucu çıkmaz.</li>
   <li>Bazen üçlü ilişki, <em>zayıf bir varlık</em> ve üç tanımlayıcı ilişkiyle gösterilir (SUPPLY'ı bir entity type yapıp üç sahibe bağlamak).</li>
   <li>Hem üçlü ilişki hem ikili ilişkiler <em>birlikte</em> şemada olabilir: ikili ilişki üçlüye bir kısıt ekleyebilir.</li>
-  <li>Üçlü ilişkilerin kardinalitesi: bir katılımcıya 1 yazmak, diğer ikisinin bir kombinasyonunun o katılımcıdan en fazla bir tanesiyle eşleşmesi demektir.</li>
+  <li>Üçlü ilişkilerin kardinalitesi: bir katılımcıya 1 yazmak, diğer ikisinin bir kombinasyonunun o katılımcıdan en fazla bir tanesiyle eşleşmesi demektir. Ör. SUPPLY'da SUPPLIER tarafına 1 yazılırsa: her (proje, parça) çifti için o parçayı o projeye sağlayan en fazla <em>bir</em> tedarikçi vardır. Aynı tedarikçi yine birçok projeye birçok parça sağlayabilir.</li>
 </ul>
+<div class="callout gotcha">
+  <p><strong>Üçlü mü, üç ikili mi?</strong> Karar verirken sorun: bilgi gerçekten üç varlığın <em>birlikte</em> oluşturduğu bir olgu mu? "Tedarikçi s, j projesine p parçasını sağladı" üçlüdür; aynı bilgiyi "s, p'yi sağlayabilir", "j, p'yi kullanır", "s, j ile çalışır" ikililerinden geri elde edemezsiniz: s p'yi sağlayabilir ve j p'yi kullanır, ama j'nin p'yi s'den aldığını söylemez.</p>
+</div>
+
 
 <h2>Adlandırma ve tasarım seçimleri</h2>
 <ul>
