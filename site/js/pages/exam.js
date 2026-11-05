@@ -5,6 +5,25 @@ import { h, $, $$, button } from "../lib/ui.js";
 import { createSqlBox } from "../lib/sqlbox.js";
 import { SQL_PROBLEMS } from "../lib/exam-problems.js";
 import { erFigure } from "../lib/erd.js";
+import { createEditor } from "../lib/ereditor.js";
+import { ER_EXERCISES, compareER, solutionModel } from "../lib/er-exercises.js";
+import { ER_EXAMPLES } from "../lib/er-examples.js";
+import { emptyModel } from "../lib/ermodel.js";
+
+// ---- drawing area for the ER design problem, checked against the model solution
+const erEditor = createEditor($("#er-draw"), { storageKey: "er-exam-university" });
+const uni = ER_EXERCISES.find((x) => x.id === "university");
+$("#er-check").addEventListener("click", () => {
+  const r = compareER(erEditor.getModel(), solutionModel(uni, ER_EXAMPLES));
+  const pct = r.total ? Math.round((100 * r.score) / r.total) : 0;
+  const wrong = r.items.filter((i) => i.ok === false).length;
+  const list = h("ul", { class: "check-list" }, ...r.items.sort((a, b) => (a.ok === b.ok ? 0 : a.ok === false ? -1 : b.ok === false ? 1 : 0))
+    .map((i) => h("li", { class: i.ok === true ? "ok" : i.ok === false ? "no" : "meh", html: i.text })));
+  $("#er-result").replaceChildren(
+    h("div", { class: `res-msg ${pct === 100 ? "ok" : "warn"}` }, pct === 100 ? `✔ Tam uyum: ${r.score} / ${r.total} kontrol.` : `${r.score} / ${r.total} kontrol doğru (%${pct}).`),
+    h("details", { class: "disclosure", open: wrong > 0 && wrong <= 8 }, h("summary", {}, wrong ? `Ayrıntılar: ${wrong} düzeltilecek madde` : "Ayrıntılar"), h("div", { class: "disclosure-body" }, list)));
+});
+$("#er-clear").addEventListener("click", () => { if (confirm("Çizim temizlensin mi? (Geri al ile dönebilirsiniz.)")) { erEditor.setModel(emptyModel()); $("#er-result").replaceChildren(); } });
 
 // ---- SQL problems
 const host = $("#sql-list");
