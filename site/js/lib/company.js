@@ -1,6 +1,10 @@
-// The COMPANY database of Elmasri & Navathe (7th ed.): Figure 6.1/6.2 schema and the Figure 5.6 database state.
-// Copied verbatim from the helper cell of the class notebook (notebook/Ch6_7_SQL_Exercises.ipynb), so the site and the
-// notebook run the same tables and data. Pure module: used by the browser (db.js) and by the tests (Node).
+// The COMPANY database of Elmasri & Navathe (7th ed.): Figure 6.1/6.2 schema and the Figure 5.6 database state,
+// in MySQL. Taken from the helper cell of the class notebook (notebook/Ch6_7_SQL_Exercises.ipynb, PostgreSQL) with the
+// two changes MySQL needs:
+//   - MySQL has no DEFERRABLE constraints: EMPLOYEE and DEPARTMENT reference each other, so the data is loaded with
+//     FOREIGN_KEY_CHECKS switched off (the usual MySQL way)
+//   - InnoDB does not support ON DELETE SET DEFAULT: those two foreign keys keep the default (reject the delete)
+// Pure module: used by the browser (db.js) and by the tests (Node).
 
 export const TABLES = ["EMPLOYEE", "DEPARTMENT", "DEPT_LOCATIONS", "PROJECT", "WORKS_ON", "DEPENDENT"];
 
@@ -34,14 +38,13 @@ CREATE TABLE DEPARTMENT
     UNIQUE (Dname),
   CONSTRAINT DEPTMGRFK
     FOREIGN KEY (Mgr_ssn) REFERENCES EMPLOYEE(Ssn)
-                ON DELETE SET DEFAULT   ON UPDATE CASCADE );
+                ON UPDATE CASCADE );        -- the book: ON DELETE SET DEFAULT
 
--- Now that DEPARTMENT exists, close the cycle (DEFERRABLE: see the data load below)
+-- Now that DEPARTMENT exists, close the cycle
 ALTER TABLE EMPLOYEE
   ADD CONSTRAINT EMPDEPTFK
     FOREIGN KEY (Dno) REFERENCES DEPARTMENT(Dnumber)
-                ON DELETE SET DEFAULT   ON UPDATE CASCADE
-    DEFERRABLE INITIALLY IMMEDIATE;
+                ON UPDATE CASCADE;          -- the book: ON DELETE SET DEFAULT
 
 CREATE TABLE DEPT_LOCATIONS
 ( Dnumber         INT             NOT NULL,
@@ -79,10 +82,8 @@ CREATE TABLE DEPENDENT
 `;
 
 export const DATA_SQL = `
--- EMPLOYEE and DEPARTMENT reference each other: load both in one transaction and
--- check EMPDEPTFK only at COMMIT
-BEGIN;
-SET CONSTRAINTS EMPDEPTFK DEFERRED;
+-- EMPLOYEE and DEPARTMENT reference each other: load them with the foreign key checks switched off
+SET FOREIGN_KEY_CHECKS = 0;
 INSERT INTO EMPLOYEE VALUES
   ('John',     'B', 'Smith',   '123456789', '1965-01-09', '731 Fondren, Houston, TX',  'M', 30000, '333445555', 5),
   ('Franklin', 'T', 'Wong',    '333445555', '1955-12-08', '638 Voss, Houston, TX',     'M', 40000, '888665555', 5),
@@ -96,7 +97,7 @@ INSERT INTO DEPARTMENT VALUES
   ('Research',       5, '333445555', '1988-05-22'),
   ('Administration', 4, '987654321', '1995-01-01'),
   ('Headquarters',   1, '888665555', '1981-06-19');
-COMMIT;
+SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO DEPT_LOCATIONS VALUES
   (1, 'Houston'), (4, 'Stafford'), (5, 'Bellaire'), (5, 'Sugarland'), (5, 'Houston');

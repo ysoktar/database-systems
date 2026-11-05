@@ -1,34 +1,43 @@
-// Pure SQL helpers shared by the browser and the tests (no DOM, no PGlite):
-//   splitSQL      split a cell into statements, like the notebook's %%pg
+// Pure SQL helpers shared by the browser and the tests (no DOM):
+//   splitSQL      split a box into statements, like the mysql command-line client (DELIMITER included)
 //   resultHash    the notebook's exercise fingerprint (sha256 of the normalized rows), ported from Python
-//   commandTag    psql-style status text for statements that return no rows
-
-const DOLLAR = /\$([A-Za-z_][A-Za-z_0-9]*)?\$/y;
+//   commandTag    mysql-style status text for statements that return no rows
+import { isNumericType } from "./mysql.js";
 
 function stripComments(s) {
-  return s.replace(/\/\*[\s\S]*?\*\//g, " ").split("\n").map((l) => l.split("--")[0]).join("\n");
+  return s.replace(/\/\*[\s\S]*?\*\//g, " ").split("\n").map((l) => l.replace(/(--\s|--$|#).*$/, "")).join("\n");
 }
 
-/** Split at ';' outside quotes, $$ bodies and comments (port of the notebook's _split_sql). */
+/**
+ * Split at the delimiter (';' unless changed) outside quotes and comments.
+ * "DELIMITER //" on its own line changes the delimiter, as in the mysql client, so that trigger and procedure bodies
+ * (BEGIN … END with ';' inside) stay one statement.
+ */
 export function splitSQL(text) {
   const stmts = [];
-  let buf = "", i = 0;
+  let buf = "", i = 0, delim = ";";
   const n = text.length;
+  const atLineStart = (k) => k === 0 || /\n[ \t]*$/.test(text.slice(Math.max(0, k - 200), k));
   while (i < n) {
     const c = text[i];
     let j;
-    if (text.startsWith("--", i)) {
+    if (atLineStart(i) && /^DELIMITER[ \t]+\S+/i.test(text.slice(i, i + 40))) {
+      const line = text.slice(i).match(/^DELIMITER[ \t]+(\S+)[^\n]*/i);
+      if (buf.trim()) { stmts.push(buf); buf = ""; }
+      delim = line[1];
+      i += line[0].length;
+      continue;
+    }
+    if (text.startsWith("--", i) || c === "#") {
       j = text.indexOf("\n", i);
       j = j === -1 ? n : j;
     } else if (text.startsWith("/*", i)) {
-      let depth = 1;
-      j = i + 2;
-      while (j < n && depth) {
-        if (text.startsWith("/*", j)) { depth++; j += 2; } else if (text.startsWith("*/", j)) { depth--; j += 2; } else j++;
-      }
-    } else if (c === "'" || c === '"') {
+      const end = text.indexOf("*/", i + 2);
+      j = end === -1 ? n : end + 2;
+    } else if (c === "'" || c === '"' || c === "`") {
       j = i + 1;
       while (j < n) {
+        if (text[j] === "\\" && c !== "`") { j += 2; continue; }
         if (text[j] === c) {
           if (text[j + 1] === c) { j += 2; continue; }
           break;
@@ -36,16 +45,12 @@ export function splitSQL(text) {
         j++;
       }
       j++;
-    } else if (c === "$" && !(i > 0 && /[A-Za-z0-9_]/.test(text[i - 1])) && (DOLLAR.lastIndex = i, DOLLAR.test(text))) {
-      const tag = text.slice(i, DOLLAR.lastIndex);
-      const end = text.indexOf(tag, DOLLAR.lastIndex);
-      j = end === -1 ? n : end + tag.length;
-    } else if (c === ";") {
-      // a comment on the same line after ';' belongs to this statement, not to the next one
-      const rest = text.slice(i + 1).match(/^[ \t]*(--[^\n]*)/);
+    } else if (text.startsWith(delim, i)) {
+      // a comment on the same line after the delimiter belongs to this statement, not to the next one
+      const rest = text.slice(i + delim.length).match(/^[ \t]*((?:--|#)[^\n]*)/);
       stmts.push(rest ? `${buf} ${rest[1]}` : buf);
       buf = "";
-      i += 1 + (rest ? rest[0].length : 0);
+      i += delim.length + (rest ? rest[0].length : 0);
       continue;
     } else j = i + 1;
     buf += text.slice(i, j);
@@ -77,25 +82,22 @@ export function caption(stmt) {
   return joined.length > 90 ? joined.slice(0, 90) + " ..." : joined;
 }
 
-/** psql-style command tag ("INSERT 0 1", "UPDATE 2", "CREATE TABLE", …). */
+/** mysql-style status ("INSERT: Query OK, 1 row affected", "CREATE TABLE: Query OK"). */
 export function commandTag(stmt, affected) {
   const words = stripComments(stmt).trim().split(/\s+/).map((w) => w.toUpperCase());
   const w0 = words[0] || "";
-  if (w0 === "INSERT") return `INSERT 0 ${affected ?? 0}`;
-  if (w0 === "UPDATE" || w0 === "DELETE" || w0 === "MERGE") return `${w0} ${affected ?? 0}`;
-  if (["CREATE", "DROP", "ALTER"].includes(w0)) {
-    const skip = new Set(["OR", "REPLACE", "TEMP", "TEMPORARY", "UNIQUE", "MATERIALIZED", "RECURSIVE"]);
-    const obj = words.slice(1).find((w) => !skip.has(w)) || "";
-    return `${w0} ${obj.replace(/[^A-Z_]/g, "")}`.trim();
+  const rows = (k) => `${k ?? 0} row${k === 1 ? "" : "s"} affected`;
+  if (["INSERT", "UPDATE", "DELETE", "REPLACE"].includes(w0)) return `${w0}: Query OK, ${rows(affected)}`;
+  if (["CREATE", "DROP", "ALTER", "RENAME", "TRUNCATE"].includes(w0)) {
+    const skip = new Set(["OR", "REPLACE", "TEMPORARY", "UNIQUE", "IF", "NOT", "EXISTS", "DEFINER", "ALGORITHM", "SQL", "SECURITY"]);
+    const obj = words.slice(1).find((w) => !skip.has(w) && !w.includes("=")) || "";
+    return `${w0} ${obj.replace(/[^A-Z_]/g, "")}: Query OK`.replace("  ", " ");
   }
-  if (w0 === "START") return "START TRANSACTION";
-  if (w0 === "END") return "COMMIT";
-  return w0.replace(/[^A-Z_]/g, "") || "OK";
+  if (w0 === "START" || w0 === "BEGIN") return "START TRANSACTION: Query OK";
+  return `${w0.replace(/[^A-Z_]/g, "") || "OK"}: Query OK`;
 }
 
 // ---------------------------------------------------------------- exercise checker
-// PostgreSQL type OIDs whose values the notebook treats as numbers (int2, int4, int8, oid, float4, float8, numeric).
-const NUMERIC_TYPES = new Set([20, 21, 23, 26, 700, 701, 1700]);
 
 /** Decimal(str(v)).quantize(Decimal("0.01")) with Python's default ROUND_HALF_EVEN, on the decimal text. */
 export function quantize2(v) {
@@ -124,13 +126,13 @@ export function quantize2(v) {
   return (neg ? "-" : "") + int + "." + frac;
 }
 
-/** One value as the notebook's _norm_val sees it. `type` is the column's PostgreSQL type OID. */
+/** One value as the notebook's _norm_val sees it. `type` is the column's MySQL type name. */
 export function normValue(v, type) {
   if (v === null || v === undefined) return null;
   if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
-  if (NUMERIC_TYPES.has(type) || typeof v === "number" || typeof v === "bigint") return quantize2(v);
+  if (isNumericType(type) || typeof v === "number" || typeof v === "bigint") return quantize2(v);
   if (v instanceof Date) return v.toISOString().slice(0, 10);
-  if (type === 1114 || type === 1184) return String(v).replace(" ", "T"); // Python isoformat()
+  if (/^(datetime|timestamp)/i.test(String(type))) return String(v).replace(" ", "T"); // Python isoformat()
   return String(v).replace(/\s+$/, ""); // CHAR(n) padding does not matter
 }
 

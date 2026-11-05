@@ -18,9 +18,10 @@ $("#joins").append(queryStepper([
     sql: `SELECT E.Lname, D.Dname FROM ${E} AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY E.Lname`,
     display: "SELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;" },
   { label: "FULL OUTER JOIN", pad: true,
-    note: "İki tarafın eşleşmeyen satırları da kalır.",
-    sql: `SELECT E.Lname, D.Dname FROM ${E} AS E FULL OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY E.Lname`,
-    display: "SELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E FULL OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;" },
+    note: "İki tarafın eşleşmeyen satırları da kalır. Standart SQL'de <code>FULL OUTER JOIN</code> yazılır; MySQL'de bu yoktur, aynı sonuç LEFT ve RIGHT join'in <code>UNION</code>'ıdır (UNION tekrarları, yani iki tarafta da çıkan eşleşmeleri bir kez bırakır). Gösterilen sonuç bu MySQL sürümünün.",
+    sql: `SELECT E.Lname, D.Dname FROM ${E} AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn UNION SELECT E.Lname, D.Dname FROM ${E} AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY Lname`,
+    display: "-- standard SQL\nSELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E FULL OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;\n-- MySQL\nSELECT E.Lname, D.Dname FROM EMPLOYEE AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn\nUNION\nSELECT E.Lname, D.Dname FROM EMPLOYEE AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;" },
+
   { label: "CROSS JOIN", note: "Join koşulu yok: kartezyen çarpım, 4 × 3 = 12 satır.",
     sql: `SELECT E.Lname, D.Dname FROM ${E} AS E CROSS JOIN DEPARTMENT AS D ORDER BY E.Lname, D.Dname`,
     display: "SELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E CROSS JOIN DEPARTMENT AS D;" },

@@ -110,6 +110,18 @@ CREATE ASSERTION N CHECK (NOT EXISTS (SELECT … violating rows …));
 CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
   FOR EACH ROW WHEN (cond) &lt;action&gt;;
 </pre>
+<div class="callout gotcha">
+  <p><strong>Kitap (standart SQL) ve MySQL.</strong> Yukarıdakiler kitabın sözdizimidir; sınavda bunu yazın. Sitedeki kutular MySQL'de çalıştığı için şu farkları görürsünüz:</p>
+  <ul>
+    <li>Metin birleştirme <code>CONCAT(a, b)</code>; MySQL'de <code>||</code> OR demektir.</li>
+    <li><code>FULL OUTER JOIN</code> yok: <code>LEFT JOIN … UNION … RIGHT JOIN</code>.</li>
+    <li><code>CREATE ASSERTION</code>, <code>CREATE DOMAIN</code>, <code>DEFERRABLE</code> yok; InnoDB <code>ON DELETE SET DEFAULT</code>'u kabul etmez.</li>
+    <li><code>DROP … RESTRICT / CASCADE</code> yazılabilir ama yok sayılır; foreign key ile başvurulan tablo hiç silinemez. Foreign key'i kaldırmak: <code>ALTER TABLE T DROP FOREIGN KEY TFK</code>.</li>
+    <li>Trigger tek bir olaya bağlanır, <code>WHEN</code> yoktur: koşul gövdede <code>IF … THEN … END IF</code>; bir işlemi reddetmek için <code>SIGNAL SQLSTATE '45000'</code>. Gövde <code>DELIMITER //</code> ile yazılır.</li>
+    <li>Gruplanmamış sütun hatası 1055; karşılaştırmalar varsayılan olarak büyük/küçük harfe duyarsız (<code>'smith' = 'Smith'</code>).</li>
+  </ul>
+</div>
+
 
 <h2>Kısıtlar ve ihlaller</h2>
 <table class="simple">

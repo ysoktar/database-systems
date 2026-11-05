@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arasınav çalışma rehberi · Veritabanı Sistemleri</title>
-<meta name="description" content="BIL372/BIL071 arasınavı (Elmasri & Navathe Ch 1–7) için çalışma rehberi: bölüm bölüm bilinmesi gerekenler, çözümlü ER tasarım ve kısıt problemleri, PostgreSQL'de otomatik kontrol edilen SQL problemleri, sık yapılan hatalar ve deneme seti.">
+<meta name="description" content="BIL372/BIL071 arasınavı (Elmasri & Navathe Ch 1–7) için çalışma rehberi: bölüm bölüm bilinmesi gerekenler, çözümlü ER tasarım ve kısıt problemleri, MySQL'de otomatik kontrol edilen SQL problemleri, sık yapılan hatalar ve deneme seti.">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
@@ -20,7 +20,7 @@
 <ol>
   <li>Her bölümün <strong>bilmeniz gerekenler</strong> listesini okuyun. Bilmediğiniz bir madde varsa bağlantılı sayfaya dönün.</li>
   <li><strong>Çözümlü problemleri</strong> (ER tasarımı, kısıt ihlalleri, anahtarlar, NULL) önce kâğıt üzerinde çözün, sonra cevabı açın.</li>
-  <li><a href="notebook.html">Notebook'un 10 alıştırmasını</a> ve aşağıdaki <a href="#sql-problems">8 SQL problemini</a> PostgreSQL'e kontrol ettirerek çözün. Sınavda kâğıt üzerinde yazacağınızı düşünerek, önce çalıştırmadan yazın.</li>
+  <li><a href="notebook.html">Notebook'un 10 alıştırmasını</a> ve aşağıdaki <a href="#sql-problems">8 SQL problemini</a> sitenin MySQL'ine kontrol ettirerek çözün. Sınavda kâğıt üzerinde yazacağınızı düşünerek, önce çalıştırmadan yazın.</li>
   <li><a href="#mistakes">Sık yapılan hatalar</a> listesini okuyun.</li>
   <li><a href="#practice">Deneme setini</a> ilk denemede %80'i geçene kadar tekrarlayın.</li>
 </ol>
@@ -96,7 +96,7 @@
     <li><strong>Referential integrity</strong>: 2 numaralı departman yok. Reddedilir.</li>
   </ol>
   <p>Kendiniz deneyin:</p>
-  <pre class="sql run" data-expect-error data-title="b · iki ihlal, PostgreSQL ilk karşılaştığını bildirir">INSERT INTO WORKS_ON VALUES ('677678989', NULL, 40.0);</pre>
+  <pre class="sql run" data-expect-error data-title="b · iki ihlal, MySQL ilk karşılaştığını bildirir">INSERT INTO WORKS_ON VALUES ('677678989', NULL, 40.0);</pre>
   <pre class="sql run" data-expect-error data-title="c">DELETE FROM PROJECT WHERE Pname = 'ProductX';</pre>
 </div>
 
@@ -157,52 +157,52 @@ SELECT COUNT(Super_ssn), COUNT(DISTINCT Super_ssn), COUNT(*) FROM EMPLOYEE;
 <template id="exam-questions">
   <div class="quiz" data-answer="2" data-topic="Rehber">
     <p>Bir şirket, çalışanlarının maaş bilgisini muhasebe birimine gösterip diğer birimlerden gizlemek istiyor. Veritabanı yaklaşımının hangi özelliği/aracı bunu en doğrudan sağlar?</p>
-    <ol><li>Self-describing nature</li><li>Multiple views (view'lar) ve yetkilendirme</li><li>Physical data independence</li><li>Backup and recovery</li></ol>
+    <ol><li data-why="Self-describing, yapının tanımının katalogda saklanmasıdır; kimin neyi gördüğüyle ilgili değildir.">Self-describing nature</li><li data-why="Doğru: view'lar her gruba veritabanının bir alt kümesini gösterir, yetkiler de erişimi o view'larla sınırlar.">Multiple views (view'lar) ve yetkilendirme</li><li data-why="Fiziksel bağımsızlık, depolama değişikliklerinin kavramsal şemayı etkilememesidir; erişim kontrolü sağlamaz.">Physical data independence</li><li data-why="Backup/recovery veriyi hatalardan sonra geri getirir; kimin göreceğini belirlemez.">Backup and recovery</li></ol>
     <div class="explain">Her kullanıcı grubuna veritabanının bir alt kümesini gösteren view'lar ve bu view'lar üzerinde verilen yetkiler. External düzeyin amacı budur.</div>
   </div>
   <div class="quiz" data-answer="3" data-topic="Rehber">
     <p>EMPLOYEE —(1,1)— WORKS_FOR —(5,N)— DEPARTMENT. Bu diyagram ne söyler?</p>
-    <ol><li>Her çalışan en az 5 departmanda çalışır.</li><li>Her departmanda en fazla 5 çalışan vardır.</li><li>Her çalışan tam bir departmanda çalışır; her departmanda en az 5 çalışan vardır.</li><li>İlişki M:N'dir.</li></ol>
+    <ol><li data-why="EMPLOYEE'nin (1,1)'i her çalışanın tam bir kez katıldığını söyler; 5 departmanın (5,N) tarafıyla ilgisi yok.">Her çalışan en az 5 departmanda çalışır.</li><li data-why="(5,N)'de max N'dir, yani üst sınır yok; 5 alt sınırdır.">Her departmanda en fazla 5 çalışan vardır.</li><li data-why="Doğru: (min,max) her varlığın kendi katılımını yazar.">Her çalışan tam bir departmanda çalışır; her departmanda en az 5 çalışan vardır.</li><li data-why="EMPLOYEE'nin max'ı 1 olduğu için oran N:1'dir (çok çalışan, bir departman).">İlişki M:N'dir.</li></ol>
     <div class="explain">(min,max) kendi varlığının katılımını anlatır: EMPLOYEE (1,1) → tam 1 kez; DEPARTMENT (5,N) → en az 5 kez. Kardinalite oranı N:1.</div>
   </div>
   <div class="quiz" data-answer="1" data-topic="Rehber">
     <p>R(A, B, C) ilişkisinde {A} ve {B, C} candidate key'dir. Kaç tane superkey vardır?</p>
-    <ol><li>5</li><li>2</li><li>3</li><li>7</li></ol>
+    <ol><li data-why="Doğru: A'yı içeren 4 küme + {B, C} = 5.">5</li><li data-why="2, yalnızca candidate key'lerin sayısıdır; her candidate key'in üst kümeleri de superkey'dir.">2</li><li data-why="Üst kümeleri eksik sayılmış: {A}'yı içeren 4 küme var ({A}, {A,B}, {A,C}, {A,B,C}).">3</li><li data-why="7, boş olmayan bütün alt kümelerdir; ama {B} ve {C} tek başına superkey değildir.">7</li></ol>
     <div class="explain">A'yı içeren her küme: {A}, {A,B}, {A,C}, {A,B,C} (4 tane). A'yı içermeyip {B,C}'yi içeren: {B,C} (1 tane). Toplam 5.</div>
   </div>
   <div class="quiz" data-answer="4" data-topic="Rehber">
     <p>Aşağıdakilerden hangisi bir <em>transition (dynamic) constraint</em>'tir?</p>
-    <ol><li>Ssn 9 karakterdir.</li><li>Her departmanın bir yöneticisi vardır.</li><li>Dname benzersizdir.</li><li>Bir çalışanın maaşı yalnızca artabilir.</li></ol>
+    <ol><li data-why="Bir değerin biçimi her durumda sağlanması gereken bir domain kısıtıdır (state constraint).">Ssn 9 karakterdir.</li><li data-why="Her geçerli durumun tek başına sağlaması gereken bir state kısıtı; eski ve yeni değeri karşılaştırmaz.">Her departmanın bir yöneticisi vardır.</li><li data-why="Key kısıtı, tek bir durumdaki satırlara bakar: state kısıtı.">Dname benzersizdir.</li><li data-why="Doğru: yeni maaşı eski maaşla karşılaştırır; tek bir durumdan değil, bir geçişten söz eder.">Bir çalışanın maaşı yalnızca artabilir.</li></ol>
     <div class="explain">Geçiş kısıtı, eski ve yeni durumu karşılaştırır: güncelleme öncesi ve sonrası değer. Diğerleri her geçerli durumun tek başına sağlaması gereken state (static) kısıtlarıdır.</div>
   </div>
-  <div class="quiz" data-answer="2" data-topic="Rehber">
+  <div class="quiz" data-answer="2" data-topic="Rehber" data-tables="EMPLOYEE">
     <p><code>SELECT Dno, AVG(Salary) FROM EMPLOYEE WHERE Sex = 'F' GROUP BY Dno;</code> kaç satır döndürür? (Kadın çalışanlar: Zelaya ve Wallace dept 4, English dept 5.)</p>
-    <ol><li>3</li><li>2</li><li>1</li><li>8</li></ol>
+    <ol><li data-why="Departman 1'in kadın çalışanı yok: WHERE'den sonra o departmana ait satır kalmaz, grubu oluşmaz.">3</li><li data-why="Doğru: kalan 3 satırın Dno değerleri 4, 4, 5: iki grup.">2</li><li data-why="Dept 4 ve dept 5 ayrı gruplardır; GROUP BY Dno her farklı Dno için bir satır üretir.">1</li><li data-why="WHERE Sex = 'F' satırları süzer; ayrıca GROUP BY her grup için tek satır üretir.">8</li></ol>
     <div class="explain">WHERE'den 3 satır kalır; Dno değerleri 4, 4, 5 → 2 grup. Departman 1'in kadın çalışanı olmadığı için grubu hiç oluşmaz.</div>
   </div>
   <div class="quiz" data-answer="3" data-topic="Rehber">
     <p>Bir departman silindiğinde o departmanın konumlarının (DEPT_LOCATIONS) da silinmesi isteniyor. FK nasıl tanımlanmalı?</p>
-    <ol><li><code>ON DELETE SET NULL</code></li><li><code>ON UPDATE CASCADE</code></li><li><code>ON DELETE CASCADE</code></li><li><code>ON DELETE SET DEFAULT</code></li></ol>
+    <ol><li data-why="SET NULL, DEPT_LOCATIONS.Dnumber'ı NULL yapardı; Dnumber PK'nın parçası olduğu için mümkün değil ve konumları silmez."><code>ON DELETE SET NULL</code></li><li data-why="ON UPDATE, departman numarası <em>değişince</em> ne olacağını söyler; silmeyle ilgili değil."><code>ON UPDATE CASCADE</code></li><li data-why="Doğru: departman silinince ona başvuran konum satırları da silinir."><code>ON DELETE CASCADE</code></li><li data-why="SET DEFAULT konumları silmez, başka bir departmana bağlar; ayrıca PK'nın parçası olan bir sütunda anlamsız olabilir."><code>ON DELETE SET DEFAULT</code></li></ol>
     <div class="explain">CASCADE, silmeyi başvuran satırlara yayar. SET NULL burada olamazdı: Dnumber, DEPT_LOCATIONS'ın PK'sının parçası.</div>
   </div>
   <div class="quiz" data-answer="1" data-topic="Rehber">
     <p>Hangi SQL özelliği <em>ilişkisel modelin</em> biçimsel tanımıyla çelişir?</p>
-    <ol><li>Bir tabloda (PK yoksa) aynı satırın birden çok kez bulunabilmesi</li><li>Tabloların sütun adlarının olması</li><li>Sütunların bir veri tipinin olması</li><li>Foreign key tanımlanabilmesi</li></ol>
+    <ol><li data-why="Doğru: biçimsel ilişki bir kümedir, aynı tuple iki kez bulunamaz.">Bir tabloda (PK yoksa) aynı satırın birden çok kez bulunabilmesi</li><li data-why="Biçimsel ilişkinin de öznitelik adları vardır; sütun adı modelin parçasıdır.">Tabloların sütun adlarının olması</li><li data-why="Her öznitelikte bir domain vardır; veri tipi bunun karşılığıdır.">Sütunların bir veri tipinin olması</li><li data-why="Foreign key, ilişkisel modelin referential integrity kısıtıdır; modelin içindedir.">Foreign key tanımlanabilmesi</li></ol>
     <div class="explain">Biçimsel ilişki tuple'ların bir kümesidir, tekrar olamaz. SQL tabloları multiset'tir; tekrarları DISTINCT ya da PK kısıtı önler.</div>
   </div>
   <div class="quiz" data-answer="4" data-topic="Rehber">
     <p>Bir veritabanı tasarımcısı, ER diyagramındaki <code>Age</code> özniteliğini kesik çizgili elipsle çizmiş. Bu ne anlama gelir?</p>
-    <ol><li>Age çok değerlidir.</li><li>Age bir anahtardır.</li><li>Age bileşiktir.</li><li>Age türetilmiştir (ör. Birth_date'ten hesaplanır).</li></ol>
+    <ol><li data-why="Çok değerli öznitelik çift çizgili elipsle çizilir.">Age çok değerlidir.</li><li data-why="Anahtar öznitelik adının altı çizilir.">Age bir anahtardır.</li><li data-why="Bileşik öznitelik, bileşenlerine bağlı elipslerle çizilir.">Age bileşiktir.</li><li data-why="Doğru: kesik elips türetilmiş özniteliktir; Age, Birth_date'ten hesaplanır.">Age türetilmiştir (ör. Birth_date'ten hesaplanır).</li></ol>
     <div class="explain">Kesik elips = derived attribute. Çift elips çok değerli, altı çizili anahtar, bileşenlere bağlanan elips bileşik özniteliktir.</div>
   </div>
   <div class="quiz" data-answer="2" data-topic="Rehber">
     <p>"Bütün departmanlardaki projelerin en az birinde çalışan çalışanlar" için hangisi doğrudur?</p>
-    <ol><li>İki iç içe NOT EXISTS gerekir.</li><li>Her departman için o departmanın en az bir projesinde çalışmayı gerektirir: departmanlar üzerinde ∀, projeler üzerinde ∃.</li><li>Basit bir join yeter.</li><li>GROUP BY olmadan yazılamaz.</li></ol>
+    <ol><li data-why="İki iç içe NOT EXISTS 'her departman, her proje' (∀∀) gibi tam bir bölme içindir; burada içteki niceleyici 'en az bir' (∃).">İki iç içe NOT EXISTS gerekir.</li><li data-why="Doğru: dışta ∀ (departmanlar), içte ∃ (o departmanın projelerinden biri).">Her departman için o departmanın en az bir projesinde çalışmayı gerektirir: departmanlar üzerinde ∀, projeler üzerinde ∃.</li><li data-why="Basit join yalnızca 'en az bir departmanın en az bir projesi' (∃∃) sorusunu yanıtlar.">Basit bir join yeter.</li><li data-why="Sayma yöntemi bir seçenek ama zorunlu değil; NOT EXISTS ile GROUP BY'sız yazılabilir.">GROUP BY olmadan yazılamaz.</li></ol>
     <div class="explain">"Her departman için, o departmanın projelerinden birinde çalışıyor": dışta ∀ (NOT EXISTS departman … NOT EXISTS (proje ∧ çalışıyor)), içte ∃. Soruları önce niceleyicilerle (∀/∃) yeniden yazmak doğru SQL'i bulmayı kolaylaştırır.</div>
   </div>
   <div class="quiz" data-answer="3" data-topic="Rehber">
     <p>Üç katmanlı (three-tier) bir web uygulamasında iş kuralları genellikle nerede çalışır?</p>
-    <ol><li>Tarayıcıda</li><li>Veritabanı sunucusunda</li><li>Uygulama (web) sunucusunda</li><li>DBMS kataloğunda</li></ol>
+    <ol><li data-why="Tarayıcı (istemci) yalnızca arayüzü gösterir; iş kurallarını istemciye koymak güvenliği zayıflatır.">Tarayıcıda</li><li data-why="Veritabanı sunucusu sorgu ve transaction işler; iş kurallarının yeri ara katmandır (bazıları trigger/kısıt olarak veritabanında da olabilir).">Veritabanı sunucusunda</li><li data-why="Doğru: ara katman (application server) iş kurallarını çalıştırır.">Uygulama (web) sunucusunda</li><li data-why="Katalog meta-data saklar (tablo tanımları); kod çalıştırmaz.">DBMS kataloğunda</li></ol>
     <div class="explain">Ara katman (application server), istemcinin isteklerini iş kurallarına göre işler ve veritabanına onun adına erişir.</div>
   </div>
 </template>

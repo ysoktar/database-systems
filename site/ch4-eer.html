@@ -106,10 +106,10 @@
 <div class="quiz" data-answer="3">
   <p>Bir üniversitede her kişi ya öğrenci ya personel ya da ikisidir; kişiler ayrıca ikisinden hiçbiri olmayabilir (mezunlar). PERSON → {STUDENT, STAFF} özelleştirmesinin kısıtları nedir?</p>
   <ol>
-    <li>Disjoint, total</li>
-    <li>Disjoint, partial</li>
-    <li>Overlapping, partial</li>
-    <li>Overlapping, total</li>
+    <li data-why="İki hata: 'ikisi de olabilir' disjoint'i bozar, 'hiçbiri olmayabilir' total'i bozar.">Disjoint, total</li>
+    <li data-why="Partial doğru (mezunlar hiçbir alt sınıfta değil), ama bir kişi hem öğrenci hem personel olabildiği için disjoint değil.">Disjoint, partial</li>
+    <li data-why="Doğru: ikisi birden olabilir (overlapping), hiçbiri olmayabilir (partial).">Overlapping, partial</li>
+    <li data-why="Overlapping doğru, ama mezunlar ne öğrenci ne personel: her kişi bir alt sınıfta olmak zorunda değil, yani partial.">Overlapping, total</li>
   </ol>
   <div class="explain">"İkisi de olabilir" → overlapping (o). "Hiçbiri olmayabilir" → partial (tek çizgi).</div>
 </div>
@@ -117,7 +117,7 @@
   <p>EMPLOYEE'nin <code>Job_type</code> özniteliğine göre yapılan {SECRETARY, ENGINEER, TECHNICIAN} özelleştirmesi hangisidir?</p>
   <ol>
     <li data-why="User-defined alt sınıflarda üyeliği belirleyen bir koşul yoktur.">User-defined</li>
-    <li>Attribute-defined (ve Job_type tek değerli olduğu için disjoint)</li>
+    <li data-why="Doğru: üyelik tek bir özniteliğin (Job_type) değerine göre belirleniyor; tek değerli olduğu için disjoint.">Attribute-defined (ve Job_type tek değerli olduğu için disjoint)</li>
     <li data-why="Category farklı entity type'ların birleşimidir.">Category</li>
     <li data-why="Genelleştirme, aşağıdan yukarı tasarım sürecidir; burada alt sınıflar bir öznitelik değerine göre belirleniyor.">Generalization, çünkü üç alt sınıf bir üst sınıfta toplanıyor</li>
   </ol>
@@ -126,20 +126,21 @@
 <div class="quiz" data-answer="4">
   <p>Shared subclass ile category arasındaki temel fark nedir?</p>
   <ol>
-    <li>Shared subclass'ın yalnız bir üst sınıfı vardır; category'nin birden çok.</li>
-    <li>Category'nin üyeleri bütün üst sınıfların üyesidir.</li>
-    <li>İkisi aynıdır, yalnızca gösterim farklıdır.</li>
-    <li>Shared subclass'ın üyesi bütün üst sınıfların kesişiminde, category'nin üyesi birleşiminde (yalnız birinde) yer alır.</li>
+    <li data-why="İkisinin de birden çok üst sınıfı vardır; fark, üyenin bu üst sınıfların <em>hepsinde</em> mi yoksa <em>birinde</em> mi olduğudur.">Shared subclass'ın yalnız bir üst sınıfı vardır; category'nin birden çok.</li>
+    <li data-why="Bu, shared subclass'ın tanımı. Category'nin bir üyesi üst sınıflardan yalnızca birindedir (OWNER ya PERSON ya BANK ya COMPANY).">Category'nin üyeleri bütün üst sınıfların üyesidir.</li>
+    <li data-why="Anlamları farklı: kesişim (∩) ve birleşim (∪). Kalıtım da farklıdır: shared subclass her üst sınıftan, category yalnızca üyenin ait olduğu üst sınıftan miras alır.">İkisi aynıdır, yalnızca gösterim farklıdır.</li>
+    <li data-why="Doğru: shared subclass ⊆ üst sınıfların kesişimi; category ⊆ birleşimi.">Shared subclass'ın üyesi bütün üst sınıfların kesişiminde, category'nin üyesi birleşiminde (yalnız birinde) yer alır.</li>
   </ol>
   <div class="explain">ENGINEERING_MANAGER hem ENGINEER hem MANAGER'dır ve ikisinden de miras alır. Bir OWNER ise ya PERSON ya BANK ya da COMPANY'dir ve yalnızca ait olduğu sınıftan miras alır (selective inheritance).</div>
 </div>
 <div class="quiz" data-answer="1">
   <p>VEHICLE → {CAR, TRUCK} özelleştirmesi disjoint ve total. Aşağıdakilerden hangisi geçerli bir durumdur?</p>
   <ol>
-    <li>Her araç ya araba ya kamyondur, ikisi birden olamaz.</li>
-    <li>Bazı araçlar ne araba ne kamyondur.</li>
-    <li>Bir araç hem araba hem kamyon olabilir.</li>
-    <li>Bir araba VEHICLE'ın özniteliklerini miras almaz.</li>
+    <li data-why="Doğru: total (en az birinde) + disjoint (en fazla birinde) = tam olarak birinde.">Her araç ya araba ya kamyondur, ikisi birden olamaz.</li>
+    <li data-why="Bu, partial özelleştirmede mümkündür; total'de her araç en az bir alt sınıfta olmak zorundadır.">Bazı araçlar ne araba ne kamyondur.</li>
+    <li data-why="Bu, overlapping özelleştirmede mümkündür; disjoint'te alt sınıflar kesişmez.">Bir araç hem araba hem kamyon olabilir.</li>
+    <li data-why="Alt sınıf, üst sınıfın bütün özniteliklerini ve ilişkilerini her zaman miras alır; bu kısıtlara bağlı değildir.">Bir araba VEHICLE'ın özniteliklerini miras almaz.</li>
+
   </ol>
   <div class="explain">Total: VEHICLE = CAR ∪ TRUCK (her araç en az birinde). Disjoint: CAR ∩ TRUCK = ∅ (en fazla birinde). Birlikte: tam olarak birinde. Kalıtım her zaman vardır.</div>
 </div>

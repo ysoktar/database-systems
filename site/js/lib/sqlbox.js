@@ -1,12 +1,13 @@
-// Runnable SQL boxes: an editable, highlighted editor + Run button; results print as tables, like the notebook's %%pg.
-//   <pre class="sql run" data-title="Q1">SELECT …</pre>     editable and runnable on the page's PostgreSQL
+// Runnable SQL boxes: an editable, highlighted editor + Run button; results print as tables, like the mysql client.
+//   <pre class="sql run" data-title="Q1">SELECT …</pre>     editable and runnable on the page's MySQL (COMPANY)
 //   <pre class="sql run" data-expect-error>…</pre>         the error is the point (constraint violations, …)
 //   <pre class="sql">…</pre>                              display only, highlighted
 import { h, $$, highlightSQL, dedent, button } from "./ui.js";
 import { runSQL, reset, onState, state, getDB } from "./db.js";
 import { checkResult, resultHash } from "./sqlcore.js";
+import { companyData, tablesIn } from "./companydata.js";
 
-const NUM = new Set([20, 21, 23, 26, 700, 701, 1700]);
+import { isNumericType } from "./mysql.js";
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* private mode */ } },
@@ -22,7 +23,7 @@ export function relationTable(cols, types, rows, { caption, rowClass, maxRows = 
   rows.slice(0, maxRows).forEach((r, i) => {
     tb.append(h("tr", { class: rowClass ? rowClass(r, i) : null }, h("td", { class: "idx" }, i + 1),
       ...r.map((v, j) => v === null || v === undefined ? h("td", { class: "null" }, "NULL")
-        : h("td", { class: NUM.has(types?.[j]) || typeof v === "number" ? "n" : null }, typeof v === "boolean" ? (v ? "TRUE" : "FALSE") : String(v)))));
+        : h("td", { class: isNumericType(types?.[j]) || typeof v === "number" ? "n" : null }, typeof v === "boolean" ? (v ? "TRUE" : "FALSE") : String(v)))));
   });
   t.append(tb);
   const wrap = h("div", { class: "rel-wrap" }, t);
@@ -36,19 +37,17 @@ export function renderItems(out, items) {
     if (it.kind === "result") {
       const label = `${it.rows.length} satır`;
       out.append(h("div", { class: "res-caption" }, it.caption ? `> ${it.caption}   (${label})` : label));
-      if (it.cols.length === 1 && it.cols[0] === "QUERY PLAN") out.append(h("pre", {}, it.rows.map((r) => r[0]).join("\n")));
+      if (it.cols.length === 1 && /^(plan|EXPLAIN|QUERY PLAN)$/i.test(it.cols[0])) out.append(h("pre", {}, it.rows.map((r) => r[0]).join("\n")));
       else if (it.rows.length) out.append(relationTable(it.cols, it.types, it.rows));
       else out.append(relationTable(it.cols, it.types, []));
     } else if (it.kind === "status") out.append(h("div", { class: "res-msg status" }, it.text));
     else if (it.kind === "notice") out.append(h("div", { class: "res-msg status" }, it.text));
     else if (it.kind === "error") {
-      const lines = [`${it.expected ? "BEKLENEN HATA" : "HATA"} [${it.code || "-"}]: ${it.message}`];
-      if (it.detail) lines.push(`Detail: ${it.detail}`);
-      if (it.hint) lines.push(`Hint: ${it.hint}`);
+      // as the mysql client prints it: ERROR 1062 (23000): Duplicate entry …
+      const lines = [`${it.expected ? "BEKLENEN HATA" : "HATA"} ${it.code || ""} (${it.state || "HY000"}): ${it.message}`];
       if (it.total > 1) lines.push(`(Kutudaki ${it.total} komutun ${it.index}. komutu; kalanlar çalıştırılmadı.)`);
-      if (it.rolledBack) lines.push("Hata yüzünden açık transaction geri alındı (ROLLBACK).");
       // objects that already exist (or are already gone) usually mean the box changed the database on an earlier run
-      if (!it.expected && ["42P07", "42710", "42701", "42P01", "42703", "42704", "23505"].includes(it.code)) {
+      if (!it.expected && [1050, 1060, 1061, 1146, 1054, 1091, 1062, 1359, 1304, 1007, 1008, 1051].includes(it.code)) {
         lines.push("İpucu: bu kutu ya da sayfadaki başka bir kutu veritabanını daha önce değiştirmiş olabilir. \"Veritabanını sıfırla\" ile COMPANY'yi ilk hâline döndürüp tekrar deneyin.");
       }
       out.append(h("div", { class: `res-msg ${it.expected ? "expected" : "error"}` }, lines.join("\n")));
@@ -56,8 +55,45 @@ export function renderItems(out, items) {
   }
 }
 
+/**
+ * "Which data is this about?": a row of chips, one per COMPANY table the SQL mentions; a chip opens that table's rows.
+ * Rows come from the running database when it is up (so earlier INSERTs show), otherwise from Figure 5.6.
+ * getSQL() is called again on refresh() (the box's code can change). Returns the element, with .refresh().
+ */
+export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow = false } = {}) {
+  const chips = h("span", { class: "ctx-chips" });
+  const panel = h("div", { class: "ctx-panel", hidden: true });
+  const el = h("div", { class: "sqlbox-ctx" }, h("span", { class: "ctx-db", title: "Kutular kitabın COMPANY veritabanı (Şekil 5.5–5.6) üzerinde çalışır" }, label), chips, panel);
+  let open = null;
+  async function show(t) {
+    open = open === t ? null : t;
+    for (const c of chips.children) c.setAttribute("aria-pressed", String(c.dataset.t === open));
+    if (!open) { panel.hidden = true; panel.replaceChildren(); return; }
+    panel.hidden = false;
+    let cols, rows, types = null, live = false;
+    if (state === "ready") {
+      const r = await runSQL(`SELECT * FROM ${t}`);
+      if (r.last) ({ cols, rows, types } = r.last), live = true;
+    }
+    if (!cols) ({ cols, rows } = companyData()[t]);
+    if (open !== t) return;
+    panel.replaceChildren(
+      relationTable(cols, types, rows, { caption: `${t}: ${rows.length} satır` }),
+      h("div", { class: "small muted" }, live ? "Veritabanının şu anki hâli (kutularda yaptığınız değişiklikler dahil)." : "Kitaptaki ilk hâli (Şekil 5.6)."));
+  }
+  el.refresh = () => {
+    const ts = tablesIn(getSQL());
+    if (ts.join() === [...chips.children].map((c) => c.dataset.t).join()) return;
+    chips.replaceChildren(...ts.map((t) => h("button", { type: "button", class: "ctx-chip", dataset: { t }, "aria-pressed": "false", title: `${t} tablosunun satırlarını göster`, onclick: () => show(t) }, t)));
+    if (open && !ts.includes(open)) show(open);
+    el.hidden = !ts.length && !alwaysShow;
+  };
+  el.refresh();
+  return el;
+}
+
 function loadingLine() {
-  const el = h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "PostgreSQL tarayıcınızda başlatılıyor (ilk seferde ≈ 5 MB indirilir) …");
+  const el = h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "MySQL tarayıcınızda başlatılıyor (ilk seferde ≈ 23 MB indirilir, sonra önbellekte) …");
   return el;
 }
 
@@ -108,8 +144,15 @@ export function createSqlBox(opts = {}) {
     }, { title: "COMPANY tablolarını kitaptaki ilk hâline döndür (yaptığınız INSERT/UPDATE/DELETE geri alınır)" }));
   }
   const head = h("div", { class: "sqlbox-head" }, h("div", { class: "sqlbox-title", html: opts.title || "SQL" }), actions);
-  const box = h("div", { class: "sqlbox" }, head, editor, out);
-  if (opts.foot !== false) box.append(h("div", { class: "sqlbox-foot" }, opts.note ? `${opts.note} ` : "", "Düzenleyebilirsiniz · Ctrl+Enter ile çalıştırın · tarayıcınızdaki gerçek PostgreSQL üzerinde"));
+  const box = h("div", { class: "sqlbox" }, head);
+  if (!opts.database || opts.database === "company") {
+    const ctx = tableContext(() => ta.value);
+    let timer = 0;
+    ta.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(ctx.refresh, 300); });
+    box.append(ctx);
+  }
+  box.append(editor, out);
+  if (opts.foot !== false) box.append(h("div", { class: "sqlbox-foot" }, opts.note ? `${opts.note} ` : "", "Düzenleyebilirsiniz · Ctrl+Enter ile çalıştırın · tarayıcınızda çalışan MySQL üzerinde"));
 
   async function run() {
     const text = ta.value;
@@ -118,10 +161,10 @@ export function createSqlBox(opts = {}) {
     if (state !== "ready") out.replaceChildren(loadingLine());
     let res;
     try {
-      if (opts.setup) await runSQL(opts.setup); // prerequisites (e.g. a view defined in an earlier box), output not shown
-      res = await runSQL(text, { expectError: !!opts.expectError });
+      if (opts.setup) await runSQL(opts.setup, { database: opts.database }); // prerequisites (e.g. a view defined in an earlier box), output not shown
+      res = await runSQL(text, { expectError: !!opts.expectError, database: opts.database });
     } catch (e) {
-      out.replaceChildren(h("div", { class: "res-msg error" }, "PostgreSQL başlatılamadı: " + (e?.message || e)));
+      out.replaceChildren(h("div", { class: "res-msg error" }, "MySQL başlatılamadı: " + (e?.message || e)));
       runBtn.disabled = false;
       return null;
     }
@@ -190,8 +233,8 @@ export function enhanceSQL(root = document) {
 export function engineBadge() {
   const el = h("span", { class: "small muted" });
   const paint = (s, info) => {
-    el.textContent = s === "ready" ? `PostgreSQL hazır${info?.ms ? ` (${(info.ms / 1000).toFixed(1)} s)` : ""}`
-      : s === "loading" ? "PostgreSQL yükleniyor …" : s === "failed" ? "PostgreSQL yüklenemedi" : "PostgreSQL ilk kullanımda yüklenecek";
+    el.textContent = s === "ready" ? `MySQL hazır${info?.ms ? ` (${(info.ms / 1000).toFixed(1)} s)` : ""}`
+      : s === "loading" ? "MySQL yükleniyor …" : s === "failed" ? "MySQL yüklenemedi" : "MySQL ilk kullanımda yüklenecek";
   };
   paint(state);
   onState(paint);

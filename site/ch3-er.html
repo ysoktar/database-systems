@@ -168,7 +168,7 @@
   <p>Bir öğrencinin birden çok telefon numarası olabiliyor. ER diyagramında <code>Phone</code> nasıl çizilmelidir?</p>
   <ol>
     <li data-why="Kesik elips türetilmiş (derived) öznitelik içindir.">Kesik çizgili elips</li>
-    <li>Çift çizgili elips (multivalued)</li>
+    <li data-why="Doğru: bir öğrencinin birden çok değeri olabilen öznitelik multivalued'dır.">Çift çizgili elips (multivalued)</li>
     <li data-why="Bileşik öznitelik parçalara bölünür ama tek bir değer taşır.">Bileşenlere bağlanan bileşik öznitelik</li>
     <li data-why="Altı çizili elips anahtardır; telefon numarası paylaşılabilir ya da değişebilir.">Altı çizili elips</li>
   </ol>
@@ -177,17 +177,17 @@
 <div class="quiz" data-answer="3">
   <p>"Her proje tam bir departman tarafından kontrol edilir; bir departman hiç proje kontrol etmeyebilir ya da birçok projeyi kontrol edebilir." CONTROLS için (min,max) değerleri nedir?</p>
   <ol>
-    <li>DEPARTMENT (1,1), PROJECT (0,N)</li>
-    <li>DEPARTMENT (1,N), PROJECT (1,1)</li>
-    <li>DEPARTMENT (0,N), PROJECT (1,1)</li>
-    <li>DEPARTMENT (0,1), PROJECT (1,N)</li>
+    <li data-why="Sayılar ters yazılmış: bu, '1:N' gösterimini (min,max) gibi okuma hatası. (min,max) her varlığın <em>kendi</em> kaç ilişki örneğine katıldığını yazar; bir departman birçok projeyi kontrol edebilir, yani max'ı 1 olamaz.">DEPARTMENT (1,1), PROJECT (0,N)</li>
+    <li data-why="Min 1, her departmanın en az bir proje kontrol etmesi gerektiği anlamına gelir; metin 'hiç proje kontrol etmeyebilir' diyor, yani min 0.">DEPARTMENT (1,N), PROJECT (1,1)</li>
+    <li data-why="Doğru: departman 0..N projeyi kontrol eder, her proje tam bir departman tarafından kontrol edilir.">DEPARTMENT (0,N), PROJECT (1,1)</li>
+    <li data-why="Bir departmanın en çok bir proje kontrol edebileceğini ve bir projenin birçok departmanca kontrol edildiğini söyler; metnin tam tersi.">DEPARTMENT (0,1), PROJECT (1,N)</li>
   </ol>
   <div class="explain">(min,max) her varlığın kendi katılımını yazar. Bir departman 0 ya da daha çok projeyi kontrol eder: (0,N). Her proje tam 1 kez: (1,1). 1:N gösterimindeki DEPARTMENT:PROJECT = 1:N ile karşılaştırın; sayıların yer değiştirdiğine dikkat edin.</div>
 </div>
 <div class="quiz" data-answer="1">
   <p>WORKS_ON'un <code>Hours</code> özniteliği neden EMPLOYEE'ye ya da PROJECT'e taşınamaz?</p>
   <ol>
-    <li>Çünkü WORKS_ON M:N'dir; Hours bir (çalışan, proje) çiftine aittir.</li>
+    <li data-why="Doğru: M:N'de değer tek bir varlığa değil, (çalışan, proje) çiftine aittir.">Çünkü WORKS_ON M:N'dir; Hours bir (çalışan, proje) çiftine aittir.</li>
     <li data-why="Hours türetilmiş değil, saklanan bir değer.">Çünkü Hours türetilmiş bir özniteliktir.</li>
     <li data-why="İlişkilerin öznitelikleri olabilir; sorun bu değil.">Çünkü ilişkilerin özniteliği olamaz, bu bir tasarım hatasıdır.</li>
     <li data-why="Total katılım, özniteliğin nereye taşınabileceğini belirlemez.">Çünkü iki tarafın katılımı da totaldir.</li>
@@ -197,20 +197,21 @@
 <div class="quiz" data-answer="4">
   <p>DEPENDENT için hangisi <em>yanlıştır</em>?</p>
   <ol>
-    <li>DEPENDENT zayıf bir entity type'tır; sahibi EMPLOYEE'dir.</li>
-    <li>DEPENDENT'ın DEPENDENTS_OF'a katılımı totaldir.</li>
-    <li><code>Dependent_name</code> bir partial key'dir.</li>
-    <li><code>Dependent_name</code> DEPENDENT'ın anahtarıdır, çünkü her bağımlının adı farklıdır.</li>
+    <li data-why="Bu ifade doğru (soru yanlış olanı arıyor): DEPENDENT'ın kendi anahtarı yok, EMPLOYEE üzerinden tanımlanır.">DEPENDENT zayıf bir entity type'tır; sahibi EMPLOYEE'dir.</li>
+    <li data-why="Bu ifade doğru (soru yanlış olanı arıyor): zayıf varlık, sahibi olmadan var olamaz; tanımlayıcı ilişkiye katılımı her zaman totaldir.">DEPENDENT'ın DEPENDENTS_OF'a katılımı totaldir.</li>
+    <li data-why="Bu ifade doğru (soru yanlış olanı arıyor): ad yalnızca aynı çalışanın bağımlıları arasında ayırt edicidir, yani partial key."><code>Dependent_name</code> bir partial key'dir.</li>
+    <li data-why="Yanlış olan bu, yani doğru cevap: iki farklı çalışanın aynı adlı bağımlıları olabilir."><code>Dependent_name</code> DEPENDENT'ın anahtarıdır, çünkü her bağımlının adı farklıdır.</li>
   </ol>
   <div class="explain">İki farklı çalışanın aynı adlı bağımlıları olabilir (Wong ve Smith'in ikisinin de "Alice" adlı kızı var). Ad, yalnızca <em>aynı çalışanın</em> bağımlıları arasında ayırt edicidir. Tam tanımlayıcı (sahibin anahtarı + partial key) = (Essn, Dependent_name).</div>
 </div>
 <div class="quiz" data-answer="2">
   <p>Bir hastanede her hastanın tam bir odası vardır; bir odada en fazla 2 hasta yatar ve odalar boş kalabilir. HASTA–KALIR–ODA için doğru kısıtlar hangileri?</p>
   <ol>
-    <li>HASTA:ODA = 1:N; HASTA partial, ODA total</li>
-    <li>HASTA:ODA = N:1; HASTA total, ODA partial; (min,max): HASTA (1,1), ODA (0,2)</li>
-    <li>HASTA:ODA = M:N; ikisi de partial</li>
-    <li>HASTA:ODA = N:1; ikisi de total; (min,max): HASTA (1,1), ODA (1,2)</li>
+    <li data-why="1:N, bir hastanın birçok odası olduğunu söylerdi; oysa her hasta tek odada. Katılımlar da ters: her hastanın odası olmak zorunda (total), odalar boş kalabilir (partial).">HASTA:ODA = 1:N; HASTA partial, ODA total</li>
+    <li data-why="Doğru: her hasta tam bir odada (1,1), bir odada 0–2 hasta (0,2).">HASTA:ODA = N:1; HASTA total, ODA partial; (min,max): HASTA (1,1), ODA (0,2)</li>
+    <li data-why="M:N, bir hastanın birden çok odada kalabileceği anlamına gelir; ayrıca 'her hastanın odası vardır' total katılımdır.">HASTA:ODA = M:N; ikisi de partial</li>
+    <li data-why="'Odalar boş kalabilir' denmiş: ODA'nın min'i 0, yani ODA partial. (1,2) her odada en az bir hasta olmasını gerektirirdi.">HASTA:ODA = N:1; ikisi de total; (min,max): HASTA (1,1), ODA (1,2)</li>
+
   </ol>
   <div class="explain">Her hasta tam 1 odada → HASTA tarafında max 1, min 1 (total). Bir odada 0–2 hasta → ODA (0,2), partial. Oran N:1 (çok hasta, bir oda). (min,max) gösterimi, kardinaliteden daha fazlasını (en çok 2) ifade edebilir.</div>
 </div>

@@ -1,7 +1,7 @@
 // The ten exercises of the class notebook (Exercises — Chapters 6 and 7, COMPANY database).
 // `expect` is copied from the notebook's _EXPECTED table (fingerprints of the right answer, not the answer itself).
-// `solution` and `alt` are this site's model answers; test/exercises.test.mjs runs every one of them on PostgreSQL
-// (PGlite) and checks it against the notebook's fingerprint, so a solution shown here is known to be accepted.
+// `solution` and `alt` are this site's model answers; test/exercises.test.mjs runs every one of them on the site's
+// MySQL engine and checks it against the notebook's fingerprint, so a solution shown here is known to be accepted.
 
 export const EXERCISES = [
   {

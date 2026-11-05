@@ -16,7 +16,7 @@ $("#schema").append(schemaCards());
 const showOut = h("div", { class: "sqlbox-out" });
 $("#show").append(h("div", { class: "btn-row" },
   button("Tabloları göster (%show)", async () => {
-    showOut.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "PostgreSQL başlatılıyor …"));
+    showOut.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "MySQL başlatılıyor …"));
     const res = await runSQL(TABLES.map((t) => `-- ${t}\nSELECT * FROM ${t}`).join(";\n"));
     showOut.replaceChildren();
     renderItems(showOut, res.items);

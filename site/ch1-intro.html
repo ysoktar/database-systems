@@ -33,14 +33,20 @@
 </div>
 
 <h3>Bir örnek: UNIVERSITY veritabanı</h3>
-<p>Kitabın Ch 1 örneği bir üniversite: STUDENT, COURSE, SECTION, GRADE_REPORT, PREREQUISITE dosyaları. Bu bölümde de aynı fikirleri COMPANY üzerinde görebilirsiniz: <strong>tanımlama</strong> bir <code>CREATE TABLE</code>, <strong>işleme</strong> bir <code>SELECT</code> ya da <code>UPDATE</code>'tir; DBMS kataloğu ise her tablonun tanımını saklar.</p>
+<p>Kitabın Ch 1 örneği bir üniversite: STUDENT, COURSE, SECTION, GRADE_REPORT, PREREQUISITE dosyaları. Her dosya bir tablo, her kayıt bir satırdır; GRADE_REPORT bir öğrencinin bir şubedeki notunu, PREREQUISITE bir dersin ön koşulunu tutar. Dört işlevi bu örnekle düşünün: <strong>define</strong> = "STUDENT'ın Name, Student_number, Class, Major alanları vardır" demek; <strong>construct</strong> = öğrencileri tek tek kaydetmek; <strong>manipulate</strong> = "Smith'in transkriptini listele" ya da "Smith'i ikinci sınıfa geçir"; <strong>share</strong> = öğrenci işleri, bölümler ve öğrencilerin aynı veriye aynı anda erişmesi.</p>
+
+<h3>Bu sitedeki veritabanı: COMPANY</h3>
+<p>Sitenin bütün SQL kutuları kitabın Ch 5'te tanıttığı <strong>COMPANY</strong> veritabanı üzerinde çalışır: bir şirketin çalışanları (EMPLOYEE), departmanları (DEPARTMENT), departman yerleri (DEPT_LOCATIONS), projeleri (PROJECT), kimin hangi projede kaç saat çalıştığı (WORKS_ON) ve çalışanların bakmakla yükümlü oldukları kişiler (DEPENDENT). Satırlar kitabın Şekil 5.6'sındakilerle aynıdır: 8 çalışan, 3 departman, 6 proje. Her kutunun üstünde, kutunun kullandığı tabloların adları vardır; bir ada tıklarsanız o tablonun satırları açılır. Tabloların tamamını <a href="lab.html">SQL laboratuvarındaki</a> şema tarayıcıda görebilirsiniz.</p>
+<p>SQL'i Ch 6'da öğreneceksiniz; şimdilik aşağıdaki kutuyu yalnızca <em>self-describing</em> özelliğini görmek için çalıştırın. Kutu, DBMS kataloğunun (<code>information_schema</code>) içindeki <code>COLUMNS</code> tablosunu okuyor ve COMPANY'nin her tablosu için kaç sütun tanımlandığını sayıyor. Yani tabloların <em>tanımı</em> da veritabanının içinde, sorgulanabilen bir tablo olarak duruyor.</p>
 <pre class="sql run" data-title="Katalog (meta-data) da bir tablodur: COMPANY'nin tabloları ve sütun sayıları">
-SELECT table_name, COUNT(*) AS column_count
-FROM   information_schema.columns
-WHERE  table_schema = 'company'
-GROUP BY table_name
-ORDER BY table_name;
+-- information_schema: the DBMS catalog, itself readable with SQL
+SELECT TABLE_NAME, COUNT(*) AS column_count
+FROM   information_schema.COLUMNS
+WHERE  TABLE_SCHEMA = 'company'
+GROUP BY TABLE_NAME
+ORDER BY TABLE_NAME;
 </pre>
+<p class="small muted">Sonuçta EMPLOYEE için 10 görürsünüz: Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary, Super_ssn, Dno. Bu bilgi tablonun kendisinde değil, katalogda saklanır.</p>
 
 <h2>Veritabanı yaklaşımının özellikleri</h2>
 <p>Dosya işleme (<em>file processing</em>) yaklaşımında her uygulama kendi dosyalarını tanımlar ve yönetir; aynı veri birden çok yerde tekrar eder. Veritabanı yaklaşımında ise tek bir veri deposu bir kez tanımlanır ve herkes ona erişir. Kitap dört özellik sayar:</p>
@@ -125,7 +131,8 @@ ORDER BY table_name;
   <ol>
     <li data-why="Yetkilendirme kimin neye erişebileceğiyle ilgilidir, çelişen kopyalarla değil.">Unauthorized access</li>
     <li data-why="Concurrency, aynı anda yapılan erişimlerle ilgilidir. Burada sorun, aynı verinin birden çok kopyasının olması.">Concurrency control eksikliği</li>
-    <li>Uncontrolled redundancy, bunun sonucu olarak da inconsistency</li>
+    <li data-why="Doğru: aynı adres birden çok dosyada kontrolsüzce tekrar ediyor; biri güncellenip diğeri güncellenmeyince kopyalar çelişiyor.">Uncontrolled redundancy, bunun sonucu olarak da inconsistency</li>
+
     <li data-why="Program-data independence, dosya yapısının programa gömülü olmasıyla ilgilidir.">Program-data dependence</li>
   </ol>
   <div class="explain">Aynı veri birden çok yerde, kontrolsüz biçimde saklanıyor (redundancy). Kopyalar birbirinden farklılaşınca veri tutarsız (inconsistent) hâle gelir. DBMS veriyi bir kez saklar ya da kontrollü tekrar kullanır.</div>
@@ -133,30 +140,30 @@ ORDER BY table_name;
 <div class="quiz" data-answer="2">
   <p>Banka veznedarı her gün aynı hazır işlemleri (para yatırma, çekme, bakiye sorgulama) kullanıyor. Hangi tür son kullanıcıdır?</p>
   <ol>
-    <li>Casual end user</li>
-    <li>Naive (parametric) end user</li>
-    <li>Sophisticated end user</li>
-    <li>Standalone user</li>
+    <li data-why="Casual kullanıcı veritabanına arada bir ve her seferinde farklı bir bilgi için erişir (ör. bir yönetici). Veznedar her gün aynı işlemleri yapıyor.">Casual end user</li>
+    <li data-why="Doğru: hazır, önceden programlanmış işlemleri (canned transactions) tekrar tekrar kullanıyor.">Naive (parametric) end user</li>
+    <li data-why="Sophisticated kullanıcı kendi karmaşık sorgularını yazar (mühendis, analist). Veznedar sorgu yazmıyor, hazır ekranları kullanıyor.">Sophisticated end user</li>
+    <li data-why="Standalone kullanıcı kendi kişisel veritabanını hazır bir paketle tutar (ör. kişisel finans programı). Bankanın ortak sistemi kişisel değildir.">Standalone user</li>
   </ol>
   <div class="explain">Naive/parametric kullanıcılar <em>canned transaction</em> adı verilen, önceden programlanmış ve test edilmiş standart işlemleri tekrar tekrar kullanır.</div>
 </div>
 <div class="quiz" data-answer="4">
   <p>Aşağıdakilerden hangisi veritabanı yaklaşımının <em>self-describing</em> özelliğini en iyi açıklar?</p>
   <ol>
-    <li>Kullanıcılar veriyi farklı görünümlerle görebilir.</li>
-    <li>Programlar dosya yapısından bağımsızdır.</li>
-    <li>Birden çok kullanıcı aynı anda veri güncelleyebilir.</li>
-    <li>Veritabanı, verinin yanında yapısının tanımını da (katalogda meta-data olarak) içerir.</li>
+    <li data-why="Bu, <em>multiple views</em> özelliğidir: farklı kullanıcılar veritabanının farklı alt kümelerini görür.">Kullanıcılar veriyi farklı görünümlerle görebilir.</li>
+    <li data-why="Bu, <em>program-data independence</em>'tır. Self-describing olmak bunu <em>mümkün kılar</em> (yapı katalogda olduğu için programa gömülmez), ama tanımı bu değildir.">Programlar dosya yapısından bağımsızdır.</li>
+    <li data-why="Bu, <em>sharing / multiuser transaction processing</em> özelliğidir ve concurrency control gerektirir.">Birden çok kullanıcı aynı anda veri güncelleyebilir.</li>
+    <li data-why="Doğru: verinin yanında yapının tam tanımı (meta-data) da katalogda saklanır.">Veritabanı, verinin yanında yapısının tanımını da (katalogda meta-data olarak) içerir.</li>
   </ol>
   <div class="explain">DBMS kataloğu her tablonun, sütunun, tipin ve kısıtın tanımını saklar; DBMS yazılımı bu sayede herhangi bir veritabanıyla çalışabilir. Yukarıdaki <code>information_schema</code> sorgusu bu kataloğu okuyor.</div>
 </div>
 <div class="quiz" data-answer="1">
   <p>Aşağıdaki durumlardan hangisinde DBMS kullanmak <em>en az</em> anlamlıdır?</p>
   <ol>
-    <li>Bir çamaşır makinesinin, çok az belleği olan ve tek bir programın kullandığı gömülü kontrol yazılımı</li>
-    <li>Yüzlerce şubeden aynı anda erişilen bir banka hesap sistemi</li>
-    <li>Sık sık yeni rapor türleri istenen bir şirket bilgi sistemi</li>
-    <li>Öğrenci, ders ve not bilgilerini tutan bir üniversite sistemi</li>
+    <li data-why="Doğru: gömülü sistem, sınırlı depolama, tek program, değişmeyen gereksinimler; kitabın 'DBMS kullanmayın' listesindeki maddelerin hepsi.">Bir çamaşır makinesinin, çok az belleği olan ve tek bir programın kullandığı gömülü kontrol yazılımı</li>
+    <li data-why="Eşzamanlı erişim, transaction'lar ve recovery tam olarak DBMS'in sağladığı şeyler; burada DBMS şart.">Yüzlerce şubeden aynı anda erişilen bir banka hesap sistemi</li>
+    <li data-why="Gereksinimler sık değişiyor: yeni raporlar için yüksek düzey bir sorgu dili ve program-data independence tam da gereken şey.">Sık sık yeni rapor türleri istenen bir şirket bilgi sistemi</li>
+    <li data-why="Birçok kullanıcının paylaştığı, ilişkili veriler (öğrenci–ders–not): kitabın kendi Ch 1 örneği, tipik bir DBMS uygulaması.">Öğrenci, ders ve not bilgilerini tutan bir üniversite sistemi</li>
   </ol>
   <div class="explain">Sınırlı depolama, tek kullanıcı, basit ve değişmeyen gereksinimler: DBMS'in getirdiği ek yük (genellik, güvenlik, concurrency, recovery) burada karşılığını vermez.</div>
 </div>

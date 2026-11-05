@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SQL laboratuvarı · Veritabanı Sistemleri</title>
-<meta name="description" content="COMPANY veritabanı üzerinde tarayıcıda çalışan PostgreSQL konsolu: serbest sorgular, örnek sorgular, canlı şema tarayıcı ve sıfırlama.">
+<meta name="description" content="COMPANY veritabanı üzerinde tarayıcıda çalışan MySQL konsolu: serbest sorgular, örnek sorgular, canlı şema tarayıcı ve sıfırlama.">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
@@ -21,11 +21,11 @@
 <div id="examples"></div>
 
 <h2>Şema tarayıcı</h2>
-<p>PostgreSQL kataloğundan (<code>information_schema</code>) canlı okunur: bir tablo oluşturur ya da sütun eklerseniz burada görünür. <span class="pk" style="color:var(--pk);text-decoration:underline">Altı çizili</span>: primary key; <span style="color:var(--fk)">mavi</span>: foreign key.</p>
+<p>MySQL kataloğundan (<code>information_schema</code>) canlı okunur: bir tablo oluşturur ya da sütun eklerseniz burada görünür. <span class="pk" style="color:var(--pk);text-decoration:underline">Altı çizili</span>: primary key; <span style="color:var(--fk)">mavi</span>: foreign key.</p>
 <div id="browser"></div>
 
 <div class="callout note">
-  <p><strong>Bilinmesi gerekenler.</strong> Veritabanı yalnızca bu sekmede yaşar: sayfayı yenileyince COMPANY ilk hâline döner (yazdığınız konsol metni saklanır). Tablolar <code>company</code> şemasında, deneme tabloları için <code>demo</code> şeması hazır. Motor PostgreSQL'in kendisidir (WebAssembly'e derlenmiş, <a href="https://pglite.dev/" target="_blank" rel="noopener">PGlite</a>); sözdizimi ve hata mesajları Colab'daki PostgreSQL ile aynıdır.</p>
+  <p><strong>Bilinmesi gerekenler.</strong> Veritabanı yalnızca bu sekmede yaşar: sayfayı yenileyince COMPANY ilk hâline döner (yazdığınız konsol metni saklanır). Tablolar <code>company</code> veritabanında (MySQL'de "schema" ile "database" aynı şeydir), deneme tabloları için <code>demo</code> veritabanı hazır: <code>CREATE TABLE demo.T (…)</code>. Motor, MySQL ile uyumlu <a href="https://github.com/dolthub/go-mysql-server" target="_blank" rel="noopener">go-mysql-server</a>'ın WebAssembly'e derlenmiş hâlidir: sözdizimi, hata numaraları ve <code>information_schema</code> MySQL 8 gibidir. Birkaç özellik eksiktir: view üzerinden güncelleme yapılamaz, <code>EXPLAIN</code> çıktısı gerçek MySQL'inkinden farklı biçimdedir. Bunlar ilgili sayfalarda belirtilmiştir.</p>
 </div>
 
 </div></main>

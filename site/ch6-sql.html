@@ -43,7 +43,7 @@ CREATE TABLE EMPLOYEE
   CONSTRAINT EMPSUPERFK FOREIGN KEY (Super_ssn) REFERENCES EMPLOYEE(Ssn)
                         ON DELETE SET NULL  ON UPDATE CASCADE,
   CONSTRAINT EMPDEPTFK  FOREIGN KEY (Dno) REFERENCES DEPARTMENT(Dnumber)
-                        ON DELETE SET DEFAULT  ON UPDATE CASCADE );
+                        ON DELETE SET DEFAULT  ON UPDATE CASCADE );   -- (MySQL: see the note below)
 
 CREATE TABLE DEPARTMENT
 ( Dname           VARCHAR(15)     NOT NULL,
@@ -62,8 +62,9 @@ CREATE TABLE DEPT_LOCATIONS
   FOREIGN KEY (Dnumber) REFERENCES DEPARTMENT(Dnumber)
               ON DELETE CASCADE  ON UPDATE CASCADE );
 </pre>
+<p class="small muted">Kitabın tanımı. Bu sitedeki COMPANY bunu MySQL'de iki küçük farkla kurar: MySQL'in depolama motoru InnoDB <code>ON DELETE SET DEFAULT</code>'u kabul etmediği için o eylem çıkarılmıştır (silme reddedilir), ve döngüsel foreign key'ler aşağıda anlatıldığı gibi sonradan eklenir. Kurulan tanımın tamamını <a href="lab.html">SQL laboratuvarında</a> <code>SHOW CREATE TABLE EMPLOYEE;</code> ile görebilirsiniz.</p>
 <div class="callout gotcha">
-  <p><strong>Döngüsel foreign key'ler.</strong> EMPLOYEE.Dno → DEPARTMENT ve DEPARTMENT.Mgr_ssn → EMPLOYEE birbirine başvurur. EMPLOYEE oluşturulurken DEPARTMENT henüz yoktur. Çözüm: önce tabloları FK'sız oluşturup FK'yı sonra <code>ALTER TABLE … ADD CONSTRAINT</code> ile eklemek. Veri yüklerken de aynı sorun çıkar: ya kısıt geçici olarak ertelenir (<code>DEFERRABLE</code>, <code>SET CONSTRAINTS … DEFERRED</code>) ya da önce NULL yazıp sonra güncellenir. Bu sitedeki COMPANY, notebook'taki gibi ilk yöntemle kurulur.</p>
+  <p><strong>Döngüsel foreign key'ler.</strong> EMPLOYEE.Dno → DEPARTMENT ve DEPARTMENT.Mgr_ssn → EMPLOYEE birbirine başvurur. EMPLOYEE oluşturulurken DEPARTMENT henüz yoktur. Çözüm: önce tabloları FK'sız oluşturup FK'yı sonra <code>ALTER TABLE … ADD CONSTRAINT</code> ile eklemek. Veri yüklerken de aynı sorun çıkar: standart SQL'de kısıt geçici olarak ertelenir (<code>DEFERRABLE</code>, <code>SET CONSTRAINTS … DEFERRED</code>) ya da önce NULL yazılıp sonra güncellenir. MySQL'de ertelenebilir kısıt yoktur; bunun yerine yükleme sırasında foreign key kontrolü kapatılıp açılır: <code>SET FOREIGN_KEY_CHECKS = 0; … SET FOREIGN_KEY_CHECKS = 1;</code>. Bu sitedeki COMPANY böyle yüklenir.</p>
 </div>
 
 <h3>Veri tipleri ve domain'ler</h3>
@@ -71,13 +72,13 @@ CREATE TABLE DEPT_LOCATIONS
   <thead><tr><th>Tip</th><th>Örnekler</th></tr></thead>
   <tbody>
     <tr><td>Sayısal</td><td><code>INTEGER</code>/<code>INT</code>, <code>SMALLINT</code>, <code>FLOAT</code>/<code>REAL</code>, <code>DOUBLE PRECISION</code>, <code>DECIMAL(i,j)</code> = <code>NUMERIC(i,j)</code>: i toplam basamak (precision), j ondalık basamak (scale)</td></tr>
-    <tr><td>Karakter</td><td><code>CHAR(n)</code> sabit uzunluk (sağdan boşlukla doldurulur), <code>VARCHAR(n)</code> değişken uzunluk; <code>CLOB</code> büyük metinler. Sabitler tek tırnakla: <code>'Smith'</code>; büyük/küçük harf duyarlıdır.</td></tr>
+    <tr><td>Karakter</td><td><code>CHAR(n)</code> sabit uzunluk (sağdan boşlukla doldurulur), <code>VARCHAR(n)</code> değişken uzunluk; <code>CLOB</code> büyük metinler. Sabitler tek tırnakla: <code>'Smith'</code>. Standart SQL'de karşılaştırma büyük/küçük harfe duyarlıdır; MySQL'in varsayılan collation'ında (<code>utf8mb4_0900_ai_ci</code>, "ci" = case-insensitive) değildir: <code>'smith' = 'Smith'</code> TRUE'dur.</td></tr>
     <tr><td>Bit</td><td><code>BIT(n)</code>, <code>BIT VARYING(n)</code>, <code>BLOB</code> (resim gibi büyük ikili değerler)</td></tr>
     <tr><td>Boolean</td><td><code>TRUE</code>, <code>FALSE</code>, <code>UNKNOWN</code> (NULL yüzünden üç değerli)</td></tr>
     <tr><td>Tarih/zaman</td><td><code>DATE</code> 'YYYY-MM-DD', <code>TIME</code> 'HH:MM:SS', <code>TIMESTAMP</code>, <code>INTERVAL</code></td></tr>
   </tbody>
 </table>
-<p><strong>Domain</strong>: bir tipe ad verir, değiştirmeyi kolaylaştırır: <code>CREATE DOMAIN SSN_TYPE AS CHAR(9);</code> Kullanıcı tanımlı tipler <code>CREATE TYPE</code> ile.</p>
+<p><strong>Domain</strong>: bir tipe ad verir, değiştirmeyi kolaylaştırır: <code>CREATE DOMAIN SSN_TYPE AS CHAR(9);</code> Kullanıcı tanımlı tipler <code>CREATE TYPE</code> ile. (Standart SQL; MySQL'de <code>CREATE DOMAIN</code> ve <code>CREATE TYPE</code> yoktur, tip her sütunda ayrıca yazılır.)</p>
 
 <h3>Kısıtlar</h3>
 <ul>
@@ -87,6 +88,7 @@ CREATE TABLE DEPT_LOCATIONS
   <li><strong>Kısıtlara ad verme</strong>: <code>CONSTRAINT EMPPK PRIMARY KEY (Ssn)</code>. Ad, kısıtı daha sonra <code>DROP</code> etmek ya da değiştirmek için kullanılır.</li>
   <li><strong>Tuple tabanlı CHECK</strong>: tablo tanımının sonunda, bir satırın birden çok sütununa dair: <code>CHECK (Dept_create_date &lt;= Mgr_start_date)</code>. Her satır eklendiğinde ya da değiştiğinde kontrol edilir.</li>
 </ul>
+<p>Aşağıdaki kutu COMPANY'yi bozmamak için tabloyu <code>demo</code> adlı ayrı bir veritabanında oluşturur (<code>demo.DEPT_NEW</code> = demo veritabanındaki DEPT_NEW tablosu). Sırayla: tablo kısıtlarıyla tanımlanır, kısıtları sağlayan bir satır eklenir (Mgr_ssn verilmediği için DEFAULT değerini alır), sonra Dnumber = 25 ile CHECK'i ihlal eden bir satır denenir. Son komutun hata vermesi beklenir.</p>
 <pre class="sql run" data-expect-error data-title="CHECK, DEFAULT ve UNIQUE kısıtları iş başında">
 DROP TABLE IF EXISTS demo.DEPT_NEW;   -- so that the box can be run again
 CREATE TABLE demo.DEPT_NEW
@@ -135,7 +137,7 @@ SELECT E.Fname, E.Lname, S.Fname, S.Lname
 FROM   EMPLOYEE AS E, EMPLOYEE AS S
 WHERE  E.Super_ssn = S.Ssn;
 </pre>
-<p>E ve S, EMPLOYEE'nin iki ayrı kopyası gibi düşünülür: E çalışan, S amir rolünde. Bu, tek düzeyli bir <em>recursive query</em>'dir. Borg sonuçta yoktur: amiri NULL olduğu için join koşulu sağlanmaz. Alias'larla sütunlar da yeniden adlandırılabilir: <code>FROM EMPLOYEE AS E(Fn, Mi, Ln, Ssn, Bd, Addr, Sex, Sal, Sssn, Dno)</code>.</p>
+<p>E ve S, EMPLOYEE'nin iki ayrı kopyası gibi düşünülür: E çalışan, S amir rolünde. Bu, tek düzeyli bir <em>recursive query</em>'dir. Borg sonuçta yoktur: amiri NULL olduğu için join koşulu sağlanmaz. Alias'larla sütunlar da yeniden adlandırılabilir: <code>FROM EMPLOYEE AS E(Fn, Mi, Ln, Ssn, Bd, Addr, Sex, Sal, Sssn, Dno)</code> (standart SQL; MySQL bunu temel tablolar için kabul etmez, yalnızca <code>FROM (SELECT …) AS T(a, b)</code> gibi alt sorgularda).</p>
 
 <h3>WHERE yok, * ve kartezyen çarpım</h3>
 <pre class="sql run" data-title="Q9 ve Q10 · WHERE olmayınca: tüm satırlar; iki tablo varsa KARTEZYEN ÇARPIM">
@@ -179,7 +181,7 @@ SELECT Dnumber FROM DEPARTMENT  EXCEPT  SELECT Dnum FROM PROJECT;      -- depart
 <h3>LIKE, aritmetik, BETWEEN</h3>
 <ul>
   <li><code>LIKE</code>: <code>%</code> sıfır ya da daha çok karakter, <code>_</code> tam bir karakter. Bu karakterlerin kendisini aramak için kaçış karakteri: <code>'AB\_CD\%EF' ESCAPE '\'</code>. Tek tırnak, içeride iki kez yazılır: <code>'O''Brien'</code>.</li>
-  <li>Aritmetik: <code>+</code>, <code>−</code>, <code>*</code>, <code>/</code>; metin birleştirme <code>||</code>; tarih/zaman ile <code>INTERVAL</code> toplama, çıkarma.</li>
+  <li>Aritmetik: <code>+</code>, <code>−</code>, <code>*</code>, <code>/</code>; metin birleştirme standart SQL'de <code>||</code>, MySQL'de <code>CONCAT(a, b)</code> (MySQL'de <code>||</code> varsayılan olarak OR demektir); tarih/zaman ile <code>INTERVAL</code> toplama, çıkarma: <code>Bdate + INTERVAL 1 YEAR</code>.</li>
   <li><code>BETWEEN a AND b</code> ≡ <code>&gt;= a AND &lt;= b</code> (iki sınır dahil).</li>
 </ul>
 <pre class="sql run" data-title="Q12 · Adresi Houston, Texas olan çalışanlar">
@@ -188,12 +190,16 @@ FROM   EMPLOYEE
 WHERE  Address LIKE '%Houston,%TX%';
 </pre>
 <pre class="sql run" data-title="Q12A · 1950'lerde doğanlar">
--- the book writes Bdate LIKE '__5_______' for its date format; in PostgreSQL a DATE is not text,
--- so compare its text form (YYYY-MM-DD) or, better, the year itself
+-- a DATE compared with LIKE is read as its text 'YYYY-MM-DD': the third character is the decade
 SELECT Fname, Lname, Bdate
 FROM   EMPLOYEE
-WHERE  CAST(Bdate AS VARCHAR(10)) LIKE '195_-%';
+WHERE  Bdate LIKE '__5_______';
+-- the same without relying on the text form
+SELECT Fname, Lname, Bdate
+FROM   EMPLOYEE
+WHERE  YEAR(Bdate) BETWEEN 1950 AND 1959;
 </pre>
+<p class="small muted">Desende 10 karakter var: <code>__5_______</code> = iki herhangi karakter, 5, yedi herhangi karakter. '1955-12-08' uyar (Wong); '1965-01-09' uymaz çünkü üçüncü karakteri 6.</p>
 <pre class="sql run" data-title="Q13 · ProductX'te çalışanlara %10 zam yapılsaydı maaşları">
 SELECT E.Fname, E.Lname, 1.1 * E.Salary AS Increased_sal
 FROM   EMPLOYEE AS E, WORKS_ON AS W, PROJECT AS P
@@ -245,7 +251,7 @@ INSERT INTO WORKS_ON_INFO (Emp_name, Proj_name, Hours_per_week)
   WHERE  P.Pnumber = W.Pno AND W.Essn = E.Ssn;
 SELECT * FROM WORKS_ON_INFO ORDER BY Emp_name;
 </pre>
-<p>WORKS_ON_INFO bir <em>kopyadır</em>: temel tablolar sonradan değişirse güncel kalmaz. Her zaman güncel bir görünüm için view kullanılır (Ch 7). Benzer şekilde <code>CREATE TABLE D5EMPS LIKE EMPLOYEE</code> ya da <code>CREATE TABLE … AS SELECT … WITH DATA</code> ile kopya oluşturulabilir.</p>
+<p>WORKS_ON_INFO bir <em>kopyadır</em>: temel tablolar sonradan değişirse güncel kalmaz. Her zaman güncel bir görünüm için view kullanılır (Ch 7). Benzer şekilde <code>CREATE TABLE D5EMPS LIKE EMPLOYEE</code> (yalnızca yapı) ya da <code>CREATE TABLE … AS SELECT …</code> (yapı ve veri; standart SQL'de sona <code>WITH DATA</code> eklenir, MySQL'de eklenmez) ile kopya oluşturulabilir.</p>
 
 <h3>DELETE</h3>
 <p><code>WHERE</code> koşulunu sağlayan satırları siler; koşul yoksa <em>bütün satırları</em> siler (tablo tanımı kalır, bunun için <code>DROP TABLE</code> gerekir). Referential triggered action'lar silmeyi başka tablolara yayabilir.</p>
@@ -257,7 +263,7 @@ DELETE FROM WORKS_ON WHERE Essn = '123456789';
 DELETE FROM DEPENDENT WHERE Essn = '123456789';
 -- U4B
 DELETE FROM EMPLOYEE WHERE Ssn = '123456789';
-SELECT COUNT(*) AS employees_left FROM EMPLOYEE;
+SELECT COUNT(*) AS employees_left FROM EMPLOYEE;   -- COUNT(*): the number of rows (aggregates: Ch 7)
 </pre>
 
 <h3>UPDATE</h3>
@@ -276,47 +282,49 @@ SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
 
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="2">
-  <p>Aşağıdaki sorgu kaç satır döndürür?</p>
+  <p>COMPANY'nin ilk hâlinde (EMPLOYEE 8 satır, bunların 4'ü 5 numaralı departmanda; DEPARTMENT 3 satır) aşağıdaki sorgu kaç satır döndürür? Tabloların satırlarını görmek için aşağıdaki tablo adlarına tıklayabilirsiniz.</p>
   <pre class="sql">SELECT Lname FROM EMPLOYEE, DEPARTMENT WHERE Dno = 5;</pre>
   <ol>
-    <li data-why="Bu, join koşulu olsaydı Research departmanındaki çalışan sayısı olurdu.">4</li>
-    <li>12</li>
-    <li>24</li>
-    <li>3</li>
+    <li data-why="4, Dno = 5 olan çalışan sayısı; bir join koşulu (Dno = Dnumber) olsaydı sonuç bu olurdu. Ama FROM'da iki tablo var ve onları bağlayan koşul yok: her çalışan her departmanla eşleşir.">4</li>
+    <li data-why="Doğru: 8 × 3 = 24 kombinasyondan Dno = 5 olanlar kalır, yani 4 çalışan × 3 departman.">12</li>
+    <li data-why="24, WHERE hiç olmasaydı çıkacak kartezyen çarpımın tamamı (8 × 3). WHERE Dno = 5 yine de çalışanları süzer.">24</li>
+    <li data-why="3, DEPARTMENT'taki satır sayısı. WHERE koşulu DEPARTMENT'a değil EMPLOYEE'nin Dno'suna bakıyor.">3</li>
   </ol>
-  <div class="explain">Join koşulu yok: EMPLOYEE × DEPARTMENT = 8 × 3 = 24 satırlık çarpım, sonra Dno = 5 olan 4 çalışan × 3 departman = 12 satır. Her Research çalışanı üç kez görünür. Sorunun altındaki kutuda deneyebilirsiniz.</div>
+  <div class="explain">Kavramsal sıra: önce FROM, sonra WHERE. FROM iki tablonun kartezyen çarpımını üretir: 8 × 3 = 24 satır. WHERE yalnızca Dno = 5 olanları bırakır: 5 numaralı departmandaki 4 çalışanın her biri 3 departmanla eşleştiği için 4 × 3 = 12 satır. Smith, Wong, Narayan ve English üçer kez görünür. Aşağıdaki kutuda deneyin; sonra <code>AND Dno = Dnumber</code> ekleyip sonucun 4'e indiğini görün.</div>
   <pre class="sql run" data-title="Kontrol edin">SELECT Lname FROM EMPLOYEE, DEPARTMENT WHERE Dno = 5;</pre>
 </div>
 <div class="quiz" data-answer="3">
   <p><code>SELECT Salary FROM EMPLOYEE</code> ile <code>SELECT DISTINCT Salary FROM EMPLOYEE</code> sırasıyla kaç satır döndürür? (Maaşlar: 30000, 40000, 25000, 43000, 38000, 25000, 25000, 55000)</p>
   <ol>
-    <li>8 ve 8</li>
-    <li>6 ve 8</li>
-    <li>8 ve 6</li>
-    <li>6 ve 6</li>
+    <li data-why="İkinci sorgu DISTINCT kullanıyor: 25000 üç kez geçtiği için tekrarlar silinir, 8 kalmaz.">8 ve 8</li>
+    <li data-why="Sıra ters: DISTINCT'siz sorgu daha çok satır döndürür, çünkü SQL tekrarları kendiliğinden silmez.">6 ve 8</li>
+    <li data-why="Doğru: DISTINCT olmadan her çalışan için bir satır (8), DISTINCT ile farklı maaşlar (6).">8 ve 6</li>
+    <li data-why="SQL tabloları küme değil multiset'tir: DISTINCT yazılmadıkça tekrarlar kalır, ilk sorgu 8 satır döndürür.">6 ve 6</li>
   </ol>
   <div class="explain">SQL tabloları multiset'tir; DISTINCT olmadan 25000 üç kez gelir (8 satır). DISTINCT ile 6 farklı maaş kalır.</div>
 </div>
 <div class="quiz" data-answer="1">
   <p>"Adı A ile başlayan ve tam beş harfli olan çalışanlar" için doğru koşul hangisidir?</p>
   <ol>
-    <li><code>Fname LIKE 'A____'</code></li>
-    <li><code>Fname LIKE 'A%'</code></li>
-    <li><code>Fname = 'A____'</code></li>
-    <li><code>Fname LIKE 'A%%%%'</code></li>
+    <li data-why="Doğru: A + dört _ = tam beş karakter."><code>Fname LIKE 'A____'</code></li>
+    <li data-why="% herhangi sayıda karakter demektir: Alicia (6 harf) da uyar; uzunluğu sınırlamaz."><code>Fname LIKE 'A%'</code></li>
+    <li data-why="= joker karakterleri yorumlamaz: yalnızca adı tam olarak 'A____' (A ve dört alt çizgi) olan birini bulur."><code>Fname = 'A____'</code></li>
+    <li data-why="Art arda dört %, tek bir % ile aynıdır (her biri sıfır karakter de olabilir): 'A%' gibi davranır."><code>Fname LIKE 'A%%%%'</code></li>
   </ol>
   <div class="explain">Her <code>_</code> tam bir karakter: A + dört <code>_</code> = beş harf (Alicia değil, Ahmad). <code>%</code> herhangi uzunlukta olduğu için uzunluğu sınırlamaz; <code>=</code> joker karakterleri yorumlamaz.</div>
 </div>
 <div class="quiz" data-answer="4">
   <p><code>DELETE FROM DEPARTMENT;</code> için hangisi doğrudur?</p>
   <ol>
-    <li>DEPARTMENT tablosunu şemadan siler.</li>
-    <li>Sözdizimi hatasıdır; WHERE zorunludur.</li>
-    <li>Yalnızca ilk satırı siler.</li>
-    <li>Tüm satırları silmeye çalışır; tablo tanımı kalır. FK'lar (ör. PROJECT.Dnum) silmeyi engelleyebilir.</li>
+    <li data-why="Tablonun tanımını kaldıran komut <code>DROP TABLE DEPARTMENT;</code>'tır. DELETE yalnızca satırlarla ilgilenir.">DEPARTMENT tablosunu şemadan siler.</li>
+    <li data-why="WHERE isteğe bağlıdır; yazılmazsa koşul her satır için doğru sayılır.">Sözdizimi hatasıdır; WHERE zorunludur.</li>
+    <li data-why="Tablolarda 'ilk satır' diye bir şey yoktur (satırların sırası yoktur); DELETE koşulu sağlayan <em>bütün</em> satırları siler.">Yalnızca ilk satırı siler.</li>
+    <li data-why="Doğru: bütün satırlar hedeflenir, tablo tanımı kalır; başvuran satırlar varsa referential integrity silmeyi reddettirebilir.">Tüm satırları silmeye çalışır; tablo tanımı kalır. FK'lar (ör. PROJECT.Dnum) silmeyi engelleyebilir.</li>
   </ol>
-  <div class="explain">WHERE'siz DELETE bütün satırları hedefler. Tabloyu kaldırmak için <code>DROP TABLE</code> gerekir. COMPANY'de PROJECT.Dnum'un ON DELETE eylemi olmadığından PostgreSQL bu silmeyi reddeder.</div>
+  <div class="explain">WHERE'siz DELETE bütün satırları hedefler. Tabloyu kaldırmak için <code>DROP TABLE</code> gerekir. COMPANY'de EMPLOYEE.Dno ve PROJECT.Dnum departmanlara başvuruyor ve bu FK'ların silmeye izin veren bir ON DELETE eylemi yok; bu yüzden MySQL silmeyi reddeder (hata 1451) ve hiçbir satır silinmez. Kontrol kutusunda görebilirsiniz.</div>
+  <pre class="sql run" data-expect-error data-title="Kontrol edin">DELETE FROM DEPARTMENT;</pre>
 </div>
+
 
 </div></main>
 </body>

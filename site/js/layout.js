@@ -1,7 +1,7 @@
 // Site chrome shared by every page: header, navigation, pager, footer, theme, callouts, quizzes, SQL boxes.
 // Each page's module imports this first; the page itself only contains its article.
 import { h, $, $$, CALLOUT_ICONS } from "./lib/ui.js";
-import { enhanceSQL } from "./lib/sqlbox.js";
+import { enhanceSQL, tableContext } from "./lib/sqlbox.js";
 
 export const REPO = "https://github.com/ysoktar/database-systems";
 export const NOTEBOOK_URL = "https://colab.research.google.com/drive/1ArUuenMYSnN0ZNk_1Gsmn-CvnUnUeS30?usp=sharing";
@@ -137,7 +137,7 @@ function buildFooter() {
   f.innerHTML = `<p>BIL372/BIL071 Veritabanı Sistemleri (TOBB ETÜ, 2026–2027 Güz) için hazırlanmış, R. Elmasri &amp; S. B. Navathe'nin
     <em>Fundamentals of Database Systems</em> (7. baskı) kitabının 1–7. bölümlerine eşlik eden gayriresmî bir çalışma sitesi.
     Örnek veritabanı: kitabın COMPANY veritabanı (Figure 5.6).</p>
-    <p>Her SQL kutusu tarayıcınızda çalışan gerçek bir PostgreSQL'e (PGlite) bağlıdır; hiçbir veri bilgisayarınızdan çıkmaz.
+    <p>Her SQL kutusu tarayıcınızda çalışan, MySQL ile uyumlu bir veritabanına (go-mysql-server, WebAssembly) bağlıdır; hiçbir veri bilgisayarınızdan çıkmaz.
     <a href="${REPO}">GitHub'daki kaynak kod</a>.</p>`;
   return f;
 }
@@ -169,8 +169,14 @@ export function enhanceCallouts(root) {
 
 /**
  * Quizzes written as
- *   <div class="quiz" data-answer="2"><p>Question</p><ol><li>…</li>…</ol><div class="explain">…</div></div>
- * become clickable multiple-choice questions with instant feedback.
+ *   <div class="quiz" data-answer="2" data-tables="EMPLOYEE DEPARTMENT">
+ *     <p>Question</p> <pre class="sql">…</pre>
+ *     <ol><li data-why="why this option is wrong (or right)">…</li>…</ol>
+ *     <div class="explain">the reasoning behind the answer</div>
+ *     <pre class="sql run" data-title="Kontrol edin">…</pre>          (optional: shown once the question is answered)
+ *   </div>
+ * become multiple-choice questions. A wrong choice says why it is wrong; once answered (or revealed) the explanation
+ * and the reason for every option appear. A question about COMPANY data shows chips for the tables it needs.
  */
 export function enhanceQuizzes(root = document) {
   let number = $$(".quiz[data-ready]", root).length;
@@ -181,28 +187,42 @@ export function enhanceQuizzes(root = document) {
     const items = $$(":scope > ol > li", q);
     const explain = $(":scope > .explain", q);
     const question = q.querySelector(":scope > p, :scope > .q");
-    const extra = $$(":scope > pre, :scope > .rel-wrap, :scope > table", q);
+    const check = $$(":scope > pre.sql.run", q);
+    const extra = $$(":scope > pre:not(.run), :scope > .rel-wrap, :scope > table, :scope > .q-context", q);
+    const sqlText = [...extra, ...check].filter((x) => x.matches("pre.sql")).map((x) => x.textContent).join("\n") + " " + (q.dataset.tables || "");
+    const ctx = tableContext(() => sqlText, { label: "Veri: COMPANY (Şekil 5.6)" });
     const opts = h("div", { class: "quiz-options" });
     const fb = h("div", { class: "quiz-feedback", "aria-live": "polite" });
+    const after = h("div", { class: "quiz-after", hidden: true }, ...check);
+    const buttons = [];
+    const L = (i) => "ABCDEFG"[i];
+    const finish = (revealed) => {
+      for (const x of buttons) { x.disabled = true; x.classList.remove("wrong"); }
+      buttons[answer - 1].classList.add("correct");
+      const list = items.map((li, i) => li.dataset.why
+        ? `<li class="${i + 1 === answer ? "ok" : "no"}"><strong>${L(i)}</strong> ${i + 1 === answer ? "✓" : "✗"} ${li.dataset.why}</li>` : "").join("");
+      fb.innerHTML = `<span class="verdict ${revealed ? "no" : "ok"}">${revealed ? `Doğru cevap: ${L(answer - 1)}.` : "✓ Doğru."}</span> ${explain ? explain.innerHTML : ""}`
+        + (list ? `<ul class="quiz-whys">${list}</ul>` : "");
+      if (check.length) { after.hidden = false; enhanceSQL(after); }
+    };
     items.forEach((li, i) => {
-      const b = h("button", { type: "button" }, h("span", { class: "opt-letter" }, "ABCDEFG"[i]), h("span", { html: li.innerHTML }));
+      const b = h("button", { type: "button" }, h("span", { class: "opt-letter" }, L(i)), h("span", { html: li.innerHTML }));
+      buttons.push(b);
       b.addEventListener("click", () => {
         const ok = i + 1 === answer;
         const first = !q.dataset.tried;
         q.dataset.tried = "1";
         q.dispatchEvent(new CustomEvent("quizanswer", { bubbles: true, detail: { correct: ok, firstTry: first } }));
-        for (const x of $$("button", opts)) x.classList.remove("correct", "wrong");
-        b.classList.add(ok ? "correct" : "wrong");
-        if (ok) for (const x of $$("button", opts)) x.disabled = true;
-        const why = li.dataset.why;
-        fb.innerHTML = ok
-          ? `<span class="verdict ok">✓ Doğru.</span> ${explain ? explain.innerHTML : ""}`
-          : `<span class="verdict no">✗ Değil.</span> ${why ? why + " " : ""}Başka bir seçenek deneyin.`;
+        if (ok) { finish(false); return; }
+        for (const x of buttons) x.classList.remove("wrong");
+        b.classList.add("wrong");
+        fb.replaceChildren(h("span", { class: "verdict no" }, "✗ Değil."), " ", h("span", { html: li.dataset.why || "Bu seçenek doğru değil." }), " ",
+          h("button", { type: "button", class: "link-btn", onclick: () => finish(true) }, "Cevabı göster"));
       });
       opts.append(b);
     });
     const label = h("div", { class: "quiz-label" }, "Soru " + number);
-    q.replaceChildren(label, question ? h("div", { class: "quiz-q", html: question.innerHTML }) : "", ...extra, opts, fb);
+    q.replaceChildren(label, question ? h("div", { class: "quiz-q", html: question.innerHTML }) : "", ...extra, ctx, opts, fb, after);
     enhanceSQL(q);
   }
 }

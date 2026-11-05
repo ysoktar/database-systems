@@ -1,4 +1,4 @@
-// Relational → ER (reverse engineering): read the tables, keys and foreign keys of a schema from PostgreSQL's catalog
+// Relational → ER (reverse engineering): read the tables, keys and foreign keys of a database from MySQL's information_schema
 // and recognise the patterns that the mapping algorithm (Ch 9) produces:
 //   PK = two or more FKs                    → M:N (or n-ary) relationship, other columns its attributes
 //   PK = one FK + the table has only key columns → multivalued attribute of the referenced entity
@@ -15,23 +15,27 @@ const nice = (c) => c.charAt(0).toUpperCase() + c.slice(1);
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 const subset = (a, b) => a.every((x) => b.includes(x));
 
-/** SQL that lists the columns and the PK / UNIQUE / FK constraints of one schema (works on PostgreSQL / PGlite). */
-export const catalogSQL = (schema) => [
-  `SELECT c.relname, a.attname, format_type(a.atttypid, a.atttypmod), a.attnotnull
-   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace JOIN pg_attribute a ON a.attrelid = c.oid
-   WHERE n.nspname = '${schema}' AND c.relkind = 'r' AND a.attnum > 0 AND NOT a.attisdropped
-   ORDER BY c.oid, a.attnum`,
-  `SELECT c.relname, con.contype, con.conname,
-          (SELECT string_agg(a.attname, ',' ORDER BY k.ord) FROM unnest(con.conkey) WITH ORDINALITY k(num, ord)
-             JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.num),
-          rc.relname,
-          (SELECT string_agg(a.attname, ',' ORDER BY k.ord) FROM unnest(con.confkey) WITH ORDINALITY k(num, ord)
-             JOIN pg_attribute a ON a.attrelid = con.confrelid AND a.attnum = k.num)
-   FROM pg_constraint con JOIN pg_class c ON c.oid = con.conrelid JOIN pg_namespace n ON n.oid = c.relnamespace
-   LEFT JOIN pg_class rc ON rc.oid = con.confrelid
-   WHERE n.nspname = '${schema}' AND con.contype IN ('p', 'u', 'f')
-   ORDER BY c.oid, con.conname`,
-];
+/** SQL that lists the columns and the PK / UNIQUE / FK constraints of one database (MySQL's information_schema). */
+export const catalogSQL = (schema) => {
+  const keyCols = (col) => `(SELECT GROUP_CONCAT(k.${col} ORDER BY k.ORDINAL_POSITION SEPARATOR ',')
+             FROM information_schema.KEY_COLUMN_USAGE k
+             WHERE k.TABLE_SCHEMA = tc.TABLE_SCHEMA AND k.TABLE_NAME = tc.TABLE_NAME AND k.CONSTRAINT_NAME = tc.CONSTRAINT_NAME)`;
+  return [
+    `SELECT TABLE_NAME, COLUMN_NAME, UPPER(COLUMN_TYPE), IS_NULLABLE = 'NO'
+   FROM information_schema.COLUMNS
+   WHERE TABLE_SCHEMA = '${schema}'
+   ORDER BY TABLE_NAME, ORDINAL_POSITION`,
+    `SELECT tc.TABLE_NAME,
+          CASE tc.CONSTRAINT_TYPE WHEN 'PRIMARY KEY' THEN 'p' WHEN 'UNIQUE' THEN 'u' ELSE 'f' END,
+          tc.CONSTRAINT_NAME,
+          ${keyCols("COLUMN_NAME")},
+          ${keyCols("REFERENCED_TABLE_NAME").replace("GROUP_CONCAT(k.REFERENCED_TABLE_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ',')", "MAX(k.REFERENCED_TABLE_NAME)")},
+          ${keyCols("REFERENCED_COLUMN_NAME")}
+   FROM information_schema.TABLE_CONSTRAINTS tc
+   WHERE tc.TABLE_SCHEMA = '${schema}' AND tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY')
+   ORDER BY tc.TABLE_NAME, tc.CONSTRAINT_NAME`,
+  ];
+};
 
 /** Build the catalog object from the rows of the two catalogSQL queries (arrays of row arrays). */
 export function catalogFromRows(colRows, conRows) {
