@@ -40,7 +40,7 @@ FROM A CROSS JOIN B                     -- Cartesian product
 <h2>Koşullar ve operatörler</h2>
 <table class="simple">
   <tbody>
-    <tr><td><code>= &lt;&gt; &lt; &lt;= &gt; &gt;=</code></td><td>karşılaştırma; NULL ile sonuç UNKNOWN</td></tr>
+    <tr><td><code>= &lt;&gt; &lt; &lt;= &gt; &gt;=</code></td><td>karşılaştırma: eşit, <strong>eşit değil</strong> (<code>&lt;&gt;</code> = ≠; MySQL'de <code>!=</code> de yazılır), küçük, küçük-eşit, büyük, büyük-eşit. Bir taraf NULL ise sonuç UNKNOWN.</td></tr>
     <tr><td><code>A BETWEEN x AND y</code></td><td><code>A &gt;= x AND A &lt;= y</code></td></tr>
     <tr><td><code>A LIKE 'a%b_'</code></td><td><code>%</code> 0+ karakter, <code>_</code> tam 1 karakter</td></tr>
     <tr><td><code>A IS [NOT] NULL</code></td><td>NULL sınamanın tek yolu</td></tr>

@@ -88,7 +88,7 @@ WHERE  (Pno, Hours) IN (SELECT Pno, Hours
 <ul>
   <li><code>v = ANY V</code> (= <code>SOME</code>): V'de v'ye eşit <em>en az bir</em> eleman varsa TRUE. <code>= ANY</code> ≡ <code>IN</code>.</li>
   <li><code>v &gt; ALL V</code>: v, V'deki <em>her</em> elemandan büyükse TRUE. V boşsa <code>ALL</code> TRUE, <code>ANY</code> FALSE döner.</li>
-  <li>Diğer operatörler de birleşebilir: <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&lt;&gt;</code>.</li>
+  <li>Diğer operatörler de birleşebilir: <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&lt;&gt;</code> (eşit değil). Ör. <code>v &lt;&gt; ALL V</code>, "v, V'nin hiçbir elemanına eşit değil" demektir, yani <code>NOT IN</code>.</li>
 </ul>
 <pre class="sql run" data-title="5 numaralı departmandaki herkesten daha çok kazananlar (ALL)">
 SELECT Lname, Fname, Salary

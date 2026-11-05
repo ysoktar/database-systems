@@ -360,7 +360,7 @@ a.card:hover { border-color: var(--border-strong); transform: translateY(-1px); 
 .site-footer p { margin: 0 0 0.4rem; max-width: none; }
 
 /* ---------- responsive sidebar ---------- */
-@media (max-width: 1000px) {
+@media (max-width: 1000px), (min-aspect-ratio: 1/1) and (max-width: 1300px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   .menu-btn { display: inline-flex; }
   .sidebar {
@@ -703,7 +703,7 @@ table.rel th .ty { display: block; font-weight: 400; font-size: 0.7rem; color: v
   transform: translateY(-120%); transition: transform 0.2s ease; visibility: hidden;
 }
 .toc-bar.show { transform: none; visibility: visible; }
-@media (max-width: 1000px) { .toc-bar { left: 0; } }
+@media (max-width: 1000px), (min-aspect-ratio: 1/1) and (max-width: 1300px) { .toc-bar { left: 0; } }
 .toc-toggle {
   width: 100%; display: flex; align-items: center; gap: 10px; font: inherit; font-size: 0.9rem; text-align: left;
   padding: 8px clamp(16px, 4vw, 56px); background: none; border: 0; color: var(--text); cursor: pointer;

@@ -119,7 +119,7 @@ SELECT &lt;attribute list&gt;      -- projection attributes: which columns
 FROM   &lt;table list&gt;          -- which relations
 WHERE  &lt;condition&gt;;          -- selection and join conditions: which rows
 </pre>
-<p>Karşılaştırma operatörleri: <code>=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;&gt;</code>. Koşullar <code>AND</code>, <code>OR</code>, <code>NOT</code> ile birleşir.</p>
+<p>Karşılaştırma operatörleri: <code>=</code> (eşit), <code>&lt;</code> (küçük), <code>&lt;=</code> (küçük ya da eşit), <code>&gt;</code> (büyük), <code>&gt;=</code> (büyük ya da eşit), <code>&lt;&gt;</code> (<strong>eşit değil</strong>, matematikteki ≠; MySQL <code>!=</code> yazımını da kabul eder). Örneğin <code>Dno &lt;&gt; 5</code>, departmanı 5 olmayan çalışanları seçer. Koşullar <code>AND</code>, <code>OR</code>, <code>NOT</code> ile birleşir.</p>
 <pre class="sql run" data-title="Q0 · John B. Smith'in doğum tarihi ve adresi">
 SELECT Bdate, Address
 FROM   EMPLOYEE
