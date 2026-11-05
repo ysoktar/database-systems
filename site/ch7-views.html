@@ -34,11 +34,13 @@ CHECK ( NOT EXISTS ( SELECT *
   <li>Assertion'ı pek az DBMS destekler; PostgreSQL de desteklemez. Aynı kural uygulamada trigger ile zorlanır. Ama assertion'ın içindeki sorgu her DBMS'te çalışır: boş dönmesi kuralın sağlandığı anlamına gelir.</li>
 </ul>
 <pre class="sql run" data-title="Assertion'ın koşulu: ihlal eden satır var mı?">
+-- violating rows before the update (none)
 SELECT E.Lname AS employee, E.Salary, M.Lname AS manager, M.Salary AS mgr_salary
 FROM   EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
 WHERE  E.Salary > M.Salary AND E.Dno = D.Dnumber AND D.Mgr_ssn = M.Ssn;
 -- now break the rule and look again
 UPDATE EMPLOYEE SET Salary = 45000 WHERE Lname = 'Narayan';
+-- violating rows after the update
 SELECT E.Lname AS employee, E.Salary, M.Lname AS manager, M.Salary AS mgr_salary
 FROM   EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
 WHERE  E.Salary > M.Salary AND E.Dno = D.Dnumber AND D.Mgr_ssn = M.Ssn;

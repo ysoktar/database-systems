@@ -242,7 +242,10 @@ function init() {
   enhanceQuizzes(content);
   enhanceSQL(content);
   labelTables(content);
-  buildPageNav(content, id);
+  // page modules run after this one: wait for them so the navigation sees the content they add
+  const nav = () => buildPageNav(content, id);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(nav, 0));
+  else setTimeout(nav, 0);
   const cur = $(".sidebar [aria-current]"), side = $(".sidebar");
   if (cur && side) side.scrollTop = Math.max(0, cur.offsetTop - side.clientHeight / 2);
 }
@@ -259,38 +262,97 @@ export function labelTables(root) {
 
 const slug = (s) => s.toLocaleLowerCase("tr").replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c")
   .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "bolum";
+const tocText = (hd) => (hd.dataset.toc || hd.textContent).replace(/\s+/g, " ").trim();
 
-/** "Bu sayfada": a list of the page's sections under the introduction, and a floating menu to jump between them. */
+/**
+ * In-page navigation, built once the page's own script has added its content:
+ *   - "Bu sayfada" under the introduction (the page's sections)
+ *   - "Bu bölümde" at the start of a section with several sub-sections
+ *   - a table of contents that stays in view: a right-hand column on wide screens, a bar under the header otherwise;
+ *     the section being read is highlighted and its sub-sections are listed
+ */
 function buildPageNav(content, id) {
-  const heads = $$(":scope > h2, :scope > section > h2", content).filter((x) => !x.closest(".quiz, template"));
-  if (heads.length < 3) return;
+  const all = $$(":scope > h2, :scope > h3, :scope > section > h2, :scope > section > h3, :scope > div > section.exercise > h3", content)
+    .filter((x) => !x.closest(".quiz, template, .sqlbox, .er, .stepper, .callout"));
+  const tree = [];
+  for (const hd of all) {
+    if (hd.tagName === "H2") tree.push({ hd, subs: [] });
+    else if (tree.length) tree[tree.length - 1].subs.push(hd);
+  }
+  if (tree.length < 3) return;
   const used = new Set($$("[id]").map((e) => e.id));
-  for (const hd of heads) {
-    if (!hd.id) { let s = slug(hd.textContent), k = 2; while (used.has(s)) s = `${slug(hd.textContent)}-${k++}`; hd.id = s; used.add(s); }
+  for (const hd of all) {
+    if (hd.id) continue;
+    const base = slug(tocText(hd));
+    let s = base, k = 2;
+    while (used.has(s)) s = `${base}-${k++}`;
+    hd.id = s;
+    used.add(s);
   }
-  const link = (hd) => h("a", { href: `#${hd.id}` }, hd.textContent.trim());
-  if (id !== "index" && id !== "er-studio") {
-    const toc = h("nav", { class: "page-toc", "aria-label": "Bu sayfada" }, h("div", { class: "page-toc-title" }, "Bu sayfada"), h("ol", {}, ...heads.map((hd) => h("li", {}, link(hd)))));
-    const after = $(":scope > .lead", content) || $(":scope > h1", content);
-    after.after(toc);
+  const link = (hd, cls) => h("a", { href: `#${hd.id}`, class: cls || null, "data-target": hd.id }, tocText(hd));
+
+  // "Bu sayfada" under the introduction
+  if (id !== "index" && !$(".page-toc", content)) {
+    const toc = h("nav", { class: "page-toc", "aria-label": "Bu sayfada" }, h("div", { class: "page-toc-title" }, "Bu sayfada"),
+      h("ol", {}, ...tree.map((t) => h("li", {}, link(t.hd)))));
+    ($(":scope > .lead", content) || $(":scope > h1", content)).after(toc);
   }
-  const list = h("ol", {}, ...heads.map((hd) => h("li", {}, link(hd))));
-  const pop = h("div", { class: "jump-pop", hidden: true }, h("div", { class: "page-toc-title" }, "Bölümler"), list,
-    h("a", { href: "#", class: "jump-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); pop.hidden = true; } }, "↑ Sayfanın başı"));
-  const btn = h("button", { type: "button", class: "jump-btn", "aria-label": "Sayfadaki bölümler", "aria-expanded": "false" }, "☰ Bölümler");
-  btn.addEventListener("click", () => { pop.hidden = !pop.hidden; btn.setAttribute("aria-expanded", String(!pop.hidden)); paintCurrent(); });
-  pop.addEventListener("click", (e) => { if (e.target.closest("a")) { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); } });
-  document.addEventListener("click", (e) => { if (!pop.hidden && !e.target.closest(".jump-pop, .jump-btn")) pop.hidden = true; });
-  const wrap = h("div", { class: "jump" }, pop, btn);
-  document.body.append(wrap);
-  const paintCurrent = () => {
-    let cur = heads[0];
-    for (const hd of heads) if (hd.getBoundingClientRect().top < 120) cur = hd;
-    $$("a", list).forEach((a, i) => a.classList.toggle("current", heads[i] === cur));
+  // "Bu bölümde" at the start of long sections
+  for (const t of tree) {
+    if (t.subs.length < 3 || t.hd.nextElementSibling?.classList.contains("section-toc")) continue;
+    t.hd.after(h("nav", { class: "section-toc", "aria-label": `${tocText(t.hd)}: bu bölümde` }, h("span", { class: "page-toc-title" }, "Bu bölümde"),
+      ...t.subs.map((s) => link(s))));
+  }
+
+  // the table of contents that stays in view
+  const makeList = () => h("ol", { class: "toc-list" }, ...tree.map((t) => h("li", { "data-section": t.hd.id }, link(t.hd, "toc-h2"),
+    t.subs.length ? h("ol", { class: "toc-subs" }, ...t.subs.map((s) => h("li", {}, link(s, "toc-h3")))) : null)));
+  const rail = h("aside", { class: "toc-rail", "aria-label": "İçindekiler" }, h("div", { class: "page-toc-title" }, "İçindekiler"), makeList(),
+    h("a", { href: "#", class: "toc-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "↑ Sayfanın başı"));
+  const main = content.closest(".main");
+  main.classList.add("has-rail");
+  main.append(rail);
+
+  const label = h("span", { class: "toc-current" });
+  const toggle = h("button", { type: "button", class: "toc-toggle", "aria-expanded": "false" }, h("span", { class: "toc-bar-title" }, "Bu sayfada"), label, h("span", { class: "toc-caret", "aria-hidden": "true" }, "▾"));
+  const panel = h("div", { class: "toc-panel", hidden: true }, makeList(),
+    h("a", { href: "#", class: "toc-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "↑ Sayfanın başı"));
+  const bar = h("div", { class: "toc-bar" }, toggle, panel);
+  const setOpen = (open) => { panel.hidden = !open; toggle.setAttribute("aria-expanded", String(open)); };
+  toggle.addEventListener("click", () => { setOpen(panel.hidden); if (!panel.hidden) spy(); });
+  panel.addEventListener("click", (e) => { if (e.target.closest("a")) setOpen(false); });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".toc-bar")) setOpen(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") setOpen(false); });
+  document.body.append(bar);
+
+  // scroll spy: which section and sub-section is being read
+  const offset = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) + 64;
+  let ticking = false;
+  const spy = () => {
+    ticking = false;
+    const top = offset();
+    let cur = null, curSub = null;
+    for (const t of tree) {
+      if (t.hd.getBoundingClientRect().top <= top) { cur = t; curSub = null; for (const s of t.subs) if (s.getBoundingClientRect().top <= top) curSub = s; }
+    }
+    for (const list of [rail, panel]) {
+      for (const li of $$(":scope .toc-list > li", list)) li.classList.toggle("open", !!cur && li.dataset.section === cur.hd.id);
+      for (const a of $$("a[data-target]", list)) a.classList.toggle("current", a.dataset.target === (curSub || cur?.hd)?.id || a.dataset.target === cur?.hd.id && a.classList.contains("toc-h2"));
+    }
+    label.textContent = cur ? tocText(curSub || cur.hd) : "";
+    bar.classList.toggle("show", window.scrollY > 280);
+    // keep the highlighted entry visible inside the rail and inside the open list
+    follow(rail);
+    if (!panel.hidden) follow(panel);
   };
-  const onScroll = () => wrap.classList.toggle("show", window.scrollY > 500);
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
+  function follow(box) {
+    const active = $$("a.current", box).pop();
+    if (!active || box.scrollHeight <= box.clientHeight) return;
+    const r = active.getBoundingClientRect(), rr = box.getBoundingClientRect();
+    if (r.top < rr.top + 30 || r.bottom > rr.bottom - 30) box.scrollTop += r.top - rr.top - rr.height / 2;
+  }
+  window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
+  spy();
 }
 
 init();

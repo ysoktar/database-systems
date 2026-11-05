@@ -44,6 +44,9 @@ identifying relationship DEPENDENTS_OF: EMPLOYEE 1, DEPENDENT N total
   },
   {
     id: "university", title: "UNIVERSITY", kind: "ER", source: "Arasınav rehberi",
+    layout: { "E:STUDENT": { x: 120, y: 220 }, "E:SECTION": { x: 470, y: 220 }, "E:COURSE": { x: 790, y: 220 }, "E:INSTRUCTOR": { x: 470, y: 390 },
+      "E:DEPARTMENT": { x: 790, y: 390 }, "R:ENROLLS": { x: 295, y: 220 }, "R:OFFERING_OF": { x: 630, y: 220 }, "R:TEACHES": { x: 470, y: 305 },
+      "R:OFFERS": { x: 790, y: 305 }, "R:WORKS_IN": { x: 630, y: 390 }, "R:PREREQ": { x: 790, y: 90 } },
     desc: "Öğrenciler, dersler, şubeler (zayıf varlık), öğretim üyeleri ve bölümler; önkoşul recursive M:N ilişkisi.",
     dsl: `entity STUDENT
   Sid key

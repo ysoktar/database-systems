@@ -13,6 +13,14 @@ export const ER_EXERCISES = [
       <li>Bir üye birçok kopyayı ödünç alabilir; bir kopya aynı anda en fazla bir üyededir. Her ödünç için iade tarihi tutulur. Bir kopyanın her an ödünçte olması gerekmez, her üyenin de ödünç alması gerekmez.</li>
     </ul>`,
     names: "Entity'ler: BOOK, COPY, MEMBER. Öznitelikler: Isbn, Title, Year, Authors, Copy_no, Shelf, Member_no, Name (First, Last), Phone, Due_date.",
+    why: [
+      "\"benzersiz ISBN\", \"benzersiz üye numarası\" → BOOK.Isbn ve MEMBER.Member_no anahtar.",
+      "\"bir ya da daha çok yazar, yalnızca adları\" → Authors çok değerli (multi) öznitelik; yazarın başka bilgisi tutulmadığı için ayrı bir entity gerekmez.",
+      "\"kopyalar yalnızca kitapları içinde numaralandırılır\" → COPY zayıf varlık, sahibi BOOK, partial key Copy_no; tanımlayıcı ilişki HAS_COPY ve COPY'nin katılımı total.",
+      "\"ad ve soyad olarak\" → Name(First, Last) bileşik öznitelik.",
+      "\"bir üye birçok kopya, bir kopya en fazla bir üyede\" → BORROWS, MEMBER:COPY = 1:N. \"her an ödünçte olması / her üyenin ödünç alması gerekmez\" → iki taraf da partial.",
+      "\"her ödünç için iade tarihi\" → Due_date, BORROWS'un özniteliği (1:N olduğu için COPY'ye de taşınabilirdi).",
+    ],
     solution: `entity BOOK
   Isbn key
   Title
@@ -42,6 +50,13 @@ relationship BORROWS: MEMBER 1, COPY N
       <li>Doktorlar hastaları <strong>tedavi eder</strong>: bir doktor birçok hastayı, bir hasta birçok doktoru görebilir; her hastanın en az bir doktoru vardır. Her tedavi için tarih tutulur.</li>
     </ul>`,
     names: "Entity'ler: PATIENT, DOCTOR, ROOM. Öznitelikler: Pid, Name, Birth_date, Age, Did, Specialty, Room_no, Floor, Date.",
+    why: [
+      "Pid, Did, Room_no benzersiz → anahtarlar.",
+      "\"yaşları doğum tarihinden hesaplanır\" → Age türetilmiş (derived) öznitelik.",
+      "\"her hasta tam bir odada; bir odada birden çok hasta; boş odalar olabilir\" → STAYS_IN, PATIENT:ROOM = N:1; PATIENT total, ROOM partial.",
+      "\"bir doktor birçok hasta, bir hasta birçok doktor\" → TREATS M:N. \"her hastanın en az bir doktoru var\" → PATIENT'in katılımı total; doktor için böyle bir şart yok → partial.",
+      "\"her tedavi için tarih\" → Date, M:N TREATS'in özniteliği; hiçbir varlığa taşınamaz.",
+    ],
     solution: `entity PATIENT
   Pid key
   Name
@@ -75,6 +90,14 @@ relationship TREATS: DOCTOR M, PATIENT N total
     names: "Entity'ler: STUDENT, COURSE, SECTION, INSTRUCTOR, DEPARTMENT. Öznitelikler: Sid, Name, Phones, Gpa, Code, Title, Credits, Sec_no, Semester, Year, Iid, Rank, Dname, Building, Grade.",
     solution: null, // the UNIVERSITY example
     solutionExample: "university",
+    why: [
+      "\"benzersiz\" → Sid, Code, Iid, Dname anahtar. \"bir ya da daha çok telefon\" → Phones çok değerli. \"notlardan hesaplanır\" → Gpa türetilmiş.",
+      "\"yalnızca dersi içinde tanımlanır\" → SECTION zayıf varlık; sahibi COURSE, partial key (Sec_no, Semester, Year), tanımlayıcı ilişki OFFERING_OF, SECTION'ın katılımı total.",
+      "\"her şubeyi tam bir öğretim üyesi verir; hiç vermeyebilir\" → TEACHES, INSTRUCTOR:SECTION = 1:N; SECTION total, INSTRUCTOR partial.",
+      "\"her kayıt için bir not\" → Grade, M:N ENROLLS'un özniteliği.",
+      "\"önkoşulları başka derslerdir\" → COURSE üzerinde recursive M:N PREREQ; rol adları zorunlu (course, prerequisite).",
+      "\"tam bir bölümde çalışır\", \"tam bir bölüm tarafından açılır\" → WORKS_IN ve OFFERS N:1, INSTRUCTOR ve COURSE tarafı total.",
+    ],
   },
   {
     id: "airline", title: "Havayolu (EER)", level: 3,
@@ -85,6 +108,13 @@ relationship TREATS: DOCTOR M, PATIENT N total
       <li>Yolcular uçuşlara <strong>rezervasyon</strong> yapar: bir yolcu birçok uçuşa, bir uçuşa birçok yolcu. Her rezervasyonun bir koltuk numarası vardır.</li>
     </ul>`,
     names: "Entity'ler: PERSON, PILOT, PASSENGER, FLIGHT. Öznitelikler: Pid, Name, License_no, Points, Flight_no, Departure, Seat.",
+    why: [
+      "PILOT ve PASSENGER, PERSON'ın alt sınıfları: kimlik numarası ve ad üst sınıfta, License_no ve Points yerel öznitelikler.",
+      "\"bir pilot başka bir uçuşta yolcu da olabilir\" → overlapping (o). \"ikisi de olmayan kişiler var\" → partial (tek çizgi).",
+      "\"her uçuşu tam bir pilot kullanır; bir pilot birçok uçuşta\" → FLIES, PILOT:FLIGHT = 1:N; FLIGHT total.",
+      "\"bir yolcu birçok uçuşa, bir uçuşa birçok yolcu\" → BOOKS M:N; Seat bu ilişkinin özniteliği.",
+      "İlişkiler alt sınıflara bağlanır (PILOT, PASSENGER), PERSON'a değil: yalnızca pilotlar uçuş kullanır, yalnızca yolcular rezervasyon yapar.",
+    ],
     solution: `entity PERSON
   Pid key
   Name

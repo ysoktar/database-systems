@@ -64,7 +64,7 @@ export function createEditor(host, opts = {}) {
 
   host.append(toolbar, h("div", { class: "er-studio" }, fig, panel),
     h("h3", {}, "Metin olarak"),
-    h("p", { class: "small muted", html: "Diyagram ile bu metin aynı şeydir: birini değiştirince diğeri güncellenir. Sözdizimi için aşağıdaki <a href=\"#syntax\">kısa kılavuz</a>." }),
+    h("p", { class: "small muted", html: `Diyagram ile bu metin aynı şeydir: birini değiştirince diğeri güncellenir. Sözdizimi için <a href="${document.getElementById("syntax") ? "#syntax" : "er-studio.html#syntax"}">kısa kılavuz</a>.` }),
     h("div", { class: "dsl-wrap" }, dsl, h("div", {}, msgs)));
 
   // ---------------------------------------------------------------- state changes
@@ -146,7 +146,7 @@ export function createEditor(host, opts = {}) {
       const t = document.createElementNS(NS, "text");
       t.setAttribute("x", view.x + view.w / 2); t.setAttribute("y", view.y + view.h / 2);
       t.setAttribute("style", "fill:var(--muted);text-anchor:middle;font-size:14px");
-      t.textContent = "Boş diyagram: + Entity ile başlayın ya da bir örnek yükleyin.";
+      t.textContent = "Boş diyagram: + Entity ile başlayın.";
       svg.append(t);
     }
     renderPanel();
@@ -160,6 +160,7 @@ export function createEditor(host, opts = {}) {
     if (w / hh > aspect) hh = w / aspect; else w = hh * aspect;
     view = { x: b.x - (w - b.w) / 2, y: b.y - (hh - b.h) / 2, w, h: hh };
     svg.setAttribute("viewBox", `${view.x} ${view.y} ${view.w} ${view.h}`);
+    if (!model.entities.length) { const keep = view; render(); view = keep; }
   }
   function zoom(f, cx, cy) {
     cx ??= view.x + view.w / 2; cy ??= view.y + view.h / 2;
