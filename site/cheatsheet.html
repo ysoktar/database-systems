@@ -17,6 +17,7 @@
 <p class="lead">Sınavdan önceki son tekrar için: SQL sözdizimi, kalıplar, NULL kuralları, ER/EER sembolleri ve terimler. Yazdırmak için tarayıcınızın yazdır komutunu kullanabilirsiniz.</p>
 
 <h2>SQL sorgusunun yapısı</h2>
+<p class="small sql-legend">Sitedeki SQL renkleri: <code><span class="tok-kw">SELECT FROM WHERE</span></code> komut ve bölümler · <code><span class="tok-op">AND NOT IN =</span></code> koşul ve mantık · <code><span class="tok-type">INT VARCHAR</span></code> veri tipi · <code><span class="tok-con">PRIMARY KEY CASCADE</span></code> kısıt · <code><span class="tok-lit">NULL</span></code> özel değer · <code><span class="tok-fn">COUNT</span></code> fonksiyon · <code><span class="tok-str">'metin'</span></code> · <code><span class="tok-num">42</span></code> · <code><span class="tok-cmt">-- yorum</span></code></p>
 <pre class="sql">
 SELECT   [DISTINCT] &lt;columns, aggregates, expressions&gt;  -- 5
 FROM     &lt;tables / joins&gt;                                -- 1
@@ -30,7 +31,7 @@ FROM     &lt;tables / joins&gt;                                -- 1
 FROM A JOIN B ON A.x = B.y              -- inner
 FROM A LEFT  [OUTER] JOIN B ON …        -- keep all of A
 FROM A RIGHT [OUTER] JOIN B ON …        -- keep all of B
-FROM A FULL  [OUTER] JOIN B ON …        -- keep both
+FROM A FULL  [OUTER] JOIN B ON …        -- keep both (not in MySQL: LEFT … UNION … RIGHT)
 FROM A NATURAL JOIN B                   -- equal same-named columns
 FROM A CROSS JOIN B                     -- Cartesian product
 -- set operations (duplicates removed; add ALL to keep them)
@@ -38,34 +39,59 @@ FROM A CROSS JOIN B                     -- Cartesian product
 </pre>
 
 <h2>Koşullar ve operatörler</h2>
-<table class="simple">
+<table class="simple stack">
+  <thead><tr><th>Yazım</th><th>Anlamı</th><th>COMPANY'de örnek</th></tr></thead>
   <tbody>
-    <tr><td><code>= &lt;&gt; &lt; &lt;= &gt; &gt;=</code></td><td>karşılaştırma: eşit, <strong>eşit değil</strong> (<code>&lt;&gt;</code> = ≠; MySQL'de <code>!=</code> de yazılır), küçük, küçük-eşit, büyük, büyük-eşit. Bir taraf NULL ise sonuç UNKNOWN.</td></tr>
-    <tr><td><code>A BETWEEN x AND y</code></td><td><code>A &gt;= x AND A &lt;= y</code></td></tr>
-    <tr><td><code>A LIKE 'a%b_'</code></td><td><code>%</code> 0+ karakter, <code>_</code> tam 1 karakter</td></tr>
-    <tr><td><code>A IS [NOT] NULL</code></td><td>NULL sınamanın tek yolu</td></tr>
-    <tr><td><code>A IN (subquery | v1, v2, …)</code></td><td>= ANY</td></tr>
-    <tr><td><code>A &gt; ALL (subquery)</code>, <code>A &gt; ANY (subquery)</code></td><td>hepsinden / en az birinden; boş kümede ALL = TRUE, ANY = FALSE</td></tr>
-    <tr><td><code>[NOT] EXISTS (subquery)</code></td><td>en az bir satır var mı; asla UNKNOWN değil</td></tr>
-    <tr><td><code>CASE WHEN c THEN v … ELSE v END</code></td><td>koşullu değer</td></tr>
+    <tr><td data-label="Yazım"><code>= &lt;&gt; &lt; &lt;= &gt; &gt;=</code></td>
+      <td data-label="Anlamı">Karşılaştırma: eşit, <strong>eşit değil</strong> (<code>&lt;&gt;</code> matematikteki ≠'dir; MySQL <code>!=</code> yazımını da kabul eder), küçük, küçük ya da eşit, büyük, büyük ya da eşit. Taraflardan biri NULL ise sonuç TRUE ya da FALSE değil UNKNOWN olur.</td>
+      <td data-label="Örnek"><code>WHERE Dno &lt;&gt; 5</code>: departmanı 5 olmayanlar (Borg, Wallace, Zelaya, Jabbar)</td></tr>
+    <tr><td data-label="Yazım"><code>A BETWEEN x AND y</code></td>
+      <td data-label="Anlamı">A, x ile y arasında; <strong>iki sınır da dahil</strong>. <code>A &gt;= x AND A &lt;= y</code> ile aynıdır.</td>
+      <td data-label="Örnek"><code>Salary BETWEEN 30000 AND 40000</code>: 30000 (Smith) ve 40000 (Wong) da gelir</td></tr>
+    <tr><td data-label="Yazım"><code>A LIKE 'kalıp'</code></td>
+      <td data-label="Anlamı">Metin kalıba uyuyor mu? <code>%</code> herhangi sayıda (sıfır dahil) karakter, <code>_</code> tam bir karakter demektir.</td>
+      <td data-label="Örnek"><code>Address LIKE '%Houston%'</code>: adresinde Houston geçenler; <code>Fname LIKE 'A____'</code>: A ile başlayan beş harfli adlar</td></tr>
+    <tr><td data-label="Yazım"><code>A IS NULL</code>, <code>A IS NOT NULL</code></td>
+      <td data-label="Anlamı">Bir değerin NULL olup olmadığını sınamanın <strong>tek</strong> yolu. <code>A = NULL</code> her zaman UNKNOWN olduğu için hiçbir satır seçmez.</td>
+      <td data-label="Örnek"><code>WHERE Super_ssn IS NULL</code>: amiri olmayan çalışan (Borg)</td></tr>
+    <tr><td data-label="Yazım"><code>A IN (…)</code></td>
+      <td data-label="Anlamı">A, parantezdeki değerlerden biri mi? Parantezin içinde bir değer listesi ya da tek sütun döndüren bir alt sorgu olabilir. <code>= ANY</code> ile aynıdır.</td>
+      <td data-label="Örnek"><code>Pno IN (1, 2, 3)</code>; <code>Dno IN (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research')</code></td></tr>
+    <tr><td data-label="Yazım"><code>A &gt; ALL (alt sorgu)</code>, <code>A &gt; ANY (alt sorgu)</code></td>
+      <td data-label="Anlamı">ALL: alt sorgunun <strong>her</strong> değerinden büyük. ANY (= SOME): <strong>en az bir</strong> değerinden büyük. Alt sorgu boşsa ALL her zaman TRUE, ANY her zaman FALSE'tur.</td>
+      <td data-label="Örnek"><code>Salary &gt; ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5)</code>: 5'teki herkesten çok kazananlar (Borg, Wallace)</td></tr>
+    <tr><td data-label="Yazım"><code>EXISTS (alt sorgu)</code>, <code>NOT EXISTS (…)</code></td>
+      <td data-label="Anlamı">Alt sorgu en az bir satır döndürüyor mu? Sonuç yalnızca TRUE ya da FALSE olur, hiçbir zaman UNKNOWN olmaz; bu yüzden NULL'lardan etkilenmez.</td>
+      <td data-label="Örnek"><code>NOT EXISTS (SELECT * FROM DEPENDENT WHERE Essn = Ssn)</code>: bağımlısı olmayan çalışanlar</td></tr>
+    <tr><td data-label="Yazım"><code>CASE WHEN koşul THEN değer … ELSE değer END</code></td>
+      <td data-label="Anlamı">Koşula göre değer seçer: ilk TRUE olan WHEN'in değeri, hiçbiri değilse ELSE'inki. SELECT'te, WHERE'de ya da UPDATE'in SET'inde kullanılabilir.</td>
+      <td data-label="Örnek"><code>CASE WHEN Salary &gt;= 40000 THEN 'high' ELSE 'low' END</code></td></tr>
   </tbody>
 </table>
 
 <h2>NULL kuralları</h2>
-<div class="two-col">
-  <ul>
-    <li>Karşılaştırma NULL içeriyorsa → <strong>UNKNOWN</strong>.</li>
-    <li>AND: FALSE baskın; OR: TRUE baskın; NOT UNKNOWN = UNKNOWN.</li>
-    <li>WHERE / HAVING / ON yalnızca <strong>TRUE</strong>'yu tutar.</li>
-    <li><code>NOT IN</code> listesinde NULL varsa → hiçbir satır.</li>
-  </ul>
-  <ul>
-    <li><code>COUNT(*)</code> satır sayar; <code>COUNT(A)</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code> NULL'ları atlar.</li>
-    <li>Boş kümede COUNT = 0, diğerleri NULL.</li>
-    <li>GROUP BY'da NULL'lar tek bir grup oluşturur.</li>
-    <li>Iç join'de NULL join sütunu eşleşmez.</li>
-  </ul>
-</div>
+<p>NULL "bilinmeyen ya da olmayan değer" demektir. SQL, NULL içeren her karşılaştırmayı TRUE ya da FALSE yerine üçüncü bir değerle, <strong>UNKNOWN</strong> ile sonuçlandırır. Aşağıdaki kuralların hepsi bundan çıkar.</p>
+<table class="simple stack">
+  <thead><tr><th>Kural</th><th>Neden / örnek</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Kural">NULL ile her karşılaştırma UNKNOWN'dur.</td>
+      <td data-label="Neden / örnek">Borg'un Hours değeri NULL. <code>Hours &gt; 10</code> onun için UNKNOWN'dur; <code>NOT (Hours &gt; 10)</code> da UNKNOWN'dur. Bu yüzden Borg ikisinin sonucunda da yoktur.</td></tr>
+    <tr><td data-label="Kural">AND'de FALSE, OR'da TRUE sonucu belirler.</td>
+      <td data-label="Neden / örnek">UNKNOWN AND FALSE = FALSE (bir taraf zaten yanlış); UNKNOWN OR TRUE = TRUE (bir taraf zaten doğru). Belirleyemiyorsa sonuç UNKNOWN kalır; NOT UNKNOWN = UNKNOWN.</td></tr>
+    <tr><td data-label="Kural">WHERE, HAVING ve ON yalnızca TRUE olan satırları tutar.</td>
+      <td data-label="Neden / örnek">UNKNOWN da FALSE gibi atılır. Bir koşul ile tersinin satır sayıları toplanınca tablonun satır sayısı çıkmayabilir: WORKS_ON'da 8 + 7 = 15, tablo 16 satır.</td></tr>
+    <tr><td data-label="Kural">Alt sorgu bir NULL döndürürse <code>NOT IN</code> hiçbir satır seçmez.</td>
+      <td data-label="Neden / örnek"><code>x NOT IN (a, NULL)</code>, <code>x &lt;&gt; a AND x &lt;&gt; NULL</code> demektir; ikinci terim UNKNOWN olduğu için bütün koşul hiçbir zaman TRUE olmaz. Çözüm: <code>NOT EXISTS</code> kullanın.</td></tr>
+    <tr><td data-label="Kural"><code>COUNT(*)</code> satırları sayar; <code>COUNT(A)</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code> NULL'ları atlar.</td>
+      <td data-label="Neden / örnek">WORKS_ON'da <code>COUNT(*)</code> = 16, <code>COUNT(Hours)</code> = 15. <code>AVG(Hours)</code> 15 değerin ortalamasıdır, NULL 0 sayılmaz.</td></tr>
+    <tr><td data-label="Kural">Boş bir kümede COUNT 0, diğer aggregate'ler NULL döndürür.</td>
+      <td data-label="Neden / örnek"><code>SELECT COUNT(*), MAX(Salary) FROM EMPLOYEE WHERE Dno = 7</code> → 0 ve NULL (7 numaralı departman yok).</td></tr>
+    <tr><td data-label="Kural">GROUP BY'da NULL'lar kendi aralarında tek bir grup olur.</td>
+      <td data-label="Neden / örnek">Dno'su NULL olan iki çalışan olsaydı, <code>GROUP BY Dno</code> onları "NULL" adlı tek bir grupta toplardı.</td></tr>
+    <tr><td data-label="Kural">Inner join'de NULL olan join sütunu hiçbir satırla eşleşmez.</td>
+      <td data-label="Neden / örnek"><code>E.Super_ssn = S.Ssn</code> Borg için UNKNOWN'dur: Borg, amirleriyle eşleştirilen çalışanlar listesinde (Q8) yer almaz. Onu da görmek için LEFT OUTER JOIN gerekir.</td></tr>
+  </tbody>
+</table>
 
 <h2>Sorgu kalıpları</h2>
 <pre class="sql">
@@ -110,17 +136,35 @@ CREATE ASSERTION N CHECK (NOT EXISTS (SELECT … violating rows …));
 CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
   FOR EACH ROW WHEN (cond) &lt;action&gt;;
 </pre>
-<div class="callout gotcha">
-  <p><strong>Kitap (standart SQL) ve MySQL.</strong> Yukarıdakiler kitabın sözdizimidir; sınavda bunu yazın. Sitedeki kutular MySQL'de çalıştığı için şu farkları görürsünüz:</p>
-  <ul>
-    <li>Metin birleştirme <code>CONCAT(a, b)</code>; MySQL'de <code>||</code> OR demektir.</li>
-    <li><code>FULL OUTER JOIN</code> yok: <code>LEFT JOIN … UNION … RIGHT JOIN</code>.</li>
-    <li><code>CREATE ASSERTION</code>, <code>CREATE DOMAIN</code>, <code>DEFERRABLE</code> yok; InnoDB <code>ON DELETE SET DEFAULT</code>'u kabul etmez.</li>
-    <li><code>DROP … RESTRICT / CASCADE</code> yazılabilir ama yok sayılır; foreign key ile başvurulan tablo hiç silinemez. Foreign key'i kaldırmak: <code>ALTER TABLE T DROP FOREIGN KEY TFK</code>.</li>
-    <li>Trigger tek bir olaya bağlanır, <code>WHEN</code> yoktur: koşul gövdede <code>IF … THEN … END IF</code>; bir işlemi reddetmek için <code>SIGNAL SQLSTATE '45000'</code>. Gövde <code>DELIMITER //</code> ile yazılır.</li>
-    <li>Gruplanmamış sütun hatası 1055; karşılaştırmalar varsayılan olarak büyük/küçük harfe duyarsız (<code>'smith' = 'Smith'</code>).</li>
-  </ul>
-</div>
+<h3 id="kitap-ve-mysql">Kitap (standart SQL) ile MySQL arasındaki farklar</h3>
+<p>Yukarıdaki sözdizimi kitabındır ve <strong>sınavda bunu yazarsınız</strong>. Sitedeki kutular ise MySQL'de çalışır. İkisi çoğu yerde aynıdır; aşağıdaki tablo farklı oldukları yerleri gösterir. Bir kutuda kitaptaki komutu yazıp hata alırsanız önce bu tabloya bakın.</p>
+<table class="simple stack">
+  <thead><tr><th>Konu</th><th>Kitapta (standart SQL)</th><th>MySQL'de</th><th>Ne anlama gelir?</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Konu">Metin birleştirme</td><td data-label="Kitapta"><code>Fname || ' ' || Lname</code></td><td data-label="MySQL'de"><code>CONCAT(Fname, ' ', Lname)</code></td>
+      <td data-label="Ne anlama gelir?">MySQL'de <code>||</code> "veya" (OR) demektir: <code>'a' || 'b'</code> bir metin değil 0 döndürür, hata vermez. Bu yüzden yanlışlık fark edilmeyebilir.</td></tr>
+    <tr><td data-label="Konu">Full outer join</td><td data-label="Kitapta"><code>A FULL OUTER JOIN B ON …</code></td><td data-label="MySQL'de"><code>A LEFT JOIN B ON … UNION A RIGHT JOIN B ON …</code></td>
+      <td data-label="Ne anlama gelir?">MySQL'de FULL OUTER JOIN yoktur. İki tarafın eşleşmeyen satırlarını da tutmak için sol ve sağ dış join'in birleşimi (UNION) alınır; UNION iki tarafta da çıkan eşleşmeleri bir kez bırakır.</td></tr>
+    <tr><td data-label="Konu">Genel kısıt</td><td data-label="Kitapta"><code>CREATE ASSERTION … CHECK (NOT EXISTS …)</code></td><td data-label="MySQL'de">yok; yerine trigger</td>
+      <td data-label="Ne anlama gelir?">Birden çok tabloya bakan bir kural (ör. "maaş amirininkini geçemez") MySQL'de bir trigger'ın içinde kontrol edilir ve ihlalde işlem reddedilir (<a href="ch7-views.html#trigger-lar-7-2-2">Ch 7</a>).</td></tr>
+    <tr><td data-label="Konu">Domain</td><td data-label="Kitapta"><code>CREATE DOMAIN SSN_TYPE AS CHAR(9)</code></td><td data-label="MySQL'de">yok</td>
+      <td data-label="Ne anlama gelir?">Tipe ad verilemez; her sütunda tip ayrıca yazılır: <code>Ssn CHAR(9)</code>.</td></tr>
+    <tr><td data-label="Konu">Ertelenen kısıt</td><td data-label="Kitapta"><code>DEFERRABLE INITIALLY DEFERRED</code></td><td data-label="MySQL'de">yok; <code>SET FOREIGN_KEY_CHECKS = 0</code></td>
+      <td data-label="Ne anlama gelir?">Birbirine başvuran iki tablo (EMPLOYEE ↔ DEPARTMENT) doldurulurken kontrolü işlemin sonuna erteleyemezsiniz; MySQL'de yükleme sırasında foreign key kontrolü kapatılıp sonra açılır.</td></tr>
+    <tr><td data-label="Konu">Silmede varsayılana dönmek</td><td data-label="Kitapta"><code>ON DELETE SET DEFAULT</code></td><td data-label="MySQL'de">kabul edilmez</td>
+      <td data-label="Ne anlama gelir?">MySQL'in tablo motoru InnoDB bu eylemi desteklemez. Seçenekler <code>RESTRICT</code> / <code>NO ACTION</code> (reddet), <code>CASCADE</code> (onlar da silinsin), <code>SET NULL</code>.</td></tr>
+    <tr><td data-label="Konu">Tablo silmek</td><td data-label="Kitapta"><code>DROP TABLE T RESTRICT</code> / <code>CASCADE</code></td><td data-label="MySQL'de">sözcükler yazılabilir ama etkisizdir</td>
+      <td data-label="Ne anlama gelir?">Kitapta RESTRICT "başvuran varsa silme", CASCADE "başvuranları da sil" demektir. MySQL ikisine de bakmaz: başka bir tablonun foreign key'i başvuruyorsa silme her zaman reddedilir (hata 3730), view'lar ise kontrol edilmez.</td></tr>
+    <tr><td data-label="Konu">Kısıt kaldırmak</td><td data-label="Kitapta"><code>ALTER TABLE T DROP CONSTRAINT TFK</code></td><td data-label="MySQL'de"><code>ALTER TABLE T DROP FOREIGN KEY TFK</code></td>
+      <td data-label="Ne anlama gelir?">Foreign key'ler için MySQL'in kendi sözdizimi var. Bu yüzden kısıtlara ad vermek (<code>CONSTRAINT TFK …</code>) iki yerde de önemlidir: adı olmayan kısıtı kaldırmak zordur.</td></tr>
+    <tr><td data-label="Konu">Trigger</td><td data-label="Kitapta"><code>BEFORE INSERT OR UPDATE OF Salary … WHEN (koşul) eylem</code></td><td data-label="MySQL'de">her olaya ayrı trigger; koşul gövdede <code>IF … THEN … END IF</code></td>
+      <td data-label="Ne anlama gelir?">MySQL'de bir trigger tek bir olaya (INSERT, UPDATE ya da DELETE) bağlanır ve <code>WHEN</code> yoktur. Gövde <code>BEGIN … END</code> içinde birden çok komut olduğu için <code>DELIMITER //</code> ile yazılır; işlemi reddetmek için <code>SIGNAL SQLSTATE '45000'</code> kullanılır.</td></tr>
+    <tr><td data-label="Konu">Gruplanmamış sütun</td><td data-label="Kitapta">geçersiz sorgu</td><td data-label="MySQL'de">hata 1055</td>
+      <td data-label="Ne anlama gelir?"><code>SELECT Dno, Lname, COUNT(*) … GROUP BY Dno</code> iki yerde de yanlıştır: bir grubun hangi Lname'ini göstereceği belli değildir. MySQL bunu 1055 numaralı hatayla bildirir.</td></tr>
+    <tr><td data-label="Konu">Büyük/küçük harf</td><td data-label="Kitapta"><code>'smith' = 'Smith'</code> FALSE</td><td data-label="MySQL'de">TRUE</td>
+      <td data-label="Ne anlama gelir?">MySQL metinleri varsayılan olarak büyük/küçük harfe bakmadan karşılaştırır; <code>WHERE Lname = 'smith'</code> Smith'i bulur. Kitaptaki cevaplarda harflerin doğru yazıldığını varsayın.</td></tr>
+  </tbody>
+</table>
 
 
 <h2>Kısıtlar ve ihlaller</h2>

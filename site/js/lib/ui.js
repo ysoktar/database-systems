@@ -27,30 +27,49 @@ export function button(label, onClick, { kind = "", title } = {}) {
 export const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 // ---------------------------------------------------------------- SQL highlighting
-const KEYWORDS = new Set(`SELECT FROM WHERE AND OR NOT AS DISTINCT ALL ORDER BY GROUP HAVING ASC DESC INSERT INTO VALUES UPDATE SET DELETE
-CREATE TABLE VIEW DROP ALTER ADD COLUMN CONSTRAINT PRIMARY KEY FOREIGN REFERENCES UNIQUE CHECK DEFAULT NULL IS IN EXISTS ANY SOME
-BETWEEN LIKE JOIN INNER LEFT RIGHT FULL OUTER NATURAL CROSS ON USING UNION INTERSECT EXCEPT WITH RECURSIVE CASE WHEN THEN ELSE END
-CASCADE RESTRICT NO ACTION TRIGGER BEFORE AFTER FOR EACH ROW EXECUTE FUNCTION PROCEDURE RETURNS RETURN BEGIN COMMIT ROLLBACK
-LANGUAGE DECLARE IF OR REPLACE ASSERTION SCHEMA AUTHORIZATION DOMAIN DEFERRABLE INITIALLY DEFERRED IMMEDIATE TRUE FALSE UNKNOWN
-INT INTEGER SMALLINT CHAR VARCHAR DECIMAL NUMERIC DATE TIME TIMESTAMP BOOLEAN REAL FLOAT TEXT INTERVAL LIMIT OFFSET
-NEW OLD OF CAST GRANT REVOKE TO PRIVILEGES CONSTRAINTS ONLY LATERAL FETCH FIRST ROWS NEXT EXPLAIN RAISE EXCEPTION NOTICE
-TRANSACTION SAVEPOINT RELEASE STATEMENT MATERIALIZED TEMP TEMPORARY OPTION LOCAL CASCADED`.split(/\s+/));
-const FUNCS = new Set("COUNT SUM AVG MIN MAX COALESCE NULLIF UPPER LOWER LENGTH SUBSTRING EXTRACT AGE NOW CURRENT_DATE ROUND STRING_AGG ARRAY_AGG TRIM CONCAT POSITION".split(" "));
+// Words are coloured by what they do, so a statement can be read at a glance:
+//   tok-kw    statements and clauses     SELECT FROM WHERE GROUP BY CREATE TABLE JOIN …
+//   tok-op    conditions and logic       AND OR NOT IN EXISTS BETWEEN LIKE IS CASE WHEN … and = <> < >
+//   tok-type  data types                 INT VARCHAR CHAR DATE DECIMAL …
+//   tok-con   constraints and actions    PRIMARY KEY FOREIGN KEY REFERENCES UNIQUE CHECK CASCADE …
+//   tok-lit   special values             NULL TRUE FALSE UNKNOWN
+//   tok-fn    functions                  COUNT SUM AVG …
+//   tok-str / tok-num / tok-cmt          'text', 42, -- comments
+const words = (t) => new Set(t.split(/\s+/).filter(Boolean));
+const KW = words(`SELECT FROM WHERE ORDER BY GROUP HAVING INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE VIEW DROP ALTER ADD
+COLUMN JOIN INNER LEFT RIGHT FULL OUTER NATURAL CROSS UNION INTERSECT EXCEPT WITH RECURSIVE LIMIT OFFSET RETURNS RETURN BEGIN
+COMMIT ROLLBACK START TRANSACTION SAVEPOINT RELEASE LANGUAGE DECLARE IF REPLACE SCHEMA DATABASE USE SHOW DESCRIBE EXPLAIN
+AUTHORIZATION DOMAIN GRANT REVOKE TO PRIVILEGES FUNCTION PROCEDURE EXECUTE RAISE SIGNAL SQLSTATE MESSAGE_TEXT DELIMITER
+MATERIALIZED TEMP TEMPORARY FETCH FIRST NEXT ROWS ONLY LATERAL INDEX FORMAT`);
+const OP = words(`AND OR NOT IN EXISTS ANY SOME ALL BETWEEN LIKE IS AS DISTINCT ASC DESC CASE WHEN THEN ELSE END ON USING OF
+ESCAPE`);
+const TYPE = words(`INT INTEGER SMALLINT BIGINT CHAR VARCHAR CHARACTER VARYING DECIMAL NUMERIC DATE TIME TIMESTAMP DATETIME BOOLEAN REAL
+FLOAT DOUBLE PRECISION TEXT INTERVAL YEAR BIT BLOB CLOB`);
+const CON = words(`CONSTRAINT CONSTRAINTS PRIMARY KEY FOREIGN REFERENCES UNIQUE CHECK DEFAULT CASCADE CASCADED RESTRICT NO ACTION
+DEFERRABLE INITIALLY DEFERRED IMMEDIATE ASSERTION TRIGGER BEFORE AFTER INSTEAD FOR EACH ROW STATEMENT NEW OLD OPTION LOCAL`);
+const LIT = words("NULL TRUE FALSE UNKNOWN");
+const FUNCS = words(`COUNT SUM AVG MIN MAX COALESCE NULLIF UPPER LOWER LENGTH SUBSTRING EXTRACT AGE NOW CURRENT_DATE ROUND STRING_AGG
+ARRAY_AGG TRIM CONCAT POSITION CAST GROUP_CONCAT LOCALTIMESTAMP CURRENT_TIMESTAMP IFNULL`);
+const wordClass = (w) => {
+  const u = w.toUpperCase();
+  return LIT.has(u) ? "tok-lit" : TYPE.has(u) ? "tok-type" : CON.has(u) ? "tok-con" : OP.has(u) ? "tok-op"
+    : KW.has(u) ? "tok-kw" : FUNCS.has(u) ? "tok-fn" : null;
+};
 
-/** Turn SQL text into highlighted HTML (comments, strings, numbers, keywords, functions). */
+/** Turn SQL text into highlighted HTML (comments, strings, numbers, words by role, comparison operators). */
 export function highlightSQL(src) {
-  const re = /(--[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^']|'')*'?)|("(?:[^"]|"")*"?)|(\$\$)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)/g;
+  const re = /(--[^\n]*|#[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:[^'\\]|''|\\.)*'?)|("(?:[^"]|"")*"?|`[^`]*`?)|(\$\$)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|(<>|<=|>=|!=|[=<>])/g;
   let out = "", last = 0, m;
   while ((m = re.exec(src))) {
     out += escapeHtml(src.slice(last, m.index));
-    const [tok, cmt, str, , dollar, num, word] = m;
-    if (cmt) out += `<span class="tok-cmt">${escapeHtml(tok)}</span>`;
-    else if (str) out += `<span class="tok-str">${escapeHtml(tok)}</span>`;
-    else if (dollar) out += `<span class="tok-str">$$</span>`;
-    else if (num) out += `<span class="tok-num">${tok}</span>`;
-    else if (word && KEYWORDS.has(word.toUpperCase())) out += `<span class="tok-kw">${tok}</span>`;
-    else if (word && FUNCS.has(word.toUpperCase())) out += `<span class="tok-fn">${tok}</span>`;
-    else out += escapeHtml(tok);
+    const [tok, cmt, str, , dollar, num, word, op] = m;
+    let cls = null;
+    if (cmt) cls = "tok-cmt";
+    else if (str || dollar) cls = "tok-str";
+    else if (num) cls = "tok-num";
+    else if (word) cls = wordClass(word);
+    else if (op) cls = "tok-op";
+    out += cls ? `<span class="${cls}">${escapeHtml(tok)}</span>` : escapeHtml(tok);
     last = re.lastIndex;
   }
   return out + escapeHtml(src.slice(last));
