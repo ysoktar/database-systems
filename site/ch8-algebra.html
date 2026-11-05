@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İlişkisel cebir (önizleme) · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 8 önizlemesi: ilişkisel cebirin işlemleri (σ, π, ρ, ∪, ∩, −, ×, ⋈, ÷) ve her birinin SQL karşılığı. Arasınav kapsamı dışında.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/layout.js"></script>
+</head>
+<body data-page="ch8-algebra">
+<main><div class="content">
+
+<h1>İlişkisel cebir (önizleme)</h1>
+<p class="lead">Ch 8 arasınav kapsamında değil. Bu sayfa, Ch 6–7'de öğrendiğiniz SQL'in arkasındaki biçimsel dili kısaca tanıtıyor: her cebir işleminin SQL karşılığı var ve hepsi aşağıda çalıştırılabilir.</p>
+
+<div class="callout note">
+  <p>İlişkisel cebir, ilişkiler üzerinde tanımlı işlemlerden oluşan <em>procedural</em> bir dildir: her işlem bir ya da iki ilişki alır ve <strong>yeni bir ilişki</strong> döndürür (closure). İşlemler <em>küme</em> semantiğiyle çalışır: sonuçta tekrar yoktur. SQL ise multiset semantiği kullanır.</p>
+</div>
+
+<h2>Tekli işlemler</h2>
+<table class="simple">
+  <thead><tr><th>İşlem</th><th>Gösterim</th><th>SQL karşılığı</th></tr></thead>
+  <tbody>
+    <tr><td><strong>SELECT</strong> (seçim)</td><td>σ<sub>Dno=4 AND Salary&gt;25000</sub>(EMPLOYEE)</td><td><code>SELECT * FROM EMPLOYEE WHERE Dno = 4 AND Salary &gt; 25000</code></td></tr>
+    <tr><td><strong>PROJECT</strong> (izdüşüm)</td><td>π<sub>Lname, Salary</sub>(EMPLOYEE)</td><td><code>SELECT DISTINCT Lname, Salary FROM EMPLOYEE</code></td></tr>
+    <tr><td><strong>RENAME</strong></td><td>ρ<sub>S(B1, B2)</sub>(R)</td><td><code>… AS S(B1, B2)</code></td></tr>
+  </tbody>
+</table>
+<p>σ yer değiştirebilir (σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c2</sub>(σ<sub>c1</sub>(R))); π'nin tekrarları silmesi SQL'deki <code>DISTINCT</code>'e karşılık gelir.</p>
+<pre class="sql run" data-title="π_{Sex, Salary}(EMPLOYEE): küme semantiği DISTINCT ister">
+SELECT DISTINCT Sex, Salary FROM EMPLOYEE;
+</pre>
+
+<h2>Küme işlemleri</h2>
+<p>∪ (UNION), ∩ (INTERSECTION), − (MINUS/DIFFERENCE): iki ilişki <em>type compatible</em> (union compatible) olmalıdır. × (CARTESIAN PRODUCT) her tuple çiftini birleştirir.</p>
+<pre class="sql run" data-title="Örnek: 5 numaralı departmanda çalışanların ya da onların doğrudan amirlerinin Ssn'leri">
+-- DEP5_EMPS ← σ_{Dno=5}(EMPLOYEE); RESULT1 ← π_{Ssn}(DEP5_EMPS); RESULT2 ← π_{Super_ssn}(DEP5_EMPS)
+-- RESULT ← RESULT1 ∪ RESULT2
+SELECT Ssn FROM EMPLOYEE WHERE Dno = 5
+UNION
+SELECT Super_ssn FROM EMPLOYEE WHERE Dno = 5;
+</pre>
+
+<h2>İkili işlemler: JOIN ve DIVISION</h2>
+<table class="simple">
+  <thead><tr><th>İşlem</th><th>Gösterim</th><th>Anlamı</th></tr></thead>
+  <tbody>
+    <tr><td><strong>THETA JOIN</strong></td><td>R ⋈<sub>θ</sub> S</td><td>σ<sub>θ</sub>(R × S)</td></tr>
+    <tr><td><strong>EQUIJOIN</strong></td><td>R ⋈<sub>A=B</sub> S</td><td>yalnızca eşitlik koşulu</td></tr>
+    <tr><td><strong>NATURAL JOIN</strong></td><td>R * S</td><td>aynı adlı öznitelikler üzerinde equijoin, tekrar eden sütun bir kez</td></tr>
+    <tr><td><strong>OUTER JOIN</strong></td><td>⟕ ⟖ ⟗</td><td>eşleşmeyenler NULL ile</td></tr>
+    <tr><td><strong>DIVISION</strong></td><td>R(Z) ÷ S(X)</td><td>S'nin <em>her</em> tuple'ıyla R'de birlikte görünen Y = Z − X değerleri</td></tr>
+    <tr><td><strong>AGGREGATE</strong></td><td><sub>Dno</sub>ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE)</td><td>GROUP BY</td></tr>
+  </tbody>
+</table>
+<pre class="sql run" data-title="Division: Smith'in çalıştığı her projede çalışanlar (cebirde ÷, SQL'de çift NOT EXISTS)">
+-- SMITH_PNOS ← π_{Pno}(WORKS_ON ⋈_{Essn=Ssn} σ_{Fname='John' AND Lname='Smith'}(EMPLOYEE))
+-- SSN_PNOS   ← π_{Essn, Pno}(WORKS_ON)
+-- RESULT     ← SSN_PNOS ÷ SMITH_PNOS
+SELECT DISTINCT W.Essn
+FROM   WORKS_ON W
+WHERE  NOT EXISTS (SELECT S.Pno FROM WORKS_ON S WHERE S.Essn = '123456789'
+                   EXCEPT
+                   SELECT X.Pno FROM WORKS_ON X WHERE X.Essn = W.Essn);
+</pre>
+<p>Kitabın Ch 8'i ayrıca tuple ve domain ilişkisel hesabını (relational calculus) anlatır: aynı soruları <em>nonprocedural</em> biçimde, ∃ ve ∀ niceleyicileriyle yazar. Ch 7'deki NOT EXISTS kalıbı, ∀'nın hesaptaki karşılığıdır.</p>
+
+</div></main>
+</body>
+</html>

@@ -4,7 +4,7 @@
 //   <pre class="sql">…</pre>                              display only, highlighted
 import { h, $$, highlightSQL, dedent, button } from "./ui.js";
 import { runSQL, reset, onState, state, getDB } from "./db.js";
-import { checkResult } from "./sqlcore.js";
+import { checkResult, resultHash } from "./sqlcore.js";
 
 const NUM = new Set([20, 21, 23, 26, 700, 701, 1700]);
 const store = {
@@ -123,6 +123,18 @@ export function createSqlBox(opts = {}) {
     out.replaceChildren();
     renderItems(out, res.items);
     if (opts.expectError && !res.error) out.append(h("div", { class: "res-msg warn" }, "UYARI: bu kutunun hata vermesi bekleniyordu ama tüm komutlar başarılı oldu."));
+    if (opts.reference && !opts.check) {
+      // expected answer = the model solution run on the same database state
+      const ref = await runSQL(opts.reference.sql);
+      if (ref.last) {
+        const { rows, types, cols } = ref.last;
+        const ordered = !!opts.reference.ordered;
+        const exp = { ncols: cols.length, nrows: rows.length, ordered, hu: await resultHash(rows, types, false), h: ordered ? await resultHash(rows, types, true) : null };
+        const r = await checkResult(exp, res.last, res.error);
+        out.append(h("div", { class: `res-msg ${r.ok ? "ok" : "warn"}` }, `${r.ok ? "✔" : "✘"} ${opts.reference.label || "Problem"}: ${r.text}`));
+        box.dispatchEvent(new CustomEvent("exercisecheck", { bubbles: true, detail: { ...r } }));
+      }
+    }
     if (opts.check) {
       const r = await checkResult(opts.check.expect, res.last, res.error);
       out.append(h("div", { class: `res-msg ${r.ok ? "ok" : "warn"}` }, `${r.ok ? "✔" : "✘"} Alıştırma ${opts.check.n}: ${r.text}`));

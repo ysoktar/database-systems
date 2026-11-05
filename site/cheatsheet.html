@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Özet kâğıdı ve sözlük · Veritabanı Sistemleri</title>
+<meta name="description" content="Tek sayfalık özet: SQL sözdizimi ve değerlendirme sırası, sorgu kalıpları, NULL kuralları, ER/EER gösterimi, kısıtlar ve Türkçe–İngilizce veritabanı terimleri sözlüğü.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/cheatsheet.js"></script>
+</head>
+<body data-page="cheatsheet">
+<main><div class="content">
+
+<h1>Özet kâğıdı ve sözlük</h1>
+<p class="lead">Sınavdan önceki son tekrar için: SQL sözdizimi, kalıplar, NULL kuralları, ER/EER sembolleri ve terimler. Yazdırmak için tarayıcınızın yazdır komutunu kullanabilirsiniz.</p>
+
+<h2>SQL sorgusunun yapısı</h2>
+<div class="two-col">
+<pre class="sql">
+SELECT   [DISTINCT] &lt;columns, aggregates, expressions&gt;  -- 5
+FROM     &lt;tables / joins&gt;                                -- 1
+[WHERE   &lt;row condition&gt;]                               -- 2
+[GROUP BY &lt;grouping columns&gt;]                           -- 3
+[HAVING  &lt;group condition&gt;]                             -- 4
+[ORDER BY &lt;columns&gt; [ASC | DESC]];                      -- 6
+</pre>
+<pre class="sql">
+-- joins
+FROM A JOIN B ON A.x = B.y              -- inner
+FROM A LEFT  [OUTER] JOIN B ON …        -- keep all of A
+FROM A RIGHT [OUTER] JOIN B ON …        -- keep all of B
+FROM A FULL  [OUTER] JOIN B ON …        -- keep both
+FROM A NATURAL JOIN B                   -- equal same-named columns
+FROM A CROSS JOIN B                     -- Cartesian product
+-- set operations (duplicates removed; add ALL to keep them)
+(q1) UNION (q2)   (q1) INTERSECT (q2)   (q1) EXCEPT (q2)
+</pre>
+</div>
+
+<h2>Koşullar ve operatörler</h2>
+<table class="simple">
+  <tbody>
+    <tr><td><code>= &lt;&gt; &lt; &lt;= &gt; &gt;=</code></td><td>karşılaştırma; NULL ile sonuç UNKNOWN</td></tr>
+    <tr><td><code>A BETWEEN x AND y</code></td><td><code>A &gt;= x AND A &lt;= y</code></td></tr>
+    <tr><td><code>A LIKE 'a%b_'</code></td><td><code>%</code> 0+ karakter, <code>_</code> tam 1 karakter</td></tr>
+    <tr><td><code>A IS [NOT] NULL</code></td><td>NULL sınamanın tek yolu</td></tr>
+    <tr><td><code>A IN (subquery | v1, v2, …)</code></td><td>= ANY</td></tr>
+    <tr><td><code>A &gt; ALL (subquery)</code>, <code>A &gt; ANY (subquery)</code></td><td>hepsinden / en az birinden; boş kümede ALL = TRUE, ANY = FALSE</td></tr>
+    <tr><td><code>[NOT] EXISTS (subquery)</code></td><td>en az bir satır var mı; asla UNKNOWN değil</td></tr>
+    <tr><td><code>CASE WHEN c THEN v … ELSE v END</code></td><td>koşullu değer</td></tr>
+  </tbody>
+</table>
+
+<h2>NULL kuralları</h2>
+<div class="two-col">
+  <ul>
+    <li>Karşılaştırma NULL içeriyorsa → <strong>UNKNOWN</strong>.</li>
+    <li>AND: FALSE baskın; OR: TRUE baskın; NOT UNKNOWN = UNKNOWN.</li>
+    <li>WHERE / HAVING / ON yalnızca <strong>TRUE</strong>'yu tutar.</li>
+    <li><code>NOT IN</code> listesinde NULL varsa → hiçbir satır.</li>
+  </ul>
+  <ul>
+    <li><code>COUNT(*)</code> satır sayar; <code>COUNT(A)</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code> NULL'ları atlar.</li>
+    <li>Boş kümede COUNT = 0, diğerleri NULL.</li>
+    <li>GROUP BY'da NULL'lar tek bir grup oluşturur.</li>
+    <li>Iç join'de NULL join sütunu eşleşmez.</li>
+  </ul>
+</div>
+
+<h2>Sorgu kalıpları</h2>
+<div class="two-col">
+<pre class="sql">
+-- "every Y" (division): no Y that x is not related to
+SELECT … FROM X x
+WHERE NOT EXISTS (SELECT * FROM Y y
+                  WHERE NOT EXISTS (SELECT * FROM R r
+                                    WHERE r.x = x.id AND r.y = y.id));
+
+-- "no related row" (anti-join)
+SELECT … FROM X x WHERE NOT EXISTS (SELECT * FROM R r WHERE r.x = x.id);
+SELECT … FROM X x LEFT JOIN R r ON r.x = x.id WHERE r.x IS NULL;
+</pre>
+<pre class="sql">
+-- the maximum within each group
+SELECT … FROM T t
+WHERE t.v = (SELECT MAX(u.v) FROM T u WHERE u.g = t.g);
+
+-- count including zero
+SELECT x.id, COUNT(r.x) FROM X x LEFT JOIN R r ON r.x = x.id
+GROUP BY x.id;
+
+-- groups whose members satisfy something overall (Q28)
+… WHERE cond AND g IN (SELECT g FROM T GROUP BY g HAVING …)
+</pre>
+</div>
+
+<h2>DDL ve güncelleme</h2>
+<pre class="sql">
+CREATE TABLE T ( A INT NOT NULL DEFAULT 0 CHECK (A > 0),
+                 B VARCHAR(20) UNIQUE,
+                 C CHAR(9),
+                 CONSTRAINT TPK PRIMARY KEY (A),
+                 CONSTRAINT TFK FOREIGN KEY (C) REFERENCES S(Id)
+                   ON DELETE {CASCADE | SET NULL | SET DEFAULT | NO ACTION} ON UPDATE CASCADE );
+ALTER TABLE T ADD COLUMN D DATE;          ALTER TABLE T DROP COLUMN D {CASCADE | RESTRICT};
+ALTER TABLE T ALTER COLUMN A SET DEFAULT 1;  ALTER TABLE T DROP CONSTRAINT TFK;
+DROP TABLE T {CASCADE | RESTRICT};        DROP SCHEMA S CASCADE;
+INSERT INTO T (A, B) VALUES (1, 'x');     INSERT INTO T SELECT …;
+UPDATE T SET A = A + 1 WHERE …;           DELETE FROM T WHERE …;
+CREATE VIEW V (c1, c2) AS SELECT … [WITH CHECK OPTION];
+CREATE ASSERTION N CHECK (NOT EXISTS (SELECT … violating rows …));
+CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
+  FOR EACH ROW WHEN (cond) &lt;action&gt;;
+</pre>
+
+<h2>Kısıtlar ve ihlaller</h2>
+<table class="simple">
+  <thead><tr><th>İşlem</th><th>İhlal edebileceği kısıtlar</th><th>Seçenekler</th></tr></thead>
+  <tbody>
+    <tr><td>INSERT</td><td>domain, key, entity integrity, referential integrity</td><td>reddet</td></tr>
+    <tr><td>DELETE</td><td>yalnızca referential integrity</td><td>restrict, cascade, set null, set default</td></tr>
+    <tr><td>UPDATE (PK)</td><td>key, entity integrity, referential integrity</td><td>reddet; ON UPDATE CASCADE/SET NULL/SET DEFAULT</td></tr>
+    <tr><td>UPDATE (FK)</td><td>referential integrity, domain</td><td>reddet</td></tr>
+    <tr><td>UPDATE (diğer)</td><td>domain, NOT NULL, CHECK</td><td>reddet</td></tr>
+  </tbody>
+</table>
+<p><strong>Superkey</strong> ⊇ <strong>key</strong> (minimal superkey) = <strong>candidate key</strong>; biri <strong>primary key</strong> seçilir (NULL olamaz: entity integrity), diğerleri UNIQUE.</p>
+
+<h2>ER / EER gösterimi</h2>
+<div id="notation"></div>
+<table class="simple">
+  <thead><tr><th>Kısıt</th><th>Gösterim</th><th>Anlamı</th></tr></thead>
+  <tbody>
+    <tr><td>Cardinality 1:1, 1:N, M:N</td><td>kenarlara 1 / N / M</td><td>en <em>çok</em> kaç; sayı karşı tarafın katılımı</td></tr>
+    <tr><td>Total participation</td><td>çift çizgi</td><td>her varlık en az bir kez katılır</td></tr>
+    <tr><td>(min, max)</td><td>kendi varlığının yanına</td><td>min = 0 → partial, min ≥ 1 → total</td></tr>
+    <tr><td>Specialization</td><td>daire: <strong>d</strong> disjoint / <strong>o</strong> overlapping; çift çizgi total</td><td>alt sınıf çizgisinde ⊂</td></tr>
+    <tr><td>Category</td><td>daire içinde <strong>∪</strong></td><td>üst sınıfların birleşiminin alt kümesi</td></tr>
+  </tbody>
+</table>
+
+<h2>Sözlük</h2>
+<table class="simple" id="glossary">
+  <thead><tr><th>İngilizce</th><th>Türkçe</th><th>Kısa tanım</th></tr></thead>
+  <tbody>
+    <tr><td>attribute</td><td>öznitelik</td><td>varlığın ya da ilişkinin özelliği; tabloda sütun</td></tr>
+    <tr><td>candidate key</td><td>aday anahtar</td><td>bir ilişkinin minimal superkey'lerinden her biri</td></tr>
+    <tr><td>cardinality ratio</td><td>kardinalite oranı</td><td>bir varlığın katılabileceği en çok ilişki örneği: 1:1, 1:N, M:N</td></tr>
+    <tr><td>category (union type)</td><td>kategori</td><td>farklı üst sınıfların birleşiminin alt kümesi olan alt sınıf</td></tr>
+    <tr><td>catalog</td><td>katalog</td><td>meta-data'nın saklandığı yer (data dictionary)</td></tr>
+    <tr><td>correlated nested query</td><td>ilintili iç içe sorgu</td><td>dış sorgunun sütununa başvuran iç sorgu</td></tr>
+    <tr><td>derived attribute</td><td>türetilmiş öznitelik</td><td>başka verilerden hesaplanan öznitelik</td></tr>
+    <tr><td>domain</td><td>alan / değer kümesi</td><td>bir özniteliğin alabileceği atomik değerler</td></tr>
+    <tr><td>entity integrity</td><td>varlık bütünlüğü</td><td>PK NULL olamaz</td></tr>
+    <tr><td>foreign key</td><td>yabancı anahtar</td><td>başka (ya da aynı) ilişkinin PK'sına başvuran öznitelikler</td></tr>
+    <tr><td>generalization / specialization</td><td>genelleştirme / özelleştirme</td><td>alt sınıflardan üst sınıf çıkarma / üst sınıfı alt sınıflara ayırma</td></tr>
+    <tr><td>identifying relationship</td><td>tanımlayıcı ilişki</td><td>zayıf varlığı sahibine bağlayan ilişki</td></tr>
+    <tr><td>inheritance</td><td>kalıtım</td><td>alt sınıfın üst sınıfın öznitelik ve ilişkilerini alması</td></tr>
+    <tr><td>instance / state / extension</td><td>örnek / durum</td><td>belli bir andaki veri</td></tr>
+    <tr><td>multivalued attribute</td><td>çok değerli öznitelik</td><td>bir varlık için birden çok değer alabilen öznitelik</td></tr>
+    <tr><td>participation constraint</td><td>katılım kısıtı</td><td>total (zorunlu) ya da partial (isteğe bağlı) katılım</td></tr>
+    <tr><td>partial key (discriminator)</td><td>kısmi anahtar</td><td>aynı sahibe bağlı zayıf varlıkları ayıran öznitelik</td></tr>
+    <tr><td>primary key</td><td>birincil anahtar</td><td>tuple'ları tanımlamak için seçilen candidate key</td></tr>
+    <tr><td>referential integrity</td><td>referans bütünlüğü</td><td>FK değeri var olan bir PK'ya eşit ya da NULL</td></tr>
+    <tr><td>relation / tuple</td><td>ilişki / demet (satır)</td><td>tuple'ların kümesi / bir satır</td></tr>
+    <tr><td>relationship type</td><td>ilişki tipi</td><td>varlık tipleri arasındaki ilişkilendirme</td></tr>
+    <tr><td>schema / intension</td><td>şema</td><td>veritabanının tanımı</td></tr>
+    <tr><td>superkey</td><td>süper anahtar</td><td>değerleri her tuple için farklı olan öznitelik kümesi</td></tr>
+    <tr><td>three-valued logic</td><td>üç değerli mantık</td><td>TRUE, FALSE, UNKNOWN</td></tr>
+    <tr><td>transaction</td><td>hareket (işlem)</td><td>ya tamamen ya hiç uygulanan işlemler dizisi</td></tr>
+    <tr><td>trigger</td><td>tetikleyici</td><td>olay-koşul-eylem (ECA) kuralı</td></tr>
+    <tr><td>view</td><td>görünüm (sanal tablo)</td><td>başka tablolardan türetilen, genellikle saklanmayan tablo</td></tr>
+    <tr><td>weak entity type</td><td>zayıf varlık tipi</td><td>kendi anahtarı olmayan, sahibine bağlı varlık tipi</td></tr>
+  </tbody>
+</table>
+
+</div></main>
+</body>
+</html>

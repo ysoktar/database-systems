@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL laboratuvarı · Veritabanı Sistemleri</title>
+<meta name="description" content="COMPANY veritabanı üzerinde tarayıcıda çalışan PostgreSQL konsolu: serbest sorgular, örnek sorgular, canlı şema tarayıcı ve sıfırlama.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/lab.js"></script>
+</head>
+<body data-page="lab">
+<main><div class="content">
+
+<h1>SQL laboratuvarı</h1>
+<p class="lead">COMPANY üzerinde istediğiniz SQL'i yazın: sorgular, DDL (<code>CREATE</code>, <code>ALTER</code>, <code>DROP</code>), güncellemeler, view'lar, trigger'lar, transaction'lar. Birden çok komutu <code>;</code> ile ayırın; her sonucun tablosu ayrı gösterilir. <span id="engine"></span></p>
+
+<div id="console"></div>
+<h3>Örnekler</h3>
+<div id="examples"></div>
+
+<h2>Şema tarayıcı</h2>
+<p>PostgreSQL kataloğundan (<code>information_schema</code>) canlı okunur: bir tablo oluşturur ya da sütun eklerseniz burada görünür. <span class="pk" style="color:var(--pk);text-decoration:underline">Altı çizili</span>: primary key; <span style="color:var(--fk)">mavi</span>: foreign key.</p>
+<div id="browser"></div>
+
+<div class="callout note">
+  <p><strong>Bilinmesi gerekenler.</strong> Veritabanı yalnızca bu sekmede yaşar: sayfayı yenileyince COMPANY ilk hâline döner (yazdığınız konsol metni saklanır). Tablolar <code>company</code> şemasında, deneme tabloları için <code>demo</code> şeması hazır. Motor PostgreSQL'in kendisidir (WebAssembly'e derlenmiş, <a href="https://pglite.dev/" target="_blank" rel="noopener">PGlite</a>); sözdizimi ve hata mesajları Colab'daki PostgreSQL ile aynıdır.</p>
+</div>
+
+</div></main>
+</body>
+</html>
