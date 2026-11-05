@@ -136,7 +136,7 @@ function buildFooter() {
   const f = h("footer", { class: "site-footer" });
   f.innerHTML = `<p>BIL372/BIL071 Veritabanı Sistemleri (TOBB ETÜ, 2026–2027 Güz) için hazırlanmış, R. Elmasri &amp; S. B. Navathe'nin
     <em>Fundamentals of Database Systems</em> (7. baskı) kitabının 1–7. bölümlerine eşlik eden gayriresmî bir çalışma sitesi.
-    Örnek veritabanı: kitabın COMPANY veritabanı (Figure 5.6).</p>
+    Örnek veritabanı: kitabın COMPANY veritabanı (şema Figure 5.5/6.1, veri Figure 5.6).</p>
     <p>Her SQL kutusu tarayıcınızda çalışan, MySQL ile uyumlu bir veritabanına (go-mysql-server, WebAssembly) bağlıdır; hiçbir veri bilgisayarınızdan çıkmaz.
     <a href="${REPO}">GitHub'daki kaynak kod</a>.</p>`;
   return f;
@@ -190,7 +190,7 @@ export function enhanceQuizzes(root = document) {
     const check = $$(":scope > pre.sql.run", q);
     const extra = $$(":scope > pre:not(.run), :scope > .rel-wrap, :scope > table, :scope > .q-context", q);
     const sqlText = [...extra, ...check].filter((x) => x.matches("pre.sql")).map((x) => x.textContent).join("\n") + " " + (q.dataset.tables || "");
-    const ctx = tableContext(() => sqlText, { label: "Veri: COMPANY (Şekil 5.6)" });
+    const ctx = tableContext(() => sqlText, { label: "Bu soru COMPANY'nin başlangıç verisiyle ilgili; tablolar" });
     const opts = h("div", { class: "quiz-options" });
     const fb = h("div", { class: "quiz-feedback", "aria-live": "polite" });
     const after = h("div", { class: "quiz-after", hidden: true }, ...check);
@@ -261,6 +261,8 @@ function init() {
   enhanceCallouts(content);
   enhanceQuizzes(content);
   enhanceSQL(content);
+  // <div class="company-data" data-tables="EMPLOYEE WORKS_ON"></div>: chips that open those COMPANY tables
+  for (const el of $$(".company-data[data-tables]", content)) el.replaceWith(Object.assign(tableContext(() => el.dataset.tables, { label: el.dataset.label || "COMPANY'nin başlangıç verisi; tablolar", alwaysShow: true }), { className: "sqlbox-ctx standalone" }));
   labelTables(content);
   // page modules run after this one: wait for them so the navigation sees the content they add
   const nav = () => buildPageNav(content, id);
