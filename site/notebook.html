@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notebook alıştırmaları · Veritabanı Sistemleri</title>
+<meta name="description" content="Ders notebook'undaki 10 SQL alıştırması (Ch 6–7, COMPANY veritabanı), tarayıcıda çalışan PostgreSQL ve notebook'takiyle aynı otomatik kontrolcüyle; ipuçları, doğrulanmış çözümler ve alternatifler.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/notebook.js"></script>
+</head>
+<body data-page="notebook">
+<main><div class="content">
+
+<h1>Notebook alıştırmaları</h1>
+<p class="lead">Ders notebook'u <em>Exercises — Chapters 6 and 7</em>'deki on alıştırma, kolaydan zora: ★☆☆ kolay (Ch 6), ★★☆ orta ve ★★★ zor (Ch 7). Colab'a ya da Docker'a gerek yok: PostgreSQL bu sayfada çalışıyor.</p>
+
+<div class="callout key">
+  <p><strong>Cevap kontrolü notebook'takiyle aynıdır.</strong> Kutudaki son sorgunun sonucu, alıştırmanın beklenen cevabıyla karşılaştırılır ve <strong>✔ Doğru</strong> ya da <strong>✘</strong> ile neyin yanlış olduğu yazılır: sütun sayısı, satır sayısı, değerler ya da sıra. Sütun adları önemsizdir, sayılar iki ondalığa kadar karşılaştırılır ve satır sırası yalnızca alıştırma istiyorsa önemlidir. Beklenen cevaplar notebook'ta olduğu gibi yalnızca parmak izi (hash) olarak saklanır.</p>
+</div>
+
+<div class="btn-row" style="align-items:center">
+  <div class="progress" id="progress"></div>
+  <span class="small muted" id="progress-text"></span>
+  <button type="button" class="btn small" id="reset-progress">İlerlemeyi sıfırla</button>
+</div>
+<p class="small muted">Yazdığınız cevaplar ve ilerlemeniz bu tarayıcıda saklanır (sayfayı kapatıp açınca kaybolmaz). Bir alıştırma veriyi değiştirirse (ör. bir UPDATE denediniz), kutudaki <em>Veritabanını sıfırla</em> COMPANY'yi Figure 5.6 hâline döndürür.</p>
+
+<h2>COMPANY şeması</h2>
+<p>Altı çizili sütunlar primary key, mavi olanlar foreign key (üzerine gelince neye başvurduğu görünür). Tüm satırlar için notebook'taki <code>%show</code> komutunun karşılığı:</p>
+<div id="schema"></div>
+<div id="show"></div>
+
+<div class="callout note">
+  <p><strong>Notebook'u kendi bilgisayarınızda çalıştırmak</strong> isterseniz: <a href="https://colab.research.google.com/drive/1ArUuenMYSnN0ZNk_1Gsmn-CvnUnUeS30?usp=sharing" target="_blank" rel="noopener">Colab bağlantısı</a> (önce iki kurulum hücresini çalıştırın; Colab PostgreSQL'i bir dakikada kurar). Notebook PostgreSQL için yazıldı; buradaki sorgular da PostgreSQL'de çalışıyor, yani iki yerde de aynı sonucu alırsınız. Kendi DBMS'inizde (MySQL, SQLite…) denerseniz <code>WITH RECURSIVE</code>, <code>EXCEPT</code> gibi yapıların desteğine dikkat edin.</p>
+</div>
+
+<h2>Alıştırmalar</h2>
+<div id="exercises"></div>
+
+<h2>Sonraki adım</h2>
+<p>On alıştırmayı bitirdiyseniz <a href="exam-midterm.html#sql-problems">arasınav rehberindeki SQL problemlerine</a> geçin, ya da <a href="lab.html">SQL laboratuvarında</a> kendi sorularınızı yazın.</p>
+
+</div></main>
+</body>
+</html>

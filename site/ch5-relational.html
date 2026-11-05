@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İlişkisel model ve kısıtlar · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 5: ilişkisel modelin kavramları, ilişkinin özellikleri, domain/key/NULL kısıtları, superkey ve candidate key, entity integrity, referential integrity, foreign key, güncelleme işlemleri ve kısıt ihlalleri; hepsi çalıştırılabilir PostgreSQL örnekleriyle.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch5-relational.js"></script>
+</head>
+<body data-page="ch5-relational">
+<main><div class="content">
+
+<h1>İlişkisel model ve kısıtlar</h1>
+<p class="lead">İlişkisel model veritabanını <strong>ilişkiler</strong> (relations) topluluğu olarak görür: kabaca, her biri bir değerler tablosu. Bu sayfa modelin biçimsel kavramlarını ve verinin doğruluğunu koruyan <strong>kısıtları</strong> anlatır.</p>
+
+<h2>Kavramlar</h2>
+<table class="simple">
+  <thead><tr><th>Biçimsel terim</th><th>Gayriresmî (tablo) karşılığı</th><th>Tanım</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Relation</strong></td><td>Table</td><td>r(R) ⊆ dom(A<sub>1</sub>) × dom(A<sub>2</sub>) × … × dom(A<sub>n</sub>): tuple'ların bir kümesi.</td></tr>
+    <tr><td><strong>Tuple</strong></td><td>Row (satır)</td><td>Sıralı n değer: t = &lt;v<sub>1</sub>, …, v<sub>n</sub>&gt;; her v<sub>i</sub> ∈ dom(A<sub>i</sub>) ya da NULL.</td></tr>
+    <tr><td><strong>Attribute</strong></td><td>Column header (sütun)</td><td>Bir domain'in ilişkideki rolünün adı.</td></tr>
+    <tr><td><strong>Domain</strong></td><td>Sütunun alabileceği değerler</td><td>Atomik değerler kümesi: bir ad, bir veri tipi ve biçim. Ör. <code>Usa_phone_numbers</code>: 10 haneli telefon numaraları.</td></tr>
+    <tr><td><strong>Relation schema</strong> R(A<sub>1</sub>, …, A<sub>n</sub>)</td><td>Tablo tanımı</td><td>İlişkinin adı ve öznitelik listesi. <strong>Degree</strong> (arity) = n.</td></tr>
+    <tr><td><strong>Relation state</strong> r(R)</td><td>Tablonun o anki içeriği</td><td>Belli bir anda tuple'ların kümesi. <strong>Cardinality</strong> = tuple sayısı.</td></tr>
+    <tr><td><strong>Relational database schema</strong> S</td><td>Bütün tablolar</td><td>S = {R<sub>1</sub>, …, R<sub>m</sub>} ve bir bütünlük kısıtları kümesi IC.</td></tr>
+  </tbody>
+</table>
+<p>Ör. <code>STUDENT(Name, Ssn, Home_phone, Address, Office_phone, Age, Gpa)</code> derecesi 7 olan bir şemadır. Öznitelikleri tipleriyle yazmak da mümkün: <code>STUDENT(Name: string, Ssn: string, …, Gpa: real)</code>. t[A<sub>i</sub>] ya da t.A<sub>i</sub>, t'nin A<sub>i</sub> değeridir; t[A<sub>u</sub>, A<sub>w</sub>, …] bir alt tuple'dır.</p>
+
+<h3>İlişkinin özellikleri</h3>
+<ol>
+  <li><strong>Tuple'ların sırası yoktur.</strong> İlişki bir <em>küme</em>dir; satırların görüntülenme sırası mantıksal olarak önemsizdir (SQL'de sıra yalnız <code>ORDER BY</code> ile garanti edilir).</li>
+  <li><strong>Bir tuple içindeki değerlerin sırası</strong>: birinci tanımda (tuple = sıralı liste) önemlidir; alternatif tanımda (tuple = (öznitelik, değer) çiftlerinin kümesi) önemsizdir. Kitap çoğunlukla birinci tanımı kullanır.</li>
+  <li><strong>Değerler atomiktir</strong> (bölünemez): <em>flat relational model</em>. Bileşik ve çok değerli öznitelikler doğrudan saklanamaz; bileşikler parçalarına ayrılır, çok değerliler ayrı bir ilişkiye taşınır. Bu varsayım <em>first normal form</em> (1NF) olarak bilinir.</li>
+  <li><strong>NULL</strong>: değer bilinmiyor, uygulanamaz ya da var ama henüz girilmemiş. Farklı anlamları vardır ve karşılaştırmalarda sorun yaratır (Ch 7'deki üç değerli mantık).</li>
+  <li><strong>Yorum</strong>: bir ilişki şeması bir <em>iddia</em> (assertion) gibi okunabilir; her tuple o iddianın bir <em>gerçeği</em> (fact) ya da bir <em>yüklemin</em> (predicate) doğru olduğu bir örnektir. Varlıkları da ilişkileri de ilişkiler temsil eder.</li>
+</ol>
+<div class="callout gotcha">
+  <p><strong>Tablo ≠ ilişki, tam olarak.</strong> Biçimsel ilişki bir küme olduğu için <em>aynı tuple iki kez bulunamaz</em>. SQL tabloları ise primary key yoksa ya da sorgu sonucu <code>DISTINCT</code>'siz ise tekrar eden satırlar içerebilir (multiset / bag). Ch 6'da tekrar karşınıza çıkacak.</p>
+</div>
+
+<h2>Kısıtlar (constraints)</h2>
+<ul>
+  <li><strong>Inherent model-based</strong> (implicit): modelin kendisinden gelir. Ör. bir ilişkide aynı tuple iki kez olamaz.</li>
+  <li><strong>Schema-based</strong> (explicit): şemada DDL ile ifade edilir: domain, key, NULL, entity integrity, referential integrity kısıtları.</li>
+  <li><strong>Application-based</strong> (semantic, <em>business rules</em>): şemada doğrudan ifade edilemez; uygulama programlarıyla ya da trigger/assertion'larla zorlanır. Ör. "bir çalışanın maaşı amirininkini geçemez", "bir çalışan haftada en fazla 56 saat çalışabilir".</li>
+</ul>
+<p>Ayrıca: <strong>data dependencies</strong> (functional ve multivalued dependency, Ch 14–15'te normalizasyon için), <strong>state constraints</strong> (static: her geçerli durumun sağlaması gereken) ve <strong>transition constraints</strong> (dynamic: durum değişikliğine dair; ör. "maaş yalnızca artabilir").</p>
+
+<h3>Domain kısıtı</h3>
+<p>Her tuple'da her A özniteliğinin değeri dom(A)'dan atomik bir değer olmalıdır: tipler (<code>INT</code>, <code>VARCHAR(15)</code>, <code>DATE</code>…), alt aralıklar, numaralandırılmış değerler.</p>
+<pre class="sql run" data-expect-error data-title="Domain ihlali: DECIMAL(3,1) sütununa sığmayan değer">
+INSERT INTO WORKS_ON VALUES ('123456789', 3, 1000.0);
+</pre>
+
+<h3>Key kısıtları</h3>
+<table class="simple">
+  <thead><tr><th>Terim</th><th>Tanım</th><th>EMPLOYEE'de</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Superkey</strong> (SK)</td><td>Öznitelikler alt kümesi; hiçbir geçerli durumda iki farklı tuple SK'da aynı değerleri taşımaz: t<sub>1</sub>[SK] ≠ t<sub>2</sub>[SK]. Her ilişkinin en az bir superkey'i vardır: tüm öznitelikler kümesi.</td><td>{Ssn}, {Ssn, Lname}, {Ssn, Fname, Bdate}, tüm öznitelikler…</td></tr>
+    <tr><td><strong>Key</strong> (minimal superkey)</td><td>(1) superkey'dir, (2) <em>minimal</em>dir: herhangi bir özniteliği çıkarılırsa artık superkey değildir. Anahtar, şemanın zamandan bağımsız bir özelliğidir.</td><td>{Ssn}</td></tr>
+    <tr><td><strong>Candidate key</strong></td><td>Bir ilişkinin birden çok anahtarı olabilir; her biri bir candidate key'dir.</td><td>CAR'da {License_number} ve {Engine_serial_number}</td></tr>
+    <tr><td><strong>Primary key</strong></td><td>Tuple'ları tanımlamak için <em>seçilen</em> candidate key; şemada <u>altı çizili</u>. Genellikle en küçüğü seçilir.</td><td>Ssn</td></tr>
+    <tr><td><strong>Unique key</strong> (alternate)</td><td>Primary seçilmeyen diğer candidate key'ler; SQL'de <code>UNIQUE</code>.</td><td>DEPARTMENT'ta Dname (Dnumber primary)</td></tr>
+  </tbody>
+</table>
+<div class="callout key">
+  <p><strong>Superkey ⊇ key.</strong> Her key bir superkey'dir; bir superkey ancak minimal ise key'dir. Bir superkey'e öznitelik eklemek her zaman yine superkey verir. {Ssn, Lname} bir superkey'dir ama key değildir, çünkü Lname çıkarılınca kalan {Ssn} hâlâ benzersizdir.</p>
+</div>
+
+<h3>Denemek için: superkey kontrolü</h3>
+<p>Bir tablo ve sütunlar seçin; araç, seçtiğiniz sütunlarda değerleri aynı olan iki satır var mı diye <em>bugünkü veriye</em> bakar. Tekrar bulunursa küme kesinlikle superkey değildir. Tekrar bulunmazsa bu sadece bir <em>işarettir</em>: anahtar, bütün olası durumlar için geçerli bir kısıttır ve yalnızca veriye bakılarak kanıtlanamaz.</p>
+<div id="superkey"></div>
+
+<h3>NULL kısıtı ve entity integrity</h3>
+<ul>
+  <li><strong>NOT NULL</strong>: bir özniteliğin NULL olmasına izin verilmez (ör. her öğrencinin bir adı olmalı).</li>
+  <li><strong>Entity integrity constraint</strong>: hiçbir primary key değeri NULL olamaz. Çünkü PK tuple'ları tanımlamak için kullanılır; iki tuple'ın PK'sı NULL olursa ayırt edilemezler. (Bileşik PK'nın <em>hiçbir parçası</em> NULL olamaz.)</li>
+</ul>
+
+<h3>Referential integrity ve foreign key</h3>
+<p>İki ilişki arasındaki tutarlılık: bir ilişkideki tuple, başka bir ilişkide <em>var olan</em> bir tuple'a başvurmalıdır.</p>
+<p>R<sub>1</sub>'deki FK öznitelik kümesi, R<sub>2</sub>'nin primary key'ine başvuran bir <strong>foreign key</strong>'dir ancak ve ancak: (1) FK'nın öznitelikleri PK'nınkilerle aynı domain'lere sahiptir; (2) R<sub>1</sub>'deki her t<sub>1</sub> için ya t<sub>1</sub>[FK] = t<sub>2</sub>[PK] olan bir t<sub>2</sub> ∈ r(R<sub>2</sub>) vardır ya da t<sub>1</sub>[FK] NULL'dur. R<sub>1</sub> <em>referencing</em>, R<sub>2</sub> <em>referenced</em> ilişkidir.</p>
+<ul>
+  <li>FK, kendi ilişkisinin PK'sına da başvurabilir: <code>EMPLOYEE.Super_ssn → EMPLOYEE.Ssn</code> (recursive ilişki).</li>
+  <li>FK, PK'nın parçası olabilir: WORKS_ON(<u>Essn</u>, <u>Pno</u>, Hours)'da Essn ve Pno hem PK'nın parçası hem FK. Bu durumda NULL olamazlar (entity integrity).</li>
+  <li>Şema diyagramında FK'dan başvurduğu PK'ya bir ok çizilir (kitapta Figure 5.7).</li>
+</ul>
+<div id="schema"></div>
+
+<h2>Güncelleme işlemleri ve kısıt ihlalleri</h2>
+<p>Üç temel güncelleme işlemi vardır: <strong>Insert</strong>, <strong>Delete</strong>, <strong>Update</strong> (Modify). Her biri bazı kısıtları ihlal edebilir. Aşağıdaki kutular kitabın Section 5.3'teki örneklerinin aynısıdır. Hepsini sırayla çalıştırın: DBMS'in hangi kısıtı, hangi mesajla zorladığını göreceksiniz. (Gerektiğinde <em>Veritabanını sıfırla</em>.)</p>
+
+<h3>Insert</h3>
+<p>Dört kısıtı da ihlal edebilir: domain (değer domain'de değil), key (PK ya da UNIQUE değeri zaten var), entity integrity (PK NULL), referential integrity (FK, başvurulan ilişkide olmayan bir değere başvuruyor). İhlalde varsayılan davranış işlemi <strong>reddetmek</strong>tir (ve kullanıcıya nedenini söylemek).</p>
+<p class="small muted">PostgreSQL primary key sütunlarını kendiliğinden NOT NULL yaptığı için Insert 1'in mesajı "not-null constraint" der; kitaptaki adı entity integrity ihlalidir.</p>
+<pre class="sql run" data-expect-error data-title="Insert 1 · Entity integrity: Ssn NULL">
+INSERT INTO EMPLOYEE VALUES ('Cecilia', 'F', 'Kolonsky', NULL, '1960-04-05',
+       '6357 Windy Lane, Katy, TX', 'F', 28000, NULL, 4);
+</pre>
+<pre class="sql run" data-expect-error data-title="Insert 2 · Key kısıtı: 999887777 zaten var (Zelaya)">
+INSERT INTO EMPLOYEE VALUES ('Alicia', 'J', 'Zelaya', '999887777', '1960-04-05',
+       '6357 Windy Lane, Katy, TX', 'F', 28000, '987654321', 4);
+</pre>
+<pre class="sql run" data-expect-error data-title="Insert 3 · Referential integrity: 7 numaralı departman yok">
+INSERT INTO EMPLOYEE VALUES ('Cecilia', 'F', 'Kolonsky', '677678989', '1960-04-05',
+       '6357 Windswept, Katy, TX', 'F', 28000, '987654321', 7);
+</pre>
+<pre class="sql run" data-title="Insert 4 · Geçerli: bütün kısıtları sağlıyor">
+INSERT INTO EMPLOYEE VALUES ('Cecilia', 'F', 'Kolonsky', '677678989', '1960-04-05',
+       '6357 Windy Lane, Katy, TX', 'F', 28000, NULL, 4);
+SELECT Fname, Lname, Ssn, Dno FROM EMPLOYEE WHERE Ssn = '677678989';
+</pre>
+
+<h3>Delete</h3>
+<p>Yalnızca <strong>referential integrity</strong>'yi ihlal edebilir: silinen tuple'a başka tuple'lar başvuruyorsa. Seçenekler:</p>
+<ul>
+  <li><strong>Restrict / reject</strong> (<code>NO ACTION</code>, <code>RESTRICT</code>): silmeyi reddet.</li>
+  <li><strong>Cascade</strong> (<code>ON DELETE CASCADE</code>): başvuran tuple'ları da sil.</li>
+  <li><strong>Set null</strong> (<code>ON DELETE SET NULL</code>) ya da <strong>set default</strong> (<code>ON DELETE SET DEFAULT</code>): başvuran FK değerlerini NULL'a ya da varsayılana çek. FK PK'nın parçasıysa set null kullanılamaz (entity integrity).</li>
+</ul>
+<pre class="sql run" data-title="Delete 1 · Geçerli: bir WORKS_ON tuple'ı">
+DELETE FROM WORKS_ON WHERE Essn = '999887777' AND Pno = 10;
+</pre>
+<pre class="sql run" data-expect-error data-title="Delete 2 · Referential integrity: WORKS_ON hâlâ 999887777'ye başvuruyor">
+DELETE FROM EMPLOYEE WHERE Ssn = '999887777';
+</pre>
+<pre class="sql run" data-expect-error data-title="Delete 3 · 333445555'e (Wong) EMPLOYEE, DEPARTMENT, WORKS_ON ve DEPENDENT başvuruyor">
+DELETE FROM EMPLOYEE WHERE Ssn = '333445555';
+</pre>
+
+<h3>Update</h3>
+<p>PK ya da FK olmayan bir özniteliği değiştirmek yalnızca domain ve NOT NULL kısıtlarını kontrol gerektirir. <strong>PK'yı değiştirmek</strong> bir tuple'ı silip yenisini eklemek gibidir (key, entity integrity ve referential integrity'yi etkiler). <strong>FK'yı değiştirmek</strong> referential integrity'yi ihlal edebilir.</p>
+<pre class="sql run" data-title="Update 1 · Geçerli: maaş">
+UPDATE EMPLOYEE SET Salary = 28000 WHERE Ssn = '999887777';
+</pre>
+<pre class="sql run" data-title="Update 2 · Geçerli: FK, var olan bir departmana">
+UPDATE EMPLOYEE SET Dno = 1 WHERE Ssn = '999887777';
+</pre>
+<pre class="sql run" data-expect-error data-title="Update 3 · Referential integrity: 7 numaralı departman yok">
+UPDATE EMPLOYEE SET Dno = 7 WHERE Ssn = '999887777';
+</pre>
+<pre class="sql run" data-expect-error data-title="Update 4 · Key kısıtı: 987654321 zaten var (Wallace)">
+UPDATE EMPLOYEE SET Ssn = '987654321' WHERE Ssn = '999887777';
+</pre>
+
+<h3>Referential triggered actions: CASCADE ve SET NULL'ı görmek</h3>
+<p>COMPANY şemasında (Figure 6.2) <code>EMPLOYEE.Super_ssn</code> için <code>ON DELETE SET NULL ON UPDATE CASCADE</code>, <code>DEPT_LOCATIONS.Dnumber</code> için <code>ON DELETE CASCADE ON UPDATE CASCADE</code> tanımlı. Etkilerini görelim:</p>
+<pre class="sql run" data-title="ON UPDATE CASCADE: bir departman numarasını değiştirmek">
+-- department 4 becomes 6; EMPLOYEE.Dno and DEPT_LOCATIONS.Dnumber follow (ON UPDATE CASCADE).
+-- PROJECT.Dnum has no ON UPDATE action, so first move the projects out of the way:
+UPDATE PROJECT SET Dnum = 5 WHERE Dnum = 4;
+UPDATE DEPARTMENT SET Dnumber = 6 WHERE Dnumber = 4;
+SELECT Lname, Dno FROM EMPLOYEE WHERE Dno = 6;
+SELECT * FROM DEPT_LOCATIONS WHERE Dnumber = 6;
+</pre>
+<pre class="sql run" data-title="ON DELETE SET NULL: amiri silinen çalışanlar">
+-- Borg has no works_on/dependent rows that block him except one WORKS_ON row; remove it, then delete Borg.
+-- Wong and Wallace had Borg as supervisor: their Super_ssn becomes NULL.
+DELETE FROM WORKS_ON WHERE Essn = '888665555';
+UPDATE DEPARTMENT SET Mgr_ssn = '333445555' WHERE Mgr_ssn = '888665555';
+DELETE FROM EMPLOYEE WHERE Ssn = '888665555';
+SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
+</pre>
+
+<div class="callout gotcha">
+  <p><strong>Sınavda sık sorulan kalıp:</strong> "Şu işlem hangi kısıtları ihlal eder? İhlal ediyorsa DBMS ne yapabilir?" Cevap planı: (1) PK alanı NULL mı? → entity integrity. (2) PK/UNIQUE değeri zaten var mı? → key. (3) FK değeri başvurulan tabloda var mı? (Silmede: bu tuple'a başvuran var mı?) → referential integrity. (4) Değer tipine/aralığına uyuyor mu? → domain. Silme yalnızca referential integrity'yi ihlal edebilir; seçenekler restrict, cascade, set null, set default.</p>
+</div>
+
+<h2>Diğer kavramlar</h2>
+<ul>
+  <li><strong>Transaction</strong>: veritabanını okuyan ve güncelleyen, sonunda veritabanını <em>geçerli ve tutarlı</em> bir durumda bırakması gereken işlemler dizisi (ör. para transferi). Hepsi ya uygulanır ya da hiçbiri (Ch 20).</li>
+  <li>Kısıtların bir kısmı (FD'ler, normalizasyon) Ch 14–15'te, trigger ve assertion'lar Ch 7'de.</li>
+</ul>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3">
+  <p>R(A, B, C, D) ilişkisinde {A, B} bir key'dir. Hangisi <em>kesinlikle</em> doğrudur?</p>
+  <ol>
+    <li>{A} bir superkey'dir.</li>
+    <li>{A, B} primary key olmak zorundadır.</li>
+    <li>{A, B, C} bir superkey'dir ama key değildir.</li>
+    <li>{C, D} bir superkey değildir.</li>
+  </ol>
+  <div class="explain">Bir superkey'e öznitelik eklemek yine superkey verir, ama minimal olmadığı için key değildir. {A} key'in uygun alt kümesidir, dolayısıyla minimallik gereği superkey olamaz. {A,B} birden çok candidate key'den biri olabilir. {C,D} de başka bir candidate key olabilir; bunu bilemeyiz.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>WORKS_ON(<u>Essn</u>, <u>Pno</u>, Hours) tablosuna <code>(NULL, 10, 5.0)</code> eklenmeye çalışılıyor. Hangi kısıt ihlal edilir?</p>
+  <ol>
+    <li data-why="Bir FK NULL olabilir. Ama Essn burada aynı zamanda PK'nın parçası.">Yalnız referential integrity</li>
+    <li>Entity integrity (PK'nın bir parçası NULL)</li>
+    <li data-why="(NULL, 10) değeri tabloda var olan bir anahtar değeriyle eşleşmiyor.">Key kısıtı</li>
+    <li>Hiçbiri; FK'lar NULL olabilir</li>
+  </ol>
+  <div class="explain">Essn hem FK hem PK'nın parçasıdır. FK tek başına olsaydı NULL olabilirdi; ama PK'nın hiçbir parçası NULL olamaz.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Hangi güncelleme işlemi <em>yalnızca</em> referential integrity'yi ihlal edebilir?</p>
+  <ol>
+    <li>Insert</li>
+    <li>PK'yı değiştiren update</li>
+    <li>FK'yı değiştiren update</li>
+    <li>Delete</li>
+  </ol>
+  <div class="explain">Silme yeni değer getirmediği için domain, key ve entity integrity'yi ihlal edemez. Tek risk, silinen tuple'a başka tuple'ların başvuruyor olmasıdır. FK değiştiren update referential integrity'nin yanında domain'i de ihlal edebilir.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>DEPENDENT.Essn → EMPLOYEE.Ssn için hangi silme seçeneği <em>anlamsızdır</em>?</p>
+  <ol>
+    <li><code>ON DELETE SET NULL</code></li>
+    <li><code>ON DELETE CASCADE</code></li>
+    <li><code>ON DELETE RESTRICT</code></li>
+    <li><code>ON DELETE NO ACTION</code></li>
+  </ol>
+  <div class="explain">Essn, DEPENDENT'ın PK'sının (Essn, Dependent_name) parçasıdır; NULL yapılamaz. Zayıf bir varlığın sahibi silinince bağımlılar için en doğal seçim CASCADE'dir.</div>
+</div>
+
+</div></main>
+</body>
+</html>

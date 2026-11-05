@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arasınav çalışma rehberi · Veritabanı Sistemleri</title>
+<meta name="description" content="BIL372/BIL071 arasınavı (Elmasri & Navathe Ch 1–7) için çalışma rehberi: bölüm bölüm bilinmesi gerekenler, çözümlü ER tasarım ve kısıt problemleri, PostgreSQL'de otomatik kontrol edilen SQL problemleri, sık yapılan hatalar ve deneme seti.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/exam.js"></script>
+</head>
+<body data-page="exam-midterm">
+<main><div class="content">
+
+<h1>Arasınav çalışma rehberi</h1>
+<p class="lead">Kapsam: Elmasri &amp; Navathe Ch 1–7. Bölüm bölüm ne bilmeniz gerektiği, sınav tarzı çözümlü problemler, sizin yazıp otomatik kontrol ettirebileceğiniz SQL problemleri ve konulara göre süzülebilen bir deneme seti.</p>
+
+<h2>Nasıl çalışılır?</h2>
+<ol>
+  <li>Her bölümün <strong>bilmeniz gerekenler</strong> listesini okuyun. Bilmediğiniz bir madde varsa bağlantılı sayfaya dönün.</li>
+  <li><strong>Çözümlü problemleri</strong> (ER tasarımı, kısıt ihlalleri, anahtarlar, NULL) önce kâğıt üzerinde çözün, sonra cevabı açın.</li>
+  <li><a href="notebook.html">Notebook'un 10 alıştırmasını</a> ve aşağıdaki <a href="#sql-problems">8 SQL problemini</a> PostgreSQL'e kontrol ettirerek çözün. Sınavda kâğıt üzerinde yazacağınızı düşünerek, önce çalıştırmadan yazın.</li>
+  <li><a href="#mistakes">Sık yapılan hatalar</a> listesini okuyun.</li>
+  <li><a href="#practice">Deneme setini</a> ilk denemede %80'i geçene kadar tekrarlayın.</li>
+</ol>
+
+<h2>Bölüm bölüm bilmeniz gerekenler</h2>
+<table class="simple">
+  <thead><tr><th>Bölüm</th><th>Bilmeniz gerekenler</th><th>Sayfa</th></tr></thead>
+  <tbody>
+    <tr><td>Ch 1</td><td>Veritabanı / DBMS / database system tanımları · DBMS'in işlevleri (define, construct, manipulate, share) · veritabanı yaklaşımının 4 özelliği (self-describing, program-data independence &amp; data abstraction, multiple views, sharing &amp; transactions) · aktörler (DBA, designer, end user türleri, analyst/programmer) ve perde arkasındakiler · DBMS'in avantajları (redundancy kontrolü, yetkilendirme, backup/recovery, kısıtlar…) · DBMS'in kullanılmaması gereken durumlar</td><td><a href="ch1-intro.html">Veritabanı ve DBMS</a></td></tr>
+    <tr><td>Ch 2</td><td>Veri modeli kategorileri (conceptual, representational, physical) · schema vs. state (intension/extension) · <strong>üç-şema mimarisi</strong> ve mapping'ler · <strong>logical vs. physical data independence</strong> · DDL, SDL, VDL, DML (procedural/nonprocedural) · DBMS bileşenleri · 2-tier / 3-tier · sınıflandırma</td><td><a href="ch2-architecture.html">Mimari</a></td></tr>
+    <tr><td>Ch 3</td><td>Entity, entity type, entity set · öznitelik türleri (simple/composite, single/multivalued, stored/derived, NULL, complex) · key ve value set · relationship type, degree, role, recursive · <strong>cardinality ratio ve participation</strong>, <strong>(min,max)</strong> · ilişki öznitelikleri ve nereye taşınabildiği · <strong>weak entity</strong>, identifying relationship, partial key · üçlü ilişkiler · gereksinimden ER diyagramı çizmek</td><td><a href="ch3-er.html">ER modeli</a></td></tr>
+    <tr><td>Ch 4</td><td>Subclass/superclass, IS-A, inheritance · specialization / generalization · predicate-defined, attribute-defined, user-defined · <strong>disjoint/overlapping × total/partial</strong> · hierarchy vs. lattice, shared subclass, multiple inheritance · <strong>category</strong> (union type), selective inheritance · EER diyagramı çizmek</td><td><a href="ch4-eer.html">EER modeli</a></td></tr>
+    <tr><td>Ch 5</td><td>Domain, attribute, tuple, relation, degree, cardinality · ilişkinin özellikleri · <strong>superkey, key, candidate key, primary key</strong> · <strong>entity integrity, referential integrity</strong>, foreign key · insert/delete/update'in hangi kısıtları ihlal edebileceği ve seçenekler (restrict, cascade, set null, set default)</td><td><a href="ch5-relational.html">İlişkisel model</a></td></tr>
+    <tr><td>Ch 6</td><td>CREATE TABLE, veri tipleri, NOT NULL / DEFAULT / CHECK / PRIMARY KEY / UNIQUE / FOREIGN KEY ve referential triggered actions · SELECT-FROM-WHERE, join koşulu, alias, self-join · <strong>kartezyen çarpım</strong> · DISTINCT, multiset · UNION/EXCEPT/INTERSECT · LIKE, BETWEEN, aritmetik · ORDER BY · INSERT/DELETE/UPDATE</td><td><a href="ch6-sql.html">Temel SQL</a></td></tr>
+    <tr><td>Ch 7</td><td><strong>NULL ve üç değerli mantık</strong>, IS NULL · IN, ANY/ALL · <strong>correlated</strong> sorgular · EXISTS/NOT EXISTS · <strong>bölme</strong> (her/all) · JOIN türleri, outer join · aggregate'ler ve NULL · <strong>GROUP BY / HAVING</strong>, WHERE ile farkı · WITH, CASE, WITH RECURSIVE · assertion, trigger (ECA) · view, güncellenebilirlik, WITH CHECK OPTION · DROP/ALTER, CASCADE/RESTRICT</td><td><a href="ch7-nested.html">NULL ve iç içe</a>, <a href="ch7-joins.html">Join ve gruplama</a>, <a href="ch7-views.html">Trigger ve view</a></td></tr>
+  </tbody>
+</table>
+<p class="small muted">Ch 8 (ilişkisel cebir) arasınav kapsamında değildir; <a href="ch8-algebra.html">önizleme sayfası</a> finale hazırlık içindir.</p>
+
+<h2>Kısa cevaplı kavram soruları</h2>
+<p>Sınavlarda sık çıkan "tanımlayın / karşılaştırın" soruları. Kendi cümlelerinizle cevaplayın, sonra açın.</p>
+<ol>
+  <li><strong>Logical ve physical data independence'ı tanımlayın; hangisini sağlamak daha zordur, neden?</strong>
+    <div class="hint" data-label="Cevabı göster"><p>Logical: conceptual şemayı external şemaları/programları değiştirmeden değiştirebilmek (ör. tabloya sütun eklemek). Physical: internal şemayı conceptual şemayı değiştirmeden değiştirebilmek (ör. index eklemek, dosyayı yeniden düzenlemek). Mantıksal bağımsızlık daha zordur, çünkü uygulama programları verinin mantıksal yapısına (tablolar, sütunlar) doğrudan bağlıdır; fiziksel ayrıntılara ise zaten bağlı değildirler.</p></div></li>
+  <li><strong>Weak entity type nedir? Neden identifying relationship'e katılımı her zaman totaldir?</strong>
+    <div class="hint" data-label="Cevabı göster"><p>Kendi anahtarı olmayan, varlıkları başka bir entity type'ın (owner) bir varlığıyla ilişkilendirilerek tanımlanan entity type. Tam tanımlayıcısı = owner'ın anahtarı + partial key. Sahibi olmadan tanımlanamadığı için her zayıf varlık bir sahibe bağlı olmak zorundadır: existence dependency, yani total participation.</p></div></li>
+  <li><strong>Superkey ile key (candidate key) arasındaki fark nedir? Bir örnek verin.</strong>
+    <div class="hint" data-label="Cevabı göster"><p>Superkey: değerleri hiçbir geçerli durumda iki tuple'da aynı olmayan öznitelik kümesi. Key: minimal superkey: hiçbir özniteliği çıkarılamaz. EMPLOYEE'de {Ssn, Lname} superkey'dir ama key değildir; {Ssn} key'dir.</p></div></li>
+  <li><strong>Entity integrity ve referential integrity kısıtlarını tanımlayın.</strong>
+    <div class="hint" data-label="Cevabı göster"><p>Entity integrity: hiçbir primary key değeri (bileşik PK'nın hiçbir parçası) NULL olamaz. Referential integrity: bir foreign key değeri ya başvurulan ilişkide var olan bir PK değerine eşittir ya da NULL'dur.</p></div></li>
+  <li><strong>Disjoint ile overlapping, total ile partial specialization'ı birer örnekle açıklayın.</strong>
+    <div class="hint" data-label="Cevabı göster"><p>Disjoint: bir varlık en fazla bir alt sınıfta (EMPLOYEE → {HOURLY, SALARIED}). Overlapping: birden çok alt sınıfta olabilir (PART → {MANUFACTURED, PURCHASED}). Total: üst sınıftaki her varlık en az bir alt sınıfta (her çalışan saatli ya da maaşlı). Partial: bazıları hiçbirinde değil (her çalışan SECRETARY/ENGINEER/TECHNICIAN değildir).</p></div></li>
+  <li><strong>Shared subclass ile category farkı nedir?</strong>
+    <div class="hint" data-label="Cevabı göster"><p>Shared subclass'ın üyeleri bütün üst sınıfların kesişimindedir ve hepsinden miras alır (multiple inheritance). Category'nin üyeleri üst sınıfların birleşimindedir, yalnızca birine aittir ve yalnızca ondan miras alır (selective inheritance).</p></div></li>
+  <li><strong>WHERE ile HAVING arasındaki fark nedir?</strong>
+    <div class="hint" data-label="Cevabı göster"><p>WHERE gruplamadan önce tek tek satırlara uygulanır ve aggregate içeremez. HAVING gruplamadan sonra gruplara uygulanır ve aggregate içerebilir.</p></div></li>
+  <li><strong>Bir view ne zaman güncellenebilir?</strong>
+    <div class="hint" data-label="Cevabı göster"><p>Tek bir temel tablo üzerinde tanımlı, aggregate ve gruplama içermeyen, temel tablonun primary key'ini (ve NOT NULL/default'suz sütunlarını) içeren view güncellenebilir: her view satırı tek bir temel satıra karşılık gelir. Join içeren view'larda güncelleme genellikle belirsiz, aggregate/gruplama içerenlerde imkânsızdır.</p></div></li>
+  <li><strong>Assertion ile trigger farkı nedir?</strong>
+    <div class="hint" data-label="Cevabı göster"><p>Assertion deklaratif bir kısıttır: koşul her zaman TRUE olmalıdır, ihlal eden işlem reddedilir. Trigger prosedüreldir: bir olay (INSERT/UPDATE/DELETE) ve isteğe bağlı bir koşul gerçekleşince belirtilen eylemi çalıştırır (ECA). Eylem reddetmek olmak zorunda değildir: bildirim göndermek, başka tabloyu güncellemek olabilir.</p></div></li>
+</ol>
+
+<h2>Çözümlü problem 1: ER tasarımı</h2>
+<div class="callout example" data-label="Gereksinimler">
+  <ul>
+    <li>Üniversite <strong>öğrencileri</strong> öğrenci numarası (benzersiz), ad, bir ya da daha çok telefon ve not ortalamasıyla (notlardan hesaplanır) tutulur.</li>
+    <li>Her <strong>dersin</strong> benzersiz bir kodu ve kredisi vardır. Bir dersin önkoşulları başka derslerdir.</li>
+    <li>Dersler dönemlerde <strong>şubeler</strong> (section) olarak açılır. Bir şube; şube numarası, dönem ve yılla, ama yalnızca <em>dersi içinde</em> tanımlanır (aynı şube numarası farklı derslerde kullanılır).</li>
+    <li>Her şubeyi tam bir <strong>öğretim üyesi</strong> verir; bir öğretim üyesi birçok şube verebilir ya da hiç vermeyebilir.</li>
+    <li>Öğrenciler şubelere kaydolur ve her kayıt için bir <strong>not</strong> tutulur.</li>
+    <li>Her öğretim üyesi tam bir bölümde çalışır; her ders tam bir bölüm tarafından açılır.</li>
+  </ul>
+</div>
+<p><strong>İstenen:</strong> varlıkları, ilişkileri, kardinalite ve katılım kısıtlarını, anahtarları ve öznitelik türlerini gösteren bir ER diyagramı.</p>
+<div class="hint" data-label="Çözümü göster">
+  <div id="er-solution"></div>
+  <ul>
+    <li>"benzersiz" → key (Sid, Code, Iid, Dname). "bir ya da daha çok telefon" → multivalued. "notlardan hesaplanır" → derived (Gpa).</li>
+    <li>"yalnızca dersi içinde tanımlanır" → SECTION zayıf varlık; owner COURSE, partial key (Sec_no, Semester, Year), identifying relationship OFFERING_OF; SECTION'ın katılımı total.</li>
+    <li>"her şubeyi tam bir öğretim üyesi verir" → TEACHES, SECTION:INSTRUCTOR = N:1, SECTION total; "hiç vermeyebilir" → INSTRUCTOR partial.</li>
+    <li>"her kayıt için bir not" → Grade, M:N ENROLLS'un özniteliği.</li>
+    <li>"önkoşulları başka derslerdir" → COURSE üzerinde recursive M:N, rol adları zorunlu.</li>
+  </ul>
+</div>
+
+<h2>Çözümlü problem 2: kısıt ihlalleri</h2>
+<p>COMPANY'nin Figure 5.6 durumunda aşağıdaki işlemlerin her biri tek başına uygulanırsa hangi kısıtları ihlal eder? İhlal varsa DBMS ne yapabilir?</p>
+<ol type="a">
+  <li><code>INSERT INTO DEPENDENT VALUES ('453453453', 'John', 'M', '1990-12-12', 'Son');</code></li>
+  <li><code>INSERT INTO WORKS_ON VALUES ('677678989', NULL, 40.0);</code></li>
+  <li><code>DELETE FROM PROJECT WHERE Pname = 'ProductX';</code></li>
+  <li><code>UPDATE PROJECT SET Pnumber = 30 WHERE Pnumber = 10;</code></li>
+  <li><code>INSERT INTO DEPT_LOCATIONS VALUES (2, 'Houston');</code></li>
+</ol>
+<div class="hint" data-label="Cevabı göster">
+  <ol type="a">
+    <li>İhlal yok: English'in (453453453) 'John' adlı bağımlısı yok, PK (Essn, Dependent_name) yeni; Essn var olan bir çalışana başvuruyor.</li>
+    <li>İki ihlal: <strong>entity integrity</strong> (Pno, PK'nın parçası ve NULL) ve <strong>referential integrity</strong> (677678989 diye bir çalışan yok). Reddedilir.</li>
+    <li><strong>Referential integrity</strong>: WORKS_ON'da ProductX'e (Pno = 1) başvuran satırlar var. Seçenekler: reddet; CASCADE (o WORKS_ON satırlarını da sil); SET NULL kullanılamaz, çünkü Pno PK'nın parçası.</li>
+    <li><strong>Key kısıtı</strong>: Pnumber = 30 zaten var (Newbenefits). Ayrıca 10'a başvuran WORKS_ON satırları var: PK değişirse referential integrity de etkilenir (ON UPDATE CASCADE olsaydı onlar da 30 olurdu, yine de key ihlali kalır).</li>
+    <li><strong>Referential integrity</strong>: 2 numaralı departman yok. Reddedilir.</li>
+  </ol>
+  <p>Kendiniz deneyin:</p>
+  <pre class="sql run" data-expect-error data-title="b · iki ihlal, PostgreSQL ilk karşılaştığını bildirir">INSERT INTO WORKS_ON VALUES ('677678989', NULL, 40.0);</pre>
+  <pre class="sql run" data-expect-error data-title="c">DELETE FROM PROJECT WHERE Pname = 'ProductX';</pre>
+</div>
+
+<h2>Çözümlü problem 3: anahtarlar</h2>
+<p><code>FLIGHT(Flight_no, Date, Gate, Pilot_id, Departure_time)</code>. Kurallar: aynı uçuş numarası her gün bir kez uçar; bir pilot aynı gün aynı saatte iki uçuşa çıkamaz; bir kapıdan aynı gün aynı saatte tek uçuş kalkar. Bütün candidate key'leri bulun; birini primary key olarak seçin.</p>
+<div class="hint" data-label="Cevabı göster">
+  <p>{Flight_no, Date}: bir uçuş numarası günde bir kez. {Pilot_id, Date, Departure_time}: pilot aynı anda tek uçuşta. {Gate, Date, Departure_time}: kapı aynı anda tek uçuş. Üçü de minimaldir (bir öznitelik çıkarılınca kural bozulur), dolayısıyla üçü de candidate key'dir. En küçüğü olan {Flight_no, Date} primary key seçilir; diğerleri <code>UNIQUE</code> olarak tanımlanır. {Flight_no, Date, Gate} bir superkey'dir ama key değildir.</p>
+</div>
+
+<h2>Çözümlü problem 4: sonucu tahmin edin</h2>
+<p>Her sorgu kaç satır döndürür? Çalıştırmadan cevaplayın, sonra kutularda kontrol edin.</p>
+<pre class="sql">
+-- (1)
+SELECT * FROM EMPLOYEE WHERE Super_ssn <> '333445555';
+-- (2)
+SELECT Dno, COUNT(*) FROM EMPLOYEE GROUP BY Dno HAVING COUNT(*) > 1;
+-- (3)
+SELECT E.Lname FROM EMPLOYEE E LEFT JOIN DEPENDENT D ON E.Ssn = D.Essn WHERE D.Essn IS NULL;
+-- (4)
+SELECT COUNT(Super_ssn), COUNT(DISTINCT Super_ssn), COUNT(*) FROM EMPLOYEE;
+</pre>
+<div class="hint" data-label="Cevabı göster">
+  <p>(1) 4 satır: amiri Wong olan 3 kişi (Smith, Narayan, English) atılır; Borg'un Super_ssn'i NULL olduğu için koşul UNKNOWN'dur, o da atılır: 8 − 3 − 1 = 4 (Zelaya, Wallace, Jabbar, Wong). (2) 2 satır: departman 5 (4 kişi) ve 4 (3 kişi); departman 1'de tek kişi var. (3) 5 satır: bağımlısı olmayanlar (outer join + IS NULL = "anti-join"). (4) 7, 3, 8: NULL sayılmaz; 3 farklı amir (Wong, Wallace, Borg).</p>
+  <pre class="sql run" data-title="Kontrol">
+SELECT * FROM EMPLOYEE WHERE Super_ssn <> '333445555';
+SELECT Dno, COUNT(*) FROM EMPLOYEE GROUP BY Dno HAVING COUNT(*) > 1;
+SELECT E.Lname FROM EMPLOYEE E LEFT JOIN DEPENDENT D ON E.Ssn = D.Essn WHERE D.Essn IS NULL;
+SELECT COUNT(Super_ssn), COUNT(DISTINCT Super_ssn), COUNT(*) FROM EMPLOYEE;
+  </pre>
+</div>
+
+<h2 id="sql-problems">SQL problemleri</h2>
+<p>Sınav tarzı sorgular. Cevabınızı yazıp çalıştırın: sonuç, model çözümün aynı veritabanındaki sonucuyla karşılaştırılır (sütun adları ve satır sırası önemsiz). Önce kâğıt üzerinde yazmayı deneyin.</p>
+<div id="sql-list"></div>
+
+<h2 id="mistakes">Sık yapılan hatalar</h2>
+<ol>
+  <li><strong>Join koşulunu unutmak</strong> → kartezyen çarpım. FROM'daki n tablo için genellikle n − 1 join koşulu.</li>
+  <li><strong><code>= NULL</code> yazmak.</strong> Her zaman UNKNOWN'dur; <code>IS NULL</code> kullanın.</li>
+  <li><strong>NOT IN + NULL.</strong> İç sorgu NULL döndürürse NOT IN hiçbir satır seçmez; NOT EXISTS kullanın.</li>
+  <li><strong>WHERE'de aggregate.</strong> <code>WHERE COUNT(*) &gt; 2</code> geçersizdir; HAVING.</li>
+  <li><strong>Gruplanmamış sütun.</strong> SELECT'te yalnızca GROUP BY sütunları ve aggregate'ler.</li>
+  <li><strong>Q28 tuzağı.</strong> WHERE'deki koşul, HAVING'in saydığı satırları da azaltır. Grubun <em>bütün</em> üyelerine dair koşul için alt sorgu.</li>
+  <li><strong>"Her" yerine "en az bir".</strong> <code>IN</code> ∃ demektir; ∀ için çift NOT EXISTS ya da EXCEPT.</li>
+  <li><strong>Outer join + COUNT(*).</strong> NULL'la doldurulmuş satırlar da sayılır; <code>COUNT(sağ_tablonun_sütunu)</code>.</li>
+  <li><strong>Tekrarlar.</strong> Join'ler aynı satırı birden çok kez üretebilir; gerekiyorsa DISTINCT (ya da EXISTS).</li>
+  <li><strong>(min,max) ile 1:N'nin yerini karıştırmak.</strong> (min,max) kendi varlığının yanına, 1/N karşı tarafa yazılır.</li>
+  <li><strong>Zayıf varlığın partial key'ini anahtar sanmak.</strong> Tam tanımlayıcı = owner'ın anahtarı + partial key.</li>
+  <li><strong>M:N ilişkinin özniteliğini bir varlığa koymak.</strong> Yalnızca 1:1 ve 1:N'de (N tarafına) taşınabilir.</li>
+  <li><strong>Silmenin domain ya da key kısıtını ihlal ettiğini söylemek.</strong> Silme yalnızca referential integrity'yi ihlal edebilir.</li>
+  <li><strong>Superkey'i key sanmak.</strong> Key minimal olmalı.</li>
+</ol>
+
+<h2 id="practice">Deneme seti</h2>
+<p>Bütün bölüm sayfalarındaki sınama soruları ve bu rehberin kendi soruları. Konuları seçin, soru sayısını belirleyin; her <em>Yeni set</em> soruları karıştırır.</p>
+<div id="bank"></div>
+
+<template id="exam-questions">
+  <div class="quiz" data-answer="2" data-topic="Rehber">
+    <p>Bir şirket, çalışanlarının maaş bilgisini muhasebe birimine gösterip diğer birimlerden gizlemek istiyor. Veritabanı yaklaşımının hangi özelliği/aracı bunu en doğrudan sağlar?</p>
+    <ol><li>Self-describing nature</li><li>Multiple views (view'lar) ve yetkilendirme</li><li>Physical data independence</li><li>Backup and recovery</li></ol>
+    <div class="explain">Her kullanıcı grubuna veritabanının bir alt kümesini gösteren view'lar ve bu view'lar üzerinde verilen yetkiler. External düzeyin amacı budur.</div>
+  </div>
+  <div class="quiz" data-answer="3" data-topic="Rehber">
+    <p>EMPLOYEE —(1,1)— WORKS_FOR —(5,N)— DEPARTMENT. Bu diyagram ne söyler?</p>
+    <ol><li>Her çalışan en az 5 departmanda çalışır.</li><li>Her departmanda en fazla 5 çalışan vardır.</li><li>Her çalışan tam bir departmanda çalışır; her departmanda en az 5 çalışan vardır.</li><li>İlişki M:N'dir.</li></ol>
+    <div class="explain">(min,max) kendi varlığının katılımını anlatır: EMPLOYEE (1,1) → tam 1 kez; DEPARTMENT (5,N) → en az 5 kez. Kardinalite oranı N:1.</div>
+  </div>
+  <div class="quiz" data-answer="1" data-topic="Rehber">
+    <p>R(A, B, C) ilişkisinde {A} ve {B, C} candidate key'dir. Kaç tane superkey vardır?</p>
+    <ol><li>5</li><li>2</li><li>3</li><li>7</li></ol>
+    <div class="explain">A'yı içeren her küme: {A}, {A,B}, {A,C}, {A,B,C} (4 tane). A'yı içermeyip {B,C}'yi içeren: {B,C} (1 tane). Toplam 5.</div>
+  </div>
+  <div class="quiz" data-answer="4" data-topic="Rehber">
+    <p>Aşağıdakilerden hangisi bir <em>transition (dynamic) constraint</em>'tir?</p>
+    <ol><li>Ssn 9 karakterdir.</li><li>Her departmanın bir yöneticisi vardır.</li><li>Dname benzersizdir.</li><li>Bir çalışanın maaşı yalnızca artabilir.</li></ol>
+    <div class="explain">Geçiş kısıtı, eski ve yeni durumu karşılaştırır: güncelleme öncesi ve sonrası değer. Diğerleri her geçerli durumun tek başına sağlaması gereken state (static) kısıtlarıdır.</div>
+  </div>
+  <div class="quiz" data-answer="2" data-topic="Rehber">
+    <p><code>SELECT Dno, AVG(Salary) FROM EMPLOYEE WHERE Sex = 'F' GROUP BY Dno;</code> kaç satır döndürür? (Kadın çalışanlar: Zelaya ve Wallace dept 4, English dept 5.)</p>
+    <ol><li>3</li><li>2</li><li>1</li><li>8</li></ol>
+    <div class="explain">WHERE'den 3 satır kalır; Dno değerleri 4, 4, 5 → 2 grup. Departman 1'in kadın çalışanı olmadığı için grubu hiç oluşmaz.</div>
+  </div>
+  <div class="quiz" data-answer="3" data-topic="Rehber">
+    <p>Bir departman silindiğinde o departmanın konumlarının (DEPT_LOCATIONS) da silinmesi isteniyor. FK nasıl tanımlanmalı?</p>
+    <ol><li><code>ON DELETE SET NULL</code></li><li><code>ON UPDATE CASCADE</code></li><li><code>ON DELETE CASCADE</code></li><li><code>ON DELETE SET DEFAULT</code></li></ol>
+    <div class="explain">CASCADE, silmeyi başvuran satırlara yayar. SET NULL burada olamazdı: Dnumber, DEPT_LOCATIONS'ın PK'sının parçası.</div>
+  </div>
+  <div class="quiz" data-answer="1" data-topic="Rehber">
+    <p>Hangi SQL özelliği <em>ilişkisel modelin</em> biçimsel tanımıyla çelişir?</p>
+    <ol><li>Bir tabloda (PK yoksa) aynı satırın birden çok kez bulunabilmesi</li><li>Tabloların sütun adlarının olması</li><li>Sütunların bir veri tipinin olması</li><li>Foreign key tanımlanabilmesi</li></ol>
+    <div class="explain">Biçimsel ilişki tuple'ların bir kümesidir, tekrar olamaz. SQL tabloları multiset'tir; tekrarları DISTINCT ya da PK kısıtı önler.</div>
+  </div>
+  <div class="quiz" data-answer="4" data-topic="Rehber">
+    <p>Bir veritabanı tasarımcısı, ER diyagramındaki <code>Age</code> özniteliğini kesik çizgili elipsle çizmiş. Bu ne anlama gelir?</p>
+    <ol><li>Age çok değerlidir.</li><li>Age bir anahtardır.</li><li>Age bileşiktir.</li><li>Age türetilmiştir (ör. Birth_date'ten hesaplanır).</li></ol>
+    <div class="explain">Kesik elips = derived attribute. Çift elips çok değerli, altı çizili anahtar, bileşenlere bağlanan elips bileşik özniteliktir.</div>
+  </div>
+  <div class="quiz" data-answer="2" data-topic="Rehber">
+    <p>"Bütün departmanlardaki projelerin en az birinde çalışan çalışanlar" için hangisi doğrudur?</p>
+    <ol><li>İki iç içe NOT EXISTS gerekir.</li><li>Her departman için o departmanın en az bir projesinde çalışmayı gerektirir: departmanlar üzerinde ∀, projeler üzerinde ∃.</li><li>Basit bir join yeter.</li><li>GROUP BY olmadan yazılamaz.</li></ol>
+    <div class="explain">"Her departman için, o departmanın projelerinden birinde çalışıyor": dışta ∀ (NOT EXISTS departman … NOT EXISTS (proje ∧ çalışıyor)), içte ∃. Soruları önce niceleyicilerle (∀/∃) yeniden yazmak doğru SQL'i bulmayı kolaylaştırır.</div>
+  </div>
+  <div class="quiz" data-answer="3" data-topic="Rehber">
+    <p>Üç katmanlı (three-tier) bir web uygulamasında iş kuralları genellikle nerede çalışır?</p>
+    <ol><li>Tarayıcıda</li><li>Veritabanı sunucusunda</li><li>Uygulama (web) sunucusunda</li><li>DBMS kataloğunda</li></ol>
+    <div class="explain">Ara katman (application server), istemcinin isteklerini iş kurallarına göre işler ve veritabanına onun adına erişir.</div>
+  </div>
+</template>
+
+</div></main>
+</body>
+</html>

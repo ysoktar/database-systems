@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ER modeli · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 3: ER modeli; varlık tipleri, öznitelik türleri, anahtarlar, ilişki tipleri, derece, roller, recursive ilişkiler, kardinalite oranı, katılım kısıtı, (min,max) gösterimi, zayıf varlıklar, üçlü ilişkiler ve COMPANY ER şeması.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch3-er.js"></script>
+</head>
+<body data-page="ch3-er">
+<main><div class="content">
+
+<h1>ER modeli</h1>
+<p class="lead">Entity-Relationship (ER) modeli, gereksinimleri <em>kavramsal şema</em>ya çeviren yüksek düzey bir veri modelidir: gerçek dünyayı varlıklar, onların öznitelikleri ve aralarındaki ilişkilerle anlatır.</p>
+
+<h2>Veritabanı tasarım süreci</h2>
+<ol>
+  <li><strong>Requirements collection and analysis</strong>: veri gereksinimleri ve fonksiyonel gereksinimler (kullanıcı işlemleri).</li>
+  <li><strong>Conceptual design</strong>: yüksek düzey bir modelle (ER) kavramsal şema. DBMS'ten bağımsızdır; kullanıcılarla iletişim için kullanılır.</li>
+  <li><strong>Logical design</strong> (<em>data model mapping</em>): kavramsal şemanın DBMS'in modeline (ör. ilişkisel) çevrilmesi. ER→ilişkisel eşleme kitapta Ch 9'dadır.</li>
+  <li><strong>Physical design</strong>: iç depolama yapıları, index'ler, erişim yolları.</li>
+</ol>
+
+<h2>Gösterim</h2>
+<p>Kitap Chen gösterimini kullanır. Bu sitenin bütün diyagramları aynı sembollerle çizilir:</p>
+<div id="legend"></div>
+
+<h2>Varlıklar ve öznitelikler</h2>
+<ul>
+  <li><strong>Entity</strong> (varlık): gerçek dünyada bağımsız var olan bir "şey": fiziksel (bir kişi, bir araba) ya da kavramsal (bir şirket, bir iş, bir ders).</li>
+  <li><strong>Attribute</strong> (öznitelik): varlığı tanımlayan özellik: <code>Name</code>, <code>Ssn</code>, <code>Salary</code>.</li>
+  <li><strong>Entity type</strong>: aynı özniteliklere sahip varlıkların tipi (şema düzeyi: <em>intension</em>). <strong>Entity set</strong> (<em>collection</em>): belli bir anda o tipten olan varlıkların kümesi (<em>extension</em>). Kitapta ikisi de aynı adla anılır: EMPLOYEE.</li>
+</ul>
+<h3>Öznitelik türleri</h3>
+<table class="simple">
+  <thead><tr><th>Tür</th><th>Anlamı</th><th>Örnek</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Simple</strong> (atomic) / <strong>composite</strong></td><td>Bileşik öznitelik daha küçük, anlamlı parçalara bölünebilir; hiyerarşi kurabilir.</td><td><code>Name</code> = (Fname, Minit, Lname); <code>Address</code> = (Street_address(Number, Street, Apartment_number), City, State, Zip)</td></tr>
+    <tr><td><strong>Single-valued</strong> / <strong>multivalued</strong></td><td>Çok değerli öznitelik bir varlık için birden çok değer alabilir; alt/üst sınır konabilir.</td><td><code>Age</code> tek değerli; bir arabanın <code>Colors</code>'ı, bir kişinin <code>College_degrees</code>'i, departmanın <code>Locations</code>'ı çok değerli</td></tr>
+    <tr><td><strong>Stored</strong> / <strong>derived</strong></td><td>Türetilmiş öznitelik başka özniteliklerden ya da ilişkili varlıklardan hesaplanır.</td><td><code>Age</code>, <code>Birth_date</code>'ten; departmanın <code>Number_of_employees</code>'ı WORKS_FOR'dan</td></tr>
+    <tr><td><strong>NULL</strong> değer</td><td>Değer yok: uygulanamaz (<em>not applicable</em>: tek katlı evin <code>Apartment_number</code>'ı) ya da bilinmiyor (<em>unknown</em>: var ama bilinmiyor / var mı bilinmiyor).</td><td><code>College_degrees</code> üniversite mezunu olmayan biri için NULL</td></tr>
+    <tr><td><strong>Complex</strong></td><td>Bileşik ve çok değerli özniteliklerin iç içe hâli. <code>()</code> bileşik, <code>{}</code> çok değerli demektir.</td><td><code>{Address_phone({Phone(Area_code, Phone_number)}, Address(…))}</code></td></tr>
+  </tbody>
+</table>
+
+<h3>Anahtarlar ve değer kümeleri</h3>
+<ul>
+  <li><strong>Key attribute</strong> (anahtar): değeri her varlık için farklı olan öznitelik(ler). Diyagramda <u>altı çizili</u>. Bir anahtar, entity type'ın tüm <em>olası</em> durumları için geçerli bir <strong>kısıttır</strong> (sadece bugünkü veri için değil).</li>
+  <li>Anahtar <strong>bileşik</strong> olabilir: o zaman bileşik öznitelik <em>minimal</em> olmalıdır (ör. arabanın <code>Registration(Number, State)</code>'i).</li>
+  <li>Bir entity type'ın <strong>birden çok anahtarı</strong> olabilir: CAR'ın hem <code>Vehicle_id</code>'si hem <code>Registration</code>'ı. Hiç anahtarı olmayan tip <strong>weak entity type</strong>'tır.</li>
+  <li><strong>Value set</strong> (domain): bir özniteliğin alabileceği değerler kümesi (ör. Age için 16–70 arası tamsayılar). Matematiksel olarak öznitelik A, E'den V'nin kuvvet kümesine bir fonksiyondur: A : E → P(V).</li>
+</ul>
+
+<h2>COMPANY: gereksinimlerden şemaya</h2>
+<p>Kitaptaki gereksinimler (Section 3.2):</p>
+<ol>
+  <li>Şirket <strong>departmanlara</strong> ayrılmıştır. Her departmanın benzersiz bir adı, benzersiz bir numarası ve onu <strong>yöneten</strong> belirli bir çalışanı vardır; yöneticinin göreve başlama tarihi tutulur. Bir departmanın <strong>birden çok yeri</strong> olabilir.</li>
+  <li>Her departman birkaç <strong>projeyi kontrol eder</strong>. Her projenin benzersiz adı, benzersiz numarası ve tek bir yeri vardır.</li>
+  <li>Her <strong>çalışan</strong> için ad, Ssn, adres, maaş, cinsiyet, doğum tarihi tutulur. Çalışan tek bir departmana atanır ama farklı departmanların kontrol ettiği birkaç projede çalışabilir; her projedeki haftalık saati ve <strong>doğrudan amiri</strong> tutulur.</li>
+  <li>Sigorta için her çalışanın <strong>bağımlıları</strong> (dependent) tutulur: ad, cinsiyet, doğum tarihi, çalışanla akrabalığı.</li>
+</ol>
+<div id="company-er"></div>
+<div class="callout look">
+  <p>Gereksinimdeki sözcükler diyagrama nasıl dönüştü? "benzersiz" → <u>key</u>; "birden çok yeri" → <em>multivalued</em> <code>Locations</code>; "yönetir" → 1:1 MANAGES ve başlama tarihi ilişkinin özniteliği <code>Start_date</code>; "haftalık saat" → WORKS_ON'un özniteliği <code>Hours</code>; "doğrudan amiri" → EMPLOYEE'nin kendisiyle recursive SUPERVISION ilişkisi; "bağımlıları" → DEPENDENT zayıf varlığı (bir bağımlının adı tek başına benzersiz değildir).</p>
+</div>
+
+<h2>İlişki tipleri</h2>
+<ul>
+  <li><strong>Relationship type</strong> R, n entity type (E<sub>1</sub>, …, E<sub>n</sub>) arasında bir ilişkilendirme kümesidir. Her <strong>relationship instance</strong> r<sub>i</sub>, her E<sub>j</sub>'den tam bir varlığı birbirine bağlar. Matematiksel olarak R ⊆ E<sub>1</sub> × E<sub>2</sub> × … × E<sub>n</sub>.</li>
+  <li><strong>Degree</strong> (derece): katılan entity type sayısı: <em>binary</em> (2, en yaygın), <em>ternary</em> (3), <em>n-ary</em>.</li>
+  <li><strong>Öznitelik mi, ilişki mi?</strong> İlk taslakta bir ilişki, öznitelik gibi görünebilir (ör. EMPLOYEE'nin <code>Department</code> özniteliği). ER tasarımında bir varlık tipine başvuran öznitelikler ilişkiye dönüştürülür.</li>
+  <li><strong>Role name</strong>: bir varlığın ilişkideki rolü. Aynı entity type ilişkiye farklı rollerle iki kez katılıyorsa (<strong>recursive</strong> / <em>self-referencing</em> ilişki) rol adları zorunludur: SUPERVISION'da EMPLOYEE hem <em>supervisor</em> hem <em>supervisee</em>.</li>
+</ul>
+
+<h3>İlişki örnekleri ve kardinalite</h3>
+<p>Aşağıdaki şekiller COMPANY'nin gerçek verisinden (Figure 5.6) çizildi. İlişki tipini değiştirin ve kardinalite ile katılımın nasıl göründüğüne bakın:</p>
+<div id="instances"></div>
+
+<h2>İkili ilişkilerde yapısal kısıtlar</h2>
+<div class="two-col">
+  <div>
+    <h3>Cardinality ratio (kardinalite oranı)</h3>
+    <p>Bir varlığın katılabileceği <em>en fazla</em> ilişki örneği sayısı: <strong>1:1</strong>, <strong>1:N</strong> (ya da N:1), <strong>M:N</strong>. Diyagramda kenarlara 1, N, M yazılır.</p>
+    <ul>
+      <li>MANAGES 1:1, WORKS_FOR N:1 (EMPLOYEE:DEPARTMENT), CONTROLS 1:N, WORKS_ON M:N, SUPERVISION 1:N (supervisor:supervisee).</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Participation constraint (katılım kısıtı)</h3>
+    <p>Bir varlığın var olması, başka bir varlıkla ilişkiye girmesine bağlı mı? Yani <em>en az</em> kaç katılım?</p>
+    <ul>
+      <li><strong>Total</strong> (<em>existence dependency</em>): her varlık en az bir ilişki örneğine katılmak zorunda. Çift çizgi. Ör. her çalışan bir departmanda çalışır.</li>
+      <li><strong>Partial</strong>: bazı varlıklar katılmayabilir. Tek çizgi. Ör. her çalışan bir departman yönetmez.</li>
+    </ul>
+  </div>
+</div>
+<div class="callout key">
+  <p>Kardinalite oranı ve katılım kısıtı birlikte bir ilişkinin <strong>yapısal kısıtları</strong>dır (<em>structural constraints</em>). Kardinalite <em>en çok</em>u, katılım <em>en az</em>ı söyler. Bu ikisini tek bir gösterimde birleştiren alternatif: <strong>(min, max)</strong>.</p>
+</div>
+<h3>(min, max) gösterimi</h3>
+<p>E'nin R'ye her katılımı için bir (min, max) çifti: 0 ≤ min ≤ max, max ≥ 1. E'deki her varlık, R'nin en az min, en çok max örneğine katılır. <strong>min = 0 → partial</strong>, <strong>min ≥ 1 → total</strong>.</p>
+<div id="minmax"></div>
+<div class="callout gotcha">
+  <p><strong>Okuma yönü tuzağı.</strong> 1:N gösteriminde N, "karşı taraftaki" varlıkların sayısıdır: EMPLOYEE —N— WORKS_FOR —1— DEPARTMENT, "bir departmanda N çalışan, bir çalışan 1 departmanda" diye okunur. (min,max) gösteriminde ise sayı, <em>kendi tarafındaki</em> varlığın katılımıdır: EMPLOYEE (1,1) — WORKS_FOR — (1,N) DEPARTMENT. Bu yüzden N:1 bir ilişkinin (min,max) diyagramında "N" tarafı <em>tersine</em> döner. Sınavda iki gösterim arasında çeviri sorulabilir.</p>
+</div>
+<table class="simple">
+  <thead><tr><th>İlişki</th><th>Kardinalite</th><th>Katılım</th><th>(min,max)</th></tr></thead>
+  <tbody>
+    <tr><td>EMPLOYEE MANAGES DEPARTMENT</td><td>1:1</td><td>EMPLOYEE partial, DEPARTMENT total</td><td>EMPLOYEE (0,1), DEPARTMENT (1,1)</td></tr>
+    <tr><td>EMPLOYEE WORKS_FOR DEPARTMENT</td><td>N:1</td><td>ikisi de total</td><td>EMPLOYEE (1,1), DEPARTMENT (1,N)</td></tr>
+    <tr><td>DEPARTMENT CONTROLS PROJECT</td><td>1:N</td><td>DEPARTMENT partial, PROJECT total</td><td>DEPARTMENT (0,N), PROJECT (1,1)</td></tr>
+    <tr><td>EMPLOYEE WORKS_ON PROJECT</td><td>M:N</td><td>ikisi de total</td><td>EMPLOYEE (1,N), PROJECT (1,N)</td></tr>
+    <tr><td>SUPERVISION (supervisor / supervisee)</td><td>1:N</td><td>ikisi de partial</td><td>supervisor (0,N), supervisee (0,1)</td></tr>
+    <tr><td>EMPLOYEE DEPENDENTS_OF DEPENDENT</td><td>1:N</td><td>EMPLOYEE partial, DEPENDENT total</td><td>EMPLOYEE (0,N), DEPENDENT (1,1)</td></tr>
+  </tbody>
+</table>
+
+<h3>İlişkilerin öznitelikleri</h3>
+<p>İlişki tiplerinin de öznitelikleri olabilir: WORKS_ON'un <code>Hours</code>'ı, MANAGES'in <code>Start_date</code>'i.</p>
+<ul>
+  <li><strong>1:1</strong> ilişkinin özniteliği iki varlıktan birine taşınabilir (Start_date → DEPARTMENT'a <code>Mgr_start_date</code> olarak; ilişkisel şemada da öyle).</li>
+  <li><strong>1:N</strong> ilişkinin özniteliği yalnızca <strong>N tarafına</strong> taşınabilir (her N-tarafı varlık tek bir ilişki örneğine katılır).</li>
+  <li><strong>M:N</strong> ilişkinin özniteliği hiçbir varlığa taşınamaz; değeri <em>varlıkların birleşimiyle</em> belirlenir (Hours, bir çalışan–proje çiftine aittir). İlişkisel şemada ayrı bir tablo olur: WORKS_ON(Essn, Pno, Hours).</li>
+</ul>
+
+<h2>Zayıf varlıklar (weak entity types)</h2>
+<ul>
+  <li>Kendi anahtarı olmayan entity type. Varlıkları, başka bir entity type'ın (<strong>identifying / owner entity type</strong>) belirli bir varlığıyla ilişkilendirilerek tanımlanır.</li>
+  <li>Bu bağı kuran ilişki <strong>identifying relationship</strong>'tir (çift eşkenar dörtgen). Zayıf varlığın bu ilişkiye katılımı her zaman <strong>total</strong>'dir (sahibi olmadan var olamaz: <em>existence dependency</em>).</li>
+  <li><strong>Partial key</strong> (<em>discriminator</em>): aynı sahibe bağlı zayıf varlıkları birbirinden ayıran öznitelik(ler); kesik çizgiyle altı çizili. DEPENDENT'ın partial key'i <code>Dependent_name</code>; tam tanımlayıcı (Essn, Dependent_name).</li>
+  <li>Her existence dependency zayıf varlık üretmez: DRIVER_LICENSE, PERSON'a total katılımla bağlıdır ama kendi anahtarı (lisans numarası) olduğu için zayıf değildir.</li>
+  <li>Zayıf varlık bazen bir <em>complex (composite, multivalued)</em> öznitelik olarak da modellenebilir; bağımsız ilişkilere katılıyorsa varlık yapmak gerekir.</li>
+</ul>
+
+<h2>Daha yüksek dereceli ilişkiler</h2>
+<div id="ternary"></div>
+<ul>
+  <li>Üçlü bir ilişki, üç ikili ilişkiyle <em>genellikle aynı bilgiyi taşımaz</em>: CAN_SUPPLY(s,p), USES(j,p), SUPPLIES(s,j) doğru olsa bile s'nin j'ye p'yi sağladığı sonucu çıkmaz.</li>
+  <li>Bazen üçlü ilişki, <em>zayıf bir varlık</em> ve üç tanımlayıcı ilişkiyle gösterilir (SUPPLY'ı bir entity type yapıp üç sahibe bağlamak).</li>
+  <li>Hem üçlü ilişki hem ikili ilişkiler <em>birlikte</em> şemada olabilir: ikili ilişki üçlüye bir kısıt ekleyebilir.</li>
+  <li>Üçlü ilişkilerin kardinalitesi: bir katılımcıya 1 yazmak, diğer ikisinin bir kombinasyonunun o katılımcıdan en fazla bir tanesiyle eşleşmesi demektir.</li>
+</ul>
+
+<h2>Adlandırma ve tasarım seçimleri</h2>
+<ul>
+  <li>Entity type ve relationship type adları <strong>tekil</strong> isim ve BÜYÜK harf: EMPLOYEE, WORKS_FOR. Öznitelikler ilk harfi büyük: Fname. Rol adları küçük: supervisor.</li>
+  <li>Gereksinimlerdeki <em>isimler</em> entity type, <em>fiiller</em> relationship type, isimleri niteleyen sözcükler öznitelik adayıdır.</li>
+  <li>Tasarım yinelemelidir: bir öznitelik başka bir varlığa başvuruyorsa ilişkiye dönüşür; birçok varlığın paylaştığı bir öznitelik (ör. DEPARTMENT'ta ve PROJECT'te tekrar eden Location) kendi varlığına dönüşebilir; tek bir varlığa bağlı, tek öznitelikli bir varlık özniteliğe dönüştürülebilir.</li>
+</ul>
+<div class="callout note">
+  <p><strong>Alternatif gösterimler.</strong> Kitap UML sınıf diyagramlarını da gösterir: varlık = sınıf (öznitelikler kutunun içinde), ilişki = <em>association</em>, (min,max) yerine <em>multiplicity</em> (0..1, 1..*, *); zayıf varlık = <em>qualified association</em>; ilişki özniteliği = <em>link attribute</em>. Ayrıca kaz ayağı (crow's foot) gösterimi yaygındır.</p>
+</div>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p>Bir öğrencinin birden çok telefon numarası olabiliyor. ER diyagramında <code>Phone</code> nasıl çizilmelidir?</p>
+  <ol>
+    <li data-why="Kesik elips türetilmiş (derived) öznitelik içindir.">Kesik çizgili elips</li>
+    <li>Çift çizgili elips (multivalued)</li>
+    <li data-why="Bileşik öznitelik parçalara bölünür ama tek bir değer taşır.">Bileşenlere bağlanan bileşik öznitelik</li>
+    <li data-why="Altı çizili elips anahtardır; telefon numarası paylaşılabilir ya da değişebilir.">Altı çizili elips</li>
+  </ol>
+  <div class="explain">Bir varlık için birden çok değer alabilen öznitelik <em>multivalued</em>'dır ve çift elipsle gösterilir. İlişkisel şemaya geçerken ayrı bir tabloya dönüşür (DEPT_LOCATIONS gibi).</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>"Her proje tam bir departman tarafından kontrol edilir; bir departman hiç proje kontrol etmeyebilir ya da birçok projeyi kontrol edebilir." CONTROLS için (min,max) değerleri nedir?</p>
+  <ol>
+    <li>DEPARTMENT (1,1), PROJECT (0,N)</li>
+    <li>DEPARTMENT (1,N), PROJECT (1,1)</li>
+    <li>DEPARTMENT (0,N), PROJECT (1,1)</li>
+    <li>DEPARTMENT (0,1), PROJECT (1,N)</li>
+  </ol>
+  <div class="explain">(min,max) her varlığın kendi katılımını yazar. Bir departman 0 ya da daha çok projeyi kontrol eder: (0,N). Her proje tam 1 kez: (1,1). 1:N gösterimindeki DEPARTMENT:PROJECT = 1:N ile karşılaştırın; sayıların yer değiştirdiğine dikkat edin.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>WORKS_ON'un <code>Hours</code> özniteliği neden EMPLOYEE'ye ya da PROJECT'e taşınamaz?</p>
+  <ol>
+    <li>Çünkü WORKS_ON M:N'dir; Hours bir (çalışan, proje) çiftine aittir.</li>
+    <li data-why="Hours türetilmiş değil, saklanan bir değer.">Çünkü Hours türetilmiş bir özniteliktir.</li>
+    <li data-why="İlişkilerin öznitelikleri olabilir; sorun bu değil.">Çünkü ilişkilerin özniteliği olamaz, bu bir tasarım hatasıdır.</li>
+    <li data-why="Total katılım, özniteliğin nereye taşınabileceğini belirlemez.">Çünkü iki tarafın katılımı da totaldir.</li>
+  </ol>
+  <div class="explain">1:1'de öznitelik iki taraftan birine, 1:N'de N tarafına taşınabilir. M:N'de bir çalışan birçok projede farklı saatler çalışır; tek bir değer hiçbir varlığa ait değildir.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>DEPENDENT için hangisi <em>yanlıştır</em>?</p>
+  <ol>
+    <li>DEPENDENT zayıf bir entity type'tır; sahibi EMPLOYEE'dir.</li>
+    <li>DEPENDENT'ın DEPENDENTS_OF'a katılımı totaldir.</li>
+    <li><code>Dependent_name</code> bir partial key'dir.</li>
+    <li><code>Dependent_name</code> DEPENDENT'ın anahtarıdır, çünkü her bağımlının adı farklıdır.</li>
+  </ol>
+  <div class="explain">İki farklı çalışanın aynı adlı bağımlıları olabilir (Wong ve Smith'in ikisinin de "Alice" adlı kızı var). Ad, yalnızca <em>aynı çalışanın</em> bağımlıları arasında ayırt edicidir. Tam tanımlayıcı (sahibin anahtarı + partial key) = (Essn, Dependent_name).</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>Bir hastanede her hastanın tam bir odası vardır; bir odada en fazla 2 hasta yatar ve odalar boş kalabilir. HASTA–KALIR–ODA için doğru kısıtlar hangileri?</p>
+  <ol>
+    <li>HASTA:ODA = 1:N; HASTA partial, ODA total</li>
+    <li>HASTA:ODA = N:1; HASTA total, ODA partial; (min,max): HASTA (1,1), ODA (0,2)</li>
+    <li>HASTA:ODA = M:N; ikisi de partial</li>
+    <li>HASTA:ODA = N:1; ikisi de total; (min,max): HASTA (1,1), ODA (1,2)</li>
+  </ol>
+  <div class="explain">Her hasta tam 1 odada → HASTA tarafında max 1, min 1 (total). Bir odada 0–2 hasta → ODA (0,2), partial. Oran N:1 (çok hasta, bir oda). (min,max) gösterimi, kardinaliteden daha fazlasını (en çok 2) ifade edebilir.</div>
+</div>
+
+</div></main>
+</body>
+</html>

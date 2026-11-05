@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EER modeli · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 4: Enhanced ER; alt sınıf ve üst sınıf, kalıtım, özelleştirme ve genelleştirme, predicate/attribute/user-defined alt sınıflar, disjointness ve completeness kısıtları, hiyerarşi ve lattice, kategoriler (union types).">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch4-eer.js"></script>
+</head>
+<body data-page="ch4-eer">
+<main><div class="content">
+
+<h1>EER modeli</h1>
+<p class="lead">Enhanced ER (EER), ER modeline nesne yönelimli kavramları ekler: <strong>alt sınıflar</strong> (subclass), <strong>üst sınıflar</strong> (superclass), <strong>kalıtım</strong> (inheritance), <strong>özelleştirme/genelleştirme</strong> ve <strong>kategoriler</strong>.</p>
+
+<h2>Alt sınıf, üst sınıf, kalıtım</h2>
+<ul>
+  <li>Bir entity type'ın varlıkları anlamlı alt gruplara ayrılabilir: EMPLOYEE'ler SECRETARY, ENGINEER, MANAGER, TECHNICIAN, SALARIED_EMPLOYEE, HOURLY_EMPLOYEE … Her alt grup bir <strong>subclass</strong>, EMPLOYEE de onların <strong>superclass</strong>'ıdır.</li>
+  <li>Aralarındaki ilişki <strong>superclass/subclass</strong> (ya da <strong>IS-A</strong>, <em>class/subclass</em>) ilişkisidir: "bir SECRETARY bir EMPLOYEE'dir".</li>
+  <li>Alt sınıftaki bir varlık, üst sınıftaki <em>aynı gerçek dünya varlığının</em> başka bir rolüdür; ayrı bir varlık değildir. Alt sınıfın her üyesi üst sınıfın da üyesi olmak zorundadır; tersi gerekmez. Bir varlık birden çok alt sınıfta olabilir (bir maaşlı mühendis hem ENGINEER hem SALARIED_EMPLOYEE'dir).</li>
+  <li><strong>Type inheritance</strong>: alt sınıftaki varlık, üst sınıfın <em>tüm özniteliklerini</em> ve <em>katıldığı tüm ilişkileri</em> miras alır. Ayrıca kendi <strong>local / specific attributes</strong>'ı (ör. SECRETARY'nin <code>Typing_speed</code>'i) ve kendi <strong>specific relationship types</strong>'ı (ör. yalnızca HOURLY_EMPLOYEE'lerin üye olduğu TRADE_UNION'a BELONGS_TO) olabilir.</li>
+</ul>
+
+<h2>Özelleştirme ve genelleştirme</h2>
+<div class="two-col">
+  <div class="callout key">
+    <p><strong>Specialization</strong> (özelleştirme, yukarıdan aşağı): bir entity type için bir alt sınıflar kümesi tanımlama süreci; alt sınıflar, üst sınıfın varlıklarını <em>ayırt edici bir özelliğe</em> göre ayırır. {SECRETARY, ENGINEER, TECHNICIAN}, EMPLOYEE'nin <em>iş tipine</em> göre bir özelleştirmesidir.</p>
+  </div>
+  <div class="callout key">
+    <p><strong>Generalization</strong> (genelleştirme, aşağıdan yukarı): ortak özellikleri olan entity type'lardan bir üst sınıf çıkarma. CAR ve TRUCK'ın ortak öznitelikleri (Vehicle_id, License_plate_no, Price) VEHICLE'a taşınır; CAR ve TRUCK onun alt sınıfları olur.</p>
+  </div>
+</div>
+<p>İkisi aynı yapının iki tasarım yönüdür; diyagramda aynı çizilir. Bir özelleştirme diyagramda bir daireyle gösterilir; üst sınıf daireye, daire alt sınıflara bağlanır. Alt sınıf çizgisindeki <strong>⊂</strong> işareti alt küme ilişkisinin yönünü gösterir.</p>
+<div id="spec-employee"></div>
+
+<h2>Alt sınıf üyeliğini kim belirler?</h2>
+<table class="simple">
+  <thead><tr><th>Tür</th><th>Üyelik</th><th>Örnek</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Predicate-defined</strong> (condition-defined) subclass</td><td>Üst sınıfın bir özniteliği üzerindeki bir koşulla (<em>defining predicate</em>) belirlenir. Diyagramda koşul alt sınıf çizgisine yazılır.</td><td>SECRETARY: <code>Job_type = 'Secretary'</code></td></tr>
+    <tr><td><strong>Attribute-defined</strong> specialization</td><td>Bütün alt sınıflar <em>aynı</em> öznitelik (<em>defining attribute</em>) üzerindeki koşullarla tanımlanır. Öznitelik adı, daireye giden çizgiye yazılır.</td><td>{SECRETARY, TECHNICIAN, ENGINEER}, <code>Job_type</code>'a göre</td></tr>
+    <tr><td><strong>User-defined</strong> subclass</td><td>Üyeliği belirleyen bir koşul yok; varlık alt sınıfa kullanıcı tarafından tek tek eklenir.</td><td>MANAGER (yönetici olmak bir öznitelikle belirlenmiyor)</td></tr>
+  </tbody>
+</table>
+<p>Özelleştirme koşulları DBMS tarafından otomatik uygulanabilir: predicate-defined alt sınıflara üyelik, üst sınıftaki öznitelik değeriyle kendiliğinden belirlenir; user-defined alt sınıfta ekleme ve silme elle yapılır.</p>
+
+<h2>Özelleştirme kısıtları</h2>
+<div class="two-col">
+  <div>
+    <h3>Disjointness constraint</h3>
+    <ul>
+      <li><strong>Disjoint</strong> (<strong>d</strong>): bir varlık özelleştirmenin <em>en fazla bir</em> alt sınıfında olabilir. Attribute-defined bir özelleştirme, defining attribute tek değerliyse kendiliğinden disjoint'tir.</li>
+      <li><strong>Overlapping</strong> (<strong>o</strong>): bir varlık birden çok alt sınıfta olabilir.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Completeness (totalness) constraint</h3>
+    <ul>
+      <li><strong>Total</strong>: üst sınıftaki <em>her</em> varlık en az bir alt sınıfta olmalı. <strong>Çift çizgi</strong> (üst sınıftan daireye).</li>
+      <li><strong>Partial</strong>: bazı varlıklar hiçbir alt sınıfta olmayabilir. Tek çizgi.</li>
+    </ul>
+  </div>
+</div>
+<p>İki kısıt birbirinden bağımsızdır, dört birleşim de mümkündür: <strong>disjoint-total</strong>, <strong>disjoint-partial</strong>, <strong>overlapping-total</strong>, <strong>overlapping-partial</strong>. Genelleştirmeden çıkan üst sınıf genellikle <em>total</em>'dir (üst sınıf, alt sınıfların birleşimi olarak tanımlanmıştır).</p>
+<div id="spec-part"></div>
+<div class="callout example">
+  <p><strong>Ekleme ve silme kuralları</strong> (kısıtlardan doğar):</p>
+  <ul>
+    <li>Üst sınıftan bir varlık silinirse, ait olduğu tüm alt sınıflardan da silinir.</li>
+    <li>Üst sınıfa bir varlık eklenirse, koşulunu sağladığı bütün predicate-defined (ya da attribute-defined) alt sınıflara da eklenir.</li>
+    <li>Total bir özelleştirmenin üst sınıfına eklenen varlık, en az bir alt sınıfa eklenmek zorundadır.</li>
+  </ul>
+</div>
+
+<h2>Hiyerarşiler ve kafesler (lattices)</h2>
+<ul>
+  <li><strong>Specialization hierarchy</strong>: her alt sınıfın tek bir üst sınıfı var (ağaç; <em>single inheritance</em>).</li>
+  <li><strong>Specialization lattice</strong>: bir alt sınıfın birden çok üst sınıfı olabilir. Böyle bir alt sınıf <strong>shared subclass</strong>'tır ve <strong>multiple inheritance</strong> yapar: bütün üst sınıflarının özniteliklerini miras alır. Aynı öznitelik iki yoldan geliyorsa yalnız bir kez miras alınır.</li>
+  <li>Kökten bir alt sınıfa giden yoldaki tüm sınıflar onun <em>predecessor</em>'ıdır; alt sınıf onların hepsinden miras alır. Bir alt sınıfın kendi alt sınıfı yoksa <strong>leaf node</strong>'dur.</li>
+</ul>
+<div id="lattice"></div>
+
+<h2>Kategoriler (union types)</h2>
+<p>Bazen bir alt sınıf, <em>farklı</em> entity type'lardan gelen varlıkları toplamak ister. Bir aracın sahibi bir kişi, bir banka ya da bir şirket olabilir: OWNER, üç farklı üst sınıfın birleşiminin (union) bir alt kümesidir. Böyle bir alt sınıfa <strong>category</strong> (union type) denir.</p>
+<div id="category"></div>
+<table class="simple">
+  <thead><tr><th></th><th>Shared subclass (lattice)</th><th>Category (union type)</th></tr></thead>
+  <tbody>
+    <tr><td>Üye</td><td>Bütün üst sınıfların <strong>kesişiminde</strong>: her ENGINEERING_MANAGER hem ENGINEER hem MANAGER'dır.</td><td>Üst sınıfların <strong>birleşiminde</strong>: her OWNER, PERSON, BANK ya da COMPANY'den <em>yalnız birine</em> aittir.</td></tr>
+    <tr><td>Kalıtım</td><td>Bütün üst sınıflardan (multiple inheritance).</td><td>Yalnız ait olduğu üst sınıftan (<strong>selective inheritance</strong>).</td></tr>
+    <tr><td>Üst sınıflar</td><td>Genellikle aynı kökün (ör. EMPLOYEE) alt sınıfları, aynı anahtarı paylaşırlar.</td><td>Genellikle farklı entity type'lar, farklı anahtarları vardır.</td></tr>
+    <tr><td>Gösterim</td><td>Alt sınıf birden çok üst sınıfa ⊂ ile bağlı.</td><td>Üst sınıflar <strong>∪</strong> dairesine, daire kategoriye ⊂ ile bağlı.</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li>Bir kategori de <strong>total</strong> (çift çizgi: üst sınıfların birleşimindeki her varlık kategoride; ör. REGISTERED_VEHICLE = CAR ∪ TRUCK) ya da <strong>partial</strong> (her kişi, banka ya da şirket bir araç sahibi değildir) olabilir.</li>
+  <li>Total bir kategori, bir genelleştirme olarak da (CAR ve TRUCK'ın üst sınıfı VEHICLE) modellenebilir. Seçim, varlıkların ortak özniteliklerinin çok olup olmadığına bağlıdır: çoksa genelleştirme, azsa kategori.</li>
+</ul>
+
+<h2>Biçimsel tanımlar (Section 4.5)</h2>
+<ul>
+  <li>Bir <strong>class</strong>, bir varlık kümesidir (entity type, subclass, superclass, category hepsi birer sınıftır).</li>
+  <li><strong>Subclass</strong> S, C'nin alt sınıfıdır: her zaman S ⊆ C.</li>
+  <li><strong>Specialization</strong> Z = {S<sub>1</sub>, …, S<sub>n</sub>}, aynı üst sınıf G'nin alt sınıfları. Z <strong>total</strong> ise S<sub>1</sub> ∪ … ∪ S<sub>n</sub> = G; <strong>disjoint</strong> ise her i ≠ j için S<sub>i</sub> ∩ S<sub>j</sub> = ∅.</li>
+  <li><strong>Predicate-defined</strong> alt sınıf: S = C[p], yani C'deki p koşulunu sağlayan varlıklar. Attribute-defined: Z'deki her S<sub>i</sub> = G[A = c<sub>i</sub>], A G'nin bir özniteliği.</li>
+  <li><strong>Category</strong> T, D<sub>1</sub>, …, D<sub>n</sub>'nin bir alt sınıfıdır: T ⊆ (D<sub>1</sub> ∪ D<sub>2</sub> ∪ … ∪ D<sub>n</sub>). Bir koşul yüklemi (predicate) her D<sub>i</sub> için ayrı tanımlanabilir.</li>
+</ul>
+
+<h2>Tasarım seçimleri</h2>
+<ul>
+  <li>Kavramsal modelleme yinelemelidir: bir alt sınıfın <em>kendi özniteliği ya da ilişkisi yoksa</em>, alt sınıf yerine üst sınıfta bir öznitelik (ör. <code>Job_type</code>) yeterlidir.</li>
+  <li>Disjoint özelleştirmede alt sınıfları <em>tek bir özniteliğe</em> indirgemek mümkündür; overlapping özelleştirmede bunun için çok sayıda Boolean öznitelik (ör. <code>Mflag</code>, <code>Pflag</code>) gerekir.</li>
+  <li>Kategori mi genelleştirme mi: yukarıdaki tabloya bakın. Hepsinin ilişkisel şemaya eşlenmesi kitapta Ch 9.2'dedir (arasınav kapsamı dışında).</li>
+  <li>UML'de karşılıklar: superclass/subclass = <em>generalization</em> (içi boş üçgen ok), disjoint = <em>{disjoint}</em>, overlapping = <em>{overlapping}</em>, total = <em>{complete}</em>, partial = <em>{incomplete}</em>.</li>
+</ul>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3">
+  <p>Bir üniversitede her kişi ya öğrenci ya personel ya da ikisidir; kişiler ayrıca ikisinden hiçbiri olmayabilir (mezunlar). PERSON → {STUDENT, STAFF} özelleştirmesinin kısıtları nedir?</p>
+  <ol>
+    <li>Disjoint, total</li>
+    <li>Disjoint, partial</li>
+    <li>Overlapping, partial</li>
+    <li>Overlapping, total</li>
+  </ol>
+  <div class="explain">"İkisi de olabilir" → overlapping (o). "Hiçbiri olmayabilir" → partial (tek çizgi).</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>EMPLOYEE'nin <code>Job_type</code> özniteliğine göre yapılan {SECRETARY, ENGINEER, TECHNICIAN} özelleştirmesi hangisidir?</p>
+  <ol>
+    <li data-why="User-defined alt sınıflarda üyeliği belirleyen bir koşul yoktur.">User-defined</li>
+    <li>Attribute-defined (ve Job_type tek değerli olduğu için disjoint)</li>
+    <li data-why="Category farklı entity type'ların birleşimidir.">Category</li>
+    <li data-why="Genelleştirme, aşağıdan yukarı tasarım sürecidir; burada alt sınıflar bir öznitelik değerine göre belirleniyor.">Generalization, çünkü üç alt sınıf bir üst sınıfta toplanıyor</li>
+  </ol>
+  <div class="explain">Bütün alt sınıflar aynı öznitelik (<em>defining attribute</em>) üzerindeki koşullarla tanımlanıyor. Bir çalışanın tek bir Job_type'ı olduğu için aynı anda iki alt sınıfta olamaz: disjoint.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Shared subclass ile category arasındaki temel fark nedir?</p>
+  <ol>
+    <li>Shared subclass'ın yalnız bir üst sınıfı vardır; category'nin birden çok.</li>
+    <li>Category'nin üyeleri bütün üst sınıfların üyesidir.</li>
+    <li>İkisi aynıdır, yalnızca gösterim farklıdır.</li>
+    <li>Shared subclass'ın üyesi bütün üst sınıfların kesişiminde, category'nin üyesi birleşiminde (yalnız birinde) yer alır.</li>
+  </ol>
+  <div class="explain">ENGINEERING_MANAGER hem ENGINEER hem MANAGER'dır ve ikisinden de miras alır. Bir OWNER ise ya PERSON ya BANK ya da COMPANY'dir ve yalnızca ait olduğu sınıftan miras alır (selective inheritance).</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>VEHICLE → {CAR, TRUCK} özelleştirmesi disjoint ve total. Aşağıdakilerden hangisi geçerli bir durumdur?</p>
+  <ol>
+    <li>Her araç ya araba ya kamyondur, ikisi birden olamaz.</li>
+    <li>Bazı araçlar ne araba ne kamyondur.</li>
+    <li>Bir araç hem araba hem kamyon olabilir.</li>
+    <li>Bir araba VEHICLE'ın özniteliklerini miras almaz.</li>
+  </ol>
+  <div class="explain">Total: VEHICLE = CAR ∪ TRUCK (her araç en az birinde). Disjoint: CAR ∩ TRUCK = ∅ (en fazla birinde). Birlikte: tam olarak birinde. Kalıtım her zaman vardır.</div>
+</div>
+
+</div></main>
+</body>
+</html>
