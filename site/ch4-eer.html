@@ -35,6 +35,7 @@
 </div>
 <p>İkisi aynı yapının iki tasarım yönüdür; diyagramda aynı çizilir. Bir özelleştirme diyagramda bir daireyle gösterilir; üst sınıf daireye, daire alt sınıflara bağlanır. Alt sınıf çizgisindeki <strong>⊂</strong> işareti alt küme ilişkisinin yönünü gösterir.</p>
 <div id="spec-employee"></div>
+<p class="small"><a href="er-studio.html#example=employee-eer">Stüdyoda açın</a> ve d/o, total/partial kısıtlarını panelden değiştirin; <a href="er-studio.html#example=employee-eer&amp;section=to-tables">8A–8D eşleme seçeneklerini</a> karşılaştırın.</p>
 
 <h2>Alt sınıf üyeliğini kim belirler?</h2>
 <table class="simple">
@@ -66,6 +67,7 @@
 </div>
 <p>İki kısıt birbirinden bağımsızdır, dört birleşim de mümkündür: <strong>disjoint-total</strong>, <strong>disjoint-partial</strong>, <strong>overlapping-total</strong>, <strong>overlapping-partial</strong>. Genelleştirmeden çıkan üst sınıf genellikle <em>total</em>'dir (üst sınıf, alt sınıfların birleşimi olarak tanımlanmıştır).</p>
 <div id="spec-part"></div>
+<p class="small"><a href="er-studio.html#example=part-eer">PART örneğini stüdyoda açın</a>.</p>
 <div class="callout example">
   <p><strong>Ekleme ve silme kuralları</strong> (kısıtlardan doğar):</p>
   <ul>
@@ -82,10 +84,12 @@
   <li>Kökten bir alt sınıfa giden yoldaki tüm sınıflar onun <em>predecessor</em>'ıdır; alt sınıf onların hepsinden miras alır. Bir alt sınıfın kendi alt sınıfı yoksa <strong>leaf node</strong>'dur.</li>
 </ul>
 <div id="lattice"></div>
+<p class="small"><a href="er-studio.html#example=university-eer">Bir lattice örneğini (STUDENT_ASSISTANT) stüdyoda açın</a>.</p>
 
 <h2>Kategoriler (union types)</h2>
 <p>Bazen bir alt sınıf, <em>farklı</em> entity type'lardan gelen varlıkları toplamak ister. Bir aracın sahibi bir kişi, bir banka ya da bir şirket olabilir: OWNER, üç farklı üst sınıfın birleşiminin (union) bir alt kümesidir. Böyle bir alt sınıfa <strong>category</strong> (union type) denir.</p>
 <div id="category"></div>
+<p class="small"><a href="er-studio.html#example=vehicle-eer">OWNER ve REGISTERED_VEHICLE kategorilerini stüdyoda açın</a>: tablolara dönüşürken OWNER'a yapay anahtar verildiğini görün.</p>
 <table class="simple">
   <thead><tr><th></th><th>Shared subclass (lattice)</th><th>Category (union type)</th></tr></thead>
   <tbody>
@@ -116,6 +120,10 @@
   <li>Kategori mi genelleştirme mi: yukarıdaki tabloya bakın. Hepsinin ilişkisel şemaya eşlenmesi kitapta Ch 9.2'dedir (arasınav kapsamı dışında).</li>
   <li>UML'de karşılıklar: superclass/subclass = <em>generalization</em> (içi boş üçgen ok), disjoint = <em>{disjoint}</em>, overlapping = <em>{overlapping}</em>, total = <em>{complete}</em>, partial = <em>{incomplete}</em>.</li>
 </ul>
+
+<div class="callout try">
+  <p><strong>EER çizin.</strong> <a href="er-studio.html#exercise=airline">Havayolu alıştırması</a>: kişi, pilot ve yolcu için bir özelleştirme ve iki ilişki. Kısıtları (overlapping/partial) doğru seçtiniz mi, stüdyo kontrol eder.</p>
+</div>
 
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="3">

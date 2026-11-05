@@ -3,8 +3,12 @@ import { h, $, $$, button } from "../lib/ui.js";
 import { schemaCards, COMPANY_SCHEMA } from "../lib/schema.js";
 import { runSQL } from "../lib/db.js";
 import { relationTable } from "../lib/sqlbox.js";
+import { renderMapping } from "../lib/ermapview.js";
+import { exampleById } from "../lib/er-examples.js";
+import { parseER } from "../lib/ermodel.js";
 
 $("#schema").append(schemaCards());
+renderMapping($("#company-mapping"), parseER(exampleById("company").dsl).model, { schemaName: "company_mapped" });
 
 // ---- superkey checker: does the current state contain two tuples that agree on the chosen attributes?
 const host = $("#superkey");
