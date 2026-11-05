@@ -335,8 +335,25 @@ function buildPageNav(content, id) {
   const railPager = () => h("nav", { class: "toc-pager", "aria-label": "Önceki ve sonraki sayfa" },
     prev ? h("a", { href: href(prev.id), class: "prev" }, h("span", { class: "dir" }, "← Önceki"), h("span", {}, prev.title)) : null,
     next ? h("a", { href: href(next.id), class: "next" }, h("span", { class: "dir" }, "Sonraki →"), h("span", {}, next.title)) : null);
-  const makeList = () => h("ol", { class: "toc-list" }, ...tree.map((t) => h("li", { "data-section": t.hd.id }, link(t.hd, "toc-h2"),
-    t.subs.length ? h("ol", { class: "toc-subs" }, ...t.subs.map((s) => h("li", {}, link(s, "toc-h3")))) : null)));
+  // a section with sub-sections gets an arrow that opens or closes them; the section being read opens by itself
+  // unless its arrow closed it, and an arrow-opened section stays open while reading elsewhere
+  const makeList = () => h("ol", { class: "toc-list" }, ...tree.map((t) => {
+    const li = h("li", { "data-section": t.hd.id });
+    const row = h("div", { class: "toc-row" }, link(t.hd, "toc-h2"));
+    if (t.subs.length) {
+      const chev = h("button", { type: "button", class: "toc-chev", "aria-label": `${tocText(t.hd)}: alt başlıkları aç/kapat`, "aria-expanded": "false" },
+        h("span", { "aria-hidden": "true" }, "▸"));
+      chev.addEventListener("click", (e) => {
+        e.stopPropagation();
+        li.dataset.user = li.classList.contains("open") ? "closed" : "open";
+        spy();
+      });
+      row.append(chev);
+    }
+    li.append(row);
+    if (t.subs.length) li.append(h("ol", { class: "toc-subs" }, ...t.subs.map((s) => h("li", {}, link(s, "toc-h3")))));
+    return li;
+  }));
   const rail = h("aside", { class: "toc-rail", "aria-label": "İçindekiler" }, railHead(), h("div", { class: "page-toc-title" }, "İçindekiler"), makeList(),
     h("a", { href: "#", class: "toc-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "↑ Sayfanın başı"),
     railPager());
@@ -368,7 +385,13 @@ function buildPageNav(content, id) {
       if (t.hd.getBoundingClientRect().top <= top) { cur = t; curSub = null; for (const s of t.subs) if (s.getBoundingClientRect().top <= top) curSub = s; }
     }
     for (const list of [rail, panel]) {
-      for (const li of $$(":scope .toc-list > li", list)) li.classList.toggle("open", !!cur && li.dataset.section === cur.hd.id);
+      for (const li of $$(":scope .toc-list > li", list)) {
+        const reading = !!cur && li.dataset.section === cur.hd.id;
+        const open = li.dataset.user === "open" || (reading && li.dataset.user !== "closed");
+        li.classList.toggle("open", open);
+        li.querySelector(".toc-chev")?.setAttribute("aria-expanded", String(open));
+        if (!reading && li.dataset.user === "closed") delete li.dataset.user; // closing only lasts while the section is read
+      }
       for (const a of $$("a[data-target]", list)) a.classList.toggle("current", a.dataset.target === (curSub || cur?.hd)?.id || a.dataset.target === cur?.hd.id && a.classList.contains("toc-h2"));
     }
     label.textContent = cur ? tocText(curSub || cur.hd) : "";
