@@ -470,25 +470,29 @@ section.is-beyond { border-left: 2px dashed var(--beyond); padding-left: 14px; m
    Database site additions
    ====================================================================== */
 :root {
-  --kw: #9a3412; --fn: #a15c07; --str: #15803d; --numc: #0e7490; --cmt: #898781; --nullc: #b0aea6;
+  --kw: #9a3412; --opc: #7e22ce; --typec: #1d4ed8; --conc: #0f766e; --litc: #be123c; --fn: #a16207; --str: #15803d; --numc: #c2410c; --cmt: #898781; --nullc: #b0aea6;
   --ok-wash: rgba(12, 163, 12, 0.10); --err-wash: rgba(208, 59, 59, 0.09); --warn-wash: rgba(250, 178, 25, 0.14);
   --pk: #b07800; --fk: #1c5cab;
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
-    --kw: #f5a46b; --fn: #f2c46d; --str: #8fd6a0; --numc: #6fd3e0; --cmt: #8a8983; --nullc: #6b6a65;
+    --kw: #fb923c; --opc: #d8b4fe; --typec: #93c5fd; --conc: #5eead4; --litc: #fb7185; --fn: #fde047; --str: #86efac; --numc: #f9a8d4; --cmt: #8a8983; --nullc: #6b6a65;
     --ok-wash: rgba(12, 163, 12, 0.16); --err-wash: rgba(230, 103, 103, 0.14); --warn-wash: rgba(250, 178, 25, 0.12);
     --pk: #f0c050; --fk: #86b6ef;
   }
 }
 :root[data-theme="dark"] {
-  --kw: #f5a46b; --fn: #f2c46d; --str: #8fd6a0; --numc: #6fd3e0; --cmt: #8a8983; --nullc: #6b6a65;
+  --kw: #fb923c; --opc: #d8b4fe; --typec: #93c5fd; --conc: #5eead4; --litc: #fb7185; --fn: #fde047; --str: #86efac; --numc: #f9a8d4; --cmt: #8a8983; --nullc: #6b6a65;
   --ok-wash: rgba(12, 163, 12, 0.16); --err-wash: rgba(230, 103, 103, 0.14); --warn-wash: rgba(250, 178, 25, 0.12);
   --pk: #f0c050; --fk: #86b6ef;
 }
 
 /* ---------- SQL syntax colours (static blocks and the editor overlay) ---------- */
-.tok-kw { color: var(--kw); font-weight: 600; }
+.tok-kw { color: var(--kw); font-weight: 650; }
+.tok-op { color: var(--opc); font-weight: 600; }
+.tok-type { color: var(--typec); }
+.tok-con { color: var(--conc); font-weight: 600; }
+.tok-lit { color: var(--litc); font-weight: 650; }
 .tok-fn { color: var(--fn); }
 .tok-str { color: var(--str); }
 .tok-num { color: var(--numc); }
@@ -679,6 +683,12 @@ table.rel th .ty { display: block; font-weight: 400; font-size: 0.7rem; color: v
 .toc-subs { list-style: none; margin: 2px 0 6px 8px; padding-left: 8px; border-left: 1px solid var(--border); display: none; }
 .toc-list > li.open > .toc-subs { display: block; }
 .toc-h3 { font-size: 0.82rem; }
+.toc-row { display: flex; align-items: flex-start; gap: 2px; }
+.toc-row > a { flex: 1; min-width: 0; }
+.toc-chev { flex: none; width: 26px; height: 26px; margin-top: 1px; display: inline-grid; place-items: center; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; }
+.toc-chev:hover { background: var(--surface-2); color: var(--text); }
+.toc-chev span { display: inline-block; transition: transform 0.15s ease; }
+.toc-list > li.open .toc-chev span { transform: rotate(90deg); }
 .toc-top { display: block; margin-top: 10px; padding: 0 8px; font-size: 0.8rem; color: var(--muted); }
 .toc-rail-head { display: flex; flex-direction: column; gap: 2px; padding: 0 8px 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
 .toc-rail-ch { align-self: flex-start; font-size: 0.72rem; font-weight: 650; color: var(--accent); background: var(--accent-wash); border-radius: 999px; padding: 0 8px; }
@@ -722,7 +732,7 @@ table.rel th .ty { display: block; font-weight: 400; font-size: 0.7rem; color: v
 .toc-caret { flex: none; color: var(--muted); }
 .toc-toggle[aria-expanded="true"] .toc-caret { transform: rotate(180deg); }
 .toc-panel { max-height: min(70vh, 560px); overflow: auto; padding: 6px clamp(16px, 4vw, 56px) 12px; border-top: 1px solid var(--border); }
-.toc-panel .toc-subs { display: block; }
+
 
 /* "Bu bölümde" at the start of a long section */
 .section-toc { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; font-size: 0.88rem; margin: -0.4rem 0 1rem; max-width: 46rem; }
