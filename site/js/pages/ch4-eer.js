@@ -1,4 +1,5 @@
 import "../layout.js";
+import { mountExercise } from "../lib/er-inline.js";
 import { $ } from "../lib/ui.js";
 import { erFigure } from "../lib/erd.js";
 
@@ -99,3 +100,5 @@ put("category", erFigure({
     { a: "OW", b: "OWN" },
   ],
 }, "OWNER = PERSON ∪ BANK ∪ COMPANY'nin alt kümesi (Figure 4.8).", { small: true }));
+
+mountExercise($("#draw-airline"), "airline");

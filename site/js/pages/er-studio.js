@@ -2,7 +2,8 @@ import { enhanceCallouts } from "../layout.js";
 import { h, $, button, highlightSQL } from "../lib/ui.js";
 import { createEditor, b64decode } from "../lib/ereditor.js";
 import { ER_EXAMPLES, exampleById } from "../lib/er-examples.js";
-import { ER_EXERCISES, compareER, solutionModel } from "../lib/er-exercises.js";
+import { ER_EXERCISES, solutionModel } from "../lib/er-exercises.js";
+import { solutionDetails, renderCheck, loadInto } from "../lib/er-inline.js";
 import { renderMapping } from "../lib/ermapview.js";
 import { toDDL, mapER } from "../lib/ermap.js";
 import { reverseER, catalogSQL, catalogFromRows } from "../lib/erreverse.js";
@@ -10,7 +11,7 @@ import { toDSL, emptyModel } from "../lib/ermodel.js";
 import { SCHEMA_SQL } from "../lib/company.js";
 import { runSQL } from "../lib/db.js";
 import { erFigure } from "../lib/erd.js";
-import { autoLayout, toDiagram, completePositions } from "../lib/erlayout.js";
+import { autoLayout, toDiagram } from "../lib/erlayout.js";
 
 // ---- what to open: #example=…, #exercise=…, #dsl=… (share link); otherwise the saved work or COMPANY
 const params = new URLSearchParams(location.hash.slice(1));
@@ -129,37 +130,8 @@ async function reverse() {
 const exHost = $("#exercise-list");
 const panelHost = $("#active-exercise");
 
-function solutionBlock(x) {
-  const model = solutionModel(x, ER_EXAMPLES);
-  const body = h("div", { class: "disclosure-body" });
-  const details = h("details", { class: "disclosure solution" }, h("summary", {}, "Çözüm ve gerekçeler"), body);
-  // the diagram is drawn when the block is opened for the first time
-  details.addEventListener("toggle", () => {
-    if (!details.open || body.childElementCount) return;
-    const ex = x.solutionExample && exampleById(x.solutionExample);
-    const spec = toDiagram(model, ex?.layout ? completePositions(model, { ...ex.layout }) : autoLayout(model), {});
-    const note = h("span", { class: "small muted" });
-    body.append(
-      Object.assign(erFigure({ ...spec, title: `${x.title}: çözüm` }, "Örnek çözüm. Farklı ama eşdeğer çözümler de olabilir (ör. ilişki adları)."), { className: "er solution-fig" }),
-      h("ul", {}, ...(x.why || []).map((w) => h("li", {}, w))),
-      h("div", { class: "btn-row", style: { alignItems: "center" } }, button("Çözümü editöre yükle", () => {
-        if (!confirm("Editördeki diyagramın yerine çözüm yüklensin mi? (Geri al ile dönebilirsiniz.)")) return;
-        editor.setModel(model);
-        note.textContent = "Çözüm editöre yüklendi.";
-      }), note));
-  });
-  return details;
-}
-
-function checkInto(x, out) {
-  const r = compareER(editor.getModel(), solutionModel(x, ER_EXAMPLES));
-  const pct = r.total ? Math.round((100 * r.score) / r.total) : 0;
-  const wrong = r.items.filter((i) => i.ok === false).length;
-  const list = h("ul", { class: "check-list" }, ...r.items.sort((a, b) => (a.ok === b.ok ? 0 : a.ok === false ? -1 : b.ok === false ? 1 : 0)).map((i) => h("li", { class: i.ok === true ? "ok" : i.ok === false ? "no" : "meh", html: i.text })));
-  out.replaceChildren(
-    h("div", { class: `res-msg ${pct === 100 ? "ok" : "warn"}` }, pct === 100 ? `✔ Tam uyum: ${r.score} / ${r.total} kontrol.` : `${r.score} / ${r.total} kontrol doğru (%${pct}).`),
-    h("details", { class: "disclosure", open: wrong > 0 && wrong <= 6 }, h("summary", {}, wrong ? `Ayrıntılar: ${wrong} düzeltilecek madde` : "Ayrıntılar"), h("div", { class: "disclosure-body" }, list)));
-}
+const solutionBlock = (x) => solutionDetails(x, (m, layout) => loadInto(editor, m, layout));
+const checkInto = (x, out) => renderCheck(out, editor.getModel(), solutionModel(x, ER_EXAMPLES));
 
 /** The exercise being solved stays above the editor: requirements, check and solution without scrolling away. */
 function openPanel(x, { clear = true } = {}) {

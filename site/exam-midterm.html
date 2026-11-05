@@ -75,20 +75,8 @@
   </ul>
 </div>
 <p><strong>İstenen:</strong> varlıkları, ilişkileri, kardinalite ve katılım kısıtlarını, anahtarları ve öznitelik türlerini gösteren bir ER diyagramı.</p>
-<p>Diyagramı aşağıda çizin: <strong>+ Entity</strong>, <strong>+ Relationship</strong>, <strong>+ Attribute</strong> ile ekleyin, öğeye tıklayıp sağdaki panelden düzenleyin (ya da metin olarak yazın). Bitince <strong>Kontrol et</strong>. Varlık ve öznitelik adları: STUDENT, COURSE, SECTION, INSTRUCTOR, DEPARTMENT; Sid, Name, Phones, Gpa, Code, Title, Credits, Sec_no, Semester, Year, Iid, Rank, Dname, Building, Grade. Çiziminiz bu tarayıcıda saklanır.</p>
+<p>Diyagramı aşağıda çizin: <strong>+ Entity</strong>, <strong>+ Relationship</strong>, <strong>+ Attribute</strong> ile ekleyin, öğeye tıklayıp sağdaki panelden düzenleyin (ya da metin olarak yazın). Bitince <strong>Kontrol et</strong>.</p>
 <div id="er-draw"></div>
-<div class="btn-row" style="align-items:center"><button type="button" class="btn primary" id="er-check">Kontrol et</button><button type="button" class="btn" id="er-clear">Temizle</button><a class="small" href="er-studio.html#exercise=university">Daha geniş alan için ER stüdyosunda açın</a></div>
-<div id="er-result"></div>
-<div class="hint" data-label="Çözümü göster">
-  <div id="er-solution"></div>
-  <ul>
-    <li>"benzersiz" → key (Sid, Code, Iid, Dname). "bir ya da daha çok telefon" → multivalued. "notlardan hesaplanır" → derived (Gpa).</li>
-    <li>"yalnızca dersi içinde tanımlanır" → SECTION zayıf varlık; owner COURSE, partial key (Sec_no, Semester, Year), identifying relationship OFFERING_OF; SECTION'ın katılımı total.</li>
-    <li>"her şubeyi tam bir öğretim üyesi verir" → TEACHES, SECTION:INSTRUCTOR = N:1, SECTION total; "hiç vermeyebilir" → INSTRUCTOR partial.</li>
-    <li>"her kayıt için bir not" → Grade, M:N ENROLLS'un özniteliği.</li>
-    <li>"önkoşulları başka derslerdir" → COURSE üzerinde recursive M:N, rol adları zorunlu.</li>
-  </ul>
-</div>
 
 <h2>Çözümlü problem 2: kısıt ihlalleri</h2>
 <p>COMPANY'nin Figure 5.6 durumunda aşağıdaki işlemlerin her biri tek başına uygulanırsa hangi kısıtları ihlal eder? İhlal varsa DBMS ne yapabilir?</p>

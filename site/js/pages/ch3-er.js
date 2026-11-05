@@ -1,4 +1,5 @@
 import "../layout.js";
+import { mountExercise } from "../lib/er-inline.js";
 import { h, $, $$ } from "../lib/ui.js";
 import { erFigure, COMPANY_ER } from "../lib/erd.js";
 
@@ -116,3 +117,5 @@ put("ternary", erFigure({
   ],
   links: [{ a: "SU", b: "S", card: "M" }, { a: "SU", b: "P", card: "N" }, { a: "SU", b: "PA", card: "P" }],
 }, "Üçlü ilişki SUPPLY (Figure 3.17): s tedarikçisi j projesine p parçasını sağlıyor.", { small: true }));
+
+mountExercise($("#draw-hospital"), "hospital");

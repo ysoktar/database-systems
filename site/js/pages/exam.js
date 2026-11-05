@@ -4,26 +4,10 @@ import { enhanceQuizzes, enhanceCallouts, PAGES } from "../layout.js";
 import { h, $, $$, button } from "../lib/ui.js";
 import { createSqlBox } from "../lib/sqlbox.js";
 import { SQL_PROBLEMS } from "../lib/exam-problems.js";
-import { erFigure } from "../lib/erd.js";
-import { createEditor } from "../lib/ereditor.js";
-import { ER_EXERCISES, compareER, solutionModel } from "../lib/er-exercises.js";
-import { ER_EXAMPLES } from "../lib/er-examples.js";
-import { emptyModel } from "../lib/ermodel.js";
+import { mountExercise } from "../lib/er-inline.js";
 
-// ---- drawing area for the ER design problem, checked against the model solution
-const erEditor = createEditor($("#er-draw"), { storageKey: "er-exam-university" });
-const uni = ER_EXERCISES.find((x) => x.id === "university");
-$("#er-check").addEventListener("click", () => {
-  const r = compareER(erEditor.getModel(), solutionModel(uni, ER_EXAMPLES));
-  const pct = r.total ? Math.round((100 * r.score) / r.total) : 0;
-  const wrong = r.items.filter((i) => i.ok === false).length;
-  const list = h("ul", { class: "check-list" }, ...r.items.sort((a, b) => (a.ok === b.ok ? 0 : a.ok === false ? -1 : b.ok === false ? 1 : 0))
-    .map((i) => h("li", { class: i.ok === true ? "ok" : i.ok === false ? "no" : "meh", html: i.text })));
-  $("#er-result").replaceChildren(
-    h("div", { class: `res-msg ${pct === 100 ? "ok" : "warn"}` }, pct === 100 ? `✔ Tam uyum: ${r.score} / ${r.total} kontrol.` : `${r.score} / ${r.total} kontrol doğru (%${pct}).`),
-    h("details", { class: "disclosure", open: wrong > 0 && wrong <= 8 }, h("summary", {}, wrong ? `Ayrıntılar: ${wrong} düzeltilecek madde` : "Ayrıntılar"), h("div", { class: "disclosure-body" }, list)));
-});
-$("#er-clear").addEventListener("click", () => { if (confirm("Çizim temizlensin mi? (Geri al ile dönebilirsiniz.)")) { erEditor.setModel(emptyModel()); $("#er-result").replaceChildren(); } });
+// ---- the ER design problem: draw it on the page, check it, open the solution
+mountExercise($("#er-draw"), "university", { showText: false });
 
 // ---- SQL problems
 const host = $("#sql-list");
@@ -46,45 +30,6 @@ for (const p of SQL_PROBLEMS) {
 }
 enhanceCallouts(host);
 
-// ---- worked ER design problem: a small university
-$("#er-solution").append(erFigure({
-  title: "Çözüm: üniversite ER şeması",
-  width: 900, height: 430,
-  nodes: [
-    { id: "ST", type: "entity", x: 120, y: 220, label: "STUDENT" },
-    { id: "SE", type: "entity", x: 470, y: 220, label: "SECTION", weak: true },
-    { id: "CO", type: "entity", x: 790, y: 220, label: "COURSE" },
-    { id: "IN", type: "entity", x: 470, y: 390, label: "INSTRUCTOR" },
-    { id: "DE", type: "entity", x: 790, y: 390, label: "DEPARTMENT" },
-    { id: "EN", type: "rel", x: 295, y: 220, label: "ENROLLS" },
-    { id: "OF", type: "rel", x: 630, y: 220, label: "OFFERING_OF", ident: true },
-    { id: "TE", type: "rel", x: 470, y: 305, label: "TEACHES" },
-    { id: "OFR", type: "rel", x: 790, y: 305, label: "OFFERS" },
-    { id: "WI", type: "rel", x: 630, y: 390, label: "WORKS_IN" },
-    { id: "PR", type: "rel", x: 790, y: 110, label: "PREREQ" },
-    { id: "s1", type: "attr", x: 50, y: 160, label: "Sid", key: true, of: "ST" },
-    { id: "s2", type: "attr", x: 130, y: 135, label: "Name", of: "ST" },
-    { id: "s3", type: "attr", x: 60, y: 290, label: "Phones", multi: true, of: "ST" },
-    { id: "s4", type: "attr", x: 175, y: 300, label: "Gpa", derived: true, of: "ST" },
-    { id: "g", type: "attr", x: 295, y: 155, label: "Grade", of: "EN" },
-    { id: "e1", type: "attr", x: 400, y: 150, label: "Sec_no", pkey: true, of: "SE" },
-    { id: "e2", type: "attr", x: 480, y: 140, label: "Semester", pkey: true, of: "SE" },
-    { id: "e3", type: "attr", x: 560, y: 150, label: "Year", pkey: true, of: "SE" },
-    { id: "c1", type: "attr", x: 880, y: 175, label: "Code", key: true, of: "CO" },
-    { id: "c2", type: "attr", x: 880, y: 255, label: "Credits", of: "CO" },
-    { id: "i1", type: "attr", x: 370, y: 410, label: "Iid", key: true, of: "IN" },
-    { id: "d1", type: "attr", x: 880, y: 405, label: "Dname", key: true, of: "DE" },
-  ],
-  links: [
-    { a: "EN", b: "ST", card: "M" }, { a: "EN", b: "SE", card: "N" },
-    { a: "OF", b: "SE", card: "N", total: true }, { a: "OF", b: "CO", card: "1" },
-    { a: "TE", b: "SE", card: "N", total: true, cardSide: -10 }, { a: "TE", b: "IN", card: "1", cardSide: -10 },
-    { a: "OFR", b: "CO", card: "N", total: true, cardSide: -10 }, { a: "OFR", b: "DE", card: "1", cardSide: -10 },
-    { a: "WI", b: "IN", card: "N", total: true }, { a: "WI", b: "DE", card: "1" },
-    { a: "PR", b: "CO", via: [[700, 110]], card: "M", role: "course", roleSide: -12 },
-    { a: "PR", b: "CO", via: [[880, 110]], card: "N", role: "prereq", roleSide: -12 },
-  ],
-}, "Bir çözüm (gerekçeler aşağıda)."));
 
 // ---- practice set
 const bank = $("#bank");
