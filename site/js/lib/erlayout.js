@@ -126,6 +126,23 @@ export function placeAttributes(model, pos, { reset = false } = {}) {
   const occupied = [];
   for (const n of major) if (pos[n.id]) occupied.push(nodeBox(n.kind, label.get(n.id), pos[n.id].x, pos[n.id].y));
   const segs = edges.filter(([a, b]) => pos[a] && pos[b] && a !== b).map(([a, b]) => ({ a, b, p: pos[a], q: pos[b] }));
+  // cardinality and role labels are drawn near the diamond end of each line (as erd.js does): keep attributes off them
+  for (const r of model.relationships) {
+    const rp = pos[relId(r.name)];
+    if (!rp) continue;
+    const rb = nodeBox("rel", r.name, 0, 0);
+    for (const e of r.ends) {
+      const q = pos[entityId(e.entity)];
+      if (!q) continue;
+      const dx = q.x - rp.x, dy = q.y - rp.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      const edge = 1 / (Math.abs(ux) / (rb.w / 2) + Math.abs(uy) / (rb.h / 2));
+      for (const [frac, cap, off, w] of [[0.3, 34, 9, 26], [0.6, 64, -10, e.role ? labelW(e.role) + 8 : 0]]) {
+        if (!w) continue;
+        const along = Math.min((len - edge) * frac, cap);
+        occupied.push({ x: rp.x + ux * (edge + along) - uy * off, y: rp.y + uy * (edge + along) + ux * off, w, h: 16 });
+      }
+    }
+  }
   const abs = new Map();
   for (const n of major) if (pos[n.id]) abs.set(n.id, pos[n.id]);
   const absOf = (a) => {

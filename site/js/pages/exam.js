@@ -65,7 +65,7 @@ $("#er-solution").append(erFigure({
     { a: "PR", b: "CO", via: [[700, 110]], card: "M", role: "course", roleSide: -12 },
     { a: "PR", b: "CO", via: [[880, 110]], card: "N", role: "prereq", roleSide: -12 },
   ],
-}, "Bir çözüm. SECTION zayıf bir varlık: kısmi anahtarı (Sec_no, Semester, Year), sahibi COURSE. Gpa notlardan türetildiği için kesik elips. Phones çok değerli. PREREQ, COURSE üzerinde recursive bir M:N ilişki (rol adları: course, prereq). Grade, ENROLLS'un özniteliği: ne öğrenciye ne şubeye ait."));
+}, "Bir çözüm (gerekçeler aşağıda)."));
 
 // ---- practice set
 const bank = $("#bank");

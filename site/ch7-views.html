@@ -62,6 +62,8 @@ WHEN ( NEW.Salary > ( SELECT Salary FROM EMPLOYEE WHERE Ssn = NEW.Super_ssn ) )
 </pre>
 <p>PostgreSQL'de eylem önce bir fonksiyon olarak yazılır, trigger o fonksiyonu çağırır. Aşağıda aynı trigger: amirine bilgi vermek yerine bir NOTICE yazıyor ve olayı bir tabloya kaydediyor.</p>
 <pre class="sql run" data-title="SALARY_VIOLATION, PostgreSQL'de çalışan hâliyle">
+DROP TRIGGER IF EXISTS SALARY_VIOLATION ON EMPLOYEE;   -- so that the box can be run again
+DROP TABLE IF EXISTS demo.SALARY_LOG;
 CREATE TABLE demo.SALARY_LOG (Super_ssn CHAR(9), Ssn CHAR(9), New_salary DECIMAL(10,2), At TIMESTAMP);
 
 CREATE OR REPLACE FUNCTION inform_supervisor() RETURNS trigger AS $$
@@ -88,13 +90,14 @@ SELECT * FROM demo.SALARY_LOG;
 
 <h2>View'lar (7.3)</h2>
 <p>Bir <strong>view</strong>, başka tablolardan türetilen tek bir tablodur: <em>virtual table</em>. Genellikle fiziksel olarak saklanmaz. Sık sorulan karmaşık sorguları basitleştirmek, güvenlik (kullanıcıya yalnızca bazı sütunları göstermek) ve mantıksal veri bağımsızlığı için kullanılır.</p>
-<pre class="sql run" data-title="V1 ve V2 · İki view tanımı ve QV1 sorgusu">
-CREATE VIEW WORKS_ON1 AS
+<pre class="sql run" id="v1v2" data-title="V1 ve V2 · İki view tanımı ve QV1 sorgusu">
+-- the book writes CREATE VIEW; OR REPLACE (PostgreSQL) lets the box run again
+CREATE OR REPLACE VIEW WORKS_ON1 AS
   SELECT Fname, Lname, Pname, Hours
   FROM   EMPLOYEE, PROJECT, WORKS_ON
   WHERE  Ssn = Essn AND Pno = Pnumber;
 
-CREATE VIEW DEPT_INFO (Dept_name, No_of_emps, Total_sal) AS
+CREATE OR REPLACE VIEW DEPT_INFO (Dept_name, No_of_emps, Total_sal) AS
   SELECT   Dname, COUNT(*), SUM(Salary)
   FROM     DEPARTMENT, EMPLOYEE
   WHERE    Dnumber = Dno
@@ -105,9 +108,10 @@ SELECT Fname, Lname FROM WORKS_ON1 WHERE Pname = 'ProductX';
 SELECT * FROM DEPT_INFO;
 </pre>
 <p>View <strong>her zaman günceldir</strong>: temel tablolar değişince view'un sonucu da değişir. View tanımlanırken değil, sorgulanırken hesaplanır. (Ch 6'daki WORKS_ON_INFO kopyasıyla karşılaştırın.)</p>
-<pre class="sql run" data-title="View güncel kalır">
+<pre class="sql run" data-setup="v1v2" data-title="View güncel kalır">
+SELECT * FROM DEPT_INFO;          -- before
 UPDATE EMPLOYEE SET Dno = 1 WHERE Lname = 'English';
-SELECT * FROM DEPT_INFO;          -- Research lost one employee, Headquarters gained one
+SELECT * FROM DEPT_INFO;          -- after: Research lost one employee, Headquarters gained one
 </pre>
 
 <h3>View'lar nasıl gerçekleştirilir?</h3>
@@ -124,14 +128,14 @@ SELECT * FROM DEPT_INFO;          -- Research lost one employee, Headquarters ga
   <li><strong>Gruplama ve aggregate</strong> içeren view'lar güncellenemez: <code>DEPT_INFO.Total_sal</code>'ı değiştirmenin temel tablolarda tek bir anlamı yoktur.</li>
   <li>SQL'de güncellenebilir olması amaçlanan bir view'a <code>WITH CHECK OPTION</code> eklenir: view üzerinden yapılan ekleme ve güncellemeler view'un koşulunu sağlamak zorundadır, yoksa reddedilir.</li>
 </ul>
-<pre class="sql run" data-title="UV1 · Join'li bir view'u güncellemek: hangi tablo değişsin?">
+<pre class="sql run" data-setup="v1v2" data-expect-error data-title="UV1 · Join'li bir view'u güncellemek: hangi tablo değişsin?">
 -- Smith moves from ProductX to ProductY? or ProductX is renamed? Ambiguous:
 UPDATE WORKS_ON1 SET Pname = 'ProductY'
 WHERE  Lname = 'Smith' AND Fname = 'John' AND Pname = 'ProductX';
 </pre>
 <p>PostgreSQL bu güncellemeyi reddeder: join içeren view'lar otomatik güncellenebilir değildir. Kitap iki olası çeviri verir: (a) WORKS_ON'da Smith'in Pno'sunu ProductY'ninkine çevirmek (amaçlanan), (b) PROJECT'te ProductX'in adını ProductY yapmak (projenin diğer çalışanları için de görünür değişiklik; yanlış).</p>
-<pre class="sql run" data-title="Tek tablolu view: güncellenebilir; WITH CHECK OPTION ihlali reddeder">
-CREATE VIEW DEPT5_EMPS AS
+<pre class="sql run" data-expect-error data-title="Tek tablolu view: güncellenebilir; WITH CHECK OPTION ihlali reddeder">
+CREATE OR REPLACE VIEW DEPT5_EMPS AS
   SELECT Ssn, Fname, Lname, Salary, Dno
   FROM   EMPLOYEE
   WHERE  Dno = 5
@@ -149,12 +153,13 @@ UPDATE DEPT5_EMPS SET Dno = 4 WHERE Lname = 'Wong';                 -- would lea
   <li><code>DROP TABLE DEPENDENT CASCADE;</code> tabloyu ve ona başvuran bütün kısıtları ve view'ları siler. <code>RESTRICT</code>: tabloya bir FK ya da view başvuruyorsa silmeyi reddeder.</li>
   <li><code>DROP TABLE</code> tablonun tanımını da siler; yalnızca satırları silmek için <code>DELETE</code>.</li>
 </ul>
-<pre class="sql run" data-title="RESTRICT ve CASCADE">
-CREATE VIEW DEP_VIEW AS SELECT Essn, Dependent_name FROM DEPENDENT;
+<pre class="sql run" data-expect-error data-title="DROP … RESTRICT">
+CREATE OR REPLACE VIEW DEP_VIEW AS SELECT Essn, Dependent_name FROM DEPENDENT;
 -- RESTRICT: the view depends on DEPENDENT, so the drop is refused (the error stops this box)
 DROP TABLE DEPENDENT RESTRICT;
 </pre>
-<pre class="sql run" data-title="… ve CASCADE ile">
+<pre class="sql run" data-title="DROP … CASCADE">
+CREATE OR REPLACE VIEW DEP_VIEW AS SELECT Essn, Dependent_name FROM DEPENDENT;
 DROP TABLE DEPENDENT CASCADE;     -- also drops DEP_VIEW (see the NOTICE)
 SELECT table_name FROM information_schema.tables WHERE table_schema = 'company' ORDER BY 1;
 </pre>

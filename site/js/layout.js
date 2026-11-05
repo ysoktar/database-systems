@@ -173,7 +173,9 @@ export function enhanceCallouts(root) {
  * become clickable multiple-choice questions with instant feedback.
  */
 export function enhanceQuizzes(root = document) {
+  let number = $$(".quiz[data-ready]", root).length;
   for (const q of $$(".quiz:not([data-ready])", root)) {
+    number++;
     q.dataset.ready = "1";
     const answer = Number(q.dataset.answer);
     const items = $$(":scope > ol > li", q);
@@ -199,7 +201,7 @@ export function enhanceQuizzes(root = document) {
       });
       opts.append(b);
     });
-    const label = h("div", { class: "quiz-label" }, "Kendinizi sınayın");
+    const label = h("div", { class: "quiz-label" }, "Soru " + number);
     q.replaceChildren(label, question ? h("div", { class: "quiz-q", html: question.innerHTML }) : "", ...extra, opts, fb);
     enhanceSQL(q);
   }
@@ -239,8 +241,56 @@ function init() {
   enhanceCallouts(content);
   enhanceQuizzes(content);
   enhanceSQL(content);
+  labelTables(content);
+  buildPageNav(content, id);
   const cur = $(".sidebar [aria-current]"), side = $(".sidebar");
   if (cur && side) side.scrollTop = Math.max(0, cur.offsetTop - side.clientHeight / 2);
+}
+
+/** On phones, tables become stacked cards: every cell carries its column name (CSS shows it). */
+export function labelTables(root) {
+  for (const t of $$("table.simple", root)) {
+    const heads = $$("thead th", t).map((th) => th.textContent.trim());
+    if (!heads.length) continue;
+    t.classList.add("stack");
+    for (const tr of $$("tbody tr", t)) $$("td", tr).forEach((td, i) => { if (heads[i]) td.dataset.label = heads[i]; });
+  }
+}
+
+const slug = (s) => s.toLocaleLowerCase("tr").replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c")
+  .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "bolum";
+
+/** "Bu sayfada": a list of the page's sections under the introduction, and a floating menu to jump between them. */
+function buildPageNav(content, id) {
+  const heads = $$(":scope > h2, :scope > section > h2", content).filter((x) => !x.closest(".quiz, template"));
+  if (heads.length < 3) return;
+  const used = new Set($$("[id]").map((e) => e.id));
+  for (const hd of heads) {
+    if (!hd.id) { let s = slug(hd.textContent), k = 2; while (used.has(s)) s = `${slug(hd.textContent)}-${k++}`; hd.id = s; used.add(s); }
+  }
+  const link = (hd) => h("a", { href: `#${hd.id}` }, hd.textContent.trim());
+  if (id !== "index" && id !== "er-studio") {
+    const toc = h("nav", { class: "page-toc", "aria-label": "Bu sayfada" }, h("div", { class: "page-toc-title" }, "Bu sayfada"), h("ol", {}, ...heads.map((hd) => h("li", {}, link(hd)))));
+    const after = $(":scope > .lead", content) || $(":scope > h1", content);
+    after.after(toc);
+  }
+  const list = h("ol", {}, ...heads.map((hd) => h("li", {}, link(hd))));
+  const pop = h("div", { class: "jump-pop", hidden: true }, h("div", { class: "page-toc-title" }, "Bölümler"), list,
+    h("a", { href: "#", class: "jump-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); pop.hidden = true; } }, "↑ Sayfanın başı"));
+  const btn = h("button", { type: "button", class: "jump-btn", "aria-label": "Sayfadaki bölümler", "aria-expanded": "false" }, "☰ Bölümler");
+  btn.addEventListener("click", () => { pop.hidden = !pop.hidden; btn.setAttribute("aria-expanded", String(!pop.hidden)); paintCurrent(); });
+  pop.addEventListener("click", (e) => { if (e.target.closest("a")) { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); } });
+  document.addEventListener("click", (e) => { if (!pop.hidden && !e.target.closest(".jump-pop, .jump-btn")) pop.hidden = true; });
+  const wrap = h("div", { class: "jump" }, pop, btn);
+  document.body.append(wrap);
+  const paintCurrent = () => {
+    let cur = heads[0];
+    for (const hd of heads) if (hd.getBoundingClientRect().top < 120) cur = hd;
+    $$("a", list).forEach((a, i) => a.classList.toggle("current", heads[i] === cur));
+  };
+  const onScroll = () => wrap.classList.toggle("show", window.scrollY > 500);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 }
 
 init();

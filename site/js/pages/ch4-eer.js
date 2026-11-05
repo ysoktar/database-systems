@@ -29,13 +29,13 @@ put("spec-employee", erFigure({
     { id: "a5", type: "attr", x: 800, y: 370, label: "Salary", of: "SE" },
   ],
   links: [
-    { a: "E", b: "d1", via: [[220, 110]] },
+    { a: "E", b: "d1", via: [[220, 110]], role: "Job_type", roleSide: -12 },
     { a: "d1", b: "SEC", subset: true }, { a: "d1", b: "TEC", subset: true }, { a: "d1", b: "ENG", subset: true },
     { a: "E", b: "MAN", subset: true },
     { a: "E", b: "d2", via: [[700, 110]], total: true },
     { a: "d2", b: "HE", subset: true }, { a: "d2", b: "SE", subset: true },
   ],
-}, "Üç özelleştirme (kitapta Figure 4.1): iş tipine göre {SECRETARY, TECHNICIAN, ENGINEER} (disjoint, partial); tek alt sınıflı {MANAGER}; ödeme biçimine göre {HOURLY_EMPLOYEE, SALARIED_EMPLOYEE} (disjoint, total: çift çizgi). ⊂ işareti alt sınıf çizgisindedir; yerel (specific) öznitelikler alt sınıflara bağlıdır."));
+}, "EMPLOYEE'nin üç özelleştirmesi (Figure 4.1): iş tipine göre (disjoint, partial, defining attribute Job_type), tek alt sınıflı MANAGER, ödeme biçimine göre (disjoint, total)."));
 
 // Overlapping specialization (Figure 4.5)
 put("spec-part", erFigure({
@@ -54,7 +54,7 @@ put("spec-part", erFigure({
     { id: "u2", type: "attr", x: 570, y: 245, label: "List_price", of: "U" },
   ],
   links: [{ a: "P", b: "o", total: true }, { a: "o", b: "M", subset: true }, { a: "o", b: "U", subset: true }],
-}, "Overlapping (o) ve total özelleştirme (Figure 4.5): bir parça hem üretilmiş hem satın alınmış olabilir; her parça en az birindedir.", { small: true }));
+}, "PART: overlapping ve total özelleştirme (Figure 4.5).", { small: true }));
 
 // Specialization lattice with a shared subclass (Figure 4.6)
 put("lattice", erFigure({
@@ -76,7 +76,7 @@ put("lattice", erFigure({
     { a: "E", b: "d2", via: [[560, 30]], total: true }, { a: "d2", b: "S", subset: true },
     { a: "ENG", b: "EM", subset: true }, { a: "MAN", b: "EM", subset: true },
   ],
-}, "Lattice (Figure 4.6'nın sadeleştirilmişi): ENGINEERING_MANAGER hem ENGINEER'ın hem MANAGER'ın alt sınıfıdır (shared subclass, multiple inheritance). Bir alt sınıfın birden çok üst sınıfı olunca yapı ağaç (hierarchy) değil kafestir (lattice).", { small: true }));
+}, "Lattice: ENGINEERING_MANAGER, ENGINEER ve MANAGER'ın paylaşılan alt sınıfı (Figure 4.6'dan sadeleştirildi).", { small: true }));
 
 // Category (union type), Figure 4.8
 put("category", erFigure({
@@ -98,4 +98,4 @@ put("category", erFigure({
     { a: "u", b: "OW", subset: true },
     { a: "OW", b: "OWN" },
   ],
-}, "Kategori / union type (Figure 4.8): OWNER = PERSON ∪ BANK ∪ COMPANY'nin bir alt kümesi. Her sahip bu üç sınıftan <em>yalnız birinin</em> üyesidir ve yalnız onun özniteliklerini miras alır (selective inheritance). Üst sınıfların anahtarları farklı olduğu için OWNER'a genellikle bir yapay anahtar (surrogate key, ör. Owner_id) verilir.", { small: true }));
+}, "OWNER = PERSON ∪ BANK ∪ COMPANY'nin alt kümesi (Figure 4.8).", { small: true }));

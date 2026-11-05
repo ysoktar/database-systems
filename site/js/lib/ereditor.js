@@ -137,7 +137,7 @@ export function createEditor(host, opts = {}) {
   // ---------------------------------------------------------------- drawing
   function nodeExists(id) { const { major, attrs } = diagramNodes(model); return major.some((n) => n.id === id) || attrs.some((a) => a.id === id); }
   function render() {
-    const spec = toDiagram(model, pos, { notation, selected, normalize: false });
+    const spec = toDiagram(model, pos, { notation, selected, normalize: false, pad: 24 });
     const drawn = drawER(spec);
     svg.replaceChildren(...drawn.childNodes);
     svg.setAttribute("viewBox", `${view.x} ${view.y} ${view.w} ${view.h}`);

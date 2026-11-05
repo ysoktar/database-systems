@@ -35,7 +35,7 @@ $("#three-schema").innerHTML = `
   <path d="M270,298 h100 v18 a50,8 0 0 1 -100,0z" class="ts-box"/><ellipse cx="320" cy="298" rx="50" ry="7" class="ts-box"/>
   <text class="ts-t" x="320" y="314" style="font-size:10.5px">Stored database</text>
 </svg>
-<figcaption>Üç-şema mimarisi (kitapta Figure 2.2). Oklar düzeyler arası <em>mapping</em>'lerdir; veri bağımsızlığı, bir düzeyin değişikliğini mapping'i güncelleyerek üst düzeyden gizlemektir.</figcaption>
+<figcaption>Üç-şema mimarisi (Figure 2.2). Oklar düzeyler arası mapping'lerdir.</figcaption>
 </figure>`;
 
 $("#tiers").innerHTML = `
