@@ -293,7 +293,7 @@ SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
   <div class="explain">Kavramsal sıra: önce FROM, sonra WHERE. FROM iki tablonun kartezyen çarpımını üretir: 8 × 3 = 24 satır. WHERE yalnızca Dno = 5 olanları bırakır: 5 numaralı departmandaki 4 çalışanın her biri 3 departmanla eşleştiği için 4 × 3 = 12 satır. Smith, Wong, Narayan ve English üçer kez görünür. Aşağıdaki kutuda deneyin; sonra <code>AND Dno = Dnumber</code> ekleyip sonucun 4'e indiğini görün.</div>
   <pre class="sql run" data-title="Kontrol edin">SELECT Lname FROM EMPLOYEE, DEPARTMENT WHERE Dno = 5;</pre>
 </div>
-<div class="quiz" data-answer="3">
+<div class="quiz" data-answer="3" data-tables="EMPLOYEE">
   <p><code>SELECT Salary FROM EMPLOYEE</code> ile <code>SELECT DISTINCT Salary FROM EMPLOYEE</code> sırasıyla kaç satır döndürür? (Maaşlar: 30000, 40000, 25000, 43000, 38000, 25000, 25000, 55000)</p>
   <ol>
     <li data-why="İkinci sorgu DISTINCT kullanıyor: 25000 üç kez geçtiği için tekrarlar silinir, 8 kalmaz.">8 ve 8</li>

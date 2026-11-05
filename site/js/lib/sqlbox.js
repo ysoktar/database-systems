@@ -63,7 +63,7 @@ export function renderItems(out, items) {
 export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow = false } = {}) {
   const chips = h("span", { class: "ctx-chips" });
   const panel = h("div", { class: "ctx-panel", hidden: true });
-  const el = h("div", { class: "sqlbox-ctx" }, h("span", { class: "ctx-db", title: "Kutular kitabın COMPANY veritabanı (Şekil 5.5–5.6) üzerinde çalışır" }, label), chips, panel);
+  const el = h("div", { class: "sqlbox-ctx" }, h("span", { class: "ctx-db", title: "Kutular kitabın COMPANY veritabanı üzerinde çalışır: 8 çalışan, 3 departman, 6 proje" }, label), chips, panel);
   let open = null;
   async function show(t) {
     open = open === t ? null : t;
@@ -79,7 +79,7 @@ export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow
     if (open !== t) return;
     panel.replaceChildren(
       relationTable(cols, types, rows, { caption: `${t}: ${rows.length} satır` }),
-      h("div", { class: "small muted" }, live ? "Veritabanının şu anki hâli (kutularda yaptığınız değişiklikler dahil)." : "Kitaptaki ilk hâli (Şekil 5.6)."));
+      h("div", { class: "small muted" }, live ? "Veritabanının şu anki hâli (kutularda yaptığınız değişiklikler dahil)." : "COMPANY'nin başlangıç verisi (kitapta Figure 5.6). Kutularda yaptığınız değişiklikler, veritabanı başlayınca burada görünür."));
   }
   el.refresh = () => {
     const ts = tablesIn(getSQL());
@@ -140,7 +140,7 @@ export function createSqlBox(opts = {}) {
     actions.append(button("Veritabanını sıfırla", async () => {
       out.replaceChildren(loadingLine());
       await reset();
-      out.replaceChildren(h("div", { class: "res-msg ok" }, "COMPANY, Figure 5.6 hâline döndürüldü."));
+      out.replaceChildren(h("div", { class: "res-msg ok" }, "COMPANY başlangıç verisine döndürüldü (yaptığınız değişiklikler geri alındı)."));
     }, { title: "COMPANY tablolarını kitaptaki ilk hâline döndür (yaptığınız INSERT/UPDATE/DELETE geri alınır)" }));
   }
   const head = h("div", { class: "sqlbox-head" }, h("div", { class: "sqlbox-title", html: opts.title || "SQL" }), actions);

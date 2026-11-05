@@ -79,7 +79,8 @@
 <div id="er-draw"></div>
 
 <h2>Çözümlü problem 2: kısıt ihlalleri</h2>
-<p>COMPANY'nin Figure 5.6 durumunda aşağıdaki işlemlerin her biri tek başına uygulanırsa hangi kısıtları ihlal eder? İhlal varsa DBMS ne yapabilir?</p>
+<p>COMPANY'nin başlangıç verisinde (sitedeki bütün kutuların kullandığı veri) aşağıdaki işlemlerin her biri tek başına uygulanırsa hangi kısıtları ihlal eder? İhlal varsa DBMS ne yapabilir? Cevap için gereken satırlara aşağıdaki tablo adlarından bakabilirsiniz. Değerler tabloların sütun sırasıyla yazılır: DEPENDENT(Essn, Dependent_name, Sex, Bdate, Relationship), WORKS_ON(Essn, Pno, Hours), DEPT_LOCATIONS(Dnumber, Dlocation).</p>
+<div class="company-data" data-tables="EMPLOYEE DEPARTMENT DEPT_LOCATIONS PROJECT WORKS_ON DEPENDENT"></div>
 <ol type="a">
   <li><code>INSERT INTO DEPENDENT VALUES ('453453453', 'John', 'M', '1990-12-12', 'Son');</code></li>
   <li><code>INSERT INTO WORKS_ON VALUES ('677678989', NULL, 40.0);</code></li>

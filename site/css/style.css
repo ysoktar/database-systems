@@ -304,6 +304,7 @@ table.simple th { color: var(--text-2); font-weight: 600; font-size: 0.85rem; }
 .ctx-chip:hover { background: var(--surface-2); }
 .ctx-panel { flex-basis: 100%; margin-top: 4px; color: var(--text); }
 .ctx-panel[hidden] { display: none; }
+.sqlbox-ctx.standalone { border: 1px solid var(--border); border-radius: 8px; margin: 8px 0 12px; background: var(--surface-2); }
 .quiz > .sqlbox-ctx { border: 1px solid var(--border); border-radius: 8px; margin: 6px 0 10px; background: var(--surface-2); }
 
 /* ---------- quiz ---------- */

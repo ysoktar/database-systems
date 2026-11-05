@@ -93,7 +93,7 @@
   </div>
 </div>
 <h3>Veride görmek: ilişki örnekleri</h3>
-<p>Aşağıdaki şekiller COMPANY'nin gerçek verisinden (Figure 5.6) çizildi: solda bir varlık kümesi, sağda diğeri; ortadaki her küçük eşkenar dörtgen bir ilişki örneğidir ve iki varlığı birbirine bağlar. Bir ilişki tipi seçin ve iki soruyu şekil üzerinde cevaplayın: bir varlıktan en çok kaç çizgi çıkıyor (kardinalite)? Hiç çizgisi olmayan varlık var mı (varsa o taraf partial)?</p>
+<p>Aşağıdaki şekiller COMPANY'nin verisinden (sitedeki SQL kutularının kullandığı satırlardan) çizildi: solda bir varlık kümesi, sağda diğeri; ortadaki her küçük eşkenar dörtgen bir ilişki örneğidir ve iki varlığı birbirine bağlar. Bir ilişki tipi seçin ve iki soruyu şekil üzerinde cevaplayın: bir varlıktan en çok kaç çizgi çıkıyor (kardinalite)? Hiç çizgisi olmayan varlık var mı (varsa o taraf partial)?</p>
 <div id="instances"></div>
 <h3>(min, max) gösterimi</h3>
 <p>Kardinalite <em>en çok</em>u, katılım <em>en az</em>ı söyler; ikisi birlikte ilişkinin <strong>yapısal kısıtları</strong>dır. (min, max) ikisini tek gösterimde birleştirir: E'nin R'ye her katılımı için bir (min, max) çifti: 0 ≤ min ≤ max, max ≥ 1. E'deki her varlık, R'nin en az min, en çok max örneğine katılır. <strong>min = 0 → partial</strong>, <strong>min ≥ 1 → total</strong>.</p>
@@ -207,7 +207,7 @@
   </ol>
   <div class="explain">1:1'de öznitelik iki taraftan birine, 1:N'de N tarafına taşınabilir. M:N'de bir çalışan birçok projede farklı saatler çalışır; tek bir değer hiçbir varlığa ait değildir.</div>
 </div>
-<div class="quiz" data-answer="4">
+<div class="quiz" data-answer="4" data-tables="EMPLOYEE DEPENDENT">
   <p>DEPENDENT için hangisi <em>yanlıştır</em>?</p>
   <ol>
     <li data-why="Bu ifade doğru (soru yanlış olanı arıyor): DEPENDENT'ın kendi anahtarı yok, EMPLOYEE üzerinden tanımlanır.">DEPENDENT zayıf bir entity type'tır; sahibi EMPLOYEE'dir.</li>
