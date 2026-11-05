@@ -327,10 +327,19 @@ function buildPageNav(content, id) {
   }
 
   // the table of contents that stays in view
+  const info = ALL.find((p) => p.id === id);
+  const i = ALL.findIndex((p) => p.id === id);
+  const prev = ALL[i - 1], next = ALL[i + 1];
+  const railHead = () => info ? h("div", { class: "toc-rail-head" },
+    info.ch ? h("span", { class: "toc-rail-ch" }, info.ch) : null, h("span", { class: "toc-rail-title" }, info.title)) : null;
+  const railPager = () => h("nav", { class: "toc-pager", "aria-label": "Önceki ve sonraki sayfa" },
+    prev ? h("a", { href: href(prev.id), class: "prev" }, h("span", { class: "dir" }, "← Önceki"), h("span", {}, prev.title)) : null,
+    next ? h("a", { href: href(next.id), class: "next" }, h("span", { class: "dir" }, "Sonraki →"), h("span", {}, next.title)) : null);
   const makeList = () => h("ol", { class: "toc-list" }, ...tree.map((t) => h("li", { "data-section": t.hd.id }, link(t.hd, "toc-h2"),
     t.subs.length ? h("ol", { class: "toc-subs" }, ...t.subs.map((s) => h("li", {}, link(s, "toc-h3")))) : null)));
-  const rail = h("aside", { class: "toc-rail", "aria-label": "İçindekiler" }, h("div", { class: "page-toc-title" }, "İçindekiler"), makeList(),
-    h("a", { href: "#", class: "toc-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "↑ Sayfanın başı"));
+  const rail = h("aside", { class: "toc-rail", "aria-label": "İçindekiler" }, railHead(), h("div", { class: "page-toc-title" }, "İçindekiler"), makeList(),
+    h("a", { href: "#", class: "toc-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "↑ Sayfanın başı"),
+    railPager());
   const main = content.closest(".main");
   main.classList.add("has-rail");
   main.append(rail);
@@ -338,7 +347,8 @@ function buildPageNav(content, id) {
   const label = h("span", { class: "toc-current" });
   const toggle = h("button", { type: "button", class: "toc-toggle", "aria-expanded": "false" }, h("span", { class: "toc-bar-title" }, "Bu sayfada"), label, h("span", { class: "toc-caret", "aria-hidden": "true" }, "▾"));
   const panel = h("div", { class: "toc-panel", hidden: true }, makeList(),
-    h("a", { href: "#", class: "toc-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "↑ Sayfanın başı"));
+    h("a", { href: "#", class: "toc-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "↑ Sayfanın başı"),
+    railPager());
   const bar = h("div", { class: "toc-bar" }, toggle, panel);
   const setOpen = (open) => { panel.hidden = !open; toggle.setAttribute("aria-expanded", String(open)); };
   toggle.addEventListener("click", () => { setOpen(panel.hidden); if (!panel.hidden) spy(); });
