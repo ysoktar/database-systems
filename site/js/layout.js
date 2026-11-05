@@ -319,7 +319,7 @@ function buildPageNav(content, id) {
     h("a", { href: "#", class: "toc-top", onclick: (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "↑ Sayfanın başı"));
   const bar = h("div", { class: "toc-bar" }, toggle, panel);
   const setOpen = (open) => { panel.hidden = !open; toggle.setAttribute("aria-expanded", String(open)); };
-  toggle.addEventListener("click", () => setOpen(panel.hidden));
+  toggle.addEventListener("click", () => { setOpen(panel.hidden); if (!panel.hidden) spy(); });
   panel.addEventListener("click", (e) => { if (e.target.closest("a")) setOpen(false); });
   document.addEventListener("click", (e) => { if (!e.target.closest(".toc-bar")) setOpen(false); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") setOpen(false); });
@@ -341,13 +341,16 @@ function buildPageNav(content, id) {
     }
     label.textContent = cur ? tocText(curSub || cur.hd) : "";
     bar.classList.toggle("show", window.scrollY > 280);
-    // keep the highlighted entry visible inside the rail
-    const active = $(".toc-h3.current, .toc-h2.current", rail);
-    if (active && rail.scrollHeight > rail.clientHeight) {
-      const r = active.getBoundingClientRect(), rr = rail.getBoundingClientRect();
-      if (r.top < rr.top + 30 || r.bottom > rr.bottom - 30) rail.scrollTop += r.top - rr.top - rr.height / 2;
-    }
+    // keep the highlighted entry visible inside the rail and inside the open list
+    follow(rail);
+    if (!panel.hidden) follow(panel);
   };
+  function follow(box) {
+    const active = $$("a.current", box).pop();
+    if (!active || box.scrollHeight <= box.clientHeight) return;
+    const r = active.getBoundingClientRect(), rr = box.getBoundingClientRect();
+    if (r.top < rr.top + 30 || r.bottom > rr.bottom - 30) box.scrollTop += r.top - rr.top - rr.height / 2;
+  }
   window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
   spy();
 }
