@@ -17,7 +17,6 @@
 <p class="lead">Sınavdan önceki son tekrar için: SQL sözdizimi, kalıplar, NULL kuralları, ER/EER sembolleri ve terimler. Yazdırmak için tarayıcınızın yazdır komutunu kullanabilirsiniz.</p>
 
 <h2>SQL sorgusunun yapısı</h2>
-<div class="two-col">
 <pre class="sql">
 SELECT   [DISTINCT] &lt;columns, aggregates, expressions&gt;  -- 5
 FROM     &lt;tables / joins&gt;                                -- 1
@@ -37,7 +36,6 @@ FROM A CROSS JOIN B                     -- Cartesian product
 -- set operations (duplicates removed; add ALL to keep them)
 (q1) UNION (q2)   (q1) INTERSECT (q2)   (q1) EXCEPT (q2)
 </pre>
-</div>
 
 <h2>Koşullar ve operatörler</h2>
 <table class="simple">
@@ -70,7 +68,6 @@ FROM A CROSS JOIN B                     -- Cartesian product
 </div>
 
 <h2>Sorgu kalıpları</h2>
-<div class="two-col">
 <pre class="sql">
 -- "every Y" (division): no Y that x is not related to
 SELECT … FROM X x
@@ -94,7 +91,6 @@ GROUP BY x.id;
 -- groups whose members satisfy something overall (Q28)
 … WHERE cond AND g IN (SELECT g FROM T GROUP BY g HAVING …)
 </pre>
-</div>
 
 <h2>DDL ve güncelleme</h2>
 <pre class="sql">

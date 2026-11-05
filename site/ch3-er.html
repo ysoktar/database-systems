@@ -63,11 +63,6 @@
   <li>Sigorta için her çalışanın <strong>bağımlıları</strong> (dependent) tutulur: ad, cinsiyet, doğum tarihi, çalışanla akrabalığı.</li>
 </ol>
 <div id="company-er"></div>
-<div class="btn-row">
-  <a class="btn primary" href="er-studio.html#example=company">Bu şemayı ER stüdyosunda aç ve düzenle</a>
-  <a class="btn" href="er-studio.html#example=company&amp;section=to-tables">Tablolara nasıl dönüşüyor?</a>
-  <a class="btn" href="er-studio.html#example=bank">Başka bir örnek: BANK</a>
-</div>
 <div class="callout look">
   <p>Gereksinimdeki sözcükler diyagrama nasıl dönüştü? "benzersiz" → <u>key</u>; "birden çok yeri" → <em>multivalued</em> <code>Locations</code>; "yönetir" → 1:1 MANAGES ve başlama tarihi ilişkinin özniteliği <code>Start_date</code>; "haftalık saat" → WORKS_ON'un özniteliği <code>Hours</code>; "doğrudan amiri" → EMPLOYEE'nin kendisiyle recursive SUPERVISION ilişkisi; "bağımlıları" → DEPENDENT zayıf varlığı (bir bağımlının adı tek başına benzersiz değildir).</p>
 </div>
@@ -88,10 +83,7 @@
 <div class="two-col">
   <div>
     <h3>Cardinality ratio (kardinalite oranı)</h3>
-    <p>Bir varlığın katılabileceği <em>en fazla</em> ilişki örneği sayısı: <strong>1:1</strong>, <strong>1:N</strong> (ya da N:1), <strong>M:N</strong>. Diyagramda kenarlara 1, N, M yazılır.</p>
-    <ul>
-      <li>MANAGES 1:1, WORKS_FOR N:1 (EMPLOYEE:DEPARTMENT), CONTROLS 1:N, WORKS_ON M:N, SUPERVISION 1:N (supervisor:supervisee).</li>
-    </ul>
+    <p>Bir varlığın katılabileceği <em>en fazla</em> ilişki örneği sayısı: <strong>1:1</strong>, <strong>1:N</strong> (ya da N:1), <strong>M:N</strong>. Diyagramda kenarlara 1, N, M yazılır. COMPANY'nin bütün ilişkileri aşağıdaki tabloda.</p>
   </div>
   <div>
     <h3>Participation constraint (katılım kısıtı)</h3>
@@ -102,11 +94,8 @@
     </ul>
   </div>
 </div>
-<div class="callout key">
-  <p>Kardinalite oranı ve katılım kısıtı birlikte bir ilişkinin <strong>yapısal kısıtları</strong>dır (<em>structural constraints</em>). Kardinalite <em>en çok</em>u, katılım <em>en az</em>ı söyler. Bu ikisini tek bir gösterimde birleştiren alternatif: <strong>(min, max)</strong>.</p>
-</div>
 <h3>(min, max) gösterimi</h3>
-<p>E'nin R'ye her katılımı için bir (min, max) çifti: 0 ≤ min ≤ max, max ≥ 1. E'deki her varlık, R'nin en az min, en çok max örneğine katılır. <strong>min = 0 → partial</strong>, <strong>min ≥ 1 → total</strong>.</p>
+<p>Kardinalite <em>en çok</em>u, katılım <em>en az</em>ı söyler; ikisi birlikte ilişkinin <strong>yapısal kısıtları</strong>dır. (min, max) ikisini tek gösterimde birleştirir: E'nin R'ye her katılımı için bir (min, max) çifti: 0 ≤ min ≤ max, max ≥ 1. E'deki her varlık, R'nin en az min, en çok max örneğine katılır. <strong>min = 0 → partial</strong>, <strong>min ≥ 1 → total</strong>.</p>
 <div id="minmax"></div>
 <div class="callout gotcha">
   <p><strong>Okuma yönü tuzağı.</strong> 1:N gösteriminde N, "karşı taraftaki" varlıkların sayısıdır: EMPLOYEE —N— WORKS_FOR —1— DEPARTMENT, "bir departmanda N çalışan, bir çalışan 1 departmanda" diye okunur. (min,max) gösteriminde ise sayı, <em>kendi tarafındaki</em> varlığın katılımıdır: EMPLOYEE (1,1) — WORKS_FOR — (1,N) DEPARTMENT. Bu yüzden N:1 bir ilişkinin (min,max) diyagramında "N" tarafı <em>tersine</em> döner. Sınavda iki gösterim arasında çeviri sorulabilir.</p>
@@ -142,7 +131,6 @@
 
 <h2>Daha yüksek dereceli ilişkiler</h2>
 <div id="ternary"></div>
-<p class="small"><a href="er-studio.html#example=supply">SUPPLY örneğini stüdyoda açın</a>: üçlü ilişkinin tek bir tabloya (PK = üç foreign key) dönüştüğünü görün.</p>
 <ul>
   <li>Üçlü bir ilişki, üç ikili ilişkiyle <em>genellikle aynı bilgiyi taşımaz</em>: CAN_SUPPLY(s,p), USES(j,p), SUPPLIES(s,j) doğru olsa bile s'nin j'ye p'yi sağladığı sonucu çıkmaz.</li>
   <li>Bazen üçlü ilişki, <em>zayıf bir varlık</em> ve üç tanımlayıcı ilişkiyle gösterilir (SUPPLY'ı bir entity type yapıp üç sahibe bağlamak).</li>
@@ -160,8 +148,15 @@
   <p><strong>Alternatif gösterimler.</strong> Kitap UML sınıf diyagramlarını da gösterir: varlık = sınıf (öznitelikler kutunun içinde), ilişki = <em>association</em>, (min,max) yerine <em>multiplicity</em> (0..1, 1..*, *); zayıf varlık = <em>qualified association</em>; ilişki özniteliği = <em>link attribute</em>. Ayrıca kaz ayağı (crow's foot) gösterimi yaygındır.</p>
 </div>
 
-<div class="callout try">
-  <p><strong>Kendiniz çizin.</strong> <a href="er-studio.html#exercise=library">ER stüdyosundaki alıştırmalar</a> gereksinim metninden bir ER diyagramı çizmenizi istiyor; çiziminiz çözümle otomatik karşılaştırılır (varlıklar, anahtarlar, zayıf varlıklar, kardinalite, katılım).</p>
+<h2>Stüdyoda deneyin</h2>
+<p>Bu sayfadaki şemalar ER stüdyosunda açılıp değiştirilebilir; tablolara dönüşümleri de orada adım adım görünür. Alıştırmalarda gereksinim metninden kendi diyagramınızı çizersiniz ve çiziminiz çözümle otomatik karşılaştırılır.</p>
+<div class="btn-row">
+  <a class="btn" href="er-studio.html#example=company">COMPANY</a>
+  <a class="btn" href="er-studio.html#example=bank">BANK</a>
+  <a class="btn" href="er-studio.html#example=university">UNIVERSITY</a>
+  <a class="btn" href="er-studio.html#example=supply">SUPPLY (üçlü ilişki)</a>
+  <a class="btn primary" href="er-studio.html#exercise=library">Alıştırma: Kütüphane</a>
+  <a class="btn primary" href="er-studio.html#exercise=hospital">Alıştırma: Hastane</a>
 </div>
 
 <h2>Kendinizi sınayın</h2>

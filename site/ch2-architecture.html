@@ -88,11 +88,11 @@ DROP INDEX emp_lname_idx;
 </pre>
 <pre class="sql run" data-title="Mantıksal bağımsızlık: view, kavramsal şemadaki değişikliği gizler">
 -- an external schema for a user group: name and department name only
-CREATE VIEW EMP_DEPT AS
+CREATE OR REPLACE VIEW EMP_DEPT AS
   SELECT E.Fname, E.Lname, D.Dname
   FROM   EMPLOYEE E JOIN DEPARTMENT D ON E.Dno = D.Dnumber;
 -- the conceptual schema changes: a new column
-ALTER TABLE EMPLOYEE ADD COLUMN Email VARCHAR(40);
+ALTER TABLE EMPLOYEE ADD COLUMN IF NOT EXISTS Email VARCHAR(40);   -- IF NOT EXISTS: rerunnable
 -- programs that use the view do not notice
 SELECT * FROM EMP_DEPT WHERE Dname = 'Research';
 </pre>

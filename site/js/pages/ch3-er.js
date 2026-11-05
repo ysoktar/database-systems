@@ -45,7 +45,7 @@ part.style.margin = "0";
 lg.append(comp, part);
 put("legend", lg);
 
-put("company-er", erFigure(COMPANY_ER, "COMPANY ER şeması (kitapta Figure 3.2). Çift çizgi = total participation, çift dikdörtgen/eşkenar dörtgen = zayıf varlık ve tanımlayıcı ilişkisi; SUPERVISION recursive bir ilişkidir (rol adları: supervisor, supervisee)."));
+put("company-er", erFigure(COMPANY_ER, "COMPANY ER şeması (Figure 3.2). Semboller için yukarıdaki gösterim tablosuna bakın."));
 
 // ---- relationship instances drawn from the Figure 5.6 data
 const EMPS = ["Smith", "Wong", "Zelaya", "Wallace", "Narayan", "English", "Jabbar", "Borg"];
@@ -73,7 +73,7 @@ if (relHost) {
     const usedR = new Set(R.pairs.map((p) => p[1]));
     let s = `<svg viewBox="0 0 620 ${H}" role="img" aria-label="${name} ilişki örnekleri">
       <style>.ri-t{font-size:12px;fill:var(--text);dominant-baseline:middle}.ri-d{fill:var(--s1)}.ri-d.off{fill:var(--surface-3);stroke:var(--axis)}.ri-r{fill:var(--s2)}.ri-r.off{fill:var(--surface-3);stroke:var(--axis)}
-      .ri-l{stroke:var(--text-2);stroke-width:1.2}.ri-h{font-size:11px;font-weight:700;fill:var(--muted);letter-spacing:.05em}.ri-x{fill:rgba(235,104,52,.12);stroke:var(--text-2)}</style>
+      .ri-l{stroke:var(--text-2);stroke-width:1.2}.ri-h{font-size:11px;font-weight:700;fill:var(--muted);letter-spacing:.05em;text-anchor:middle}.ri-x{fill:rgba(235,104,52,.12);stroke:var(--text-2)}</style>
       <text class="ri-h" x="80" y="12">EMPLOYEE</text><text class="ri-h" x="520" y="12">${name === "WORKS_ON" ? "PROJECT" : "DEPARTMENT"}</text>
       <text class="ri-h" x="310" y="12">${name}</text>`;
     R.pairs.forEach(([i, j], k) => {
@@ -101,8 +101,8 @@ put("minmax", erFigure({
     { id: "W", type: "rel", x: 320, y: 60, label: "WORKS_FOR" },
     { id: "D", type: "entity", x: 550, y: 60, label: "DEPARTMENT" },
   ],
-  links: [{ a: "W", b: "E", card: "(1,1)", cardSide: -12 }, { a: "W", b: "D", card: "(4,N)", cardSide: -12 }],
-}, "(min, max) gösterimi: her EMPLOYEE, WORKS_FOR'a en az 1 en çok 1 kez katılır (1,1); her DEPARTMENT en az 4 en çok N kez katılır (4,N). Dikkat: (min,max) değeri <em>kendi varlığının yanına</em> yazılır, 1:N gösteriminin tersine.", { small: true }));
+  links: [{ a: "W", b: "E", card: "(1,1)", cardSide: -12, cardAtEntity: true }, { a: "W", b: "D", card: "(4,N)", cardSide: -12, cardAtEntity: true }],
+}, "(min, max) gösterimi: EMPLOYEE (1,1), DEPARTMENT (4,N); her çift kendi varlığının yanında.", { small: true }));
 
 // ---- ternary relationship
 put("ternary", erFigure({
@@ -115,4 +115,4 @@ put("ternary", erFigure({
     { id: "q", type: "attr", x: 320, y: 10, label: "Quantity", of: "SU" },
   ],
   links: [{ a: "SU", b: "S", card: "M" }, { a: "SU", b: "P", card: "N" }, { a: "SU", b: "PA", card: "P" }],
-}, "Üçlü (ternary) ilişki: SUPPLY(s, j, p) = \"s tedarikçisi j projesine p parçasını sağlıyor\" (Figure 3.17). Üç ikili ilişki (CAN_SUPPLY, USES, SUPPLIES) bunu aynı anlamla ifade edemez.", { small: true }));
+}, "Üçlü ilişki SUPPLY (Figure 3.17): s tedarikçisi j projesine p parçasını sağlıyor.", { small: true }));

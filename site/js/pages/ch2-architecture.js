@@ -22,7 +22,7 @@ $("#three-schema").innerHTML = `
   <rect class="ts-box" x="430" y="12" width="110" height="34" rx="4"/><text class="ts-t" x="485" y="29">External view n</text>
   <text class="ts-t" x="330" y="64" style="font-size:10.5px;fill:var(--text-2)">son kullanıcılar ve programlar</text>
   <path class="ts-a" d="M175,50 L300,124"/><path class="ts-a" d="M305,50 L320,124"/><path class="ts-a" d="M485,50 L340,124"/>
-  <text class="ts-m" x="370" y="96">external/conceptual mapping</text>
+  <text class="ts-m" x="408" y="100">external/conceptual mapping</text>
   <rect class="ts-band" x="0" y="118" width="560" height="60" rx="8"/>
   <text class="ts-lvl" x="10" y="134">CONCEPTUAL LEVEL</text>
   <rect class="ts-box" x="230" y="128" width="180" height="38" rx="4"/><text class="ts-t" x="320" y="147">Conceptual schema</text>
@@ -35,7 +35,7 @@ $("#three-schema").innerHTML = `
   <path d="M270,298 h100 v18 a50,8 0 0 1 -100,0z" class="ts-box"/><ellipse cx="320" cy="298" rx="50" ry="7" class="ts-box"/>
   <text class="ts-t" x="320" y="314" style="font-size:10.5px">Stored database</text>
 </svg>
-<figcaption>Üç-şema mimarisi (kitapta Figure 2.2). Oklar düzeyler arası <em>mapping</em>'lerdir; veri bağımsızlığı, bir düzeyin değişikliğini mapping'i güncelleyerek üst düzeyden gizlemektir.</figcaption>
+<figcaption>Üç-şema mimarisi (Figure 2.2). Oklar düzeyler arası mapping'lerdir.</figcaption>
 </figure>`;
 
 $("#tiers").innerHTML = `

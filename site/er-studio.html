@@ -31,9 +31,6 @@
 
 <h2 id="to-tables">2 · ER → Tablolar</h2>
 <p>Yukarıdaki diyagram, kitabın <strong>Ch 9 eşleme algoritmasıyla</strong> (Elmasri &amp; Navathe 9.1–9.2) tablolara dönüştürülür. Diyagramı değiştirdikçe sonuç da güncellenir. Her adım hangi kuralın uygulandığını ve nedenini söyler.</p>
-<div class="callout key">
-  <p><strong>Algoritmanın özeti.</strong> 1: regular entity → tablo, anahtar → PK. 2: weak entity → tablo + sahibin PK'sı (FK); PK = sahibin PK'sı + partial key. 3: 1:1 → total tarafa FK (UNIQUE). 4: 1:N → N tarafına FK. 5: M:N → yeni tablo, PK = iki FK. 6: multivalued → yeni tablo, PK = sahip PK + değer. 7: n-ary → yeni tablo. 8: specialization → 8A/8B/8C/8D. 9: category → yapay anahtar (anahtarlar farklıysa).</p>
-</div>
 <div class="btn-row" style="align-items:center">
   <label class="small" for="spec-opt">Specialization seçeneği (Adım 8):</label>
   <select id="spec-opt">

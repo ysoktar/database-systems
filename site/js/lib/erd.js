@@ -34,7 +34,14 @@ function boundary(n, tx, ty) {
 }
 
 export function drawER(spec) {
-  const svg = el("svg", { viewBox: `0 0 ${spec.width} ${spec.height}`, role: "img", "aria-label": spec.title || "ER diagram" });
+  // the view box covers the requested canvas and every shape (a node close to an edge is never clipped)
+  let x0 = 0, y0 = 0, x1 = spec.width, y1 = spec.height;
+  for (const n of spec.nodes) {
+    const { w, h } = size(n);
+    x0 = Math.min(x0, n.x - w / 2 - 4); y0 = Math.min(y0, n.y - h / 2 - 4);
+    x1 = Math.max(x1, n.x + w / 2 + 4); y1 = Math.max(y1, n.y + h / 2 + 4);
+  }
+  const svg = el("svg", { viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, role: "img", "aria-label": spec.title || "ER diagram" });
   if (spec.title) svg.append(el("title", {}, spec.title));
   const byId = new Map(spec.nodes.map((n) => [n.id, n]));
   const gLinks = el("g"), gNodes = el("g"), gLabels = el("g");

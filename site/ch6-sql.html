@@ -17,7 +17,7 @@
 <p class="lead">SQL (Structured Query Language) hem DDL hem DML'dir: şemayı tanımlar, veriyi sorgular ve günceller. Bu sayfadaki sorgular kitabın Ch 6 örnekleridir (Q0, Q1, …); hepsini değiştirip çalıştırabilirsiniz.</p>
 
 <div class="callout note">
-  <p><strong>Terim eşlemesi:</strong> SQL'de <em>table</em> = ilişki, <em>row</em> = tuple, <em>column</em> = öznitelik. SQL tablosu bir <em>küme</em> değil, bir <strong>multiset</strong>'tir (bag): aynı satır birden çok kez bulunabilir.</p>
+  <p><strong>Terim eşlemesi:</strong> SQL'de <em>table</em> = ilişki, <em>row</em> = tuple, <em>column</em> = öznitelik. Bir fark: SQL tabloları küme değil multiset'tir (<a href="#tablolar-multiset-tir-all-ve-distinct">aşağıda</a>).</p>
 </div>
 
 <h2>Veri tanımlama (DDL)</h2>
@@ -87,7 +87,8 @@ CREATE TABLE DEPT_LOCATIONS
   <li><strong>Kısıtlara ad verme</strong>: <code>CONSTRAINT EMPPK PRIMARY KEY (Ssn)</code>. Ad, kısıtı daha sonra <code>DROP</code> etmek ya da değiştirmek için kullanılır.</li>
   <li><strong>Tuple tabanlı CHECK</strong>: tablo tanımının sonunda, bir satırın birden çok sütununa dair: <code>CHECK (Dept_create_date &lt;= Mgr_start_date)</code>. Her satır eklendiğinde ya da değiştiğinde kontrol edilir.</li>
 </ul>
-<pre class="sql run" data-title="CHECK, DEFAULT ve UNIQUE kısıtları iş başında">
+<pre class="sql run" data-expect-error data-title="CHECK, DEFAULT ve UNIQUE kısıtları iş başında">
+DROP TABLE IF EXISTS demo.DEPT_NEW;   -- so that the box can be run again
 CREATE TABLE demo.DEPT_NEW
 ( Dname            VARCHAR(15)  NOT NULL UNIQUE,
   Dnumber          INT          PRIMARY KEY CHECK (Dnumber > 0 AND Dnumber < 21),
@@ -151,7 +152,7 @@ SELECT * FROM EMPLOYEE WHERE Dno = 5;
 SELECT * FROM EMPLOYEE, DEPARTMENT WHERE Dname = 'Research' AND Dno = Dnumber;
 </pre>
 
-<h3>Tablolar multiset'tir: ALL ve DISTINCT</h3>
+<h3 id="tablolar-multiset-tir-all-ve-distinct">Tablolar multiset'tir: ALL ve DISTINCT</h3>
 <p>SQL tekrarları kendiliğinden silmez: tekrar silmek pahalıdır (sıralama gerekir), kullanıcı tekrarları görmek isteyebilir ve aggregate fonksiyonlarda (ör. ortalama) tekrarlar önemlidir.</p>
 <pre class="sql run" data-title="Q11 ve Q11A · Maaşlar: tekrarlarla ve tekrarsız">
 SELECT ALL Salary FROM EMPLOYEE;        -- ALL is the default
@@ -213,15 +214,8 @@ ORDER BY D.Dname DESC, E.Lname ASC, E.Fname ASC;
 </pre>
 <p>Varsayılan sıra <code>ASC</code>'dir. Her sütunun kendi yönü vardır: <code>ORDER BY D.Dname DESC, E.Lname</code>'de DESC yalnızca Dname içindir.</p>
 
-<h3>Sorgunun parçaları ve değerlendirme sırası</h3>
-<p>Temel bir SQL sorgusunun en fazla dört kısmı vardır (Ch 7'de GROUP BY ve HAVING eklenecek):</p>
-<pre class="sql">
-SELECT   &lt;attribute list&gt;
-FROM     &lt;table list&gt;
-[ WHERE  &lt;condition&gt; ]
-[ ORDER BY &lt;attribute list&gt; ];
-</pre>
-<p>Kavramsal olarak önce <strong>FROM</strong> (tabloların çarpımı), sonra <strong>WHERE</strong> (koşulu sağlayan satırlar), sonra <strong>SELECT</strong> (sütunlar ve gerekirse DISTINCT), en son <strong>ORDER BY</strong> değerlendirilir. DBMS'in gerçek yürütme planı farklıdır ama sonuç bu sıraya göre tanımlanır.</p>
+<h3>Değerlendirme sırası</h3>
+<p>Kavramsal olarak önce <strong>FROM</strong>, sonra <strong>WHERE</strong>, sonra <strong>SELECT</strong>, en son <strong>ORDER BY</strong> değerlendirilir; DBMS'in gerçek yürütme planı farklı olabilir ama sonuç bu sıraya göre tanımlanır. GROUP BY ve HAVING eklenmiş tam sıra, adım adım gösterimle <a href="ch7-joins.html#kavramsal-degerlendirme-sirasi">Ch 7'de</a>.</p>
 
 <h2>Güncelleme: INSERT, DELETE, UPDATE</h2>
 <h3>INSERT</h3>
@@ -240,6 +234,7 @@ VALUES ('Robert', 'Hatcher', 2);
 </pre>
 <p>Bir sorgunun sonucu da eklenebilir (U3A/U3B): geçici bir tablo oluşturup doldurmak.</p>
 <pre class="sql run" data-title="U3A ve U3B · Sorgu sonucunu yeni bir tabloya eklemek">
+DROP TABLE IF EXISTS WORKS_ON_INFO;   -- so that the box can be run again
 CREATE TABLE WORKS_ON_INFO
 ( Emp_name      VARCHAR(15),
   Proj_name     VARCHAR(15),

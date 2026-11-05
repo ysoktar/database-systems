@@ -47,6 +47,10 @@ export function renderItems(out, items) {
       if (it.hint) lines.push(`Hint: ${it.hint}`);
       if (it.total > 1) lines.push(`(Kutudaki ${it.total} komutun ${it.index}. komutu; kalanlar çalıştırılmadı.)`);
       if (it.rolledBack) lines.push("Hata yüzünden açık transaction geri alındı (ROLLBACK).");
+      // objects that already exist (or are already gone) usually mean the box changed the database on an earlier run
+      if (!it.expected && ["42P07", "42710", "42701", "42P01", "42703", "42704", "23505"].includes(it.code)) {
+        lines.push("İpucu: bu kutu ya da sayfadaki başka bir kutu veritabanını daha önce değiştirmiş olabilir. \"Veritabanını sıfırla\" ile COMPANY'yi ilk hâline döndürüp tekrar deneyin.");
+      }
       out.append(h("div", { class: `res-msg ${it.expected ? "expected" : "error"}` }, lines.join("\n")));
     }
   }
@@ -105,7 +109,7 @@ export function createSqlBox(opts = {}) {
   }
   const head = h("div", { class: "sqlbox-head" }, h("div", { class: "sqlbox-title", html: opts.title || "SQL" }), actions);
   const box = h("div", { class: "sqlbox" }, head, editor, out);
-  if (opts.foot !== false) box.append(h("div", { class: "sqlbox-foot" }, "Düzenleyebilirsiniz · Ctrl+Enter ile çalıştırın · tarayıcınızdaki gerçek PostgreSQL üzerinde"));
+  if (opts.foot !== false) box.append(h("div", { class: "sqlbox-foot" }, opts.note ? `${opts.note} ` : "", "Düzenleyebilirsiniz · Ctrl+Enter ile çalıştırın · tarayıcınızdaki gerçek PostgreSQL üzerinde"));
 
   async function run() {
     const text = ta.value;
@@ -114,6 +118,7 @@ export function createSqlBox(opts = {}) {
     if (state !== "ready") out.replaceChildren(loadingLine());
     let res;
     try {
+      if (opts.setup) await runSQL(opts.setup); // prerequisites (e.g. a view defined in an earlier box), output not shown
       res = await runSQL(text, { expectError: !!opts.expectError });
     } catch (e) {
       out.replaceChildren(h("div", { class: "res-msg error" }, "PostgreSQL başlatılamadı: " + (e?.message || e)));
@@ -165,8 +170,11 @@ export function enhanceSQL(root = document) {
     p.dataset.ready = "1";
     const code = dedent(p.textContent);
     if (p.classList.contains("run")) {
+      const setupFrom = p.dataset.setup ? document.getElementById(p.dataset.setup) : null;
+      const setup = setupFrom ? (setupFrom.getCode ? setupFrom.getCode() : dedent(setupFrom.textContent)) : null;
       const box = createSqlBox({
-        code, title: p.dataset.title, expectError: p.hasAttribute("data-expect-error"),
+        code, title: p.dataset.title, expectError: p.hasAttribute("data-expect-error"), setup,
+        note: setupFrom ? `Önce "${setupFrom.dataset?.title || (setupFrom.querySelector?.(".sqlbox-title")?.textContent ?? "")}" kutusunun kodu sessizce çalıştırılır.` : null,
         rows: Number(p.dataset.rows) || undefined,
         saveKey: p.id ? `sql:${document.body.dataset.page}:${p.id}` : null,
       });
