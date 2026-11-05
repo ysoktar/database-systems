@@ -11,6 +11,10 @@ BIL372/BIL071 Veritabanı Sistemleri (TOBB ETÜ, 2026–2027 Güz) için etkile�
   kontrolcüsü `site/js/lib/sqlcore.js`'e taşındı). İpuçları, doğrulanmış çözümler ve alternatifler.
 - **Arasınav rehberi**: bölüm bölüm bilinmesi gerekenler, çözümlü ER/kısıt/anahtar problemleri, otomatik kontrol edilen 8 SQL
   problemi, sık yapılan hatalar ve bütün sayfaların sorularından oluşan bir deneme seti.
+- **ER stüdyosu**: ER/EER diyagramlarını sürükle-bırak ya da metinle çizme (iki görünüm eşitlenir; geri alma, otomatik
+  yerleşim, 1/N ↔ (min,max) gösterimi, SVG/PNG ve paylaşım bağlantısı); diyagramı Ch 9 algoritmasıyla (adım 1–9,
+  özelleştirme seçenekleri 8A–8D) adım adım tablolara dönüştürüp PostgreSQL'de oluşturma; kendi `CREATE TABLE`'larınızı ER
+  diyagramına geri çevirme (reverse engineering); 8 örnek şema ve otomatik kontrol edilen 4 ER tasarım alıştırması.
 - **Araçlar**: SQL laboratuvarı (serbest konsol ve canlı şema tarayıcı), özet kâğıdı ve sözlük, Ch 8 önizlemesi.
 
 Her SQL kutusu, tarayıcıda çalışan gerçek bir PostgreSQL'e bağlıdır: [PGlite](https://pglite.dev/) (PostgreSQL'in WebAssembly
@@ -28,7 +32,8 @@ npm test        # alıştırma çözümleri PostgreSQL'de, site yapısı, SQL ya
 npm run build   # yayınlanacak siteyi dist/ klasörüne yazar
 ```
 
-Testler her model çözümü (notebook'un 10 alıştırması ve alternatifleri, rehberin 8 problemi) PGlite üzerinde çalıştırır ve
+ER testleri her örneği 8A–8D seçenekleriyle eşleyip DDL'i PostgreSQL'de çalıştırır, kitabın COMPANY DDL'ini ER'e geri
+çevirir ve ER → tablo → ER gidiş-dönüşünün yapıyı koruduğunu doğrular. Testler ayrıca her model çözümü (notebook'un 10 alıştırması ve alternatifleri, rehberin 8 problemi) PGlite üzerinde çalıştırır ve
 notebook'un parmak izleriyle karşılaştırır.
 
 ## Yerleşim
@@ -41,6 +46,11 @@ notebook'un parmak izleriyle karşılaştırır.
 | `site/js/lib/sqlbox.js` | düzenlenebilir, çalıştırılabilir SQL kutuları |
 | `site/js/lib/sqlcore.js` | komut ayırma ve notebook'un kontrolcüsü (DOM'suz; testler de kullanır) |
 | `site/js/lib/erd.js` | ER/EER diyagramları (SVG) |
+| `site/js/lib/ermodel.js` | ER modeli ve metin dili (ayrıştırma, doğrulama, geri yazma) |
+| `site/js/lib/ermap.js` | ER/EER → ilişkisel eşleme (Ch 9) ve DDL |
+| `site/js/lib/erreverse.js` | tablolar → ER (katalogdan reverse engineering) |
+| `site/js/lib/erlayout.js`, `ereditor.js` | otomatik yerleşim ve etkileşimli editör |
+| `site/js/lib/er-examples.js`, `er-exercises.js` | örnek şemalar, alıştırmalar ve yapısal karşılaştırma |
 | `site/js/lib/exercises.js`, `exam-problems.js` | notebook alıştırmaları ve rehber problemleri |
 | `test/` | `node --test` testleri |
 | `.github/workflows/pages.yml` | test, build ve GitHub Pages'e yayın |

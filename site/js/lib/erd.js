@@ -58,16 +58,17 @@ export function drawER(spec) {
 
     // cardinality next to the relationship end (whichever end is a diamond), role names along the line
     const relAtA = A.type === "rel", relAtB = B.type === "rel";
-    const placeLabel = (txt, cls, frac, off) => {
-      // segment adjacent to the relationship end
-      const [p, q] = relAtB && !relAtA ? [pts[pts.length - 1], pts[pts.length - 2]] : [pts[0], pts[1]];
+    const placeLabel = (txt, cls, frac, off, atEntity = false) => {
+      // segment adjacent to the relationship end (or to the entity end, for (min,max) labels)
+      const relEnd = relAtB && !relAtA;
+      const [p, q] = relEnd !== atEntity ? [pts[pts.length - 1], pts[pts.length - 2]] : [pts[0], pts[1]];
       const dx = q[0] - p[0], dy = q[1] - p[1], len = Math.hypot(dx, dy) || 1;
       const ux = dx / len, uy = dy / len;
       const along = Math.min(len * frac, 34 + (frac > 0.4 ? 30 : 0));
       const x = p[0] + ux * along - uy * off, y = p[1] + uy * along + ux * off;
       gLabels.append(el("text", { x: x.toFixed(1), y: y.toFixed(1), class: cls }, txt));
     };
-    if (L.card) placeLabel(L.card, "card", 0.3, L.cardSide ?? 9);
+    if (L.card) placeLabel(L.card, "card", 0.3, L.cardSide ?? 9, !!L.cardAtEntity);
     if (L.role) placeLabel(L.role, "lbl", 0.6, L.roleSide ?? -10);
     if (L.subset) {
       // ⊂ on the line from the ISA circle to the subclass, opening towards the circle
@@ -84,7 +85,7 @@ export function drawER(spec) {
 
   for (const n of spec.nodes) {
     const { w, h } = size(n);
-    const g = el("g", { class: { entity: "ent", rel: "rel", attr: "att", isa: "isa" }[n.type] });
+    const g = el("g", { class: { entity: "ent", rel: "rel", attr: "att", isa: "isa" }[n.type] + (spec.selected && spec.selected === n.id ? " sel" : ""), "data-id": n.id });
     if (n.type === "entity") {
       if (n.weak) g.classList.add("weak");
       g.append(el("rect", { x: n.x - w / 2, y: n.y - h / 2, width: w, height: h }));

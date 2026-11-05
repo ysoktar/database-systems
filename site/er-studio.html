@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ER stüdyosu · Veritabanı Sistemleri</title>
+<meta name="description" content="ER/EER diyagramlarını sürükle-bırak ya da metinle çizin, Elmasri Ch 9 algoritmasıyla adım adım tablolara dönüştürün ve PostgreSQL'de oluşturun; kendi CREATE TABLE'larınızı ER diyagramına geri çevirin; gereksinimden ER tasarımı alıştırmaları otomatik kontrol edilir.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/er-studio.js"></script>
+</head>
+<body data-page="er-studio">
+<main><div class="content">
+
+<h1>ER stüdyosu</h1>
+<p class="lead">ER ve EER diyagramlarını çizin, otomatik olarak tablolara dönüştürün, tabloları PostgreSQL'de oluşturun; ya da kendi tablolarınızı yazıp ER diyagramına geri çevirin. Gidiş ve dönüş aynı yerde.</p>
+
+<nav class="studio-nav" aria-label="Stüdyo bölümleri">
+  <a class="btn small" href="#editor">1 · Diyagram</a>
+  <a class="btn small" href="#to-tables">2 · ER → Tablolar</a>
+  <a class="btn small" href="#to-er">3 · Tablolar → ER</a>
+  <a class="btn small" href="#exercises">4 · Alıştırmalar</a>
+  <a class="btn small" href="#syntax">Sözdizimi</a>
+</nav>
+
+<h2 id="editor">1 · Diyagram</h2>
+<p>Bir örnekle başlayın ya da boş bir diyagramla kendinizinkini çizin. Öğelere tıklayıp sağdaki panelden düzenleyin, sürükleyerek yerleştirin. Çalışmanız bu tarayıcıda saklanır.</p>
+<div class="btn-row" id="examples"></div>
+<div id="studio"></div>
+
+<h2 id="to-tables">2 · ER → Tablolar</h2>
+<p>Yukarıdaki diyagram, kitabın <strong>Ch 9 eşleme algoritmasıyla</strong> (Elmasri &amp; Navathe 9.1–9.2) tablolara dönüştürülür. Diyagramı değiştirdikçe sonuç da güncellenir. Her adım hangi kuralın uygulandığını ve nedenini söyler.</p>
+<div class="callout key">
+  <p><strong>Algoritmanın özeti.</strong> 1: regular entity → tablo, anahtar → PK. 2: weak entity → tablo + sahibin PK'sı (FK); PK = sahibin PK'sı + partial key. 3: 1:1 → total tarafa FK (UNIQUE). 4: 1:N → N tarafına FK. 5: M:N → yeni tablo, PK = iki FK. 6: multivalued → yeni tablo, PK = sahip PK + değer. 7: n-ary → yeni tablo. 8: specialization → 8A/8B/8C/8D. 9: category → yapay anahtar (anahtarlar farklıysa).</p>
+</div>
+<div class="btn-row" style="align-items:center">
+  <label class="small" for="spec-opt">Specialization seçeneği (Adım 8):</label>
+  <select id="spec-opt">
+    <option value="8A">8A · üst sınıf + her alt sınıf için tablo (her zaman çalışır)</option>
+    <option value="8B">8B · yalnız alt sınıf tabloları (total gerekir)</option>
+    <option value="8C">8C · tek tablo + tek tip sütunu (disjoint gerekir)</option>
+    <option value="8D">8D · tek tablo + Boolean tip sütunları (overlapping)</option>
+  </select>
+</div>
+<div id="mapping"></div>
+
+<h2 id="to-er">3 · Tablolar → ER</h2>
+<p>Kendi <code>CREATE TABLE</code> komutlarınızı yazın (PRIMARY KEY, FOREIGN KEY ve UNIQUE kısıtlarıyla). Tablolar PostgreSQL'de ayrı bir şemada oluşturulur, kısıtlar katalogdan okunur ve eşleme kurallarının tersiyle bir ER diyagramı çıkarılır. Buna <em>reverse engineering</em> denir.</p>
+<div class="btn-row">
+  <button type="button" class="btn small" id="load-company-ddl">Kitabın COMPANY DDL'i</button>
+  <button type="button" class="btn small" id="load-diagram-ddl">Yukarıdaki diyagramın DDL'i (gidiş-dönüş)</button>
+  <button type="button" class="btn small" id="load-sample-ddl">Küçük örnek: okul</button>
+</div>
+<div id="reverse"></div>
+
+<h2 id="exercises">4 · ER tasarım alıştırmaları</h2>
+<p>Gereksinimleri okuyun, diyagramı yukarıdaki editörde çizin ve <strong>Kontrol et</strong>'e basın. Diyagramınız çözümle yapısal olarak karşılaştırılır: varlıklar, zayıf varlıklar, anahtarlar, öznitelik türleri, ilişkilerin kardinalitesi ve katılımı, özelleştirmeler. İlişki adları serbesttir: ilişkiler bağladıkları varlıklara göre eşleştirilir. Varlık ve öznitelik adları için verilen adları kullanın.</p>
+<div id="exercise-list"></div>
+
+<h2 id="syntax">Sözdizimi</h2>
+<p>Diyagramın metin hâli. Girintili satırlar, üstlerindeki entity ya da relationship'in öznitelikleridir.</p>
+<pre class="sql">
+entity EMPLOYEE                    -- a regular entity type
+  Ssn key                          -- key attribute (underlined)
+  Name(Fname, Minit, Lname)        -- composite attribute
+  Locations multi                  -- multivalued (double ellipse)
+  Age derived                      -- derived (dashed ellipse)
+
+weak entity DEPENDENT              -- weak entity (double rectangle)
+  Dependent_name partial           -- partial key (dashed underline)
+
+relationship WORKS_FOR: EMPLOYEE N total, DEPARTMENT 1 total   -- N:1, both total (double lines)
+relationship WORKS_FOR: EMPLOYEE (1,1), DEPARTMENT (4,N)       -- the same with (min,max)
+  Hours                                                        -- relationship attribute
+identifying relationship DEPENDENTS_OF: EMPLOYEE 1, DEPENDENT N total
+relationship SUPERVISION: EMPLOYEE 1 role=supervisor, EMPLOYEE N role=supervisee   -- recursive
+relationship SUPPLY: SUPPLIER M, PROJECT N, PART P                                 -- ternary
+
+specialization EMPLOYEE -> SECRETARY, ENGINEER disjoint partial on Job_type   -- d / o, total / partial
+specialization EMPLOYEE -> MANAGER                                            -- one subclass
+category OWNER = PERSON | BANK | COMPANY partial                              -- union type
+</pre>
+<ul>
+  <li>Kardinalite: <code>1</code>, <code>N</code>, <code>M</code> (birden çok demek için herhangi bir harf). <code>total</code> yazılmazsa katılım partial'dır.</li>
+  <li><code>(min,max)</code> yazarsanız 1/N etiketleri ve total/partial ondan hesaplanır. Diyagramın altındaki <em>Gösterim</em> seçiciyle iki gösterim arasında geçiş yapabilirsiniz.</li>
+  <li>Alt sınıflar ve kategoriler ayrıca <code>entity</code> olarak yazılmazsa özniteliksiz entity olarak eklenir.</li>
+  <li><code>#</code> ya da <code>--</code> ile başlayan kısımlar açıklamadır.</li>
+</ul>
+
+</div></main>
+</body>
+</html>

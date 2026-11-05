@@ -32,6 +32,7 @@ export const NAV = [
     { id: "ch7-views", title: "Kısıtlar, trigger, view, ALTER", ch: "Ch 7.2–7.4", desc: "ASSERTION, trigger, view ve güncellenebilirlik, şema değişikliği." },
   ] },
   { part: "Uygulama", items: [
+    { id: "er-studio", title: "ER stüdyosu", desc: "ER/EER çiz, tablolara dönüştür, tablolardan ER'e geri dön; tasarım alıştırmaları." },
     { id: "notebook", title: "Notebook alıştırmaları", desc: "Colab notebook'undaki 10 SQL alıştırması, aynı kontrolcüyle." },
     { id: "lab", title: "SQL laboratuvarı", desc: "COMPANY üzerinde serbest sorgu konsolu ve şema tarayıcı." },
   ] },

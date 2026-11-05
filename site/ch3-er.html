@@ -63,6 +63,11 @@
   <li>Sigorta için her çalışanın <strong>bağımlıları</strong> (dependent) tutulur: ad, cinsiyet, doğum tarihi, çalışanla akrabalığı.</li>
 </ol>
 <div id="company-er"></div>
+<div class="btn-row">
+  <a class="btn primary" href="er-studio.html#example=company">Bu şemayı ER stüdyosunda aç ve düzenle</a>
+  <a class="btn" href="er-studio.html#example=company&amp;section=to-tables">Tablolara nasıl dönüşüyor?</a>
+  <a class="btn" href="er-studio.html#example=bank">Başka bir örnek: BANK</a>
+</div>
 <div class="callout look">
   <p>Gereksinimdeki sözcükler diyagrama nasıl dönüştü? "benzersiz" → <u>key</u>; "birden çok yeri" → <em>multivalued</em> <code>Locations</code>; "yönetir" → 1:1 MANAGES ve başlama tarihi ilişkinin özniteliği <code>Start_date</code>; "haftalık saat" → WORKS_ON'un özniteliği <code>Hours</code>; "doğrudan amiri" → EMPLOYEE'nin kendisiyle recursive SUPERVISION ilişkisi; "bağımlıları" → DEPENDENT zayıf varlığı (bir bağımlının adı tek başına benzersiz değildir).</p>
 </div>
@@ -137,6 +142,7 @@
 
 <h2>Daha yüksek dereceli ilişkiler</h2>
 <div id="ternary"></div>
+<p class="small"><a href="er-studio.html#example=supply">SUPPLY örneğini stüdyoda açın</a>: üçlü ilişkinin tek bir tabloya (PK = üç foreign key) dönüştüğünü görün.</p>
 <ul>
   <li>Üçlü bir ilişki, üç ikili ilişkiyle <em>genellikle aynı bilgiyi taşımaz</em>: CAN_SUPPLY(s,p), USES(j,p), SUPPLIES(s,j) doğru olsa bile s'nin j'ye p'yi sağladığı sonucu çıkmaz.</li>
   <li>Bazen üçlü ilişki, <em>zayıf bir varlık</em> ve üç tanımlayıcı ilişkiyle gösterilir (SUPPLY'ı bir entity type yapıp üç sahibe bağlamak).</li>
@@ -152,6 +158,10 @@
 </ul>
 <div class="callout note">
   <p><strong>Alternatif gösterimler.</strong> Kitap UML sınıf diyagramlarını da gösterir: varlık = sınıf (öznitelikler kutunun içinde), ilişki = <em>association</em>, (min,max) yerine <em>multiplicity</em> (0..1, 1..*, *); zayıf varlık = <em>qualified association</em>; ilişki özniteliği = <em>link attribute</em>. Ayrıca kaz ayağı (crow's foot) gösterimi yaygındır.</p>
+</div>
+
+<div class="callout try">
+  <p><strong>Kendiniz çizin.</strong> <a href="er-studio.html#exercise=library">ER stüdyosundaki alıştırmalar</a> gereksinim metninden bir ER diyagramı çizmenizi istiyor; çiziminiz çözümle otomatik karşılaştırılır (varlıklar, anahtarlar, zayıf varlıklar, kardinalite, katılım).</p>
 </div>
 
 <h2>Kendinizi sınayın</h2>

@@ -92,6 +92,14 @@ INSERT INTO WORKS_ON VALUES ('123456789', 3, 1000.0);
 </ul>
 <div id="schema"></div>
 
+<h2>ER şemasından ilişkisel şemaya: COMPANY</h2>
+<p>Ch 3'teki COMPANY ER diyagramı, yukarıdaki altı tabloya nasıl dönüşüyor? Kitabın Ch 9'undaki eşleme algoritması her ER yapısı için bir kural uygular. Arasınav kapsamı Ch 1–7 olduğu için algoritmanın kendisi kapsam dışındadır, ama Ch 3 ile Ch 5'i birbirine bağlar: anahtarlar primary key'e, ilişkiler foreign key'e dönüşür. Sitenin ürettiği sonuç kitaptakiyle aynı yapıdadır; yalnızca sütun adları farklıdır (ör. <code>Dno</code> yerine <code>DEPARTMENT_Number</code>).</p>
+<details class="disclosure">
+  <summary>COMPANY ER → tablolar, adım adım</summary>
+  <div class="disclosure-body" id="company-mapping"></div>
+</details>
+<p class="small"><a href="er-studio.html#example=company&amp;section=to-tables">ER stüdyosunda</a> diyagramı değiştirip sonucun nasıl değiştiğini görebilir ya da kendi tablolarınızı ER'e geri çevirebilirsiniz.</p>
+
 <h2>Güncelleme işlemleri ve kısıt ihlalleri</h2>
 <p>Üç temel güncelleme işlemi vardır: <strong>Insert</strong>, <strong>Delete</strong>, <strong>Update</strong> (Modify). Her biri bazı kısıtları ihlal edebilir. Aşağıdaki kutular kitabın Section 5.3'teki örneklerinin aynısıdır. Hepsini sırayla çalıştırın: DBMS'in hangi kısıtı, hangi mesajla zorladığını göreceksiniz. (Gerektiğinde <em>Veritabanını sıfırla</em>.)</p>
 
