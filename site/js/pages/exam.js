@@ -63,7 +63,7 @@ $("#er-solution").append(erFigure({
     { a: "OFR", b: "CO", card: "N", total: true, cardSide: -10 }, { a: "OFR", b: "DE", card: "1", cardSide: -10 },
     { a: "WI", b: "IN", card: "N", total: true }, { a: "WI", b: "DE", card: "1" },
     { a: "PR", b: "CO", via: [[700, 110]], card: "M", role: "course", roleSide: -12 },
-    { a: "PR", b: "CO", via: [[880, 110]], card: "N", role: "prereq", roleSide: 12 },
+    { a: "PR", b: "CO", via: [[880, 110]], card: "N", role: "prereq", roleSide: -12 },
   ],
 }, "Bir çözüm. SECTION zayıf bir varlık: kısmi anahtarı (Sec_no, Semester, Year), sahibi COURSE. Gpa notlardan türetildiği için kesik elips. Phones çok değerli. PREREQ, COURSE üzerinde recursive bir M:N ilişki (rol adları: course, prereq). Grade, ENROLLS'un özniteliği: ne öğrenciye ne şubeye ait."));
 

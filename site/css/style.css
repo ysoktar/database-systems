@@ -539,9 +539,9 @@ table.rel th .ty { display: block; font-weight: 400; font-size: 0.7rem; color: v
 .er .att.derived ellipse { stroke-dasharray: 4 3; }
 .er .ent rect { fill: var(--accent-wash); }
 .er .rel polygon { fill: rgba(235, 104, 52, 0.10); }
-.er text { fill: var(--text); font-family: var(--font); font-size: 12px; dominant-baseline: middle; text-anchor: middle; }
-.er text.card { font-size: 11px; fill: var(--text-2); font-weight: 650; }
-.er text.lbl { font-size: 10.5px; fill: var(--muted); font-style: italic; }
+.er g text { fill: var(--text); font-family: var(--font); font-size: 12px; dominant-baseline: middle; text-anchor: middle; }
+.er g text.card { font-size: 11px; fill: var(--text-2); font-weight: 650; }
+.er g text.lbl { font-size: 10.5px; fill: var(--muted); font-style: italic; }
 .er line, .er path.link { stroke: var(--text-2); stroke-width: 1.2; fill: none; }
 .er line.total, .er path.total { stroke-width: 1.2; }
 .er line.total-bg { stroke: var(--text-2); stroke-width: 4.2; }
