@@ -80,6 +80,7 @@ EXPLAIN SELECT * FROM EMPLOYEE WHERE Lname = 'Wong';
 -- a change to the internal schema (a new access path)
 CREATE INDEX emp_lname_idx ON EMPLOYEE (Lname);
 SET enable_seqscan = off;   -- the table is tiny; ask PostgreSQL to show the index path
+-- the query plan after: the new index is used
 EXPLAIN SELECT * FROM EMPLOYEE WHERE Lname = 'Wong';
 -- the same query still gives the same answer
 SELECT Fname, Lname FROM EMPLOYEE WHERE Lname = 'Wong';
