@@ -144,7 +144,7 @@ function buildFooter() {
 
 /** "Key idea", "Gotcha", … boxes get their label and icon; hints and answers get a reveal button. */
 export function enhanceCallouts(root) {
-  const LABELS = { look: "Dikkat edin", discuss: "Düşünün", key: "Ana fikir", gotcha: "Tuzak", try: "Deneyin", note: "Not", why: "Neden önemli", connect: "Bağlantılar", example: "Çözümlü örnek" };
+  const LABELS = { look: "Dikkat edin", discuss: "Düşünün", key: "Ana fikir", gotcha: "Tuzak", try: "Deneyin", note: "Not", why: "Neden önemli", connect: "Bağlantılar", example: "Çözümlü örnek", goals: "Bu sayfanın sonunda yapabilmeniz gerekenler" };
   for (const c of $$(".callout", root)) {
     const kind = Object.keys(LABELS).find((k) => c.classList.contains(k)) || "note";
     if (!c.querySelector(".callout-label")) {

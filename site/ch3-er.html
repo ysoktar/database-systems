@@ -16,6 +16,15 @@
 <h1>ER modeli</h1>
 <p class="lead">Entity-Relationship (ER) modeli, gereksinimleri <em>kavramsal şema</em>ya çeviren yüksek düzey bir veri modelidir: gerçek dünyayı varlıklar, onların öznitelikleri ve aralarındaki ilişkilerle anlatır.</p>
 
+<div class="callout goals">
+  <ul>
+    <li>Bir gereksinim metninden varlıkları, öznitelikleri (türleriyle) ve anahtarları çıkarmak.</li>
+    <li>İlişkileri bulup her biri için kardinaliteyi (1:1, 1:N, M:N) ve katılımı (total/partial) belirlemek; aynı kısıtı (min,max) ile de yazmak.</li>
+    <li>Zayıf varlığı, partial key'i ve tanımlayıcı ilişkiyi tanıyıp doğru çizmek.</li>
+    <li>Bir ilişki özniteliğinin hangi varlığa taşınabileceğine karar vermek; üçlü ilişkiyi üç ikiliden ayırmak.</li>
+  </ul>
+</div>
+
 <h2>Veritabanı tasarım süreci</h2>
 <ol>
   <li><strong>Requirements collection and analysis</strong>: veri gereksinimleri ve fonksiyonel gereksinimler (kullanıcı işlemleri).</li>
@@ -177,6 +186,16 @@
 </div>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="1">
+  <p>"Her öğrenci en az bir, en çok altı derse kaydolur; bir derse hiç öğrenci kaydolmayabilir ya da birçok öğrenci kaydolabilir." STUDENT —ENROLLS— COURSE için doğru (min,max) çifti hangisidir?</p>
+  <ol>
+    <li data-why="Doğru: her öğrenci 1–6 kayıt örneğine katılır, her ders 0–N.">STUDENT (1,6), COURSE (0,N)</li>
+    <li data-why="(min,max) her varlığın kendi katılımını yazar; sayılar karşı tarafa yazılmış.">STUDENT (0,N), COURSE (1,6)</li>
+    <li data-why="Öğrenci tarafının üst sınırı 6, N değil; (min,max) bunu ifade edebilir, 1:N gösterimi edemez.">STUDENT (1,N), COURSE (0,N)</li>
+    <li data-why="Bir derse hiç öğrenci kaydolmayabilir: COURSE'un min'i 0, yani partial.">STUDENT (1,6), COURSE (1,N)</li>
+  </ol>
+  <div class="explain">Önce bir öğrenciyi düşünün: kaç ENROLLS örneğine katılır? En az 1, en çok 6 → (1,6), total. Sonra bir dersi: en az 0, en çok çok → (0,N), partial. Kardinalite oranı M:N'dir (iki taraf da birden çok).</div>
+</div>
 <div class="quiz" data-answer="2">
   <p>Bir öğrencinin birden çok telefon numarası olabiliyor. ER diyagramında <code>Phone</code> nasıl çizilmelidir?</p>
   <ol>

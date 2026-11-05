@@ -16,6 +16,15 @@
 <h1>Temel SQL</h1>
 <p class="lead">SQL (Structured Query Language) hem DDL hem DML'dir: şemayı tanımlar, veriyi sorgular ve günceller. Bu sayfadaki sorgular kitabın Ch 6 örnekleridir (Q0, Q1, …); hepsini değiştirip çalıştırabilirsiniz.</p>
 
+<div class="callout goals">
+  <ul>
+    <li>COMPANY'nin bir tablosunu CREATE TABLE ile kısıtlarıyla (PRIMARY KEY, FOREIGN KEY, UNIQUE, NOT NULL, CHECK, DEFAULT) tanımlamak.</li>
+    <li>Türkçe bir soruyu SELECT-FROM-WHERE sorgusuna çevirmek: hangi tablolar, hangi join koşulları, hangi seçim koşulu, hangi sütunlar.</li>
+    <li>Join koşulunu unutmanın (kartezyen çarpım), DISTINCT'in ve küme işlemlerinin sonuca etkisini önceden söylemek.</li>
+    <li>LIKE, BETWEEN, ORDER BY, takma ad (alias) ve INSERT/UPDATE/DELETE kullanmak.</li>
+  </ul>
+</div>
+
 <div class="callout note">
   <p><strong>Terim eşlemesi:</strong> SQL'de <em>table</em> = ilişki, <em>row</em> = tuple, <em>column</em> = öznitelik. Bir fark: SQL tabloları küme değil multiset'tir (<a href="#tablolar-multiset-tir-all-ve-distinct">aşağıda</a>).</p>
 </div>
@@ -123,12 +132,24 @@ FROM   EMPLOYEE, DEPARTMENT
 WHERE  Dname = 'Research' AND Dnumber = Dno;
 </pre>
 <p><code>Dname = 'Research'</code> bir <strong>selection condition</strong>, <code>Dnumber = Dno</code> bir <strong>join condition</strong>'dır. Böyle sorgulara <em>select-project-join</em> sorgusu denir.</p>
+<p>Join koşulunu bulmak için foreign key'i izleyin: EMPLOYEE.Dno, DEPARTMENT.Dnumber'a başvuruyor (Ch 5'teki şema), o hâlde iki tablo <code>Dno = Dnumber</code> ile bağlanır. Koşul olmasaydı her çalışan her departmanla eşleşirdi (aşağıdaki Q10).</p>
+
+<div class="callout example" data-label="Adım adım: bir soruyu SQL'e çevirmek">
+  <p>Soru (Q2): <em>"Stafford'daki her proje için proje numarasını, kontrol eden departmanın numarasını ve o departmanın yöneticisinin soyadını, adresini ve doğum tarihini listeleyin."</em></p>
+  <ol>
+    <li><strong>Ne isteniyor? → SELECT.</strong> Pnumber, Dnum (PROJECT'te), Lname, Address, Bdate (yöneticinin bilgileri, yani EMPLOYEE'de).</li>
+    <li><strong>Bu bilgiler hangi tablolarda? → FROM.</strong> PROJECT ve EMPLOYEE. Ama proje ile yöneticisi doğrudan bağlı değil: proje bir departmana (Dnum), departman bir yöneticiye (Mgr_ssn) bağlı. Aradaki DEPARTMENT da gerekir: <code>FROM PROJECT, DEPARTMENT, EMPLOYEE</code>.</li>
+    <li><strong>Tablolar nasıl bağlanıyor? → join koşulları.</strong> Her foreign key adımı bir koşul: <code>Dnum = Dnumber</code> (proje → departman), <code>Mgr_ssn = Ssn</code> (departman → yönetici). Üç tablo, iki koşul.</li>
+    <li><strong>Hangi satırlar? → seçim koşulu.</strong> <code>Plocation = 'Stafford'</code>.</li>
+  </ol>
+  <p>Çalıştırmadan önce tahmin edin: Stafford'da kaç proje var ve yöneticileri kim? (PROJECT ve DEPARTMENT tablolarına aşağıdaki kutunun üstünden bakabilirsiniz.)</p>
+</div>
 <pre class="sql run" data-title="Q2 · Stafford'daki her proje: numarası, kontrol eden departman, yöneticinin soyadı, adresi, doğum tarihi">
 SELECT Pnumber, Dnum, Lname, Address, Bdate
 FROM   PROJECT, DEPARTMENT, EMPLOYEE
 WHERE  Dnum = Dnumber AND Mgr_ssn = Ssn AND Plocation = 'Stafford';
 </pre>
-<p>Q2'de iki join koşulu var: <code>Dnum = Dnumber</code> projeyi departmanına, <code>Mgr_ssn = Ssn</code> departmanı yöneticisine bağlar.</p>
+<p>Sonuç: Stafford'daki iki proje (10 Computerization, 30 Newbenefits) 4 numaralı departmana ait; yöneticisi Wallace. Bu dört adım sitedeki bütün SQL sorularında işe yarar; sınavda kâğıt üzerinde de aynı sırayla düşünün.</p>
 
 <h3>Belirsiz adlar, takma adlar (alias), tuple değişkenleri</h3>
 <p>Farklı tablolarda aynı adlı sütunlar olabilir. Belirsizliği gidermek için sütun adı tablo adıyla nitelenir (<em>qualify</em>): <code>EMPLOYEE.Dno</code>. Aynı tablo bir sorguda iki kez geçiyorsa <strong>alias</strong> (tuple variable) zorunludur.</p>
@@ -140,6 +161,7 @@ WHERE  E.Super_ssn = S.Ssn;
 <p>E ve S, EMPLOYEE'nin iki ayrı kopyası gibi düşünülür: E çalışan, S amir rolünde. Bu, tek düzeyli bir <em>recursive query</em>'dir. Borg sonuçta yoktur: amiri NULL olduğu için join koşulu sağlanmaz. Alias'larla sütunlar da yeniden adlandırılabilir: <code>FROM EMPLOYEE AS E(Fn, Mi, Ln, Ssn, Bd, Addr, Sex, Sal, Sssn, Dno)</code> (standart SQL; MySQL bunu temel tablolar için kabul etmez, yalnızca <code>FROM (SELECT …) AS T(a, b)</code> gibi alt sorgularda).</p>
 
 <h3>WHERE yok, * ve kartezyen çarpım</h3>
+<p><strong>Tahmin edin:</strong> EMPLOYEE'de 8, DEPARTMENT'ta 3 satır var. İkinci sorgu kaç satır döndürür?</p>
 <pre class="sql run" data-title="Q9 ve Q10 · WHERE olmayınca: tüm satırlar; iki tablo varsa KARTEZYEN ÇARPIM">
 -- Q9: all Ssn values
 SELECT Ssn FROM EMPLOYEE;
@@ -156,6 +178,7 @@ SELECT * FROM EMPLOYEE, DEPARTMENT WHERE Dname = 'Research' AND Dno = Dnumber;
 
 <h3 id="tablolar-multiset-tir-all-ve-distinct">Tablolar multiset'tir: ALL ve DISTINCT</h3>
 <p>SQL tekrarları kendiliğinden silmez: tekrar silmek pahalıdır (sıralama gerekir), kullanıcı tekrarları görmek isteyebilir ve aggregate fonksiyonlarda (ör. ortalama) tekrarlar önemlidir.</p>
+<p><strong>Tahmin edin:</strong> sekiz çalışanın maaşları 30000, 40000, 25000, 43000, 38000, 25000, 25000, 55000. İki sorgu kaçar satır döndürür?</p>
 <pre class="sql run" data-title="Q11 ve Q11A · Maaşlar: tekrarlarla ve tekrarsız">
 SELECT ALL Salary FROM EMPLOYEE;        -- ALL is the default
 SELECT DISTINCT Salary FROM EMPLOYEE;   -- each value once
@@ -172,6 +195,7 @@ UNION
  FROM   PROJECT, WORKS_ON, EMPLOYEE
  WHERE  Pnumber = Pno AND Essn = Ssn AND Lname = 'Smith');
 </pre>
+<p><strong>Tahmin edin:</strong> çalışanlar 1, 4 ve 5 numaralı departmanlarda; projeler 1, 4 ve 5 tarafından kontrol ediliyor. Her sorgunun sonucu ne olur? UNION ALL tekrarları tutar, INTERSECT ve EXCEPT tekrarları siler.</p>
 <pre class="sql run" data-title="UNION ALL, INTERSECT ve EXCEPT farkı">
 SELECT Dno FROM EMPLOYEE  UNION ALL  SELECT Dnumber FROM DEPARTMENT;   -- 8 + 3 = 11 rows
 SELECT Dno FROM EMPLOYEE  INTERSECT  SELECT Dnum FROM PROJECT;         -- departments with employees AND projects
@@ -261,14 +285,14 @@ DELETE FROM EMPLOYEE WHERE Lname = 'Brown';
 -- remove the rows that reference the employees we delete below (WORKS_ON, DEPENDENT have no CASCADE)
 DELETE FROM WORKS_ON WHERE Essn = '123456789';
 DELETE FROM DEPENDENT WHERE Essn = '123456789';
--- U4B
+-- U4B: nothing else references Smith now (he manages no department and supervises nobody)
 DELETE FROM EMPLOYEE WHERE Ssn = '123456789';
 SELECT COUNT(*) AS employees_left FROM EMPLOYEE;   -- COUNT(*): the number of rows (aggregates: Ch 7)
 </pre>
 
 <h3>UPDATE</h3>
 <pre class="sql run" data-title="U5 ve U6 · Tek satır ve çok satır güncelleme">
--- U5: ProductX moves to Bellaire and is controlled by department 5
+-- U5: project 10 (Computerization) moves to Bellaire and is controlled by department 5
 UPDATE PROJECT
 SET    Plocation = 'Bellaire', Dnum = 5
 WHERE  Pnumber = 10;
@@ -278,9 +302,43 @@ SET    Salary = Salary * 1.1
 WHERE  Dno = 5;
 SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
 </pre>
-<p>Atamanın sağ tarafındaki <code>Salary</code> eski değerdir, sol taraf yeni değeri alır. <code>SET</code> NULL ya da <code>DEFAULT</code> atayabilir. UPDATE bir seferde tek bir tabloyu değiştirir; PK değişirse FK'lar için <code>ON UPDATE</code> eylemleri tetiklenir.</p>
+<p>Research'teki dört maaş 30000, 40000, 38000, 25000'den 33000, 44000, 41800, 27500'e çıkar. Atamanın sağ tarafındaki <code>Salary</code> eski değerdir, sol taraf yeni değeri alır. <code>SET</code> NULL ya da <code>DEFAULT</code> atayabilir. UPDATE bir seferde tek bir tabloyu değiştirir; PK değişirse FK'lar için <code>ON UPDATE</code> eylemleri tetiklenir.</p>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3" data-tables="EMPLOYEE WORKS_ON PROJECT">
+  <p>"ProductX'te çalışanların soyadları" için FROM'a <code>EMPLOYEE, WORKS_ON, PROJECT</code> yazdınız. WHERE'de en az kaç join koşulu gerekir?</p>
+  <ol>
+    <li data-why="Tek koşul yalnızca iki tabloyu bağlar; üçüncü tablo kartezyen çarpımla eklenir ve her satır gereksiz yere çoğalır.">1</li>
+    <li data-why="Üç tablo için üç koşul fazla değildir ama gerekmez: zincir iki halkayla kurulur (EMPLOYEE–WORKS_ON, WORKS_ON–PROJECT). 'En az' soruluyor.">3</li>
+    <li data-why="Doğru: n tablo için genellikle n − 1 join koşulu: Ssn = Essn ve Pno = Pnumber. Ayrıca bir seçim koşulu: Pname = 'ProductX'.">2</li>
+    <li data-why="Join koşulu olmadan FROM'daki üç tablonun kartezyen çarpımı alınır: 8 × 16 × 6 = 768 satır, çoğu anlamsız.">0; WHERE'de yalnızca Pname = 'ProductX' yeter</li>
+  </ol>
+  <div class="explain">FROM'daki tabloları foreign key'lerle bir zincir gibi bağlayın: EMPLOYEE.Ssn = WORKS_ON.Essn ve WORKS_ON.Pno = PROJECT.Pnumber. Üç tablo, iki halka. Sonra seçim koşulu: Pname = 'ProductX'. Sonuç Smith ve English.</div>
+  <pre class="sql run" data-title="Kontrol edin">SELECT Lname
+FROM   EMPLOYEE, WORKS_ON, PROJECT
+WHERE  Ssn = Essn AND Pno = Pnumber AND Pname = 'ProductX';</pre>
+</div>
+<div class="quiz" data-answer="2">
+  <p><code>ORDER BY Dno DESC, Salary</code> neyi ifade eder?</p>
+  <ol>
+    <li data-why="DESC yalnızca hemen önündeki sütuna aittir; Salary için yön yazılmadığı için varsayılan ASC kullanılır.">Önce Dno'ya, sonra Salary'ye göre, ikisi de büyükten küçüğe</li>
+    <li data-why="Doğru: DESC yalnızca Dno'ya aittir; aynı Dno içindekiler Salary'ye göre artan sıralanır.">Dno büyükten küçüğe; aynı Dno'dakiler Salary'ye göre küçükten büyüğe</li>
+    <li data-why="Sütunların sırası önemlidir: ilk sütun asıl sıralamayı, ikincisi yalnızca eşitlikleri belirler.">Önce Salary'ye, sonra Dno'ya göre</li>
+    <li data-why="ORDER BY birden çok sütun alabilir ve her biri kendi yönünü taşır; bu geçerli bir yazımdır.">Sözdizimi hatası; her sütuna yön yazılmalı</li>
+  </ol>
+  <div class="explain">Her sıralama sütununun kendi yönü vardır ve varsayılan ASC'dir. Önce Dno'ya göre azalan sıralanır; Dno'ları eşit olan satırlar Salary'ye göre artan sıralanır.</div>
+</div>
+<div class="quiz" data-answer="4" data-tables="EMPLOYEE DEPARTMENT">
+  <p><code>SELECT Dno FROM EMPLOYEE UNION SELECT Dnumber FROM DEPARTMENT;</code> kaç satır döndürür? (Çalışanların Dno değerleri: 5, 5, 4, 4, 5, 5, 4, 1; departmanlar: 5, 4, 1.)</p>
+  <ol>
+    <li data-why="11, UNION ALL'ın sonucu olurdu (8 + 3). UNION tekrarları siler.">11</li>
+    <li data-why="8 yalnızca ilk sorgunun satır sayısıdır; UNION iki sonucu birleştirir ve tekrarları atar.">8</li>
+    <li data-why="UNION birleşimdir: iki taraftan birinde olan her değer sonuçta bir kez yer alır. Sonuç ancak iki taraf da boşsa boş olur.">0</li>
+    <li data-why="Doğru: iki tarafta da yalnızca 1, 4 ve 5 var; UNION bunları birer kez bırakır.">3</li>
+  </ol>
+  <div class="explain">UNION küme birleşimidir: {5, 4, 1} ∪ {5, 4, 1} = {1, 4, 5}, üç satır. Tekrarları korumak için UNION ALL yazılır (11 satır).</div>
+</div>
+
 <div class="quiz" data-answer="2">
   <p>COMPANY'nin ilk hâlinde (EMPLOYEE 8 satır, bunların 4'ü 5 numaralı departmanda; DEPARTMENT 3 satır) aşağıdaki sorgu kaç satır döndürür? Tabloların satırlarını görmek için aşağıdaki tablo adlarına tıklayabilirsiniz.</p>
   <pre class="sql">SELECT Lname FROM EMPLOYEE, DEPARTMENT WHERE Dno = 5;</pre>

@@ -16,6 +16,15 @@
 <h1>Veritabanı ve DBMS</h1>
 <p class="lead">Veritabanı nedir, onu yöneten yazılım (DBMS) ne iş görür ve "veritabanı yaklaşımı" eski dosya tabanlı yaklaşımdan neden farklıdır?</p>
 
+<div class="callout goals">
+  <ul>
+    <li>Veritabanı, DBMS ve database system'i birbirinden ayırmak; DBMS'in dört işlevini (define, construct, manipulate, share) örnekle anlatmak.</li>
+    <li>Dosya tabanlı yaklaşımın bir sorununu verip DBMS'in onu hangi özelliğiyle çözdüğünü söylemek (redundancy → kontrollü tekrar, …).</li>
+    <li>Bir kullanıcıyı tarif edip hangi aktör olduğunu (DBA, casual, naive/parametric, sophisticated, …) belirlemek.</li>
+    <li>DBMS kullanmanın anlamsız olduğu bir durumu gerekçesiyle tanımak.</li>
+  </ul>
+</div>
+
 <h2>Temel tanımlar</h2>
 <table class="simple">
   <thead><tr><th>Terim</th><th>Tanım</th></tr></thead>
@@ -126,6 +135,16 @@ ORDER BY TABLE_NAME;
 </ul>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="4">
+  <p>Bir kütüphane sistemi için şunlar yapılıyor: (a) "KİTAP'ın ISBN, Başlık, Yazar alanları vardır" diye tanımlamak, (b) 20 000 kitabı sisteme girmek, (c) "2020'den sonra basılan kitapları listele", (d) öğrencilerin ve görevlilerin aynı anda kullanması. Bunlar sırasıyla DBMS'in hangi işlevleridir?</p>
+  <ol>
+    <li data-why="Construct ile define karışmış: tanım yapmak define, veriyi kaydetmek construct'tır.">construct, define, manipulate, share</li>
+    <li data-why="(c) bir sorgudur: manipulate. Protection güvenlik ve yetkilendirmedir.">define, construct, protection, share</li>
+    <li data-why="(d) eşzamanlı ve çok kullanıcılı erişimdir: share. Maintenance sistemin zaman içinde değişen gereksinimlere uyarlanmasıdır.">define, construct, manipulate, maintenance</li>
+    <li data-why="Doğru: tanımlamak define, veriyi kaydetmek construct, sorgulamak manipulate, birlikte kullanmak share.">define, construct, manipulate, share</li>
+  </ol>
+  <div class="explain">Define: yapıyı ve kısıtları belirtmek (meta-data). Construct: veriyi depolama ortamına kaydetmek. Manipulate: sorgulamak, güncellemek, rapor üretmek. Share: birçok kullanıcının ve programın aynı anda erişmesi.</div>
+</div>
 <div class="quiz" data-answer="3">
   <p>Bir şirketin her departmanı çalışan bilgilerini kendi dosyasında tutuyor; bir çalışanın adresi değişince bazı dosyalar güncelleniyor, bazıları güncellenmiyor. Bu, hangi sorunun doğrudan sonucudur?</p>
   <ol>

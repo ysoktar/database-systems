@@ -1,5 +1,5 @@
 import { enhanceCallouts } from "../layout.js";
-import { h, $, button } from "../lib/ui.js";
+import { h, $, button, highlightSQL } from "../lib/ui.js";
 import { EXERCISES } from "../lib/exercises.js";
 import { createSqlBox, store, renderItems } from "../lib/sqlbox.js";
 import { runSQL } from "../lib/db.js";
@@ -41,8 +41,13 @@ for (const ex of EXERCISES) {
     h("details", { class: "small muted" }, h("summary", {}, "Notebook'taki İngilizce metin"), h("p", {}, ex.queryEn)),
     h("p", { html: `<strong>Sonuç sütunları (bu sırayla):</strong> ${ex.columns}${ex.ordered ? " · <strong>sıra önemli</strong>" : ""}` }),
   );
-  const hint = h("div", { class: "hint callout note", "data-label": "İpucu", html: `<p>${ex.hint}</p>` });
-  sec.append(hint);
+  // two levels of help: where to look, then the shape of the query with blanks
+  sec.append(h("div", { class: "hint callout note", "data-label": "1. ipucu: nereden başlamalı", html: `<p>${ex.hint}</p>` }));
+  if (ex.skeleton) {
+    const pre = h("pre", { class: "sql" });
+    pre.innerHTML = `<code>${highlightSQL(ex.skeleton)}</code>`;
+    sec.append(h("div", { class: "hint callout note", "data-label": "2. ipucu: sorgunun iskeleti" }, h("p", {}, "Boşlukları (___) doldurun. Önce 1. ipucunu deneyin; iskelete ancak takılırsanız bakın."), pre));
+  }
   const box = createSqlBox({
     title: `Alıştırma ${ex.n} <span class="muted">· cevabınız</span>`,
     code: `-- Exercise ${ex.n} | Your answer\n-- Write your query below this line and run it.\n`,

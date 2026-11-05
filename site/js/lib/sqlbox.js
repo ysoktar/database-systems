@@ -84,6 +84,7 @@ export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow
   }
   el.refresh = () => {
     const ts = tablesIn(getSQL());
+    el.hidden = !ts.length && !alwaysShow;
     if (ts.join() === [...chips.children].map((c) => c.dataset.t).join()) return;
     chips.replaceChildren(...ts.map((t) => h("button", { type: "button", class: "ctx-chip", dataset: { t }, "aria-pressed": "false", title: `${t} tablosunun satırlarını göster`, onclick: () => show(t) }, t)));
     if (open && !ts.includes(open)) show(open);

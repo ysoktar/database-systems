@@ -16,6 +16,15 @@
 <h1>EER modeli</h1>
 <p class="lead">Enhanced ER (EER), ER modeline alt sınıf/üst sınıf ilişkisini ve kalıtımı ekler. Şekiller kitaptaki gösterimle çizilmiştir.</p>
 
+<div class="callout goals">
+  <ul>
+    <li>Alt sınıf / üst sınıf ve kalıtımı bir örnekle açıklamak; specialization ile generalization'ı ayırmak.</li>
+    <li>Bir gereksinimden özelleştirme kısıtlarını (disjoint/overlapping, total/partial) belirleyip doğru çizmek.</li>
+    <li>Predicate-, attribute- ve user-defined alt sınıfları ayırmak.</li>
+    <li>Shared subclass (lattice) ile category'yi (union type) üyelik ve kalıtım açısından karşılaştırmak.</li>
+  </ul>
+</div>
+
 <h2>Neden EER?</h2>
 <p>COMPANY'de bütün çalışanlar tek bir EMPLOYEE tipindedir. Şimdi şirketin şunları da tutmak istediğini düşünün: sekreterlerin yazma hızı, mühendislerin mühendislik türü, saatlik çalışanların saat ücreti; ayrıca yalnızca mühendislerin projelere teknik lider olabildiği. ER ile iki kötü seçenek var:</p>
 <ul>
@@ -123,6 +132,16 @@
 </div>
 
 <h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3">
+  <p>Bir hastanede her PERSONEL ya DOKTOR ya HEMŞİRE ya da İDARİ görevlidir; aynı kişi iki görevde birden olamaz ve bunların dışında personel yoktur. Bu özelleştirme nasıl çizilir?</p>
+  <ol>
+    <li data-why="'İki görevde birden olamaz' disjoint demektir (d), overlapping değil.">Dairede o, üst sınıftan daireye çift çizgi</li>
+    <li data-why="'Bunların dışında personel yoktur' total demektir: üst sınıftan daireye çift çizgi gerekir.">Dairede d, üst sınıftan daireye tek çizgi</li>
+    <li data-why="Doğru: disjoint (d) ve total (çift çizgi): her personel tam olarak bir alt sınıfta.">Dairede d, üst sınıftan daireye çift çizgi</li>
+    <li data-why="Category (∪) farklı üst sınıfların birleşimidir; burada tek bir üst sınıf (PERSONEL) alt sınıflara ayrılıyor.">∪ dairesiyle bir category</li>
+  </ol>
+  <div class="explain">İki soru: bir kişi iki alt sınıfta birden olabilir mi? Hayır → d. Hiçbir alt sınıfta olmayan personel olabilir mi? Hayır → total, çift çizgi.</div>
+</div>
 <div class="quiz" data-answer="3">
   <p>Bir üniversitede her kişi ya öğrenci ya personel ya da ikisidir; kişiler ayrıca ikisinden hiçbiri olmayabilir (mezunlar). PERSON → {STUDENT, STAFF} özelleştirmesinin kısıtları nedir?</p>
   <ol>
