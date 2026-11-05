@@ -26,7 +26,7 @@ bir ada tıklamak o tablonun satırlarını açar. Sınama sorularında her seç
 ### MySQL motoru
 
 `engine/build.sh` go-mysql-server'ı (v0.20.0) `GOOS=js GOARCH=wasm` ile derler; bağımlılıklar vendor'lanır ve MySQL'in
-davranışına yaklaştırmak için birkaç yerinden yamalanır (ayrıntılar betikte): `ONLY_FULL_GROUP_BY` (hata 1055), correlated
+davranışına yaklaştırmak için birkaç yerinden yamalanır (ayrıntılar betikte): `ONLY_FULL_GROUP_BY` (hata 1055) ve primary key üzerinden fonksiyonel bağımlılık, correlated
 `UNION/EXCEPT` içeren `EXISTS`, NULL döndüren alt sorguyla `NOT IN`, varsayılan collation (`utf8mb4_0900_ai_ci`), DATE'in
 metin hâli. `site/js/lib/mysql.js` motoru başlatır ve `x > ALL (…)` / `x = ANY (…)` gibi karşılaştırmaları, motorun
 ayrıştırıcısı desteklemediği için eşdeğer `EXISTS` biçimlerine çevirir. Bilinen eksikler: view üzerinden güncelleme yok,
