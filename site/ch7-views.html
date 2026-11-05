@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kısıtlar, trigger, view, ALTER · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 7.2–7.4: CREATE ASSERTION, trigger'lar (ECA kuralları), view'lar ve güncellenebilirlik, WITH CHECK OPTION, view'ların gerçekleştirilmesi, DROP ve ALTER ile şema değişikliği; PostgreSQL üzerinde çalıştırılabilir örneklerle.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/layout.js"></script>
+</head>
+<body data-page="ch7-views">
+<main><div class="content">
+
+<h1>Kısıtlar, trigger, view, ALTER</h1>
+<p class="lead">Ch 7'nin ikinci yarısı: tabloların ötesine geçen genel kısıtlar (assertion), olaylara tepki veren kurallar (trigger), sanal tablolar (view) ve var olan bir şemayı değiştirmek (DROP, ALTER).</p>
+
+<h2>Assertion: genel kısıtlar (7.2.1)</h2>
+<p><code>CREATE ASSERTION</code>, tek bir tabloya bağlı olmayan, deklaratif bir kısıttır. Bir ad ve bir <code>CHECK</code> koşulu alır; koşul, veritabanının <em>her</em> durumunda TRUE olmalıdır. Kalıp: "ihlal eden satırları bulan bir sorgu yaz, başına <code>NOT EXISTS</code> koy."</p>
+<pre class="sql">
+-- "An employee's salary must not be greater than the salary of the manager of the department
+--  that the employee works for."
+CREATE ASSERTION SALARY_CONSTRAINT
+CHECK ( NOT EXISTS ( SELECT *
+                     FROM   EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
+                     WHERE  E.Salary > M.Salary
+                       AND  E.Dno = D.Dnumber
+                       AND  D.Mgr_ssn = M.Ssn ) );
+</pre>
+<ul>
+  <li>DBMS, veritabanını bu koşulu ihlal edecek şekilde değiştiren her işlemi reddeder.</li>
+  <li><strong>CHECK (öznitelik / tuple / domain)</strong> ile farkı: CHECK yalnızca ilgili satır eklendiğinde ya da değiştiğinde kontrol edilir. Bu yüzden başka tablolara bakan koşullar için güvenilir değildir. Assertion ise her zaman geçerli olmalıdır. Mümkünse CHECK tercih edilir, çünkü daha verimli uygulanır.</li>
+  <li>Assertion'ı pek az DBMS destekler; PostgreSQL de desteklemez. Aynı kural uygulamada trigger ile zorlanır. Ama assertion'ın içindeki sorgu her DBMS'te çalışır: boş dönmesi kuralın sağlandığı anlamına gelir.</li>
+</ul>
+<pre class="sql run" data-title="Assertion'ın koşulu: ihlal eden satır var mı?">
+SELECT E.Lname AS employee, E.Salary, M.Lname AS manager, M.Salary AS mgr_salary
+FROM   EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
+WHERE  E.Salary > M.Salary AND E.Dno = D.Dnumber AND D.Mgr_ssn = M.Ssn;
+-- now break the rule and look again
+UPDATE EMPLOYEE SET Salary = 45000 WHERE Lname = 'Narayan';
+SELECT E.Lname AS employee, E.Salary, M.Lname AS manager, M.Salary AS mgr_salary
+FROM   EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
+WHERE  E.Salary > M.Salary AND E.Dno = D.Dnumber AND D.Mgr_ssn = M.Ssn;
+</pre>
+
+<h2>Trigger'lar (7.2.2)</h2>
+<p>Bir trigger, belirli olaylar gerçekleşince ve belirli koşullar sağlanınca yapılacak bir eylemi tanımlar: <strong>ECA kuralı</strong> (Event–Condition–Action).</p>
+<ol>
+  <li><strong>Event</strong> (olay): genellikle bir güncelleme işlemi: <code>INSERT</code>, <code>DELETE</code>, <code>UPDATE</code> (ya da belirli sütunlarda <code>UPDATE OF Salary, Super_ssn</code>). Zamanlama: <code>BEFORE</code>, <code>AFTER</code> (ya da <code>INSTEAD OF</code>).</li>
+  <li><strong>Condition</strong> (koşul): <code>WHEN</code> ile; isteğe bağlı. Koşul yoksa olay gerçekleşince eylem çalışır; varsa yalnızca koşul TRUE ise.</li>
+  <li><strong>Action</strong> (eylem): genellikle bir SQL komut dizisi ya da bir stored procedure çağrısı.</li>
+</ol>
+<p><code>FOR EACH ROW</code> (<em>row-level</em>): etkilenen her satır için bir kez; <code>NEW</code> ve <code>OLD</code> o satırın yeni ve eski hâli. <code>FOR EACH STATEMENT</code>: komut başına bir kez. Kitaptaki örnek (Oracle sözdizimine yakın):</p>
+<pre class="sql">
+-- R5: inform the supervisor whenever an employee's salary becomes greater than the supervisor's
+CREATE TRIGGER SALARY_VIOLATION
+BEFORE INSERT OR UPDATE OF Salary, Super_ssn ON EMPLOYEE
+FOR EACH ROW
+WHEN ( NEW.Salary > ( SELECT Salary FROM EMPLOYEE WHERE Ssn = NEW.Super_ssn ) )
+  INFORM_SUPERVISOR(NEW.Super_ssn, NEW.Ssn);
+</pre>
+<p>PostgreSQL'de eylem önce bir fonksiyon olarak yazılır, trigger o fonksiyonu çağırır. Aşağıda aynı trigger: amirine bilgi vermek yerine bir NOTICE yazıyor ve olayı bir tabloya kaydediyor.</p>
+<pre class="sql run" data-title="SALARY_VIOLATION, PostgreSQL'de çalışan hâliyle">
+CREATE TABLE demo.SALARY_LOG (Super_ssn CHAR(9), Ssn CHAR(9), New_salary DECIMAL(10,2), At TIMESTAMP);
+
+CREATE OR REPLACE FUNCTION inform_supervisor() RETURNS trigger AS $$
+BEGIN
+  INSERT INTO demo.SALARY_LOG VALUES (NEW.Super_ssn, NEW.Ssn, NEW.Salary, LOCALTIMESTAMP);
+  RAISE NOTICE 'Supervisor % informed: % now earns %', NEW.Super_ssn, NEW.Ssn, NEW.Salary;
+  RETURN NEW;            -- BEFORE trigger: return the row to be written
+END $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER SALARY_VIOLATION
+BEFORE INSERT OR UPDATE OF Salary, Super_ssn ON EMPLOYEE
+FOR EACH ROW
+WHEN ( NEW.Salary > 40000 )     -- PostgreSQL does not allow subqueries in WHEN: the full test is below
+EXECUTE FUNCTION inform_supervisor();
+
+-- Smith (supervisor Wong, 40000) gets a raise to 42000: the trigger fires
+UPDATE EMPLOYEE SET Salary = 42000 WHERE Ssn = '123456789';
+SELECT * FROM demo.SALARY_LOG;
+</pre>
+<p class="small muted">PostgreSQL trigger'ın <code>WHEN</code> koşulunda alt sorguya izin vermez. Bu yüzden amirle karşılaştırma koşulu, gerçek uygulamada fonksiyonun içine (<code>IF NEW.Salary &gt; (SELECT …) THEN …</code>) yazılır.</p>
+<div class="callout key">
+  <p><strong>Trigger'ların kullanım alanları:</strong> kısıtları zorlamak (assertion'ların yerine), türetilmiş verileri güncel tutmak (ör. DEPARTMENT'a eklenmiş bir <code>Total_sal</code> sütunu: kitaptaki R1–R4 kuralları), kullanıcıları bir durumdan haberdar etmek, materialized view'ları güncel tutmak, denetim kaydı (audit log).</p>
+</div>
+
+<h2>View'lar (7.3)</h2>
+<p>Bir <strong>view</strong>, başka tablolardan türetilen tek bir tablodur: <em>virtual table</em>. Genellikle fiziksel olarak saklanmaz. Sık sorulan karmaşık sorguları basitleştirmek, güvenlik (kullanıcıya yalnızca bazı sütunları göstermek) ve mantıksal veri bağımsızlığı için kullanılır.</p>
+<pre class="sql run" data-title="V1 ve V2 · İki view tanımı ve QV1 sorgusu">
+CREATE VIEW WORKS_ON1 AS
+  SELECT Fname, Lname, Pname, Hours
+  FROM   EMPLOYEE, PROJECT, WORKS_ON
+  WHERE  Ssn = Essn AND Pno = Pnumber;
+
+CREATE VIEW DEPT_INFO (Dept_name, No_of_emps, Total_sal) AS
+  SELECT   Dname, COUNT(*), SUM(Salary)
+  FROM     DEPARTMENT, EMPLOYEE
+  WHERE    Dnumber = Dno
+  GROUP BY Dname;
+
+-- QV1: a view is queried like a table
+SELECT Fname, Lname FROM WORKS_ON1 WHERE Pname = 'ProductX';
+SELECT * FROM DEPT_INFO;
+</pre>
+<p>View <strong>her zaman günceldir</strong>: temel tablolar değişince view'un sonucu da değişir. View tanımlanırken değil, sorgulanırken hesaplanır. (Ch 6'daki WORKS_ON_INFO kopyasıyla karşılaştırın.)</p>
+<pre class="sql run" data-title="View güncel kalır">
+UPDATE EMPLOYEE SET Dno = 1 WHERE Lname = 'English';
+SELECT * FROM DEPT_INFO;          -- Research lost one employee, Headquarters gained one
+</pre>
+
+<h3>View'lar nasıl gerçekleştirilir?</h3>
+<ul>
+  <li><strong>Query modification</strong>: view'a yapılan sorgu, temel tablolar üzerinde bir sorguya çevrilir (QV1 → WORKS_ON1'in tanımıyla birleştirilmiş bir sorgu). Dezavantajı: karmaşık view'lar sık sorgulanırsa her seferinde yeniden hesaplanır.</li>
+  <li><strong>View materialization</strong>: view ilk sorgulandığında fiziksel olarak saklanır (<em>materialized view</em>) ve temel tablolar değiştikçe güncellenir. Güncelleme stratejileri: <em>immediate</em> (temel tablo değişir değişmez), <em>lazy</em> (view sorgulanınca), <em>periodic</em> (belli aralıklarla, kısa süreli güncel olmama kabul edilir). Verimli güncellemeye <em>incremental update</em> denir.</li>
+</ul>
+
+<h3>View'lar üzerinden güncelleme</h3>
+<p>Bir view'a INSERT/UPDATE/DELETE, temel tablolarda karşılığı olan güncellemelere çevrilebiliyorsa mümkündür. Genel kurallar:</p>
+<ul>
+  <li><strong>Tek tablolu, aggregate'siz</strong> ve temel tablonun primary key'ini (ve NOT NULL/DEFAULT'suz sütunlarını) içeren view <strong>güncellenebilir</strong>: her view satırı tam bir temel tablo satırına karşılık gelir.</li>
+  <li><strong>Birden çok tablo üzerinde join</strong> içeren view'larda güncelleme genellikle <strong>belirsizdir</strong>: aynı view güncellemesi birden çok farklı temel tablo güncellemesiyle yapılabilir.</li>
+  <li><strong>Gruplama ve aggregate</strong> içeren view'lar güncellenemez: <code>DEPT_INFO.Total_sal</code>'ı değiştirmenin temel tablolarda tek bir anlamı yoktur.</li>
+  <li>SQL'de güncellenebilir olması amaçlanan bir view'a <code>WITH CHECK OPTION</code> eklenir: view üzerinden yapılan ekleme ve güncellemeler view'un koşulunu sağlamak zorundadır, yoksa reddedilir.</li>
+</ul>
+<pre class="sql run" data-title="UV1 · Join'li bir view'u güncellemek: hangi tablo değişsin?">
+-- Smith moves from ProductX to ProductY? or ProductX is renamed? Ambiguous:
+UPDATE WORKS_ON1 SET Pname = 'ProductY'
+WHERE  Lname = 'Smith' AND Fname = 'John' AND Pname = 'ProductX';
+</pre>
+<p>PostgreSQL bu güncellemeyi reddeder: join içeren view'lar otomatik güncellenebilir değildir. Kitap iki olası çeviri verir: (a) WORKS_ON'da Smith'in Pno'sunu ProductY'ninkine çevirmek (amaçlanan), (b) PROJECT'te ProductX'in adını ProductY yapmak (projenin diğer çalışanları için de görünür değişiklik; yanlış).</p>
+<pre class="sql run" data-title="Tek tablolu view: güncellenebilir; WITH CHECK OPTION ihlali reddeder">
+CREATE VIEW DEPT5_EMPS AS
+  SELECT Ssn, Fname, Lname, Salary, Dno
+  FROM   EMPLOYEE
+  WHERE  Dno = 5
+  WITH CHECK OPTION;
+UPDATE DEPT5_EMPS SET Salary = Salary + 1000 WHERE Lname = 'Wong';   -- fine: one base row
+SELECT * FROM DEPT5_EMPS;
+UPDATE DEPT5_EMPS SET Dno = 4 WHERE Lname = 'Wong';                 -- would leave the view: rejected
+</pre>
+<p>View'ların başka kullanımları: <strong>yetkilendirme</strong> (kullanıcıya yalnızca view üzerinde izin vermek: bir departmanın çalışanları ya da maaşsız bir EMPLOYEE görünümü) ve inline view'lar (FROM içinde tanımlanan view'lar). View'u kaldırmak için <code>DROP VIEW WORKS_ON1;</code></p>
+
+<h2>Şema değişikliği (7.4)</h2>
+<h3>DROP</h3>
+<ul>
+  <li><code>DROP SCHEMA COMPANY CASCADE;</code> şemayı ve içindeki her şeyi siler. <code>RESTRICT</code>: yalnızca şema boşsa siler.</li>
+  <li><code>DROP TABLE DEPENDENT CASCADE;</code> tabloyu ve ona başvuran bütün kısıtları ve view'ları siler. <code>RESTRICT</code>: tabloya bir FK ya da view başvuruyorsa silmeyi reddeder.</li>
+  <li><code>DROP TABLE</code> tablonun tanımını da siler; yalnızca satırları silmek için <code>DELETE</code>.</li>
+</ul>
+<pre class="sql run" data-title="RESTRICT ve CASCADE">
+CREATE VIEW DEP_VIEW AS SELECT Essn, Dependent_name FROM DEPENDENT;
+-- RESTRICT: the view depends on DEPENDENT, so the drop is refused (the error stops this box)
+DROP TABLE DEPENDENT RESTRICT;
+</pre>
+<pre class="sql run" data-title="… ve CASCADE ile">
+DROP TABLE DEPENDENT CASCADE;     -- also drops DEP_VIEW (see the NOTICE)
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'company' ORDER BY 1;
+</pre>
+
+<h3>ALTER</h3>
+<p>Bir tablonun tanımını değiştirir: sütun ekleme/çıkarma, sütun tanımını değiştirme, kısıt ekleme/çıkarma.</p>
+<pre class="sql run" data-title="ALTER TABLE örnekleri">
+-- add a column: existing rows get NULL (or the DEFAULT); NOT NULL is only allowed with a DEFAULT
+ALTER TABLE COMPANY.EMPLOYEE ADD COLUMN Job VARCHAR(12);
+UPDATE EMPLOYEE SET Job = 'Engineer' WHERE Dno = 5;
+SELECT Lname, Dno, Job FROM EMPLOYEE ORDER BY Dno;
+-- change a default, drop a default
+ALTER TABLE COMPANY.DEPARTMENT ALTER COLUMN Mgr_ssn DROP DEFAULT;
+ALTER TABLE COMPANY.DEPARTMENT ALTER COLUMN Mgr_ssn SET DEFAULT '333445555';
+-- drop a named constraint, then a column
+ALTER TABLE COMPANY.EMPLOYEE DROP CONSTRAINT EMPSUPERFK CASCADE;
+ALTER TABLE COMPANY.EMPLOYEE DROP COLUMN Address CASCADE;
+SELECT column_name FROM information_schema.columns
+WHERE  table_schema = 'company' AND table_name = 'employee' ORDER BY ordinal_position;
+</pre>
+<p><code>DROP COLUMN</code> için <code>CASCADE</code> (sütuna başvuran kısıt ve view'lar da silinir) ya da <code>RESTRICT</code> (başvuran yoksa silinir) seçilmelidir. Kısıtı kaldırabilmek için <em>adı olmalıdır</em>: Ch 6'da kısıtlara ad vermenin nedeni budur.</p>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p><code>CREATE VIEW V AS SELECT Dno, AVG(Salary) AS Avg_sal FROM EMPLOYEE GROUP BY Dno;</code> view'u için hangisi doğrudur?</p>
+  <ol>
+    <li><code>UPDATE V SET Avg_sal = 40000 WHERE Dno = 5</code> geçerlidir; DBMS maaşları orantılı artırır.</li>
+    <li>V güncellenemez, çünkü aggregate içeriyor; ama sorgulanabilir ve her zaman günceldir.</li>
+    <li>V tanımlandığı anın verisini saklar; sonraki değişiklikleri göstermez.</li>
+    <li>V'ye <code>WITH CHECK OPTION</code> eklenirse güncellenebilir olur.</li>
+  </ol>
+  <div class="explain">Bir ortalamayı değiştirmenin temel tablolarda tek bir karşılığı yoktur. View sorgulandığında yeniden hesaplanır (query modification), bu yüzden hep günceldir. WITH CHECK OPTION, güncellenebilir view'larda koşulu zorlar; güncellenemezi güncellenebilir yapmaz.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>"Bir çalışanın maaşı amirininkini geçemez" kuralı neden bir <em>tuple CHECK</em> ile güvenilir biçimde zorlanamaz?</p>
+  <ol>
+    <li>CHECK, sayısal karşılaştırma yapamaz.</li>
+    <li>CHECK yalnızca primary key'lerde kullanılabilir.</li>
+    <li>CHECK yalnızca o satır eklenince ya da değişince kontrol edilir; amirin maaşı düşürülünce astın satırı kontrol edilmez.</li>
+    <li>CHECK, NULL değerlerde hata verir.</li>
+  </ol>
+  <div class="explain">Kural iki farklı satıra bağlı. Amir satırı değişince ihlal oluşabilir ama ast satırındaki CHECK tetiklenmez. Böyle kurallar assertion ya da trigger ile zorlanır.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Bir trigger'ın üç bileşeni ve sırası hangisidir?</p>
+  <ol>
+    <li>Event, Condition, Action</li>
+    <li>Condition, Event, Action</li>
+    <li>Action, Event, Condition</li>
+    <li>Event, Action, Commit</li>
+  </ol>
+  <div class="explain">ECA: bir olay (INSERT/UPDATE/DELETE) gerçekleşir; koşul (WHEN) TRUE ise eylem çalışır. Koşul isteğe bağlıdır.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p><code>DROP TABLE DEPARTMENT RESTRICT;</code> COMPANY'de ne olur?</p>
+  <ol>
+    <li>DEPARTMENT ve ona başvuran bütün FK'lar silinir.</li>
+    <li>Yalnızca satırlar silinir, tablo tanımı kalır.</li>
+    <li>DEPARTMENT silinir, EMPLOYEE.Dno değerleri NULL olur.</li>
+    <li>Reddedilir: EMPLOYEE, PROJECT ve DEPT_LOCATIONS DEPARTMENT'a başvuruyor.</li>
+  </ol>
+  <div class="explain">RESTRICT, başvuran bir kısıt ya da view varsa silmeyi reddeder. CASCADE olsaydı tablo ve başvuran kısıtlar (FK'lar) silinirdi; başvuran tabloların kendisi silinmez.</div>
+</div>
+
+</div></main>
+</body>
+</html>

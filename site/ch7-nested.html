@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NULL ve iç içe sorgular · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 7.1: NULL ve üç değerli mantık, IS NULL, iç içe sorgular, IN, ANY/SOME/ALL, correlated nested queries, EXISTS ve NOT EXISTS, bölme (her/all) sorguları, UNIQUE, açık kümeler ve yeniden adlandırma.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch7-nested.js"></script>
+</head>
+<body data-page="ch7-nested">
+<main><div class="content">
+
+<h1>NULL ve iç içe sorgular</h1>
+<p class="lead">Ch 7'nin ilk yarısı: NULL'ların karşılaştırmaları nasıl etkilediği (üç değerli mantık), bir sorgunun içinde başka bir sorgu kullanmak, ve SQL'de "her" (∀) sorusunun nasıl sorulacağı.</p>
+
+<h2>NULL ve üç değerli mantık</h2>
+<p>NULL'un üç anlamı vardır: <strong>unknown value</strong> (değer var ama bilinmiyor: doğum tarihi bilinmiyor), <strong>unavailable / withheld value</strong> (var ama saklanıyor: ev telefonu gizli), <strong>not applicable attribute</strong> (uygulanamaz: üniversite mezunu olmayanın <code>LastCollegeDegree</code>'si). SQL bunları ayırt etmez.</p>
+<p>Her NULL farklı kabul edilir; bu yüzden NULL içeren bir karşılaştırmanın sonucu ne TRUE ne FALSE'tur: <strong>UNKNOWN</strong>. SQL bu nedenle üç değerli bir mantık kullanır:</p>
+<div id="tvl"></div>
+<div class="callout key">
+  <p><strong>WHERE yalnızca TRUE olan satırları seçer</strong>; FALSE ve UNKNOWN atılır. Akılda tutmak için: AND'de FALSE "kazanır", OR'da TRUE "kazanır", UNKNOWN ancak sonucu belirleyemezse kalır. <code>NOT UNKNOWN = UNKNOWN</code>.</p>
+</div>
+<h3>IS NULL ve IS NOT NULL</h3>
+<p>Bir değerin NULL olup olmadığını <code>= NULL</code> ile sınayamazsınız (sonuç her zaman UNKNOWN'dur). Bunun için <code>IS NULL</code> / <code>IS NOT NULL</code> kullanılır.</p>
+<pre class="sql run" data-title="Q18 · Amiri olmayan çalışanlar: = NULL ile IS NULL farkı">
+-- wrong: Super_ssn = NULL is UNKNOWN for every row, so no row is returned
+SELECT Fname, Lname FROM EMPLOYEE WHERE Super_ssn = NULL;
+-- right (Q18)
+SELECT Fname, Lname FROM EMPLOYEE WHERE Super_ssn IS NULL;
+</pre>
+<pre class="sql run" data-title="UNKNOWN satırlar hem koşuldan hem tersinden düşer">
+-- Hours is NULL for Borg on project 20
+SELECT COUNT(*) AS more_than_10     FROM WORKS_ON WHERE Hours > 10;
+SELECT COUNT(*) AS not_more_than_10 FROM WORKS_ON WHERE NOT (Hours > 10);
+SELECT COUNT(*) AS all_rows         FROM WORKS_ON;   -- 16, not 9 + 6
+</pre>
+<p class="small muted">Joinlerde de aynı kural geçerlidir: join sütunu NULL olan satırlar iç join'de eşleşmez (Q8'de Borg'un amiri yoktur). NULL'ların aggregate fonksiyonlarda nasıl işlendiği <a href="ch7-joins.html">sonraki sayfada</a>.</p>
+
+<h2>İç içe sorgular (nested queries)</h2>
+<p>Bir sorgunun <code>WHERE</code> (ya da <code>FROM</code>, <code>SELECT</code>) kısmına yazılan tam bir <code>SELECT</code>'e <strong>nested query</strong> (inner query, subquery), onu içeren sorguya <strong>outer query</strong> denir.</p>
+<h3>IN</h3>
+<p><code>v IN V</code>: v değeri V çoklu kümesinin bir elemanı ise TRUE.</p>
+<pre class="sql run" data-title="Q4A · Smith soyadlı birinin çalışan ya da yönetici olarak dahil olduğu projeler (IN ile)">
+SELECT DISTINCT Pnumber
+FROM   PROJECT
+WHERE  Pnumber IN (SELECT Pnumber
+                   FROM   PROJECT, DEPARTMENT, EMPLOYEE
+                   WHERE  Dnum = Dnumber AND Mgr_ssn = Ssn AND Lname = 'Smith')
+   OR  Pnumber IN (SELECT Pno
+                   FROM   WORKS_ON, EMPLOYEE
+                   WHERE  Essn = Ssn AND Lname = 'Smith');
+</pre>
+<p>İç sorgu tek bir sütun ve tek bir satır döndürüyorsa (<em>scalar</em>), <code>IN</code> yerine <code>=</code> kullanılabilir. Tuple'lar da karşılaştırılabilir:</p>
+<pre class="sql run" data-title="Tuple karşılaştırma · 123456789 ile aynı (proje, saat) çiftine sahip çalışanlar">
+SELECT DISTINCT Essn
+FROM   WORKS_ON
+WHERE  (Pno, Hours) IN (SELECT Pno, Hours
+                        FROM   WORKS_ON
+                        WHERE  Essn = '123456789');
+</pre>
+
+<h3>ANY / SOME ve ALL</h3>
+<ul>
+  <li><code>v = ANY V</code> (= <code>SOME</code>): V'de v'ye eşit <em>en az bir</em> eleman varsa TRUE. <code>= ANY</code> ≡ <code>IN</code>.</li>
+  <li><code>v &gt; ALL V</code>: v, V'deki <em>her</em> elemandan büyükse TRUE. V boşsa <code>ALL</code> TRUE, <code>ANY</code> FALSE döner.</li>
+  <li>Diğer operatörler de birleşebilir: <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&lt;&gt;</code>.</li>
+</ul>
+<pre class="sql run" data-title="5 numaralı departmandaki herkesten daha çok kazananlar (ALL)">
+SELECT Lname, Fname, Salary
+FROM   EMPLOYEE
+WHERE  Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5);
+</pre>
+<pre class="sql run" data-title="5 numaralı departmandaki EN AZ BİR kişiden daha çok kazananlar (ANY)">
+SELECT Lname, Fname, Salary
+FROM   EMPLOYEE
+WHERE  Salary > ANY (SELECT Salary FROM EMPLOYEE WHERE Dno = 5);
+</pre>
+<div class="callout gotcha">
+  <p><strong>NOT IN ve NULL tuzağı.</strong> İç sorgu bir NULL döndürürse <code>x NOT IN (…)</code> hiçbir zaman TRUE olamaz: <code>x &lt;&gt; NULL</code> UNKNOWN'dur ve AND'lenince her şeyi UNKNOWN yapar. <code>NOT EXISTS</code> bu sorunu yaşamaz. Aşağıdaki kutuda iki sorgu aynı soruyu sorar ama farklı cevap verir.</p>
+</div>
+<pre class="sql run" data-title="Kimsenin amiri olmayan çalışanlar: NOT IN ve NOT EXISTS">
+-- Super_ssn contains a NULL (Borg), so NOT IN returns nothing
+SELECT Lname FROM EMPLOYEE
+WHERE  Ssn NOT IN (SELECT Super_ssn FROM EMPLOYEE);
+-- NOT EXISTS gives the expected answer
+SELECT Lname FROM EMPLOYEE E
+WHERE  NOT EXISTS (SELECT * FROM EMPLOYEE S WHERE S.Super_ssn = E.Ssn);
+</pre>
+
+<h3>Belirsizlik ve kapsam</h3>
+<p>Nitelenmemiş bir sütun adı, onu içeren <em>en içteki</em> sorgunun tablolarına aittir. İç ve dış sorguda aynı tablo kullanılıyorsa alias kullanmak gerekir. Kural: iç sorguda bir tabloda bulunamayan ad, dışarıdaki tablolarda aranır.</p>
+
+<h2>Correlated nested queries</h2>
+<p>İç sorgunun <code>WHERE</code>'i dış sorgunun bir sütununa başvuruyorsa sorgular <strong>correlated</strong>'dır. İç sorgu, dış sorgunun <em>her satırı için bir kez</em> değerlendirilir (kavramsal olarak).</p>
+<pre class="sql run" data-title="Q16 · Kendisiyle aynı ad ve cinsiyette bir bağımlısı olan çalışanlar">
+SELECT E.Fname, E.Lname
+FROM   EMPLOYEE AS E
+WHERE  E.Ssn IN (SELECT D.Essn
+                 FROM   DEPENDENT AS D
+                 WHERE  E.Fname = D.Dependent_name AND E.Sex = D.Sex);
+</pre>
+<p>Sonuç boş: COMPANY'de böyle bir çalışan yok. Bir tane ekleyip tekrar deneyebilirsiniz: <code>INSERT INTO DEPENDENT VALUES ('123456789', 'John', 'M', '1990-01-01', 'Son');</code>. <code>=</code> ya da <code>IN</code> kullanan, correlated olan ya da olmayan her nested query, tek bir düz (join'li) sorgu olarak da yazılabilir:</p>
+<pre class="sql run" data-title="Q16A · Aynı sorgu, join ile">
+SELECT E.Fname, E.Lname
+FROM   EMPLOYEE AS E, DEPENDENT AS D
+WHERE  E.Ssn = D.Essn AND E.Sex = D.Sex AND E.Fname = D.Dependent_name;
+</pre>
+
+<h2>EXISTS ve NOT EXISTS</h2>
+<p><code>EXISTS (Q)</code>: Q'nun sonucunda <em>en az bir satır</em> varsa TRUE, boşsa FALSE. (İç sorgunun SELECT listesi önemsizdir; geleneksel olarak <code>SELECT *</code> yazılır.) EXISTS hiçbir zaman UNKNOWN döndürmez.</p>
+<pre class="sql run" data-title="Q6 · Hiç bağımlısı olmayan çalışanlar">
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  NOT EXISTS (SELECT *
+                   FROM   DEPENDENT
+                   WHERE  Ssn = Essn);
+</pre>
+<pre class="sql run" data-title="Q7 · En az bir bağımlısı olan yöneticiler">
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  EXISTS (SELECT * FROM DEPENDENT  WHERE Ssn = Essn)
+  AND  EXISTS (SELECT * FROM DEPARTMENT WHERE Ssn = Mgr_ssn);
+</pre>
+
+<h2>Bölme (division): "her ... için"</h2>
+<p>SQL'de evrensel niceleyici (∀, "for all") yoktur. "X, Y'nin <strong>her</strong> elemanıyla ilişkili" soruları iki yolla yazılır:</p>
+<ol>
+  <li><strong>Küme farkı ile</strong>: (Y kümesi) <code>EXCEPT</code> (X'in ilişkili olduğu küme) boş ise. <code>NOT EXISTS ( … EXCEPT … )</code>.</li>
+  <li><strong>Çift olumsuzlama ile</strong>: ∀y P(x, y) ≡ ¬∃y ¬P(x, y). "X'in ilişkili <em>olmadığı</em> bir Y elemanı <em>yoktur</em>": iki iç içe <code>NOT EXISTS</code>.</li>
+</ol>
+<pre class="sql run" data-title="Q3A · 5 numaralı departmanın kontrol ettiği HER projede çalışanlar (EXCEPT ile)">
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  NOT EXISTS ( (SELECT Pnumber
+                     FROM   PROJECT
+                     WHERE  Dnum = 5)
+                    EXCEPT
+                    (SELECT Pno
+                     FROM   WORKS_ON
+                     WHERE  Ssn = Essn) );
+</pre>
+<pre class="sql run" data-title="Q3B · Aynı sorgu, iki NOT EXISTS ile">
+SELECT Lname, Fname
+FROM   EMPLOYEE
+WHERE  NOT EXISTS ( SELECT *
+                    FROM   WORKS_ON B
+                    WHERE  B.Pno IN (SELECT Pnumber
+                                     FROM   PROJECT
+                                     WHERE  Dnum = 5)
+                      AND  NOT EXISTS ( SELECT *
+                                        FROM   WORKS_ON C
+                                        WHERE  C.Essn = Ssn
+                                          AND  C.Pno = B.Pno ) );
+</pre>
+<p>Sonuç boş: COMPANY'de 5 numaralı departmanın üç projesinin (1, 2, 3) hepsinde çalışan kimse yok. Q3B'yi okumak: "(1) WORKS_ON'da 5'in projelerinden birinde çalışan biri (B) var ve (2) bu çalışanın, B'nin projesinde çalıştığını gösteren bir satır (C) yok" koşulunu sağlayan bir B <em>yoksa</em>, çalışanı seç.</p>
+<div class="callout try">
+  <p>Q3A'yı Wong'un sonuçta çıkacağı şekilde değiştirin. Wong 2, 3, 10, 20'de çalışıyor; 1 numaralı projeye bir satır eklerseniz 5'in bütün projelerini kapsar: <code>INSERT INTO WORKS_ON VALUES ('333445555', 1, 5.0);</code> Sonra "her" yerine "4 numaralı departmanın her projesi" (10 ve 30) diye sorun: kimler çıkıyor?</p>
+</div>
+<div class="callout gotcha">
+  <p><strong>Sık yapılan hata:</strong> "her projede" sorusunu <code>WHERE Pno IN (SELECT Pnumber FROM PROJECT WHERE Dnum = 5)</code> ile yazmak. Bu, "<em>en az bir</em> projede" demektir (∃), "her projede" (∀) değil. Sayma yöntemi de çalışır (<code>HAVING COUNT(*) = (SELECT COUNT(*) …)</code>, <a href="notebook.html#ex8">notebook Alıştırma 8</a>) ama tekrarlara ve gruplamaya dikkat ister.</p>
+</div>
+
+<h2>Diğer yapılar</h2>
+<ul>
+  <li><strong>UNIQUE(Q)</strong>: Q'nun sonucunda tekrar eden satır yoksa TRUE (standart SQL; PostgreSQL desteklemez). Bir sorgunun sonucunun küme mi multiset mi olduğunu sınar.</li>
+  <li><strong>Açık kümeler</strong>: <code>WHERE Pno IN (1, 2, 3)</code>.</li>
+  <li><strong>Yeniden adlandırma</strong>: sonuç sütunlarına <code>AS</code> ile yeni ad: <code>SELECT E.Lname AS Employee_name, S.Lname AS Supervisor_name</code> (Q8A).</li>
+</ul>
+<pre class="sql run" data-title="Q17 ve Q8A · Açık küme ve sütun yeniden adlandırma">
+SELECT DISTINCT Essn FROM WORKS_ON WHERE Pno IN (1, 2, 3);
+SELECT E.Lname AS Employee_name, S.Lname AS Supervisor_name
+FROM   EMPLOYEE AS E, EMPLOYEE AS S
+WHERE  E.Super_ssn = S.Ssn;
+</pre>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3">
+  <p>Salary'si NULL olan bir çalışan için <code>WHERE Salary &gt; 30000 OR Dno = 5</code> koşulunun sonucu nedir? (Çalışanın Dno'su 5.)</p>
+  <ol>
+    <li>UNKNOWN; satır seçilmez</li>
+    <li>FALSE; satır seçilmez</li>
+    <li>TRUE; satır seçilir</li>
+    <li>Hata verir</li>
+  </ol>
+  <div class="explain">UNKNOWN OR TRUE = TRUE. OR'da tek bir TRUE yeter. Dno = 4 olsaydı UNKNOWN OR FALSE = UNKNOWN olurdu ve satır seçilmezdi.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p><code>SELECT Lname FROM EMPLOYEE WHERE Dno NOT IN (SELECT Dnum FROM PROJECT WHERE Plocation = 'Houston')</code>. Houston'daki projelerin Dnum'ları 5 ve 1. Sonuçta kimler var?</p>
+  <ol>
+    <li>Hiç kimse, NOT IN her zaman boş döner</li>
+    <li>4 numaralı departmandakiler: Zelaya, Wallace, Jabbar</li>
+    <li>5 ve 1 numaralı departmandakiler</li>
+    <li>Tüm çalışanlar</li>
+  </ol>
+  <div class="explain">İç sorguda NULL olmadığı için NOT IN normal çalışır: Dno ∉ {5, 1}. NOT IN'in boş dönmesi yalnızca iç sorgu NULL içerdiğinde olur.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Hangisi correlated bir nested query'dir?</p>
+  <ol>
+    <li><code>SELECT Lname FROM EMPLOYEE WHERE Dno IN (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research')</code></li>
+    <li><code>SELECT Lname FROM EMPLOYEE WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE)</code></li>
+    <li><code>SELECT Pname FROM PROJECT WHERE Pnumber IN (1, 2, 3)</code></li>
+    <li><code>SELECT Lname FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno)</code></li>
+  </ol>
+  <div class="explain">İç sorgu dış sorgunun <code>E.Dno</code>'suna başvuruyor; her çalışan için kendi departmanının ortalaması yeniden hesaplanır. (2) ise bağımsızdır: bir kez hesaplanır.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>"Bütün projelerde çalışan çalışanlar" için doğru şablon hangisidir?</p>
+  <ol>
+    <li><code>… WHERE NOT EXISTS (SELECT * FROM PROJECT P WHERE NOT EXISTS (SELECT * FROM WORKS_ON W WHERE W.Essn = E.Ssn AND W.Pno = P.Pnumber))</code></li>
+    <li><code>… WHERE EXISTS (SELECT * FROM WORKS_ON W WHERE W.Essn = E.Ssn)</code></li>
+    <li><code>… WHERE E.Ssn IN (SELECT Essn FROM WORKS_ON)</code></li>
+    <li><code>… WHERE NOT EXISTS (SELECT * FROM WORKS_ON W WHERE W.Essn = E.Ssn)</code></li>
+  </ol>
+  <div class="explain">"E'nin çalışmadığı bir proje yoktur": dıştaki NOT EXISTS projeler üzerinde dolaşır, içteki NOT EXISTS "E bu projede çalışmıyor" koşulunu ifade eder. (2) ve (3) "en az bir projede", (4) "hiçbir projede" demektir.</div>
+</div>
+
+</div></main>
+</body>
+</html>

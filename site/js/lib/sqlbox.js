@@ -136,6 +136,14 @@ export function createSqlBox(opts = {}) {
 
   requestAnimationFrame(paint);
   paint();
+  // boxes created inside hidden containers (solutions, closed <details>) have no height yet: repaint when shown
+  if (typeof ResizeObserver !== "undefined") {
+    let lastW = 0;
+    new ResizeObserver((entries) => {
+      const w = entries[0].contentRect.width;
+      if (w && w !== lastW) { lastW = w; paint(); }
+    }).observe(editor);
+  }
   return Object.assign(box, { run, setCode: (c) => { ta.value = c; paint(); }, getCode: () => ta.value, textarea: ta, out });
 }
 

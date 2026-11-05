@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join, gruplama, WITH · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 7.1: joined tables (INNER, NATURAL, OUTER), aggregate fonksiyonlar ve NULL, GROUP BY ve HAVING, WHERE ile HAVING farkı, WITH, CASE, WITH RECURSIVE ve bir SQL sorgusunun kavramsal değerlendirme sırası.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch7-joins.js"></script>
+</head>
+<body data-page="ch7-joins">
+<main><div class="content">
+
+<h1>Join, gruplama, WITH</h1>
+<p class="lead">FROM'da açık join'ler (iç ve dış), aggregate fonksiyonlar, gruplama ve grup koşulları, ara sonuçlar için WITH, koşullu değerler için CASE ve özyinelemeli sorgular.</p>
+
+<h2>Joined tables (açık join)</h2>
+<p>Join koşulunu <code>WHERE</code>'e karıştırmak yerine FROM'da yazmak sorguyu okunur kılar ve dış join'leri mümkün kılar.</p>
+<pre class="sql run" data-title="Q1A · Research'te çalışanlar, JOIN … ON ile">
+SELECT Fname, Lname, Address
+FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
+WHERE  Dname = 'Research';
+</pre>
+<h3>NATURAL JOIN</h3>
+<p>Koşul yazılmaz: iki tabloda <strong>aynı adlı</strong> her sütun çifti için eşitlik koşulu kendiliğinden eklenir ve bu sütunlar sonuçta bir kez görünür. Adlar farklıysa önce yeniden adlandırılır:</p>
+<pre class="sql run" data-title="Q1B · NATURAL JOIN: DEPARTMENT'ın sütunları, EMPLOYEE.Dno ile eşleşecek şekilde yeniden adlandırılıyor">
+SELECT Fname, Lname, Address
+-- the book writes (EMPLOYEE NATURAL JOIN (DEPARTMENT AS DEPT (Dname, Dno, Mssn, Msdate)));
+-- PostgreSQL does not accept the parentheses around a single renamed table, so they are dropped here
+FROM   EMPLOYEE NATURAL JOIN DEPARTMENT AS DEPT (Dname, Dno, Mssn, Msdate)
+WHERE  Dname = 'Research';
+</pre>
+<div class="callout gotcha">
+  <p>NATURAL JOIN, <em>istemediğiniz</em> aynı adlı sütunları da eşitler. EMPLOYEE NATURAL JOIN DEPENDENT, hem kimlik sütunlarını (yok: Ssn ≠ Essn) hem de <code>Sex</code> ve <code>Bdate</code>'i eşitlemeye çalışır; sonuç anlamsız olur. Sınavda NATURAL JOIN görürseniz ortak sütun adlarını tek tek kontrol edin.</p>
+</div>
+<h3>Join türlerini karşılaştırın</h3>
+<div id="joins"></div>
+<ul>
+  <li><strong>INNER JOIN</strong> (varsayılan <code>JOIN</code>): yalnız eşleşen çiftler.</li>
+  <li><strong>LEFT / RIGHT / FULL OUTER JOIN</strong>: eşleşmeyen satırlar da kalır, karşı tarafı NULL ile doldurulur. (Eski Oracle sözdizimi: <code>+=</code>, <code>=+</code>, <code>+=+</code>.)</li>
+  <li><strong>CROSS JOIN</strong>: kartezyen çarpım. <strong>NATURAL LEFT OUTER JOIN</strong> gibi birleşimler de geçerlidir.</li>
+  <li>Join'ler iç içe yazılabilir (<em>multiway join</em>):</li>
+</ul>
+<pre class="sql run" data-title="Q8B ve Q2A · Amiri olmayanlar da dahil (LEFT OUTER) ve üç tablolu iç içe join">
+-- Q8B: every employee with the supervisor's name; Borg appears with NULL
+SELECT E.Lname AS Employee_name, S.Lname AS Supervisor_name
+FROM   (EMPLOYEE AS E LEFT OUTER JOIN EMPLOYEE AS S ON E.Super_ssn = S.Ssn);
+-- Q2A: projects in Stafford, controlling department, manager
+SELECT Pnumber, Dnum, Lname, Address, Bdate
+FROM   ((PROJECT JOIN DEPARTMENT ON Dnum = Dnumber)
+          JOIN EMPLOYEE ON Mgr_ssn = Ssn)
+WHERE  Plocation = 'Stafford';
+</pre>
+
+<h2>Aggregate fonksiyonlar</h2>
+<p><code>COUNT</code>, <code>SUM</code>, <code>MAX</code>, <code>MIN</code>, <code>AVG</code>: bir satır kümesini tek bir değere özetler. SELECT listesinde ya da HAVING'de kullanılır; <strong>WHERE'de kullanılamaz</strong>.</p>
+<pre class="sql run" data-title="Q19 ve Q20 · Tüm çalışanların / Research'tekilerin maaş toplamı, en büyüğü, en küçüğü, ortalaması">
+SELECT SUM(Salary), MAX(Salary), MIN(Salary), AVG(Salary)
+FROM   EMPLOYEE;
+SELECT SUM(Salary) AS Total_sal, MAX(Salary) AS Highest_sal, MIN(Salary) AS Lowest_sal, AVG(Salary) AS Average_sal
+FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
+WHERE  Dname = 'Research';
+</pre>
+<pre class="sql run" data-title="Q21–Q23 · Sayma: satırlar, bir departmandakiler, farklı maaş değerleri">
+SELECT COUNT(*) FROM EMPLOYEE;                                       -- Q21
+SELECT COUNT(*) FROM EMPLOYEE, DEPARTMENT
+WHERE  Dno = Dnumber AND Dname = 'Research';                          -- Q22
+SELECT COUNT(DISTINCT Salary) FROM EMPLOYEE;                          -- Q23
+</pre>
+<div class="callout key">
+  <p><strong>Aggregate'ler ve NULL:</strong> <code>COUNT(*)</code> satırları sayar (NULL'lar dahil). <code>COUNT(A)</code>, <code>SUM(A)</code>, <code>AVG(A)</code>, <code>MAX(A)</code>, <code>MIN(A)</code> A'nın NULL olmayan değerleri üzerinden hesaplanır. Boş bir kümede <code>COUNT</code> 0, diğerleri NULL döndürür. <code>COUNT(DISTINCT A)</code> tekrarları atar.</p>
+</div>
+<pre class="sql run" data-title="NULL'un aggregate'lere etkisi (WORKS_ON'da bir saat NULL)">
+SELECT COUNT(*) AS rows, COUNT(Hours) AS non_null_hours,
+       SUM(Hours) AS total, AVG(Hours) AS avg_non_null,
+       SUM(Hours) / COUNT(*) AS avg_if_null_were_0
+FROM   WORKS_ON;
+</pre>
+<pre class="sql run" data-title="Q5 · En az iki bağımlısı olan çalışanlar (correlated sorguda aggregate)">
+SELECT Lname, Fname
+FROM   EMPLOYEE
+WHERE  (SELECT COUNT(*) FROM DEPENDENT WHERE Ssn = Essn) >= 2;
+</pre>
+
+<h2>GROUP BY ve HAVING</h2>
+<p><code>GROUP BY</code> satırları gruplama sütunlarının değerlerine göre gruplara ayırır; aggregate'ler her gruba ayrı uygulanır. <strong>Kural:</strong> SELECT listesinde yalnızca <em>gruplama sütunları</em> ve <em>aggregate'ler</em> olabilir.</p>
+<pre class="sql run" data-title="Q24 · Her departman için çalışan sayısı ve ortalama maaş">
+SELECT   Dno, COUNT(*), AVG(Salary)
+FROM     EMPLOYEE
+GROUP BY Dno;
+</pre>
+<pre class="sql run" data-title="Q25 · Her proje için numarası, adı ve çalışan sayısı (join + GROUP BY)">
+SELECT   Pnumber, Pname, COUNT(*)
+FROM     PROJECT, WORKS_ON
+WHERE    Pnumber = Pno
+GROUP BY Pnumber, Pname;
+</pre>
+<p>Gruplama sütununda NULL değerler varsa, NULL'lar <em>kendi aralarında tek bir grup</em> oluşturur (ör. Dno'su NULL olan çalışanlar).</p>
+<p><code>HAVING</code> gruplara uygulanan koşuldur: koşulu sağlamayan gruplar sonuçtan çıkar.</p>
+<pre class="sql run" data-title="Q26 · İkiden fazla çalışanı olan projeler">
+SELECT   Pnumber, Pname, COUNT(*)
+FROM     PROJECT, WORKS_ON
+WHERE    Pnumber = Pno
+GROUP BY Pnumber, Pname
+HAVING   COUNT(*) > 2;
+</pre>
+<pre class="sql run" data-title="Q27 · Her proje için yalnızca 5 numaralı departmandaki çalışanların sayısı (WHERE + GROUP BY)">
+SELECT   Pnumber, Pname, COUNT(*)
+FROM     PROJECT, WORKS_ON, EMPLOYEE
+WHERE    Pnumber = Pno AND Ssn = Essn AND Dno = 5
+GROUP BY Pnumber, Pname;
+</pre>
+
+<h3>Kavramsal değerlendirme sırası</h3>
+<pre class="sql">
+SELECT   &lt;attribute and function list&gt;     -- 5
+FROM     &lt;table list&gt;                      -- 1
+[ WHERE  &lt;condition&gt; ]                    -- 2  rows
+[ GROUP BY &lt;grouping attribute(s)&gt; ]      -- 3
+[ HAVING &lt;group condition&gt; ]              -- 4  groups
+[ ORDER BY &lt;attribute list&gt; ];            -- 6
+</pre>
+<div id="order"></div>
+
+<div class="callout gotcha">
+  <p><strong>Q28 tuzağı: WHERE mi, HAVING mi?</strong> Soru: "Beşten fazla çalışanı olan her departman için, o departmanda maaşı 40000'den fazla olan çalışanların sayısı." Aşağıdaki ilk sorgu <em>yanlıştır</em>: WHERE, HAVING'den <em>önce</em> çalışır. Önce 40000 altı maaşlar atılır, sonra HAVING "40000 üstü kazananı beşten fazla olan departmanları" seçer. Doğrusu, "beşten fazla çalışanı olan departmanları" ayrı bir iç sorguda bulmaktır.</p>
+</div>
+<pre class="sql run" data-title="Q28 · Yanlış ve doğru (COMPANY küçük olduğu için eşik 5 yerine 2)">
+-- WRONG: counts only employees with Salary > 40000 when testing the department size
+SELECT   Dno, COUNT(*)
+FROM     EMPLOYEE
+WHERE    Salary > 40000
+GROUP BY Dno
+HAVING   COUNT(*) > 2;
+-- RIGHT: departments with more than 2 employees (in total), then count their high earners
+SELECT   Dno, COUNT(*)
+FROM     EMPLOYEE
+WHERE    Salary > 30000
+  AND    Dno IN (SELECT   Dno
+                 FROM     EMPLOYEE
+                 GROUP BY Dno
+                 HAVING   COUNT(*) > 2)
+GROUP BY Dno;
+</pre>
+<p class="small muted">İkinci sorguda eşik, farkı göstermek için 30000'e indirildi. Yanlış sorgu boş döner (40000 üstü kazanan en çok bir kişi var); doğru sorgu Research (5) için 2, Administration (4) için 1 döndürür.</p>
+
+<div class="callout gotcha">
+  <p><strong>Gruplanmamış sütun hatası.</strong> <code>SELECT Dno, Lname, COUNT(*) FROM EMPLOYEE GROUP BY Dno</code> geçersizdir: her grupta birçok Lname var, hangisinin gösterileceği belirsiz. PostgreSQL'in hata mesajı tam olarak bunu söyler: "column must appear in the GROUP BY clause or be used in an aggregate function".</p>
+</div>
+<pre class="sql run" data-expect-error data-title="Deneyin: gruplanmamış sütun">
+SELECT Dno, Lname, COUNT(*) FROM EMPLOYEE GROUP BY Dno;
+</pre>
+
+<h2>WITH ve CASE</h2>
+<p><code>WITH</code>, yalnızca o sorgu boyunca var olan geçici bir tablo (ara sonuç) tanımlar: bir tür "tek kullanımlık view".</p>
+<pre class="sql run" data-title="Q28' · WITH ile: önce büyük departmanlar, sonra onların yüksek maaşlıları">
+WITH BIGDEPTS (Dno) AS
+     ( SELECT   Dno
+       FROM     EMPLOYEE
+       GROUP BY Dno
+       HAVING   COUNT(*) > 2 )
+SELECT   Dno, COUNT(*)
+FROM     EMPLOYEE
+WHERE    Salary > 30000 AND Dno IN (SELECT Dno FROM BIGDEPTS)
+GROUP BY Dno;
+</pre>
+<p><code>CASE</code>, bir değeri koşullara göre seçer: SELECT, WHERE, UPDATE'in SET'i gibi bir değerin beklendiği her yerde kullanılabilir.</p>
+<pre class="sql run" data-title="U6' · Departmana göre farklı zam (CASE)">
+UPDATE EMPLOYEE
+SET    Salary = CASE WHEN Dno = 5 THEN Salary + 2000
+                     WHEN Dno = 4 THEN Salary + 1500
+                     WHEN Dno = 1 THEN Salary + 3000
+                     ELSE Salary + 0
+                END;
+SELECT Fname, Lname, Dno, Salary,
+       CASE WHEN Salary >= 40000 THEN 'high' WHEN Salary >= 30000 THEN 'mid' ELSE 'low' END AS band
+FROM   EMPLOYEE ORDER BY Dno, Salary DESC;
+</pre>
+
+<h2>Recursive sorgular</h2>
+<p><code>WITH RECURSIVE</code>: bir başlangıç (base) sorgusu ile kendine başvuran bir sorgunun <code>UNION</code>'ı. Yeni satır üretmeyene kadar tekrar eder (<em>fixed point</em>). Supervisor/supervisee gibi recursive ilişkilerde, derinliği bilinmeyen zincirler için kullanılır.</p>
+<pre class="sql run" data-title="Q29 · Her (amir, doğrudan ya da dolaylı ast) çifti">
+WITH RECURSIVE SUP_EMP (SupSsn, EmpSsn) AS
+     ( SELECT Super_ssn, Ssn
+       FROM   EMPLOYEE
+       WHERE  Super_ssn IS NOT NULL     -- base: direct supervision
+       UNION
+       SELECT E.Super_ssn, S.EmpSsn
+       FROM   EMPLOYEE AS E, SUP_EMP AS S
+       WHERE  E.Ssn = S.SupSsn          -- one level higher
+         AND  E.Super_ssn IS NOT NULL )
+SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
+</pre>
+<p class="small muted">Kitaptaki Q29'da base sorguda <code>IS NOT NULL</code> yoktur; Borg'un NULL amiri sonuçta bir (NULL, Borg) satırı üretir. Seviye bilgisini de tutan bir sürüm için <a href="notebook.html#ex10">notebook Alıştırma 10</a>.</p>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p>EMPLOYEE'de 8 satır var; DEPENDENT'ta yalnızca 3 farklı çalışanın bağımlıları var (toplam 7 satır). <code>SELECT COUNT(*) FROM EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn</code> kaç döndürür?</p>
+  <ol>
+    <li>7</li>
+    <li>12</li>
+    <li>8</li>
+    <li>56</li>
+  </ol>
+  <div class="explain">Bağımlısı olan 3 çalışan 7 satır üretir (her bağımlı için bir). Bağımlısı olmayan 5 çalışan NULL'larla birer satır: 7 + 5 = 12.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Hangi sorgu geçersizdir?</p>
+  <ol>
+    <li><code>SELECT Dno, MAX(Salary) FROM EMPLOYEE GROUP BY Dno</code></li>
+    <li><code>SELECT Dno FROM EMPLOYEE GROUP BY Dno HAVING AVG(Salary) &gt; 30000</code></li>
+    <li><code>SELECT COUNT(*) FROM EMPLOYEE WHERE Salary &gt; 30000</code></li>
+    <li><code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE COUNT(*) &gt; 2 GROUP BY Dno</code></li>
+  </ol>
+  <div class="explain">Aggregate'ler WHERE'de kullanılamaz: WHERE gruplar oluşmadan önce, satır satır değerlendirilir. Doğrusu <code>HAVING COUNT(*) &gt; 2</code>.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p><code>SELECT AVG(Hours) FROM WORKS_ON</code>, WORKS_ON'da 16 satır, bir tanesinin Hours'u NULL ve toplam 275 ise ne döndürür?</p>
+  <ol>
+    <li>275 / 15 ≈ 18.33</li>
+    <li>275 / 16 ≈ 17.19</li>
+    <li>NULL</li>
+    <li>Hata</li>
+  </ol>
+  <div class="explain">AVG NULL'ları atar: NULL olmayan 15 değerin ortalaması. NULL'u 0 saymak isteseydik <code>SUM(Hours)/COUNT(*)</code> ya da <code>AVG(COALESCE(Hours, 0))</code> yazmalıydık.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>WHERE ile HAVING arasındaki fark nedir?</p>
+  <ol>
+    <li>Fark yok; HAVING, WHERE'in GROUP BY ile kullanılan eş anlamlısıdır.</li>
+    <li>HAVING satırlara, WHERE gruplara uygulanır.</li>
+    <li>WHERE gruplamadan önce satırlara, HAVING gruplamadan sonra gruplara uygulanır.</li>
+    <li>HAVING yalnızca ORDER BY ile birlikte kullanılabilir.</li>
+  </ol>
+  <div class="explain">Sıra: FROM → WHERE (satırlar) → GROUP BY → HAVING (gruplar) → SELECT → ORDER BY. Bir satır WHERE'de atılırsa hiçbir grubun aggregate'ine katılmaz (Q28 tuzağı).</div>
+</div>
+
+</div></main>
+</body>
+</html>
