@@ -66,7 +66,7 @@
 
 /* ---------- base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 16px); }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 56px); }
 body {
   margin: 0; background: var(--page); color: var(--text);
   font: 16.5px/1.65 var(--font); -webkit-font-smoothing: antialiased;
@@ -630,18 +630,7 @@ table.rel th .ty { display: block; font-weight: 400; font-size: 0.7rem; color: v
 .page-toc li { break-inside: avoid; margin: 2px 0; }
 .page-toc a { color: var(--text-2); text-decoration: none; }
 .page-toc a:hover { color: var(--link); text-decoration: underline; }
-.jump { position: fixed; right: 16px; bottom: 16px; z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-.jump.show { opacity: 1; pointer-events: auto; }
-.jump-btn { font: inherit; font-size: 0.85rem; font-weight: 650; padding: 8px 14px; border-radius: 99px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); box-shadow: var(--shadow); cursor: pointer; }
-.jump-btn:hover { border-color: var(--accent); }
-.jump-pop { width: min(320px, calc(100vw - 32px)); max-height: min(70vh, 520px); overflow: auto; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface); box-shadow: var(--shadow); font-size: 0.9rem; }
-.jump-pop ol { margin: 0 0 8px; padding-left: 1.3rem; }
-.jump-pop li { margin: 3px 0; }
-.jump-pop a { color: var(--text-2); text-decoration: none; }
-.jump-pop a.current { color: var(--link); font-weight: 650; }
-.jump-pop a:hover { text-decoration: underline; }
-.jump-top { display: block; border-top: 1px solid var(--border); padding-top: 6px; }
-@media print { .jump, .page-toc { display: none; } }
+@media print { .toc-rail, .toc-bar, .page-toc, .section-toc { display: none; } }
 
 /* ---------- tables on phones: one card per row, each cell labelled with its column ---------- */
 @media (max-width: 700px) {
@@ -657,3 +646,58 @@ table.rel th .ty { display: block; font-weight: 400; font-size: 0.7rem; color: v
   .er-studio + * select, #spec-opt { max-width: 100%; }
 }
 #spec-opt { max-width: 100%; }
+
+/* ---------- table of contents that stays in view ---------- */
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a { display: block; padding: 3px 8px; border-radius: 6px; color: var(--text-2); text-decoration: none; line-height: 1.35; }
+.toc-list a:hover { background: var(--surface-2); color: var(--text); }
+.toc-list a.current { color: var(--link); font-weight: 650; background: var(--accent-wash); }
+.toc-subs { list-style: none; margin: 2px 0 6px 8px; padding-left: 8px; border-left: 1px solid var(--border); display: none; }
+.toc-list > li.open > .toc-subs { display: block; }
+.toc-h3 { font-size: 0.82rem; }
+.toc-top { display: block; margin-top: 10px; padding: 0 8px; font-size: 0.8rem; color: var(--muted); }
+
+/* wide screens: a column on the right */
+.toc-rail { display: none; }
+@media (min-width: 1400px) {
+  .main.has-rail { display: grid; grid-template-columns: minmax(0, 1fr) 240px; column-gap: 32px; align-items: start; }
+  .main.has-rail > .content { grid-column: 1; grid-row: 1; width: 100%; }
+  .toc-rail {
+    display: block; grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--header-h) + 20px);
+    max-height: calc(100vh - var(--header-h) - 40px); overflow: auto; font-size: 0.86rem; padding: 2px 0 12px 12px; border-left: 1px solid var(--border);
+  }
+  .toc-rail > .page-toc-title { padding: 0 8px; }
+  .toc-bar { display: none !important; }
+  html { scroll-padding-top: calc(var(--header-h) + 20px); }
+}
+
+/* otherwise: a bar under the header with the current section; click to open the list */
+.toc-bar {
+  position: fixed; top: var(--header-h); left: var(--sidebar-w); right: 0; z-index: 30;
+  background: var(--page); border-bottom: 1px solid var(--border-strong); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-120%); transition: transform 0.2s ease; visibility: hidden;
+}
+.toc-bar.show { transform: none; visibility: visible; }
+@media (max-width: 1000px) { .toc-bar { left: 0; } }
+.toc-toggle {
+  width: 100%; display: flex; align-items: center; gap: 10px; font: inherit; font-size: 0.9rem; text-align: left;
+  padding: 8px clamp(16px, 4vw, 56px); background: none; border: 0; color: var(--text); cursor: pointer;
+}
+.toc-bar-title { flex: none; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.toc-current { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 650; }
+.toc-caret { flex: none; color: var(--muted); }
+.toc-toggle[aria-expanded="true"] .toc-caret { transform: rotate(180deg); }
+.toc-panel { max-height: min(70vh, 560px); overflow: auto; padding: 6px clamp(16px, 4vw, 56px) 12px; border-top: 1px solid var(--border); }
+.toc-panel .toc-subs { display: block; }
+
+/* "Bu bölümde" at the start of a long section */
+.section-toc { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; font-size: 0.88rem; margin: -0.4rem 0 1rem; max-width: 46rem; }
+.section-toc .page-toc-title { margin: 0; }
+.section-toc a { color: var(--text-2); }
+
+/* ---------- ER studio: the exercise being solved, above the editor ---------- */
+.exercise-panel { border: 1px solid var(--accent); border-radius: var(--radius); background: var(--surface); padding: 10px 14px; margin: 0 0 12px; box-shadow: var(--shadow); }
+.exercise-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.exercise-panel details.disclosure { margin: 6px 0; }
+details.solution { margin-top: 10px; }
+.er.solution-fig svg { width: auto; max-width: 100%; max-height: 460px; min-width: 0; margin: 0 auto; }

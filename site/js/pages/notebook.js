@@ -35,7 +35,7 @@ for (const ex of EXERCISES) {
   const status = h("span", { class: "ex-status" + (done.has(ex.n) ? " done" : "") }, done.has(ex.n) ? "✔ çözüldü" : "çözülmedi");
   const sec = h("section", { class: "exercise", id: `ex${ex.n}` });
   sec.append(
-    h("h3", {}, `Alıştırma ${ex.n}`, h("span", { class: "stars", title: ["", "kolay", "orta", "zor"][ex.stars] }, "★".repeat(ex.stars) + "☆".repeat(3 - ex.stars)), h("span", {}, ex.topic), status),
+    h("h3", { "data-toc": `Alıştırma ${ex.n} · ${ex.topic}` }, `Alıştırma ${ex.n}`, h("span", { class: "stars", title: ["", "kolay", "orta", "zor"][ex.stars] }, "★".repeat(ex.stars) + "☆".repeat(3 - ex.stars)), h("span", {}, ex.topic), status),
     h("p", { class: "small muted" }, `${["", "Kolay (Ch 6)", "Orta (Ch 7)", "Zor (Ch 7)"][ex.stars]} · slaytlar ${ex.slides}`),
     h("p", { html: `<strong>Sorgu:</strong> ${ex.query}` }),
     h("details", { class: "small muted" }, h("summary", {}, "Notebook'taki İngilizce metin"), h("p", {}, ex.queryEn)),

@@ -10,7 +10,7 @@ import { toDSL, emptyModel } from "../lib/ermodel.js";
 import { SCHEMA_SQL } from "../lib/company.js";
 import { runSQL } from "../lib/db.js";
 import { erFigure } from "../lib/erd.js";
-import { autoLayout, toDiagram } from "../lib/erlayout.js";
+import { autoLayout, toDiagram, completePositions } from "../lib/erlayout.js";
 
 // ---- what to open: #example=…, #exercise=…, #dsl=… (share link); otherwise the saved work or COMPANY
 const params = new URLSearchParams(location.hash.slice(1));
@@ -125,41 +125,77 @@ async function reverse() {
     h("details", { class: "disclosure" }, h("summary", {}, "Metin hâli"), h("div", { class: "disclosure-body" }, dslPre)));
 }
 
-// ---- exercises
+// ---- exercises: requirements, a check, and the solution right under each one (collapsible)
 const exHost = $("#exercise-list");
+const panelHost = $("#active-exercise");
+
+function solutionBlock(x) {
+  const model = solutionModel(x, ER_EXAMPLES);
+  const body = h("div", { class: "disclosure-body" });
+  const details = h("details", { class: "disclosure solution" }, h("summary", {}, "Çözüm ve gerekçeler"), body);
+  // the diagram is drawn when the block is opened for the first time
+  details.addEventListener("toggle", () => {
+    if (!details.open || body.childElementCount) return;
+    const ex = x.solutionExample && exampleById(x.solutionExample);
+    const spec = toDiagram(model, ex?.layout ? completePositions(model, { ...ex.layout }) : autoLayout(model), {});
+    const note = h("span", { class: "small muted" });
+    body.append(
+      Object.assign(erFigure({ ...spec, title: `${x.title}: çözüm` }, "Örnek çözüm. Farklı ama eşdeğer çözümler de olabilir (ör. ilişki adları)."), { className: "er solution-fig" }),
+      h("ul", {}, ...(x.why || []).map((w) => h("li", {}, w))),
+      h("div", { class: "btn-row", style: { alignItems: "center" } }, button("Çözümü editöre yükle", () => {
+        if (!confirm("Editördeki diyagramın yerine çözüm yüklensin mi? (Geri al ile dönebilirsiniz.)")) return;
+        editor.setModel(model);
+        note.textContent = "Çözüm editöre yüklendi.";
+      }), note));
+  });
+  return details;
+}
+
+function checkInto(x, out) {
+  const r = compareER(editor.getModel(), solutionModel(x, ER_EXAMPLES));
+  const pct = r.total ? Math.round((100 * r.score) / r.total) : 0;
+  const wrong = r.items.filter((i) => i.ok === false).length;
+  const list = h("ul", { class: "check-list" }, ...r.items.sort((a, b) => (a.ok === b.ok ? 0 : a.ok === false ? -1 : b.ok === false ? 1 : 0)).map((i) => h("li", { class: i.ok === true ? "ok" : i.ok === false ? "no" : "meh", html: i.text })));
+  out.replaceChildren(
+    h("div", { class: `res-msg ${pct === 100 ? "ok" : "warn"}` }, pct === 100 ? `✔ Tam uyum: ${r.score} / ${r.total} kontrol.` : `${r.score} / ${r.total} kontrol doğru (%${pct}).`),
+    h("details", { class: "disclosure", open: wrong > 0 && wrong <= 6 }, h("summary", {}, wrong ? `Ayrıntılar: ${wrong} düzeltilecek madde` : "Ayrıntılar"), h("div", { class: "disclosure-body" }, list)));
+}
+
+/** The exercise being solved stays above the editor: requirements, check and solution without scrolling away. */
+function openPanel(x, { clear = true } = {}) {
+  if (clear && editor.getModel().entities.length && !confirm(`"${x.title}" için editör temizlensin mi? (Geri al ile dönebilirsiniz.)`)) return;
+  if (clear) editor.setModel(emptyModel());
+  const result = h("div");
+  panelHost.replaceChildren(h("div", { class: "exercise-panel" },
+    h("div", { class: "exercise-panel-head" }, h("strong", {}, `Alıştırma: ${x.title}`),
+      h("div", { class: "btn-row", style: { margin: 0 } },
+        button("Kontrol et", () => checkInto(x, result), { kind: "primary" }),
+        button("Kapat", () => { panelHost.replaceChildren(); history.replaceState(null, "", location.pathname); }))),
+    h("details", { class: "disclosure", open: true }, h("summary", {}, "Gereksinimler"), h("div", { class: "disclosure-body" },
+      h("div", { html: x.text }), h("p", { class: "small", html: `<strong>Kullanılacak adlar:</strong> ${x.names}` }))),
+    result,
+    solutionBlock(x)));
+  history.replaceState(null, "", `#exercise=${x.id}`);
+  panelHost.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 for (const x of ER_EXERCISES) {
   const result = h("div");
-  const sec = h("section", { class: "exercise", id: `exercise-${x.id}` },
-    h("h3", {}, x.title, h("span", { class: "stars" }, "★".repeat(x.level) + "☆".repeat(3 - x.level))),
+  exHost.append(h("section", { class: "exercise", id: `exercise-${x.id}` },
+    h("h3", { "data-toc": x.title }, x.title, h("span", { class: "stars" }, "★".repeat(x.level) + "☆".repeat(3 - x.level))),
     h("div", { html: x.text }),
     h("p", { class: "small", html: `<strong>Kullanılacak adlar:</strong> ${x.names}` }),
     h("div", { class: "btn-row" },
-      button("Boş editörde başla", () => {
-        if (!confirm("Editör temizlenip bu alıştırma için boş bir diyagram açılsın mı?")) return;
-        editor.setModel(emptyModel());
-        history.replaceState(null, "", `#exercise=${x.id}`);
-        $("#editor").scrollIntoView({ behavior: "smooth" });
-      }),
-      button("Kontrol et", () => check(x, result), { kind: "primary" }),
-      button("Çözümü editörde aç", () => {
-        if (!confirm("Önce kendiniz denemeniz önerilir. Çözüm editöre yüklensin mi?")) return;
-        editor.setModel(solutionModel(x, ER_EXAMPLES));
-        $("#editor").scrollIntoView({ behavior: "smooth" });
-      })),
-    result);
-  exHost.append(sec);
+      button("Editörde çöz", () => openPanel(x), { kind: "primary", title: "Editörü temizler; gereksinimler ve Kontrol et editörün üstünde kalır" }),
+      button("Kontrol et", () => checkInto(x, result), { title: "Editördeki diyagramı bu alıştırmanın çözümüyle karşılaştır" })),
+    result,
+    solutionBlock(x)));
 }
-function check(x, out) {
-  const r = compareER(editor.getModel(), solutionModel(x, ER_EXAMPLES));
-  const pct = r.total ? Math.round((100 * r.score) / r.total) : 0;
-  out.replaceChildren(
-    h("div", { class: `res-msg ${pct === 100 ? "ok" : "warn"}` }, pct === 100 ? `✔ Tam uyum: ${r.score} / ${r.total} kontrol.` : `${r.score} / ${r.total} kontrol doğru (%${pct}). Düzeltilecekler kırmızı.`),
-    h("ul", { class: "check-list" }, ...r.items.sort((a, b) => (a.ok === b.ok ? 0 : a.ok === false ? -1 : b.ok === false ? 1 : 0)).map((i) => h("li", { class: i.ok === true ? "ok" : i.ok === false ? "no" : "meh", html: i.text }))));
-}
+
 if (params.get("section") && document.getElementById(params.get("section"))) setTimeout(() => document.getElementById(params.get("section")).scrollIntoView(), 400);
 if (params.get("exercise")) {
-  const target = document.getElementById(`exercise-${params.get("exercise")}`);
-  if (target) setTimeout(() => target.scrollIntoView(), 300);
+  const x = ER_EXERCISES.find((e) => e.id === params.get("exercise"));
+  if (x) setTimeout(() => openPanel(x, { clear: false }), 300);
 }
 
 enhanceCallouts(document.querySelector(".content"));

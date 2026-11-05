@@ -10,7 +10,7 @@ import { erFigure } from "../lib/erd.js";
 const host = $("#sql-list");
 for (const p of SQL_PROBLEMS) {
   const sec = h("section", { class: "exercise", id: p.id });
-  sec.append(h("h3", {}, `Problem ${p.id.slice(1)}`, h("span", { class: "stars" }, "★".repeat(p.level) + "☆".repeat(3 - p.level)), h("span", {}, p.title)),
+  sec.append(h("h3", { "data-toc": `Problem ${p.id.slice(1)} · ${p.title}` }, `Problem ${p.id.slice(1)}`, h("span", { class: "stars" }, "★".repeat(p.level) + "☆".repeat(3 - p.level)), h("span", {}, p.title)),
     h("p", { html: p.text }),
     h("div", { class: "hint callout note", "data-label": "İpucu", html: `<p>${p.hint}</p>` }));
   sec.append(createSqlBox({
