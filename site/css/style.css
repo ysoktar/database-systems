@@ -1,4 +1,4 @@
-/* Veritabanı Sistemleri: site styles (shared design with the graph-theory companion).
+/* Veritabanı Sistemleri: site styles (shared design with the graph-theory companion; the accent here is orange).
    Colours follow the notebook's validated palette: real data = series 1 (blue), random networks = grey,
    theory = dashed dark-grey line. Every colour is a token; dark mode re-steps the same hues. */
 
@@ -15,11 +15,11 @@
   --muted: #898781;
   --grid: #e1e0d9;
   --axis: #c3c2b7;
-  --link: #1c5cab;
-  --accent: #2a78d6;
+  --link: #a33a0a;
+  --accent: #c2410c;
   --accent-ink: #ffffff;
-  --accent-wash: rgba(42, 120, 214, 0.09);
-  --focus: #2a78d6;
+  --accent-wash: rgba(194, 65, 12, 0.09);
+  --focus: #e0622a;
 
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
   --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
@@ -43,7 +43,7 @@
     --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222220; --surface-3: #2c2c2a;
     --border: rgba(255, 255, 255, 0.10); --border-strong: rgba(255, 255, 255, 0.18);
     --text: #f0efec; --text-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835;
-    --link: #86b6ef; --accent: #3987e5; --accent-ink: #ffffff; --accent-wash: rgba(57, 135, 229, 0.16); --focus: #6da7ec;
+    --link: #f5a46b; --accent: #f08a3c; --accent-ink: #1a0d05; --accent-wash: rgba(240, 138, 60, 0.16); --focus: #f5a46b;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
     --random: #898781; --theory: #c3c2b7;
     --blue-1: #184f95; --blue-2: #1c5cab; --blue-3: #256abf; --blue-4: #3987e5; --blue-5: #6da7ec; --blue-6: #9ec5f4;
@@ -56,7 +56,7 @@
   --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222220; --surface-3: #2c2c2a;
   --border: rgba(255, 255, 255, 0.10); --border-strong: rgba(255, 255, 255, 0.18);
   --text: #f0efec; --text-2: #c3c2b7; --muted: #898781; --grid: #2c2c2a; --axis: #383835;
-  --link: #86b6ef; --accent: #3987e5; --accent-ink: #ffffff; --accent-wash: rgba(57, 135, 229, 0.16); --focus: #6da7ec;
+  --link: #f5a46b; --accent: #f08a3c; --accent-ink: #1a0d05; --accent-wash: rgba(240, 138, 60, 0.16); --focus: #f5a46b;
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
   --random: #898781; --theory: #c3c2b7;
   --blue-1: #184f95; --blue-2: #1c5cab; --blue-3: #256abf; --blue-4: #3987e5; --blue-5: #6da7ec; --blue-6: #9ec5f4;

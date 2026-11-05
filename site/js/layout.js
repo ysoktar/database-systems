@@ -56,9 +56,9 @@ export const PAGES = ALL;
 const href = (id) => (id === "index" ? "index.html" : `${id}.html`);
 
 const LOGO = `<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-  <ellipse cx="14" cy="6.5" rx="9" ry="3.5" fill="var(--s1)"/>
-  <path d="M5 6.5v15c0 1.9 4 3.5 9 3.5s9-1.6 9-3.5v-15" fill="none" stroke="var(--s1)" stroke-width="2"/>
-  <path d="M5 11.5c0 1.9 4 3.5 9 3.5s9-1.6 9-3.5M5 16.5c0 1.9 4 3.5 9 3.5s9-1.6 9-3.5" fill="none" stroke="var(--s2)" stroke-width="1.8"/></svg>`;
+  <ellipse cx="14" cy="6.5" rx="9" ry="3.5" fill="var(--accent)"/>
+  <path d="M5 6.5v15c0 1.9 4 3.5 9 3.5s9-1.6 9-3.5v-15" fill="none" stroke="var(--accent)" stroke-width="2"/>
+  <path d="M5 11.5c0 1.9 4 3.5 9 3.5s9-1.6 9-3.5M5 16.5c0 1.9 4 3.5 9 3.5s9-1.6 9-3.5" fill="none" stroke="var(--text-2)" stroke-width="1.8"/></svg>`;
 
 const THEME_ICONS = {
   auto: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 0 0 12z" fill="currentColor"/></svg>',
