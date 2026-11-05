@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Temel SQL · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 6: SQL veri tanımlama (CREATE TABLE, veri tipleri, kısıtlar), SELECT-FROM-WHERE, belirsiz adlar ve takma adlar, DISTINCT, küme işlemleri, LIKE, BETWEEN, aritmetik, ORDER BY, INSERT/DELETE/UPDATE; kitaptaki sorguların hepsi çalıştırılabilir.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/layout.js"></script>
+</head>
+<body data-page="ch6-sql">
+<main><div class="content">
+
+<h1>Temel SQL</h1>
+<p class="lead">SQL (Structured Query Language) hem DDL hem DML'dir: şemayı tanımlar, veriyi sorgular ve günceller. Bu sayfadaki sorgular kitabın Ch 6 örnekleridir (Q0, Q1, …); hepsini değiştirip çalıştırabilirsiniz.</p>
+
+<div class="callout note">
+  <p><strong>Terim eşlemesi:</strong> SQL'de <em>table</em> = ilişki, <em>row</em> = tuple, <em>column</em> = öznitelik. SQL tablosu bir <em>küme</em> değil, bir <strong>multiset</strong>'tir (bag): aynı satır birden çok kez bulunabilir.</p>
+</div>
+
+<h2>Veri tanımlama (DDL)</h2>
+<ul>
+  <li><strong>Schema</strong>: bir uygulamaya ait tabloları, tipleri, kısıtları, view'ları gruplar: <code>CREATE SCHEMA COMPANY AUTHORIZATION 'Jsmith';</code></li>
+  <li><strong>Catalog</strong>: şemaların adlandırılmış bir topluluğu; her katalogda <code>INFORMATION_SCHEMA</code> adlı özel bir şema vardır. Bütünlük kısıtları yalnızca aynı katalogdaki ilişkiler arasında tanımlanabilir.</li>
+  <li><strong>Base table</strong> (<code>CREATE TABLE</code> ile, gerçekten saklanır) ve <strong>virtual relation</strong> (<code>CREATE VIEW</code>, Ch 7).</li>
+</ul>
+<h3>COMPANY'nin tanımı (Figure 6.1/6.2)</h3>
+<pre class="sql">
+CREATE TABLE EMPLOYEE
+( Fname           VARCHAR(15)     NOT NULL,
+  Minit           CHAR,
+  Lname           VARCHAR(15)     NOT NULL,
+  Ssn             CHAR(9)         NOT NULL,
+  Bdate           DATE,
+  Address         VARCHAR(30),
+  Sex             CHAR,
+  Salary          DECIMAL(10,2),
+  Super_ssn       CHAR(9),
+  Dno             INT             NOT NULL    DEFAULT 1,
+  CONSTRAINT EMPPK      PRIMARY KEY (Ssn),
+  CONSTRAINT EMPSUPERFK FOREIGN KEY (Super_ssn) REFERENCES EMPLOYEE(Ssn)
+                        ON DELETE SET NULL  ON UPDATE CASCADE,
+  CONSTRAINT EMPDEPTFK  FOREIGN KEY (Dno) REFERENCES DEPARTMENT(Dnumber)
+                        ON DELETE SET DEFAULT  ON UPDATE CASCADE );
+
+CREATE TABLE DEPARTMENT
+( Dname           VARCHAR(15)     NOT NULL,
+  Dnumber         INT             NOT NULL,
+  Mgr_ssn         CHAR(9)         NOT NULL    DEFAULT '888665555',
+  Mgr_start_date  DATE,
+  CONSTRAINT DEPTPK    PRIMARY KEY (Dnumber),
+  CONSTRAINT DEPTSK    UNIQUE (Dname),
+  CONSTRAINT DEPTMGRFK FOREIGN KEY (Mgr_ssn) REFERENCES EMPLOYEE(Ssn)
+                       ON DELETE SET DEFAULT  ON UPDATE CASCADE );
+
+CREATE TABLE DEPT_LOCATIONS
+( Dnumber    INT          NOT NULL,
+  Dlocation  VARCHAR(15)  NOT NULL,
+  PRIMARY KEY (Dnumber, Dlocation),
+  FOREIGN KEY (Dnumber) REFERENCES DEPARTMENT(Dnumber)
+              ON DELETE CASCADE  ON UPDATE CASCADE );
+</pre>
+<div class="callout gotcha">
+  <p><strong>Döngüsel foreign key'ler.</strong> EMPLOYEE.Dno → DEPARTMENT ve DEPARTMENT.Mgr_ssn → EMPLOYEE birbirine başvurur. EMPLOYEE oluşturulurken DEPARTMENT henüz yoktur. Çözüm: önce tabloları FK'sız oluşturup FK'yı sonra <code>ALTER TABLE … ADD CONSTRAINT</code> ile eklemek. Veri yüklerken de aynı sorun çıkar: ya kısıt geçici olarak ertelenir (<code>DEFERRABLE</code>, <code>SET CONSTRAINTS … DEFERRED</code>) ya da önce NULL yazıp sonra güncellenir. Bu sitedeki COMPANY, notebook'taki gibi ilk yöntemle kurulur.</p>
+</div>
+
+<h3>Veri tipleri ve domain'ler</h3>
+<table class="simple">
+  <thead><tr><th>Tip</th><th>Örnekler</th></tr></thead>
+  <tbody>
+    <tr><td>Sayısal</td><td><code>INTEGER</code>/<code>INT</code>, <code>SMALLINT</code>, <code>FLOAT</code>/<code>REAL</code>, <code>DOUBLE PRECISION</code>, <code>DECIMAL(i,j)</code> = <code>NUMERIC(i,j)</code>: i toplam basamak (precision), j ondalık basamak (scale)</td></tr>
+    <tr><td>Karakter</td><td><code>CHAR(n)</code> sabit uzunluk (sağdan boşlukla doldurulur), <code>VARCHAR(n)</code> değişken uzunluk; <code>CLOB</code> büyük metinler. Sabitler tek tırnakla: <code>'Smith'</code>; büyük/küçük harf duyarlıdır.</td></tr>
+    <tr><td>Bit</td><td><code>BIT(n)</code>, <code>BIT VARYING(n)</code>, <code>BLOB</code> (resim gibi büyük ikili değerler)</td></tr>
+    <tr><td>Boolean</td><td><code>TRUE</code>, <code>FALSE</code>, <code>UNKNOWN</code> (NULL yüzünden üç değerli)</td></tr>
+    <tr><td>Tarih/zaman</td><td><code>DATE</code> 'YYYY-MM-DD', <code>TIME</code> 'HH:MM:SS', <code>TIMESTAMP</code>, <code>INTERVAL</code></td></tr>
+  </tbody>
+</table>
+<p><strong>Domain</strong>: bir tipe ad verir, değiştirmeyi kolaylaştırır: <code>CREATE DOMAIN SSN_TYPE AS CHAR(9);</code> Kullanıcı tanımlı tipler <code>CREATE TYPE</code> ile.</p>
+
+<h3>Kısıtlar</h3>
+<ul>
+  <li><strong>Öznitelik kısıtları</strong>: <code>NOT NULL</code>, <code>DEFAULT &lt;değer&gt;</code>, <code>CHECK</code>: <code>Dnumber INT NOT NULL CHECK (Dnumber &gt; 0 AND Dnumber &lt; 21)</code>. CHECK, <code>CREATE DOMAIN</code> içinde de kullanılabilir.</li>
+  <li><strong>Key kısıtları</strong>: <code>PRIMARY KEY</code> (tek sütunsa doğrudan sütun tanımına da yazılabilir), <code>UNIQUE</code> (alternate/candidate key).</li>
+  <li><strong>Referential integrity</strong>: <code>FOREIGN KEY … REFERENCES</code>. İhlalde varsayılan davranış işlemi reddetmektir (<code>NO ACTION</code>); bunun yerine <em>referential triggered action</em> tanımlanabilir: <code>ON DELETE</code> / <code>ON UPDATE</code> + <code>SET NULL</code>, <code>CASCADE</code>, <code>SET DEFAULT</code>.</li>
+  <li><strong>Kısıtlara ad verme</strong>: <code>CONSTRAINT EMPPK PRIMARY KEY (Ssn)</code>. Ad, kısıtı daha sonra <code>DROP</code> etmek ya da değiştirmek için kullanılır.</li>
+  <li><strong>Tuple tabanlı CHECK</strong>: tablo tanımının sonunda, bir satırın birden çok sütununa dair: <code>CHECK (Dept_create_date &lt;= Mgr_start_date)</code>. Her satır eklendiğinde ya da değiştiğinde kontrol edilir.</li>
+</ul>
+<pre class="sql run" data-title="CHECK, DEFAULT ve UNIQUE kısıtları iş başında">
+CREATE TABLE demo.DEPT_NEW
+( Dname            VARCHAR(15)  NOT NULL UNIQUE,
+  Dnumber          INT          PRIMARY KEY CHECK (Dnumber > 0 AND Dnumber < 21),
+  Mgr_ssn          CHAR(9)      DEFAULT '888665555',
+  Dept_create_date DATE,
+  Mgr_start_date   DATE,
+  CHECK (Dept_create_date <= Mgr_start_date) );
+INSERT INTO demo.DEPT_NEW (Dname, Dnumber, Dept_create_date, Mgr_start_date)
+       VALUES ('Research', 5, '1980-01-01', '1988-05-22');
+SELECT * FROM demo.DEPT_NEW;            -- Mgr_ssn got its DEFAULT
+INSERT INTO demo.DEPT_NEW VALUES ('Sales', 25, NULL, NULL, NULL);   -- violates the CHECK on Dnumber
+</pre>
+
+<h2>SELECT-FROM-WHERE</h2>
+<pre class="sql">
+SELECT &lt;attribute list&gt;      -- projection attributes: which columns
+FROM   &lt;table list&gt;          -- which relations
+WHERE  &lt;condition&gt;;          -- selection and join conditions: which rows
+</pre>
+<p>Karşılaştırma operatörleri: <code>=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;&gt;</code>. Koşullar <code>AND</code>, <code>OR</code>, <code>NOT</code> ile birleşir.</p>
+<pre class="sql run" data-title="Q0 · John B. Smith'in doğum tarihi ve adresi">
+SELECT Bdate, Address
+FROM   EMPLOYEE
+WHERE  Fname = 'John' AND Minit = 'B' AND Lname = 'Smith';
+</pre>
+<p>Q0 tek tabloluk bir sorgudur: <code>WHERE</code> ilişkisel cebirdeki <em>seçim</em>e (σ), <code>SELECT</code> listesi <em>izdüşüm</em>e (π) karşılık gelir. Ancak SQL tekrarları kendiliğinden silmez.</p>
+<pre class="sql run" data-title="Q1 · Research departmanında çalışanların adı ve adresi (select-project-join)">
+SELECT Fname, Lname, Address
+FROM   EMPLOYEE, DEPARTMENT
+WHERE  Dname = 'Research' AND Dnumber = Dno;
+</pre>
+<p><code>Dname = 'Research'</code> bir <strong>selection condition</strong>, <code>Dnumber = Dno</code> bir <strong>join condition</strong>'dır. Böyle sorgulara <em>select-project-join</em> sorgusu denir.</p>
+<pre class="sql run" data-title="Q2 · Stafford'daki her proje: numarası, kontrol eden departman, yöneticinin soyadı, adresi, doğum tarihi">
+SELECT Pnumber, Dnum, Lname, Address, Bdate
+FROM   PROJECT, DEPARTMENT, EMPLOYEE
+WHERE  Dnum = Dnumber AND Mgr_ssn = Ssn AND Plocation = 'Stafford';
+</pre>
+<p>Q2'de iki join koşulu var: <code>Dnum = Dnumber</code> projeyi departmanına, <code>Mgr_ssn = Ssn</code> departmanı yöneticisine bağlar.</p>
+
+<h3>Belirsiz adlar, takma adlar (alias), tuple değişkenleri</h3>
+<p>Farklı tablolarda aynı adlı sütunlar olabilir. Belirsizliği gidermek için sütun adı tablo adıyla nitelenir (<em>qualify</em>): <code>EMPLOYEE.Dno</code>. Aynı tablo bir sorguda iki kez geçiyorsa <strong>alias</strong> (tuple variable) zorunludur.</p>
+<pre class="sql run" data-title="Q8 · Her çalışanın ve doğrudan amirinin soyadı (self-join)">
+SELECT E.Fname, E.Lname, S.Fname, S.Lname
+FROM   EMPLOYEE AS E, EMPLOYEE AS S
+WHERE  E.Super_ssn = S.Ssn;
+</pre>
+<p>E ve S, EMPLOYEE'nin iki ayrı kopyası gibi düşünülür: E çalışan, S amir rolünde. Bu, tek düzeyli bir <em>recursive query</em>'dir. Borg sonuçta yoktur: amiri NULL olduğu için join koşulu sağlanmaz. Alias'larla sütunlar da yeniden adlandırılabilir: <code>FROM EMPLOYEE AS E(Fn, Mi, Ln, Ssn, Bd, Addr, Sex, Sal, Sssn, Dno)</code>.</p>
+
+<h3>WHERE yok, * ve kartezyen çarpım</h3>
+<pre class="sql run" data-title="Q9 ve Q10 · WHERE olmayınca: tüm satırlar; iki tablo varsa KARTEZYEN ÇARPIM">
+-- Q9: all Ssn values
+SELECT Ssn FROM EMPLOYEE;
+-- Q10: every combination of an employee Ssn and a department name: 8 x 3 = 24 rows
+SELECT Ssn, Dname FROM EMPLOYEE, DEPARTMENT;
+</pre>
+<div class="callout gotcha">
+  <p><strong>Join koşulunu unutmak</strong> sınavın en klasik hatasıdır: sonuç, tabloların kartezyen çarpımı olur (yanlış ve çok büyük). Kural: FROM'da n tablo varsa genellikle en az n − 1 join koşulu gerekir.</p>
+</div>
+<pre class="sql run" data-title="Q1C ve Q1D · * tüm sütunlar demektir">
+SELECT * FROM EMPLOYEE WHERE Dno = 5;
+SELECT * FROM EMPLOYEE, DEPARTMENT WHERE Dname = 'Research' AND Dno = Dnumber;
+</pre>
+
+<h3>Tablolar multiset'tir: ALL ve DISTINCT</h3>
+<p>SQL tekrarları kendiliğinden silmez: tekrar silmek pahalıdır (sıralama gerekir), kullanıcı tekrarları görmek isteyebilir ve aggregate fonksiyonlarda (ör. ortalama) tekrarlar önemlidir.</p>
+<pre class="sql run" data-title="Q11 ve Q11A · Maaşlar: tekrarlarla ve tekrarsız">
+SELECT ALL Salary FROM EMPLOYEE;        -- ALL is the default
+SELECT DISTINCT Salary FROM EMPLOYEE;   -- each value once
+</pre>
+
+<h3>Küme işlemleri: UNION, EXCEPT, INTERSECT</h3>
+<p>Sonuçlar <em>küme</em>dir (tekrarlar silinir). İki tarafın sütun sayısı ve tipleri uyumlu olmalıdır (<em>union-compatible</em>). Multiset sürümleri: <code>UNION ALL</code>, <code>EXCEPT ALL</code>, <code>INTERSECT ALL</code>.</p>
+<pre class="sql run" data-title="Q4A · Smith soyadlı birinin çalışan YA DA kontrol eden departmanın yöneticisi olarak dahil olduğu projeler">
+(SELECT DISTINCT Pnumber
+ FROM   PROJECT, DEPARTMENT, EMPLOYEE
+ WHERE  Dnum = Dnumber AND Mgr_ssn = Ssn AND Lname = 'Smith')
+UNION
+(SELECT DISTINCT Pnumber
+ FROM   PROJECT, WORKS_ON, EMPLOYEE
+ WHERE  Pnumber = Pno AND Essn = Ssn AND Lname = 'Smith');
+</pre>
+<pre class="sql run" data-title="UNION ALL, INTERSECT ve EXCEPT farkı">
+SELECT Dno FROM EMPLOYEE  UNION ALL  SELECT Dnumber FROM DEPARTMENT;   -- 8 + 3 = 11 rows
+SELECT Dno FROM EMPLOYEE  INTERSECT  SELECT Dnum FROM PROJECT;         -- departments with employees AND projects
+SELECT Dnumber FROM DEPARTMENT  EXCEPT  SELECT Dnum FROM PROJECT;      -- departments that control no project
+</pre>
+
+<h3>LIKE, aritmetik, BETWEEN</h3>
+<ul>
+  <li><code>LIKE</code>: <code>%</code> sıfır ya da daha çok karakter, <code>_</code> tam bir karakter. Bu karakterlerin kendisini aramak için kaçış karakteri: <code>'AB\_CD\%EF' ESCAPE '\'</code>. Tek tırnak, içeride iki kez yazılır: <code>'O''Brien'</code>.</li>
+  <li>Aritmetik: <code>+</code>, <code>−</code>, <code>*</code>, <code>/</code>; metin birleştirme <code>||</code>; tarih/zaman ile <code>INTERVAL</code> toplama, çıkarma.</li>
+  <li><code>BETWEEN a AND b</code> ≡ <code>&gt;= a AND &lt;= b</code> (iki sınır dahil).</li>
+</ul>
+<pre class="sql run" data-title="Q12 · Adresi Houston, Texas olan çalışanlar">
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  Address LIKE '%Houston,%TX%';
+</pre>
+<pre class="sql run" data-title="Q12A · 1950'lerde doğanlar">
+-- the book writes Bdate LIKE '__5_______' for its date format; in PostgreSQL a DATE is not text,
+-- so compare its text form (YYYY-MM-DD) or, better, the year itself
+SELECT Fname, Lname, Bdate
+FROM   EMPLOYEE
+WHERE  CAST(Bdate AS VARCHAR(10)) LIKE '195_-%';
+</pre>
+<pre class="sql run" data-title="Q13 · ProductX'te çalışanlara %10 zam yapılsaydı maaşları">
+SELECT E.Fname, E.Lname, 1.1 * E.Salary AS Increased_sal
+FROM   EMPLOYEE AS E, WORKS_ON AS W, PROJECT AS P
+WHERE  E.Ssn = W.Essn AND W.Pno = P.Pnumber AND P.Pname = 'ProductX';
+</pre>
+<pre class="sql run" data-title="Q14 · 5 numaralı departmanda maaşı 30000 ile 40000 arasında olanlar">
+SELECT *
+FROM   EMPLOYEE
+WHERE  (Salary BETWEEN 30000 AND 40000) AND Dno = 5;
+</pre>
+
+<h3>ORDER BY</h3>
+<pre class="sql run" data-title="Q15 · Çalışanlar ve projeleri, departmana sonra soyada ve ada göre sıralı">
+SELECT   D.Dname, E.Lname, E.Fname, P.Pname
+FROM     DEPARTMENT D, EMPLOYEE E, WORKS_ON W, PROJECT P
+WHERE    D.Dnumber = E.Dno AND E.Ssn = W.Essn AND W.Pno = P.Pnumber
+ORDER BY D.Dname DESC, E.Lname ASC, E.Fname ASC;
+</pre>
+<p>Varsayılan sıra <code>ASC</code>'dir. Her sütunun kendi yönü vardır: <code>ORDER BY D.Dname DESC, E.Lname</code>'de DESC yalnızca Dname içindir.</p>
+
+<h3>Sorgunun parçaları ve değerlendirme sırası</h3>
+<p>Temel bir SQL sorgusunun en fazla dört kısmı vardır (Ch 7'de GROUP BY ve HAVING eklenecek):</p>
+<pre class="sql">
+SELECT   &lt;attribute list&gt;
+FROM     &lt;table list&gt;
+[ WHERE  &lt;condition&gt; ]
+[ ORDER BY &lt;attribute list&gt; ];
+</pre>
+<p>Kavramsal olarak önce <strong>FROM</strong> (tabloların çarpımı), sonra <strong>WHERE</strong> (koşulu sağlayan satırlar), sonra <strong>SELECT</strong> (sütunlar ve gerekirse DISTINCT), en son <strong>ORDER BY</strong> değerlendirilir. DBMS'in gerçek yürütme planı farklıdır ama sonuç bu sıraya göre tanımlanır.</p>
+
+<h2>Güncelleme: INSERT, DELETE, UPDATE</h2>
+<h3>INSERT</h3>
+<pre class="sql run" data-title="U1 ve U1A · Değerler şemadaki sırayla; ya da sütun adları belirtilerek">
+-- U1: one value per attribute, in CREATE TABLE order
+INSERT INTO EMPLOYEE
+VALUES ('Richard', 'K', 'Marini', '653298653', '1962-12-30', '98 Oak Forest, Katy, TX', 'M', 37000, '653298653', 4);
+-- U1A: only some attributes; the rest get NULL or their DEFAULT (Dno DEFAULT 1)
+INSERT INTO EMPLOYEE (Fname, Lname, Ssn)
+VALUES ('Richard', 'Marini', '653298654');
+SELECT Fname, Lname, Ssn, Super_ssn, Dno FROM EMPLOYEE WHERE Lname = 'Marini';
+</pre>
+<pre class="sql run" data-expect-error data-title="U2 · Reddedilir: NOT NULL Ssn eksik (U2A: 2 numaralı departman yok)">
+INSERT INTO EMPLOYEE (Fname, Lname, Dno)
+VALUES ('Robert', 'Hatcher', 2);
+</pre>
+<p>Bir sorgunun sonucu da eklenebilir (U3A/U3B): geçici bir tablo oluşturup doldurmak.</p>
+<pre class="sql run" data-title="U3A ve U3B · Sorgu sonucunu yeni bir tabloya eklemek">
+CREATE TABLE WORKS_ON_INFO
+( Emp_name      VARCHAR(15),
+  Proj_name     VARCHAR(15),
+  Hours_per_week DECIMAL(3,1) );
+INSERT INTO WORKS_ON_INFO (Emp_name, Proj_name, Hours_per_week)
+  SELECT E.Lname, P.Pname, W.Hours
+  FROM   PROJECT P, WORKS_ON W, EMPLOYEE E
+  WHERE  P.Pnumber = W.Pno AND W.Essn = E.Ssn;
+SELECT * FROM WORKS_ON_INFO ORDER BY Emp_name;
+</pre>
+<p>WORKS_ON_INFO bir <em>kopyadır</em>: temel tablolar sonradan değişirse güncel kalmaz. Her zaman güncel bir görünüm için view kullanılır (Ch 7). Benzer şekilde <code>CREATE TABLE D5EMPS LIKE EMPLOYEE</code> ya da <code>CREATE TABLE … AS SELECT … WITH DATA</code> ile kopya oluşturulabilir.</p>
+
+<h3>DELETE</h3>
+<p><code>WHERE</code> koşulunu sağlayan satırları siler; koşul yoksa <em>bütün satırları</em> siler (tablo tanımı kalır, bunun için <code>DROP TABLE</code> gerekir). Referential triggered action'lar silmeyi başka tablolara yayabilir.</p>
+<pre class="sql run" data-title="U4A–U4C · Silme örnekleri (U4D: DELETE FROM EMPLOYEE; tüm tabloyu boşaltır)">
+-- U4A: no employee is called Brown, so nothing is deleted
+DELETE FROM EMPLOYEE WHERE Lname = 'Brown';
+-- remove the rows that reference the employees we delete below (WORKS_ON, DEPENDENT have no CASCADE)
+DELETE FROM WORKS_ON WHERE Essn = '123456789';
+DELETE FROM DEPENDENT WHERE Essn = '123456789';
+-- U4B
+DELETE FROM EMPLOYEE WHERE Ssn = '123456789';
+SELECT COUNT(*) AS employees_left FROM EMPLOYEE;
+</pre>
+
+<h3>UPDATE</h3>
+<pre class="sql run" data-title="U5 ve U6 · Tek satır ve çok satır güncelleme">
+-- U5: ProductX moves to Bellaire and is controlled by department 5
+UPDATE PROJECT
+SET    Plocation = 'Bellaire', Dnum = 5
+WHERE  Pnumber = 10;
+-- U6: a 10% raise for everyone in the Research department (5)
+UPDATE EMPLOYEE
+SET    Salary = Salary * 1.1
+WHERE  Dno = 5;
+SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
+</pre>
+<p>Atamanın sağ tarafındaki <code>Salary</code> eski değerdir, sol taraf yeni değeri alır. <code>SET</code> NULL ya da <code>DEFAULT</code> atayabilir. UPDATE bir seferde tek bir tabloyu değiştirir; PK değişirse FK'lar için <code>ON UPDATE</code> eylemleri tetiklenir.</p>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p>Aşağıdaki sorgu kaç satır döndürür?</p>
+  <pre class="sql">SELECT Lname FROM EMPLOYEE, DEPARTMENT WHERE Dno = 5;</pre>
+  <ol>
+    <li data-why="Bu, join koşulu olsaydı Research departmanındaki çalışan sayısı olurdu.">4</li>
+    <li>12</li>
+    <li>24</li>
+    <li>3</li>
+  </ol>
+  <div class="explain">Join koşulu yok: EMPLOYEE × DEPARTMENT = 8 × 3 = 24 satırlık çarpım, sonra Dno = 5 olan 4 çalışan × 3 departman = 12 satır. Her Research çalışanı üç kez görünür. Sorunun altındaki kutuda deneyebilirsiniz.</div>
+  <pre class="sql run" data-title="Kontrol edin">SELECT Lname FROM EMPLOYEE, DEPARTMENT WHERE Dno = 5;</pre>
+</div>
+<div class="quiz" data-answer="3">
+  <p><code>SELECT Salary FROM EMPLOYEE</code> ile <code>SELECT DISTINCT Salary FROM EMPLOYEE</code> sırasıyla kaç satır döndürür? (Maaşlar: 30000, 40000, 25000, 43000, 38000, 25000, 25000, 55000)</p>
+  <ol>
+    <li>8 ve 8</li>
+    <li>6 ve 8</li>
+    <li>8 ve 6</li>
+    <li>6 ve 6</li>
+  </ol>
+  <div class="explain">SQL tabloları multiset'tir; DISTINCT olmadan 25000 üç kez gelir (8 satır). DISTINCT ile 6 farklı maaş kalır.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>"Adı A ile başlayan ve tam beş harfli olan çalışanlar" için doğru koşul hangisidir?</p>
+  <ol>
+    <li><code>Fname LIKE 'A____'</code></li>
+    <li><code>Fname LIKE 'A%'</code></li>
+    <li><code>Fname = 'A____'</code></li>
+    <li><code>Fname LIKE 'A%%%%'</code></li>
+  </ol>
+  <div class="explain">Her <code>_</code> tam bir karakter: A + dört <code>_</code> = beş harf (Alicia değil, Ahmad). <code>%</code> herhangi uzunlukta olduğu için uzunluğu sınırlamaz; <code>=</code> joker karakterleri yorumlamaz.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p><code>DELETE FROM DEPARTMENT;</code> için hangisi doğrudur?</p>
+  <ol>
+    <li>DEPARTMENT tablosunu şemadan siler.</li>
+    <li>Sözdizimi hatasıdır; WHERE zorunludur.</li>
+    <li>Yalnızca ilk satırı siler.</li>
+    <li>Tüm satırları silmeye çalışır; tablo tanımı kalır. FK'lar (ör. PROJECT.Dnum) silmeyi engelleyebilir.</li>
+  </ol>
+  <div class="explain">WHERE'siz DELETE bütün satırları hedefler. Tabloyu kaldırmak için <code>DROP TABLE</code> gerekir. COMPANY'de PROJECT.Dnum'un ON DELETE eylemi olmadığından PostgreSQL bu silmeyi reddeder.</div>
+</div>
+
+</div></main>
+</body>
+</html>

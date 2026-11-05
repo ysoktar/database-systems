@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mimari ve veri modelleri · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 2: veri modeli kategorileri, şema ve veritabanı durumu, üç-şema mimarisi, mantıksal ve fiziksel veri bağımsızlığı, DBMS dilleri, arayüzler, istemci-sunucu mimarileri, DBMS sınıflandırması.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch2-architecture.js"></script>
+</head>
+<body data-page="ch2-architecture">
+<main><div class="content">
+
+<h1>Mimari ve veri modelleri</h1>
+<p class="lead">Bir DBMS veriyi kullanıcıya hangi soyutlama düzeylerinde gösterir? Şema ile veri neden ayrıdır ve bu ayrım programları değişikliklerden nasıl korur?</p>
+
+<h2>Veri modelleri</h2>
+<p><strong>Data model</strong> (veri modeli): bir veritabanının yapısını tanımlamak için kullanılan kavramlar topluluğu: veri tipleri, ilişkiler ve kısıtlar. Çoğu model ayrıca temel işlemleri (<em>basic operations</em>) ve kullanıcı tanımlı işlemleri (<em>dynamic aspect / behavior</em>) içerir.</p>
+<table class="simple">
+  <thead><tr><th>Kategori</th><th>Ne kadar soyut?</th><th>Örnek</th></tr></thead>
+  <tbody>
+    <tr><td><strong>High-level / conceptual</strong></td><td>Kullanıcıların algıladığı biçime yakın: <em>entity</em>, <em>attribute</em>, <em>relationship</em>.</td><td>ER modeli (Ch 3), EER (Ch 4)</td></tr>
+    <tr><td><strong>Representational / implementation</strong></td><td>Kullanıcının anlayabileceği ama bilgisayardaki düzenlemeden de çok uzak olmayan; ticari DBMS'lerin kullandığı.</td><td>İlişkisel model (Ch 5); eskiden ağ ve hiyerarşik modeller; object-relational</td></tr>
+    <tr><td><strong>Low-level / physical</strong></td><td>Verinin bilgisayarda nasıl saklandığı: kayıt biçimleri, sıralama, erişim yolları (<em>access path</em>, ör. index).</td><td>Dosya organizasyonları, B+-tree index'ler</td></tr>
+    <tr><td><strong>Self-describing</strong></td><td>Veri ve tanımı bir arada.</td><td>XML, JSON, key-value NoSQL sistemleri</td></tr>
+  </tbody>
+</table>
+
+<h2>Şema, durum (state), örnek (instance)</h2>
+<div class="two-col">
+  <div>
+    <ul>
+      <li><strong>Database schema</strong>: veritabanının <em>tanımı</em>. Tasarım sırasında belirlenir, nadiren değişir. Şemanın çizilmiş hâline <em>schema diagram</em>, her nesnesine <em>schema construct</em> denir.</li>
+      <li><strong>Database state</strong> (<em>snapshot</em>, <em>current set of occurrences/instances</em>): belli bir andaki <em>veri</em>. Her güncellemeyle değişir.</li>
+      <li><strong>Empty state</strong>: şema tanımlandı ama veri yok. <strong>Initial state</strong>: ilk yükleme. <strong>Valid state</strong>: şemanın yapısına ve kısıtlarına uyan durum.</li>
+      <li>Şema = <strong>intension</strong>, durum = <strong>extension</strong>.</li>
+      <li><strong>Schema evolution</strong>: gereksinimler değişince şemanın değişmesi (ör. EMPLOYEE'ye bir sütun eklemek). DBMS'lerin çoğu bunu destekler: <code>ALTER TABLE</code> (Ch 7).</li>
+    </ul>
+  </div>
+  <div class="callout example">
+    <p><strong>COMPANY'de:</strong> <code>EMPLOYEE(Fname, …, Ssn, …, Dno)</code> tanımı şemadır. Bugün 8 çalışan var: bu bir <em>state</em>. Yeni bir çalışan eklemek (<code>INSERT</code>) şemayı değil durumu değiştirir. <code>Email</code> sütunu eklemek (<code>ALTER TABLE</code>) ise şemayı değiştirir.</p>
+  </div>
+</div>
+<pre class="sql run" data-title="Durum (state) değişir, şema değişmez">
+-- the current state: 8 employees
+SELECT COUNT(*) AS employees FROM EMPLOYEE;
+-- an update changes the state ...
+INSERT INTO EMPLOYEE (Fname, Lname, Ssn, Dno) VALUES ('Ayşe', 'Yılmaz', '111222333', 5);
+SELECT COUNT(*) AS employees FROM EMPLOYEE;
+-- ... the schema (the columns) is still the same
+SELECT column_name FROM information_schema.columns
+WHERE table_schema = 'company' AND table_name = 'employee' ORDER BY ordinal_position;
+</pre>
+
+<h2>Üç-şema mimarisi (three-schema architecture)</h2>
+<p>Amaç: kullanıcı uygulamalarını fiziksel veritabanından ayırmak. Şema üç düzeyde tanımlanır:</p>
+<div id="three-schema"></div>
+<ol>
+  <li><strong>Internal level</strong> (iç düzey) → <strong>internal schema</strong>: fiziksel depolama yapısı; <em>physical data model</em> ile tam ayrıntı: dosyalar, kayıt biçimleri, erişim yolları.</li>
+  <li><strong>Conceptual level</strong> (kavramsal düzey) → <strong>conceptual schema</strong>: tüm veritabanının, bütün kullanıcılar için yapısı. Fiziksel ayrıntıyı gizler; varlıkları, tipleri, ilişkileri, işlemleri ve kısıtları anlatır. Genellikle bir <em>representational</em> modelle (ör. ilişkisel) uygulanır.</li>
+  <li><strong>External level</strong> (dış düzey, <em>view level</em>) → birden çok <strong>external schema</strong> (<em>user view</em>): her biri bir kullanıcı grubunun ilgilendiği kısmı gösterir, gerisini gizler.</li>
+</ol>
+<p>Düzeyler arasındaki istek ve sonuç dönüşümlerine <strong>mapping</strong> denir: external/conceptual mapping ve conceptual/internal mapping. Mapping'ler ek yük getirir; bu yüzden bazı DBMS'ler external düzeyi tam desteklemez.</p>
+
+<h2>Veri bağımsızlığı (data independence)</h2>
+<p><strong>Tanım:</strong> bir düzeydeki şemayı, bir üst düzeydeki şemayı değiştirmek zorunda kalmadan değiştirebilmek.</p>
+<div class="two-col">
+  <div class="callout key">
+    <p><strong>Logical data independence</strong> (mantıksal): <em>conceptual</em> şemayı external şemaları ve uygulama programlarını değiştirmeden değiştirebilmek. Ör. bir tabloya sütun eklemek, bir kayıt tipini kaldırmak, bir kısıt eklemek; sadece view tanımları ve mapping'ler değişir. <em>Gerçekleştirmesi daha zordur</em>, çünkü programlar mantıksal yapıya bağlıdır.</p>
+  </div>
+  <div class="callout key">
+    <p><strong>Physical data independence</strong> (fiziksel): <em>internal</em> şemayı conceptual şemayı değiştirmeden değiştirebilmek. Ör. bir index eklemek, dosyayı yeniden düzenlemek, farklı bir depolama aygıtına taşımak. Sorgular aynı sonucu (belki daha hızlı) verir. Çoğu DBMS'te iyi desteklenir.</p>
+  </div>
+</div>
+<pre class="sql run" data-title="Fiziksel bağımsızlık: index eklemek sorgunun sonucunu değiştirmez">
+-- the query plan before ...
+EXPLAIN SELECT * FROM EMPLOYEE WHERE Lname = 'Wong';
+-- a change to the internal schema (a new access path)
+CREATE INDEX emp_lname_idx ON EMPLOYEE (Lname);
+SET enable_seqscan = off;   -- the table is tiny; ask PostgreSQL to show the index path
+EXPLAIN SELECT * FROM EMPLOYEE WHERE Lname = 'Wong';
+-- the same query still gives the same answer
+SELECT Fname, Lname FROM EMPLOYEE WHERE Lname = 'Wong';
+RESET enable_seqscan;
+DROP INDEX emp_lname_idx;
+</pre>
+<pre class="sql run" data-title="Mantıksal bağımsızlık: view, kavramsal şemadaki değişikliği gizler">
+-- an external schema for a user group: name and department name only
+CREATE VIEW EMP_DEPT AS
+  SELECT E.Fname, E.Lname, D.Dname
+  FROM   EMPLOYEE E JOIN DEPARTMENT D ON E.Dno = D.Dnumber;
+-- the conceptual schema changes: a new column
+ALTER TABLE EMPLOYEE ADD COLUMN Email VARCHAR(40);
+-- programs that use the view do not notice
+SELECT * FROM EMP_DEPT WHERE Dname = 'Research';
+</pre>
+
+<h2>DBMS dilleri</h2>
+<table class="simple">
+  <thead><tr><th>Dil</th><th>Ne tanımlar?</th></tr></thead>
+  <tbody>
+    <tr><td><strong>DDL</strong> (data definition language)</td><td>Conceptual (ve iç/dış ayrımı net olmayan sistemlerde hepsi) şemayı. SQL'de <code>CREATE</code>, <code>ALTER</code>, <code>DROP</code>.</td></tr>
+    <tr><td><strong>SDL</strong> (storage definition language)</td><td>Internal şemayı. Günümüz ilişkisel DBMS'lerinde ayrı bir dil yoktur; parametreler ve komutlarla (ör. <code>CREATE INDEX</code>) yapılır.</td></tr>
+    <tr><td><strong>VDL</strong> (view definition language)</td><td>External şemaları. SQL'de <code>CREATE VIEW</code>.</td></tr>
+    <tr><td><strong>DML</strong> (data manipulation language)</td><td>Erişim ve güncelleme: retrieval, insertion, deletion, modification. SQL'de <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>.</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><strong>High-level / nonprocedural DML</strong> (<em>set-at-a-time</em>, <em>declarative</em>): <em>ne</em> istendiğini söyler, <em>nasıl</em> bulunacağını değil. Tek komut birçok kaydı döndürür. Ör. SQL. Tek başına etkileşimli kullanılabilir ya da bir programa gömülebilir (<em>embedded</em>; o zaman program dili <em>host language</em>, DML <em>data sublanguage</em> olur).</li>
+  <li><strong>Low-level / procedural DML</strong> (<em>record-at-a-time</em>): kayıtları tek tek getirir; döngü gibi programlama yapılarıyla birlikte kullanılmak zorundadır. Ör. eski ağ modeli DML'i (DL/1).</li>
+  <li><strong>Query language</strong>: etkileşimli kullanılan high-level DML.</li>
+  <li>SQL, DDL + VDL + DML'i (ve kısıt, yetki tanımlarını) tek dilde birleştirir.</li>
+</ul>
+
+<h2>DBMS arayüzleri</h2>
+<p>Menü tabanlı (web) arayüzler, apps for mobile devices, formlar, grafik arayüzler (GUI), doğal dil arayüzleri, keyword-based search, konuşma girdisi/çıktısı, <em>parametric users</em> için arayüzler (az tuşla hazır işlemler) ve DBA için arayüzler (hesap oluşturma, yetki, şema değişikliği gibi ayrıcalıklı komutlar).</p>
+
+<h2>DBMS ortamı ve bileşenleri</h2>
+<p>Kitaptaki Figure 2.3'ün özeti: üstte kullanıcılar (DBA, casual, programmer, parametric), ortada derleyiciler ve işlemciler, altta depolama:</p>
+<ul>
+  <li><strong>DDL compiler</strong>: şema tanımlarını işler, meta-data'yı <strong>system catalog</strong>'a yazar.</li>
+  <li><strong>Interactive query interface → query compiler → query optimizer</strong>: sorguyu ayrıştırır, doğrular, verimli bir yürütme planına çevirir.</li>
+  <li><strong>Precompiler</strong>: uygulama programına gömülü DML komutlarını ayıklar; <strong>DML compiler</strong> bunları derler; geri kalan kod host dil derleyicisine gider. Hepsi <em>canned transaction</em>'lara bağlanır.</li>
+  <li><strong>Runtime database processor</strong>: planları ve canned transaction'ları çalıştırır; <strong>stored data manager</strong> ve <strong>buffer management</strong> üzerinden diske erişir.</li>
+  <li><strong>Concurrency control / backup / recovery subsystems</strong> runtime işlemciyle birlikte çalışır.</li>
+  <li><strong>Database system utilities</strong>: loading (dosyaları veritabanına yükleme), backup, database storage reorganization, performance monitoring; ayrıca sorting, data compression, user monitoring.</li>
+  <li>Diğer araçlar: CASE araçları, <em>data dictionary / repository</em> sistemleri (tasarım kararları, kullanım standartları da saklanır), uygulama geliştirme ortamları, iletişim yazılımı.</li>
+</ul>
+
+<h2>Merkezi ve istemci/sunucu mimariler</h2>
+<div class="two-col">
+  <div>
+    <ul>
+      <li><strong>Centralized</strong>: tüm DBMS işlevleri, uygulamalar ve arayüz tek bir sistemde (eskiden mainframe; terminaller sadece ekran).</li>
+      <li><strong>Basic client/server</strong>: <em>specialized servers</em> (file server, printer server, web server, DBMS server …) ve bunlara bağlanan <em>client</em>'lar.</li>
+      <li><strong>Two-tier client/server</strong>: kullanıcı arayüzü ve uygulama programları istemcide; sorgu ve transaction işlevleri sunucuda (<em>query server / transaction server</em>; ilişkisel DBMS'te <em>SQL server</em>). Bağlantı <strong>ODBC</strong> ya da <strong>JDBC</strong> gibi bir API ile.</li>
+      <li><strong>Three-tier / n-tier</strong> (web uygulamaları): istemci (GUI, web tarayıcı) ↔ <strong>application server / web server</strong> (iş kuralları, ara katman) ↔ <strong>database server</strong>. Ara katman güvenliği artırır (istemci doğrudan veritabanına erişmez). n-tier'da iş mantığı daha çok katmana bölünür.</li>
+    </ul>
+  </div>
+  <div id="tiers"></div>
+</div>
+
+<h2>DBMS sınıflandırması</h2>
+<ul>
+  <li><strong>Veri modeline göre</strong>: relational (en yaygın), object, object-relational, NoSQL (key-value, document, column-based, graph), hiyerarşik ve ağ (legacy), XML.</li>
+  <li><strong>Kullanıcı sayısına göre</strong>: single-user ve multiuser.</li>
+  <li><strong>Dağıtıma göre</strong>: centralized (veri tek yerde) ve distributed (DDBMS; veri ağdaki birçok sitede). Homogeneous (her yerde aynı DBMS) ya da heterogeneous; <em>federated</em> (multidatabase) sistemler bağımsız DBMS'leri gevşekçe birleştirir.</li>
+  <li><strong>Maliyete göre</strong>: açık kaynak (PostgreSQL, MySQL), ticari (Oracle, SQL Server, DB2), farklı lisans türleri.</li>
+  <li><strong>Erişim yolu tipine ve amaca göre</strong>: general-purpose ve special-purpose (ör. eski hava yolu rezervasyon sistemleri: OLTP, online transaction processing).</li>
+</ul>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p>EMPLOYEE tablosuna yeni bir index eklendi; tüm uygulamalar hiç değiştirilmeden aynı sonuçları vermeye devam ediyor. Bu, hangisinin örneğidir?</p>
+  <ol>
+    <li data-why="Mantıksal bağımsızlık, kavramsal şema (tablolar, sütunlar) değişince external şemaların değişmemesidir.">Logical data independence</li>
+    <li>Physical data independence</li>
+    <li data-why="Self-describing, meta-data'nın veritabanında saklanmasıdır.">Self-describing nature</li>
+    <li data-why="Program-operation independence, nesne yönelimli sistemlerde işlem arayüzünün gerçekleştirimden ayrılmasıdır.">Program-operation independence</li>
+  </ol>
+  <div class="explain">Index bir erişim yoludur, yani <em>internal</em> şemanın parçasıdır. Internal şema değişti, conceptual şema aynı kaldı: bu fiziksel veri bağımsızlığıdır.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>Hangisi <em>intension</em> ile <em>extension</em>'ı doğru eşleştirir?</p>
+  <ol>
+    <li>Intension = veritabanı durumu; extension = şema</li>
+    <li>Intension = internal şema; extension = external şema</li>
+    <li>Intension = şema; extension = veritabanı durumu</li>
+    <li>Intension = DDL; extension = DML</li>
+  </ol>
+  <div class="explain">Şema veritabanının tanımıdır (intension) ve nadiren değişir. Durum (state), belirli bir andaki veridir (extension) ve her güncellemeyle değişir.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p><code>CREATE VIEW</code> hangi dil kategorisine ve hangi şema düzeyine karşılık gelir?</p>
+  <ol>
+    <li>VDL, external şema</li>
+    <li>DDL, internal şema</li>
+    <li>SDL, conceptual şema</li>
+    <li>DML, external şema</li>
+  </ol>
+  <div class="explain">View, kullanıcı grubuna özel bir görünümdür: external düzey. Onu tanımlayan dil VDL'dir. SQL'de VDL, DDL'in bir parçası gibi görünse de kavramsal olarak ayrıdır.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Bir web uygulamasında tarayıcı → uygulama sunucusu → veritabanı sunucusu düzeni hangi mimaridir?</p>
+  <ol>
+    <li>Centralized</li>
+    <li>Two-tier client/server</li>
+    <li>Distributed (DDBMS)</li>
+    <li>Three-tier client/server</li>
+  </ol>
+  <div class="explain">Ara katman (application/web server) iş kurallarını çalıştırır ve veritabanına istemci adına erişir. İki katmanlıda ise istemci, ODBC/JDBC ile doğrudan veritabanı sunucusuna bağlanır.</div>
+</div>
+
+</div></main>
+</body>
+</html>

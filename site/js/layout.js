@@ -8,7 +8,7 @@ export const NOTEBOOK_URL = "https://colab.research.google.com/drive/1ArUuenMYSn
 
 /**
  * Site map. `ch` = chapter of Elmasri & Navathe (7th ed.). `scope`: "midterm" (Ch 1–7, on the midterm) or
- * "final" (Ch 8 onward: taught before the midterm but examined only in the final).
+ * "final" (Ch 8 onward: outside the midterm scope).
  */
 export const NAV = [
   { part: "Başlangıç", items: [
@@ -40,7 +40,7 @@ export const NAV = [
     { id: "cheatsheet", title: "Özet kâğıdı ve sözlük", desc: "SQL sözdizimi, ER gösterimi, Türkçe–İngilizce terimler." },
   ] },
   { part: "Sonrası", short: "Final", items: [
-    { id: "ch8-algebra", title: "İlişkisel cebir (önizleme)", ch: "Ch 8", scope: "final", desc: "Perşembe anlatılacak; arasınavda değil, finalde." },
+    { id: "ch8-algebra", title: "İlişkisel cebir (önizleme)", ch: "Ch 8", scope: "final", desc: "İlişkisel cebir ve SQL karşılıkları; arasınav kapsamı dışında." },
   ] },
 ];
 
@@ -48,7 +48,7 @@ const ALL = NAV.flatMap((p) => p.items.map((it) => ({ ...it, part: p.part, short
 for (const it of ALL) it.scope ??= it.ch ? "midterm" : "none";
 export const SCOPES = {
   midterm: { label: "Arasınavda", tip: "Arasınav kapsamında: Elmasri & Navathe Ch 1–7." },
-  final: { label: "Finalde · arasınavda değil", tip: "Ch 8, arasınavdan önce anlatılıyor ama yalnızca finalde soruluyor." },
+  final: { label: "Arasınav kapsamı dışında", tip: "Ch 8 arasınav kapsamında değil (Ch 1–7)." },
 };
 export const pageInfo = (id) => ALL.find((p) => p.id === id);
 export const PAGES = ALL;

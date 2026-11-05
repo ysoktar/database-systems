@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veritabanı ve DBMS · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 1: veritabanı, DBMS, veritabanı yaklaşımının özellikleri, aktörler, DBMS kullanmanın avantajları ve kullanmamanın gerektiği durumlar.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/layout.js"></script>
+</head>
+<body data-page="ch1-intro">
+<main><div class="content">
+
+<h1>Veritabanı ve DBMS</h1>
+<p class="lead">Veritabanı nedir, onu yöneten yazılım (DBMS) ne iş görür ve "veritabanı yaklaşımı" eski dosya tabanlı yaklaşımdan neden farklıdır?</p>
+
+<h2>Temel tanımlar</h2>
+<table class="simple">
+  <thead><tr><th>Terim</th><th>Tanım</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Data</strong> (veri)</td><td>Kaydedilebilen, anlamı olan bilinen olgular: isimler, telefon numaraları, adresler.</td></tr>
+    <tr><td><strong>Database</strong> (veritabanı)</td><td>Birbiriyle ilişkili verilerin bir topluluğu. Kitaptaki üç örtük özellik: (1) gerçek dünyanın bir parçasını (<em>miniworld</em> / <em>universe of discourse</em>) temsil eder, (2) mantıksal olarak tutarlı ve anlamlıdır (rastgele bir veri yığını değildir), (3) belirli bir amaç ve belirli kullanıcılar için tasarlanır.</td></tr>
+    <tr><td><strong>DBMS</strong> (Database Management System)</td><td>Veritabanını <em>tanımlamayı</em> (define), <em>oluşturmayı</em> (construct), <em>işlemeyi</em> (manipulate: sorgu ve güncelleme) ve <em>paylaşmayı</em> (share) sağlayan genel amaçlı yazılım. Ayrıca veritabanını korur (protection) ve uzun süre bakımını sağlar (maintain).</td></tr>
+    <tr><td><strong>Database system</strong></td><td>Veritabanı + DBMS yazılımı (+ uygulama programları).</td></tr>
+    <tr><td><strong>Meta-data</strong></td><td>Veritabanının tanımı: tablolar, sütunlar, tipler, kısıtlar. DBMS kataloğunda (<em>catalog</em>, <em>data dictionary</em>) saklanır.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout key">
+  <p><strong>DBMS'in dört temel işlevi:</strong> <em>define</em> (veri tiplerini, yapıları ve kısıtları belirtmek), <em>construct</em> (veriyi bir depolama ortamına kaydetmek), <em>manipulate</em> (sorgulamak, güncellemek, rapor üretmek), <em>share</em> (birçok kullanıcının ve programın aynı anda erişmesi). Buna <em>protection</em> (sistem ve güvenlik koruması) ve <em>maintenance</em> eklenir.</p>
+</div>
+
+<h3>Bir örnek: UNIVERSITY veritabanı</h3>
+<p>Kitabın Ch 1 örneği bir üniversite: STUDENT, COURSE, SECTION, GRADE_REPORT, PREREQUISITE dosyaları. Bu bölümde de aynı fikirleri COMPANY üzerinde görebilirsiniz: <strong>tanımlama</strong> bir <code>CREATE TABLE</code>, <strong>işleme</strong> bir <code>SELECT</code> ya da <code>UPDATE</code>'tir; DBMS kataloğu ise her tablonun tanımını saklar.</p>
+<pre class="sql run" data-title="Katalog (meta-data) da bir tablodur: COMPANY'nin tabloları ve sütun sayıları">
+SELECT table_name, COUNT(*) AS column_count
+FROM   information_schema.columns
+WHERE  table_schema = 'company'
+GROUP BY table_name
+ORDER BY table_name;
+</pre>
+
+<h2>Veritabanı yaklaşımının özellikleri</h2>
+<p>Dosya işleme (<em>file processing</em>) yaklaşımında her uygulama kendi dosyalarını tanımlar ve yönetir; aynı veri birden çok yerde tekrar eder. Veritabanı yaklaşımında ise tek bir veri deposu bir kez tanımlanır ve herkes ona erişir. Kitap dört özellik sayar:</p>
+<ol>
+  <li><strong>Self-describing nature</strong> (kendini tanımlama): veritabanı sadece veriyi değil, yapısının tam tanımını da (meta-data, katalog) içerir. DBMS yazılımı herhangi bir veritabanıyla çalışabilir, çünkü yapıyı katalogdan okur.</li>
+  <li><strong>Insulation between programs and data, data abstraction</strong> (program ile verinin yalıtımı, veri soyutlaması):
+    <ul>
+      <li><em>Program-data independence</em>: dosya yapısı programın içine gömülü değildir; yapı değişince (ör. bir sütun eklenince) programlar değişmek zorunda kalmaz.</li>
+      <li><em>Program-operation independence</em>: nesne yönelimli sistemlerde bir işlemin <em>arayüzü</em> (interface/signature) ile <em>gerçekleştirimi</em> (implementation) ayrıdır.</li>
+      <li><em>Data abstraction</em>: kullanıcıya depolama ayrıntıları yerine kavramsal bir gösterim (<em>data model</em>) sunulur.</li>
+    </ul></li>
+  <li><strong>Support of multiple views of the data</strong> (birden çok görünüm): farklı kullanıcılar veritabanının farklı alt kümelerini ya da türetilmiş verileri görebilir (<em>view</em>).</li>
+  <li><strong>Sharing of data and multiuser transaction processing</strong>: birçok kullanıcı aynı anda erişir. DBMS <em>concurrency control</em> ile tutarlılığı korur. Bir <em>transaction</em> (hareket) ya tamamen ya hiç uygulanır (<em>atomicity</em>) ve diğerlerinden yalıtılmış gibi çalışır (<em>isolation</em>).</li>
+</ol>
+
+<div class="callout gotcha">
+  <p><strong>Dosya sisteminin sorunları</strong> ile <strong>DBMS'in özellikleri</strong>ni karıştırmayın. Sınavda genellikle "dosya tabanlı yaklaşımın şu sorunu var, DBMS bunu hangi özellikle çözer?" diye sorulur: tekrar eden veri → kontrollü redundancy; programa gömülü dosya yapısı → program-data independence; tek bir görünüm → multiple views; eşzamanlı erişim çakışmaları → concurrency control.</p>
+</div>
+
+<h2>Aktörler: kim, ne yapar?</h2>
+<div class="two-col">
+  <div>
+    <h3>"Sahnedeki" aktörler (actors on the scene)</h3>
+    <ul>
+      <li><strong>Database administrator (DBA)</strong>: veritabanına erişimi yetkilendirir, kullanımı koordine eder ve izler, donanım/yazılım kaynaklarını edinir; güvenlik ihlalleri ve kötü yanıt süresinden sorumludur.</li>
+      <li><strong>Database designer</strong>: saklanacak veriyi ve uygun yapıları belirler; kullanıcılarla görüşüp her grubun gereksinimini karşılayan <em>view</em>'ları tasarlar.</li>
+      <li><strong>End users</strong> (son kullanıcılar):
+        <ul>
+          <li><em>Casual</em>: arada bir, her seferinde farklı bilgi için sorgu dili kullanır (orta/üst düzey yöneticiler).</li>
+          <li><em>Naive / parametric</em>: hazır işlemleri (<em>canned transactions</em>) tekrar tekrar kullanır: banka veznedarı, rezervasyon görevlisi.</li>
+          <li><em>Sophisticated</em>: DBMS'in olanaklarını iyi bilir, karmaşık gereksinimler için kendi sorgularını yazar: mühendis, bilim insanı, analist.</li>
+          <li><em>Standalone</em>: hazır paketlerle kişisel veritabanı tutar.</li>
+        </ul></li>
+      <li><strong>System analysts / application programmers</strong> (<em>software engineers</em>): analistler son kullanıcı gereksinimlerinden canned transaction'ların özelliklerini çıkarır; programcılar bunları kodlar, test eder, belgeler.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>"Perde arkasındaki" çalışanlar (workers behind the scene)</h3>
+    <ul>
+      <li><strong>DBMS system designers and implementers</strong>: DBMS yazılımının kendisini (katalog, sorgu işleme, concurrency control, recovery, … modülleri) tasarlar ve yazar.</li>
+      <li><strong>Tool developers</strong>: modelleme, tasarım, performans izleme gibi araçları geliştirir.</li>
+      <li><strong>Operators and maintenance personnel</strong>: donanım ve yazılım ortamını çalıştırır ve bakımını yapar.</li>
+    </ul>
+    <p class="small muted">Perde arkasındakiler veritabanının <em>içeriğiyle</em> ilgilenmez; DBMS'in kendisini ve ortamını sağlarlar.</p>
+  </div>
+</div>
+
+<h2>DBMS kullanmanın avantajları</h2>
+<ol>
+  <li><strong>Controlling redundancy</strong>: aynı verinin birden çok yerde tekrar saklanması hem yer israfıdır hem de tutarsızlığa (<em>inconsistency</em>) yol açar. DBMS'te tekrar ya yoktur ya da kontrollüdür. (Kontrollü redundancy: performans için bilinçli tekrar, ör. GRADE_REPORT'ta StudentName; DBMS bunun tutarlı kalmasını sağlar. Bu fikrin adı <em>denormalization</em>'dır.)</li>
+  <li><strong>Restricting unauthorized access</strong>: güvenlik ve yetkilendirme alt sistemi; DBA hesapları ve yetkileri yönetir.</li>
+  <li><strong>Providing persistent storage for program objects</strong>: nesne yönelimli veritabanlarında programdaki karmaşık nesneler kalıcı saklanır (<em>impedance mismatch</em> sorunu azalır).</li>
+  <li><strong>Providing storage structures and search techniques for efficient query processing</strong>: index'ler, buffering/caching, sorgu işleme ve optimizasyon.</li>
+  <li><strong>Providing backup and recovery</strong>: donanım ya da yazılım hatasından sonra veritabanını tutarlı bir duruma döndürmek.</li>
+  <li><strong>Providing multiple user interfaces</strong>: sorgu dilleri, programlama arayüzleri, formlar, menüler, doğal dil arayüzleri.</li>
+  <li><strong>Representing complex relationships among data</strong>.</li>
+  <li><strong>Enforcing integrity constraints</strong>: veri tipleri, benzersizlik (<em>key</em>), referans bütünlüğü (<em>referential integrity</em>), iş kuralları.</li>
+  <li><strong>Permitting inferencing and actions using rules and triggers</strong>: deductive veritabanları, trigger'lar, stored procedure'lar.</li>
+  <li><strong>Ek faydalar</strong>: standartları zorlama, uygulama geliştirme süresinin kısalması, esneklik (yapı değişince programların az etkilenmesi), güncel bilginin herkese anında ulaşması, ölçek ekonomisi.</li>
+</ol>
+
+<h2>Ne zaman DBMS kullanılmamalı?</h2>
+<p>DBMS'in maliyetleri vardır: donanım, yazılım ve eğitim yatırımı; tanımlama ve işleme için genelliğin getirdiği ek yük; güvenlik, concurrency control, recovery ve bütünlük işlevlerinin ek yükü. Bu yüzden şu durumlarda sıradan dosyalar daha iyi olabilir:</p>
+<ul>
+  <li>Veritabanı ve uygulamalar basit, iyi tanımlı ve <em>değişmesi beklenmiyor</em>.</li>
+  <li><em>Katı gerçek zamanlı</em> (real-time) gereksinimler, DBMS'in ek yüküyle karşılanamıyor.</li>
+  <li>Sınırlı depolama kapasitesi olan <em>gömülü</em> (embedded) sistemler.</li>
+  <li>Birden çok kullanıcının erişimi gerekmiyor.</li>
+</ul>
+<p>Ayrıca bazı uygulamalar ilişkisel modelle iyi ifade edilemez: karmaşık veri modelleri (CAD, coğrafi bilgi), özel işlemler gerektiren uygulamalar.</p>
+
+<h2>Kısa tarihçe</h2>
+<ul>
+  <li><strong>Hiyerarşik ve ağ (network) sistemler</strong> (1960'lar–70'ler): kayıtlar arasındaki ilişkiler fiziksel işaretçilerle; program ve veri iç içe.</li>
+  <li><strong>İlişkisel model</strong> (Codd, 1970): veri tablolarda; fiziksel depolama ve kavramsal gösterim ayrı; yüksek düzey sorgu dilleri (SQL). 1980'lerde ticarileşti.</li>
+  <li><strong>Nesne yönelimli</strong> ve <strong>object-relational</strong> sistemler (1980'ler–90'lar), <strong>Web ve XML</strong>, <strong>NoSQL ve büyük veri</strong> (2000'ler): çok büyük ölçek, esnek şema, yüksek erişilebilirlik.</li>
+</ul>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3">
+  <p>Bir şirketin her departmanı çalışan bilgilerini kendi dosyasında tutuyor; bir çalışanın adresi değişince bazı dosyalar güncelleniyor, bazıları güncellenmiyor. Bu, hangi sorunun doğrudan sonucudur?</p>
+  <ol>
+    <li data-why="Yetkilendirme kimin neye erişebileceğiyle ilgilidir, çelişen kopyalarla değil.">Unauthorized access</li>
+    <li data-why="Concurrency, aynı anda yapılan erişimlerle ilgilidir. Burada sorun, aynı verinin birden çok kopyasının olması.">Concurrency control eksikliği</li>
+    <li>Uncontrolled redundancy, bunun sonucu olarak da inconsistency</li>
+    <li data-why="Program-data independence, dosya yapısının programa gömülü olmasıyla ilgilidir.">Program-data dependence</li>
+  </ol>
+  <div class="explain">Aynı veri birden çok yerde, kontrolsüz biçimde saklanıyor (redundancy). Kopyalar birbirinden farklılaşınca veri tutarsız (inconsistent) hâle gelir. DBMS veriyi bir kez saklar ya da kontrollü tekrar kullanır.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>Banka veznedarı her gün aynı hazır işlemleri (para yatırma, çekme, bakiye sorgulama) kullanıyor. Hangi tür son kullanıcıdır?</p>
+  <ol>
+    <li>Casual end user</li>
+    <li>Naive (parametric) end user</li>
+    <li>Sophisticated end user</li>
+    <li>Standalone user</li>
+  </ol>
+  <div class="explain">Naive/parametric kullanıcılar <em>canned transaction</em> adı verilen, önceden programlanmış ve test edilmiş standart işlemleri tekrar tekrar kullanır.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Aşağıdakilerden hangisi veritabanı yaklaşımının <em>self-describing</em> özelliğini en iyi açıklar?</p>
+  <ol>
+    <li>Kullanıcılar veriyi farklı görünümlerle görebilir.</li>
+    <li>Programlar dosya yapısından bağımsızdır.</li>
+    <li>Birden çok kullanıcı aynı anda veri güncelleyebilir.</li>
+    <li>Veritabanı, verinin yanında yapısının tanımını da (katalogda meta-data olarak) içerir.</li>
+  </ol>
+  <div class="explain">DBMS kataloğu her tablonun, sütunun, tipin ve kısıtın tanımını saklar; DBMS yazılımı bu sayede herhangi bir veritabanıyla çalışabilir. Yukarıdaki <code>information_schema</code> sorgusu bu kataloğu okuyor.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Aşağıdaki durumlardan hangisinde DBMS kullanmak <em>en az</em> anlamlıdır?</p>
+  <ol>
+    <li>Bir çamaşır makinesinin, çok az belleği olan ve tek bir programın kullandığı gömülü kontrol yazılımı</li>
+    <li>Yüzlerce şubeden aynı anda erişilen bir banka hesap sistemi</li>
+    <li>Sık sık yeni rapor türleri istenen bir şirket bilgi sistemi</li>
+    <li>Öğrenci, ders ve not bilgilerini tutan bir üniversite sistemi</li>
+  </ol>
+  <div class="explain">Sınırlı depolama, tek kullanıcı, basit ve değişmeyen gereksinimler: DBMS'in getirdiği ek yük (genellik, güvenlik, concurrency, recovery) burada karşılığını vermez.</div>
+</div>
+
+</div></main>
+</body>
+</html>

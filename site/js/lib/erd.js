@@ -52,8 +52,8 @@ export function drawER(spec) {
     pts[pts.length - 1] = boundary(B, ...pts[pts.length - 2]);
     const d = "M" + pts.map((p) => p.map((v) => v.toFixed(1)).join(",")).join("L");
     if (L.total) {
-      gLinks.append(el("path", { d, class: "link", "stroke-width": 4.6, style: "stroke:var(--text-2)" }));
-      gLinks.append(el("path", { d, class: "link", "stroke-width": 1.8, style: "stroke:var(--surface)" }));
+      gLinks.append(el("path", { d, class: "link", style: "stroke:var(--text-2);stroke-width:4.4" }));
+      gLinks.append(el("path", { d, class: "link", style: "stroke:var(--surface);stroke-width:1.6" }));
     } else gLinks.append(el("path", { d, class: "link" }));
 
     // cardinality next to the relationship end (whichever end is a diamond), role names along the line
@@ -102,7 +102,12 @@ export function drawER(spec) {
     } else {
       g.append(el("circle", { cx: n.x, cy: n.y, r: 13 }));
     }
-    g.append(el("text", { x: n.x, y: n.y + 0.5, class: n.key ? "key" : n.pkey ? "pkey" : null }, n.label));
+    g.append(el("text", { x: n.x, y: n.y + 0.5 }, n.label));
+    if (n.key || n.pkey) {
+      // SVG text-decoration is unreliable across browsers: draw the (dashed) underline as a line
+      const half = textW(n.label) / 2 - 1;
+      g.append(el("line", { x1: n.x - half, x2: n.x + half, y1: n.y + 8, y2: n.y + 8, style: `stroke:var(--text);stroke-width:1.1${n.pkey ? ";stroke-dasharray:3 2" : ""}` }));
+    }
     gNodes.append(g);
   }
   return svg;
