@@ -41,9 +41,11 @@ export function splitSQL(text) {
       const end = text.indexOf(tag, DOLLAR.lastIndex);
       j = end === -1 ? n : end + tag.length;
     } else if (c === ";") {
-      stmts.push(buf);
+      // a comment on the same line after ';' belongs to this statement, not to the next one
+      const rest = text.slice(i + 1).match(/^[ \t]*(--[^\n]*)/);
+      stmts.push(rest ? `${buf} ${rest[1]}` : buf);
       buf = "";
-      i++;
+      i += 1 + (rest ? rest[0].length : 0);
       continue;
     } else j = i + 1;
     buf += text.slice(i, j);
@@ -67,6 +69,10 @@ export function caption(stmt) {
     else if (s) code.push(s);
   }
   if (comments.length) return comments.join(" ");
+  // otherwise a comment at the end of the statement ("SELECT …;  -- Q21")
+  const last = code[code.length - 1] || "";
+  const k = last.lastIndexOf("--");
+  if (k > 0 && (last.slice(0, k).split("'").length % 2) === 1) return last.slice(k + 2).trim();
   const joined = code.join(" ");
   return joined.length > 90 ? joined.slice(0, 90) + " ..." : joined;
 }

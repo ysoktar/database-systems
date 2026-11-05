@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { splitSQL, quantize2, pyDumps, commandTag } from "../site/js/lib/sqlcore.js";
+import { splitSQL, quantize2, pyDumps, commandTag, caption } from "../site/js/lib/sqlcore.js";
 
 const site = join(import.meta.dirname, "..", "site");
 const layout = readFileSync(join(site, "js", "layout.js"), "utf8");
@@ -36,6 +36,8 @@ test("splitSQL splits like the notebook's _split_sql", () => {
   assert.deepEqual(splitSQL("SELECT 1; SELECT ';' -- x;\n; /* ; */ SELECT 2;"), ["SELECT 1", "SELECT ';' -- x;", "/* ; */ SELECT 2"]);
   assert.deepEqual(splitSQL("CREATE FUNCTION f() RETURNS int AS $$ BEGIN RETURN 1; END $$ LANGUAGE plpgsql; SELECT f();").length, 2);
   assert.deepEqual(splitSQL("-- only a comment\n;"), []);
+  // a comment after ';' on the same line stays with its statement
+  assert.deepEqual(splitSQL("SET x = 1;   -- why\nSELECT 2;"), ["SET x = 1 -- why", "SELECT 2"]);
 });
 
 test("number normalization matches Python's Decimal.quantize(ROUND_HALF_EVEN)", () => {
@@ -50,4 +52,10 @@ test("number normalization matches Python's Decimal.quantize(ROUND_HALF_EVEN)", 
   assert.equal(pyDumps([["a", null], ["ş"]]), '[["a", null], ["\\u015f"]]');
   assert.equal(commandTag("insert into t values (1)", 1), "INSERT 0 1");
   assert.equal(commandTag("CREATE OR REPLACE VIEW v AS SELECT 1", 0), "CREATE VIEW");
+});
+
+test("result captions come from the statement's own comment", () => {
+  assert.equal(caption("-- the plan\nEXPLAIN SELECT 1"), "the plan");
+  assert.equal(caption("SELECT COUNT(*) FROM EMPLOYEE -- Q21"), "Q21");
+  assert.equal(caption("SELECT '--' AS x"), "SELECT '--' AS x");
 });
