@@ -681,10 +681,11 @@ table.rel th .ty { display: block; font-weight: 400; font-size: 0.7rem; color: v
 .toc-h3 { font-size: 0.82rem; }
 .toc-top { display: block; margin-top: 10px; padding: 0 8px; font-size: 0.8rem; color: var(--muted); }
 
-/* wide screens: a column on the right */
+/* landscape screens (wider than tall) with room for it: a column on the right. Decided by the screen's shape, not a
+   fixed pixel width, so the column stays when the page is zoomed in; portrait phones keep the bar below. */
 .toc-rail { display: none; }
-@media (min-width: 1400px) {
-  .main.has-rail { display: grid; grid-template-columns: minmax(0, 1fr) 240px; column-gap: 32px; align-items: start; }
+@media (min-aspect-ratio: 1/1) and (min-width: 760px) {
+  .main.has-rail { display: grid; grid-template-columns: minmax(0, 1fr) clamp(170px, 19vw, 240px); column-gap: clamp(16px, 2.5vw, 32px); align-items: start; }
   .main.has-rail > .content { grid-column: 1; grid-row: 1; width: 100%; }
   .toc-rail {
     display: block; grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--header-h) + 20px);
