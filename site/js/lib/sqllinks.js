@@ -10,6 +10,7 @@ import { wordClass } from "./ui.js";
 import { t as tl, EN } from "./i18n.js";
 import { COMPANY_SCHEMA } from "./schema.js";
 import { SCHEMA_SQL } from "./company.js";
+import { closest } from "./errhelp.js";
 
 // ---- what the COMPANY schema knows about a name
 const ROWS = { EMPLOYEE: 8, DEPARTMENT: 3, DEPT_LOCATIONS: 5, PROJECT: 6, WORKS_ON: 16, DEPENDENT: 7 };
@@ -295,6 +296,12 @@ export function linksAt(src, pos) {
       return { ranges, label: tl(`${T} tablosu · başlangıçta ${ROWS[T]} satır · birincil anahtar ${pk}${aliasTxt}`, `The table ${T} · ${ROWS[T]} rows at the start · primary key ${pk}${aliasTxt}`) };
     }
     const { cols, qualified, qualifier } = columnAt(toks, i, sc);
+    // E.Adress: the table is known but has no such column: warn before the query is run
+    const qTable = qualified ? sc.tableOf(qualifier) : null;
+    if (qTable && !cols.length) {
+      const guess = closest(t.text, COLS.filter((c) => c.table === qTable).map((c) => c.col));
+      return { ranges, warn: true, label: tl(`${qTable} tablosunda ${t.text} diye bir sütun yok${guess ? `; ${guess} mı demek istediniz?` : ""}`, `${qTable} has no column ${t.text}${guess ? `; did you mean ${guess}?` : ""}`) };
+    }
     if (cols.length) {
       // the column, and the columns it is tied to by a foreign key (Dno ↔ Dnumber), wherever they appear
       const tied = new Set();

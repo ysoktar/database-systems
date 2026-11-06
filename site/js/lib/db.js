@@ -5,6 +5,7 @@
 import { SCHEMA_SQL, DATA_SQL, TABLES } from "./company.js";
 import { splitSQL, firstWord, caption, commandTag } from "./sqlcore.js";
 import { startEngine } from "./mysql.js";
+import { improveError } from "./errhelp.js";
 import { t as tl, EN } from "./i18n.js";
 
 let dbPromise = null;
@@ -174,7 +175,8 @@ export function runSQL(text, { expectError = false, database = "company" } = {})
       const r = db.query(s);
       if (r.error) {
         flush();
-        error = { code: r.error.code, state: r.error.state, message: r.error.message, index: i + 1, total: stmts.length };
+        // in MySQL's words, with a "did you mean …?" for a misspelled name (errhelp.js)
+        error = { ...improveError({ code: r.error.code, state: r.error.state, message: r.error.message }, s), index: i + 1, total: stmts.length };
         items.push({ kind: "error", expected: expectError, ...error });
         break;
       }
