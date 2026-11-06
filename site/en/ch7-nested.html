@@ -244,10 +244,19 @@ WHERE  E.Super_ssn = S.Ssn;
   <ol>
     <li data-why="A correct answer: if the Ssn is among the Essns in DEPENDENT, there is at least one dependent."><code>SELECT Lname FROM EMPLOYEE WHERE Ssn IN (SELECT Essn FROM DEPENDENT)</code></li>
     <li data-why="A correct answer: the correlated EXISTS tests whether the employee has at least one DEPENDENT row."><code>SELECT Lname FROM EMPLOYEE E WHERE EXISTS (SELECT * FROM DEPENDENT D WHERE D.Essn = E.Ssn)</code></li>
-    <li data-why="This is the one that is not correct: the join produces one row per dependent, and without DISTINCT Wong and Smith appear three times each. The question asks for 'employees', without duplicates."><code>SELECT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
+    <li data-why="This is the answer: the join produces a separate row per dependent; without DISTINCT Smith and Wong appear three times each, 7 rows in all. The question wants each employee listed once."><code>SELECT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
     <li data-why="A correct answer: DISTINCT removes the duplicates coming from the join."><code>SELECT DISTINCT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
   </ol>
-  <div class="explain">IN and EXISTS select each employee at most once; a join produces one row for each matching pair of rows. Wong has three dependents, Smith three, Wallace one: C returns seven rows, the others three. (If two employees had the same last name, D would merge them too; <code>SELECT DISTINCT Ssn, Lname</code> is safer for that.)</div>
+  <div class="explain">A join produces a separate row for each matching (employee, dependent) pair. Smith has three dependents (Michael, Alice, Elizabeth), so <strong>"Smith" appears three times</strong> in C's result; Wong also has three (Alice, Theodore, Joy), so <strong>"Wong" appears three times</strong> too; Wallace has one (Abner), once. C returns 7 rows, although only 3 employees have dependents. The question asks for "employees": each should be listed once. A (IN) and B (EXISTS) select each employee at most once, and D removes the repeated names with DISTINCT: all three return Smith, Wong, Wallace (3 rows). The box below shows the four queries side by side; in C the dependent's name is printed too, so that the pairs can be seen. (Note: if two different employees had the same last name, D would merge them into one row as well; <code>SELECT DISTINCT Ssn, Lname</code> is safer for that.)</div>
+  <pre class="sql run" data-title="Check it">-- A: IN selects each employee at most once: 3 rows
+SELECT Lname FROM EMPLOYEE WHERE Ssn IN (SELECT Essn FROM DEPENDENT);
+-- B: EXISTS, also once per employee: 3 rows
+SELECT Lname FROM EMPLOYEE E WHERE EXISTS (SELECT * FROM DEPENDENT D WHERE D.Essn = E.Ssn);
+-- C: the join gives one row per (employee, dependent) pair: Smith 3 times, Wong 3 times, Wallace once = 7 rows
+--    (the dependent's name is shown here only to make the pairs visible)
+SELECT Lname, Dependent_name FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn ORDER BY Lname;
+-- D: DISTINCT removes the repeated names: 3 rows again
+SELECT DISTINCT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn;</pre>
 </div>
 
 <div class="quiz" data-answer="3">
@@ -269,6 +278,10 @@ WHERE  E.Super_ssn = S.Ssn;
     <li data-why="If the inner query were empty, NOT IN would be TRUE for everyone; but there are two projects in Houston.">All the employees</li>
   </ol>
   <div class="explain">Since there is no NULL in the inner query, NOT IN works normally: Dno ∉ {5, 1}. NOT IN returns nothing only when the inner query contains a NULL.</div>
+  <pre class="sql run" data-title="Check it">-- the inner query alone: {5, 1}, no NULL
+SELECT Dnum FROM PROJECT WHERE Plocation = 'Houston';
+-- so NOT IN keeps the employees of department 4
+SELECT Lname, Dno FROM EMPLOYEE WHERE Dno NOT IN (SELECT Dnum FROM PROJECT WHERE Plocation = 'Houston');</pre>
 </div>
 <div class="quiz" data-answer="4">
   <p>Which one is a correlated nested query?</p>
@@ -279,6 +292,10 @@ WHERE  E.Super_ssn = S.Ssn;
     <li data-why="Correct: the inner query uses the outer query's E.Dno and is computed again for each employee."><code>SELECT Lname FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno)</code></li>
   </ol>
   <div class="explain">The criterion: does the inner query use a column of a table in the outer query? In D the inner query uses <code>E.Dno</code>; for each employee the average of their own department is computed again. B is independent: it is computed once. (<code>AVG</code> is the aggregate function that gives the average; on <a href="ch7-joins.html#aggregate-functions">the next page</a>.)</div>
+  <pre class="sql run" data-title="Check it">-- B: not correlated: one average for everybody (35125)
+SELECT Lname, Dno, Salary FROM EMPLOYEE WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE);
+-- D: correlated: each employee is compared with the average of their own department
+SELECT Lname, Dno, Salary FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno);</pre>
 </div>
 <div class="quiz" data-answer="1">
   <p>Which is the correct template for "employees who work on all the projects"?</p>

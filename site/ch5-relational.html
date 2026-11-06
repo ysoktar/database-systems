@@ -229,6 +229,11 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
     <li data-why="8 çalışan sayısıdır; ama bir çalışan birden çok projede çalıştığı için WORKS_ON'da daha çok satır var.">degree 3, cardinality 8</li>
   </ol>
   <div class="explain">Degree şemanın özelliğidir (kaç öznitelik) ve değişmez; cardinality durumun özelliğidir (kaç tuple) ve her INSERT/DELETE ile değişir.</div>
+  <pre class="sql run" data-title="Kontrol edin">-- cardinality: the number of tuples (rows)
+SELECT COUNT(*) AS cardinality FROM WORKS_ON;
+-- degree: the number of attributes (columns), read from the catalog
+SELECT COUNT(*) AS degree FROM information_schema.COLUMNS
+WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'WORKS_ON';</pre>
 </div>
 
 <div class="quiz" data-answer="3">
@@ -250,6 +255,8 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
     <li data-why="Bir FK tek başına NULL olabilir; ama Essn aynı zamanda PK'nın parçası olduğu için entity integrity onu yasaklar.">Hiçbiri; FK'lar NULL olabilir</li>
   </ol>
   <div class="explain">Essn hem FK hem PK'nın parçasıdır. FK tek başına olsaydı NULL olabilirdi; ama PK'nın hiçbir parçası NULL olamaz.</div>
+  <pre class="sql run" data-expect-error data-title="Kontrol edin">-- Essn is part of the primary key (Essn, Pno), so it cannot be NULL
+INSERT INTO WORKS_ON VALUES (NULL, 10, 5.0);</pre>
 </div>
 <div class="quiz" data-answer="4">
   <p>Hangi güncelleme işlemi <em>yalnızca</em> referential integrity'yi ihlal edebilir?</p>

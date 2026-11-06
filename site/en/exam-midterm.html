@@ -202,6 +202,10 @@ SELECT COUNT(Super_ssn), COUNT(DISTINCT Super_ssn), COUNT(*) FROM EMPLOYEE;
     <p>How many rows does <code>SELECT Dno, AVG(Salary) FROM EMPLOYEE WHERE Sex = 'F' GROUP BY Dno;</code> return? (Female employees: Zelaya and Wallace in dept 4, English in dept 5.)</p>
     <ol><li data-why="Department 1 has no female employee: after WHERE no row of that department remains, so its group is not formed.">3</li><li data-why="Correct: the Dno values of the 3 remaining rows are 4, 4, 5: two groups.">2</li><li data-why="Dept 4 and dept 5 are separate groups; GROUP BY Dno produces one row for each distinct Dno.">1</li><li data-why="WHERE Sex = 'F' filters the rows; besides, GROUP BY produces a single row per group.">8</li></ol>
     <div class="explain">3 rows remain after WHERE; Dno values 4, 4, 5 → 2 groups. Since department 1 has no female employee, its group is never formed.</div>
+  <pre class="sql run" data-title="Check it">-- the rows WHERE keeps: Zelaya and Wallace (4), English (5)
+SELECT Lname, Dno, Salary FROM EMPLOYEE WHERE Sex = 'F';
+-- one row per group: departments 4 and 5 (department 1 has no woman, so it has no group)
+SELECT Dno, AVG(Salary) FROM EMPLOYEE WHERE Sex = 'F' GROUP BY Dno;</pre>
   </div>
   <div class="quiz" data-answer="3" data-topic="Rehber">
     <p>When a department is deleted, its locations (DEPT_LOCATIONS) should be deleted too. How should the FK be defined?</p>

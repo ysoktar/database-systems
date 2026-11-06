@@ -337,6 +337,10 @@ WHERE  Ssn = Essn AND Pno = Pnumber AND Pname = 'ProductX';</pre>
     <li data-why="Correct: both sides contain only 1, 4 and 5; UNION keeps each once.">3</li>
   </ol>
   <div class="explain">UNION is set union: {5, 4, 1} ∪ {5, 4, 1} = {1, 4, 5}, three rows. To keep the duplicates write UNION ALL (11 rows).</div>
+  <pre class="sql run" data-title="Check it">-- UNION: each value once
+SELECT Dno FROM EMPLOYEE UNION SELECT Dnumber FROM DEPARTMENT;
+-- UNION ALL keeps the duplicates: 8 + 3 = 11 rows
+SELECT Dno FROM EMPLOYEE UNION ALL SELECT Dnumber FROM DEPARTMENT;</pre>
 </div>
 
 <div class="quiz" data-answer="2">
@@ -360,6 +364,10 @@ WHERE  Ssn = Essn AND Pno = Pnumber AND Pname = 'ProductX';</pre>
     <li data-why="SQL tables are multisets, not sets: unless DISTINCT is written duplicates stay, so the first query returns 8 rows.">6 and 6</li>
   </ol>
   <div class="explain">SQL tables are multisets; without DISTINCT 25000 comes three times (8 rows). With DISTINCT 6 distinct salaries remain.</div>
+  <pre class="sql run" data-title="Check it">-- one row per employee: 25000 appears three times
+SELECT Salary FROM EMPLOYEE;
+-- DISTINCT: each salary once
+SELECT DISTINCT Salary FROM EMPLOYEE;</pre>
 </div>
 <div class="quiz" data-answer="1">
   <p>Which is the correct condition for "employees whose first name starts with A and has exactly five letters"?</p>

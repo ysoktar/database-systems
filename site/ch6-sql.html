@@ -337,6 +337,10 @@ WHERE  Ssn = Essn AND Pno = Pnumber AND Pname = 'ProductX';</pre>
     <li data-why="Doğru: iki tarafta da yalnızca 1, 4 ve 5 var; UNION bunları birer kez bırakır.">3</li>
   </ol>
   <div class="explain">UNION küme birleşimidir: {5, 4, 1} ∪ {5, 4, 1} = {1, 4, 5}, üç satır. Tekrarları korumak için UNION ALL yazılır (11 satır).</div>
+  <pre class="sql run" data-title="Kontrol edin">-- UNION: each value once
+SELECT Dno FROM EMPLOYEE UNION SELECT Dnumber FROM DEPARTMENT;
+-- UNION ALL keeps the duplicates: 8 + 3 = 11 rows
+SELECT Dno FROM EMPLOYEE UNION ALL SELECT Dnumber FROM DEPARTMENT;</pre>
 </div>
 
 <div class="quiz" data-answer="2">
@@ -360,6 +364,10 @@ WHERE  Ssn = Essn AND Pno = Pnumber AND Pname = 'ProductX';</pre>
     <li data-why="SQL tabloları küme değil multiset'tir: DISTINCT yazılmadıkça tekrarlar kalır, ilk sorgu 8 satır döndürür.">6 ve 6</li>
   </ol>
   <div class="explain">SQL tabloları multiset'tir; DISTINCT olmadan 25000 üç kez gelir (8 satır). DISTINCT ile 6 farklı maaş kalır.</div>
+  <pre class="sql run" data-title="Kontrol edin">-- one row per employee: 25000 appears three times
+SELECT Salary FROM EMPLOYEE;
+-- DISTINCT: each salary once
+SELECT DISTINCT Salary FROM EMPLOYEE;</pre>
 </div>
 <div class="quiz" data-answer="1">
   <p>"Adı A ile başlayan ve tam beş harfli olan çalışanlar" için doğru koşul hangisidir?</p>

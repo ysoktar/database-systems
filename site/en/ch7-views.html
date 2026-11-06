@@ -296,6 +296,8 @@ WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POS
     <li data-why="Correct: RESTRICT rejects the drop if a constraint refers to the table.">It is rejected: EMPLOYEE, PROJECT and DEPT_LOCATIONS refer to DEPARTMENT.</li>
   </ol>
   <div class="explain">RESTRICT rejects the drop if a constraint or a view refers to the table. With CASCADE the table and the referring constraints (the FKs) would be dropped; the referring tables themselves are not dropped. (In MySQL a table referenced by a foreign key cannot be dropped, whether RESTRICT is written or not; you saw it in the box above.)</div>
+  <pre class="sql run" data-expect-error data-title="Check it">-- MySQL: a table that a foreign key refers to cannot be dropped (RESTRICT or not)
+DROP TABLE DEPARTMENT RESTRICT;</pre>
 
 </div>
 
