@@ -4,6 +4,7 @@
 //   links: {a, b, total, card, role, via: [[x, y], …], subset}
 //          card is written near the relationship end of the line (Elmasri puts 1 / N / M beside the diamond)
 //          total = double line (total participation); subset = the ⊂ mark of a subclass line
+import { t as tl, tx, EN } from "./i18n.js";
 const NS = "http://www.w3.org/2000/svg";
 const el = (tag, attrs = {}, text) => {
   const e = document.createElementNS(NS, tag);
@@ -136,7 +137,7 @@ export function erFigure(spec, caption, { small = false } = {}) {
 
 // ---------------------------------------------------------------- the diagrams used on the site
 export const COMPANY_ER = {
-  title: "COMPANY veritabanının ER şeması (Elmasri & Navathe, Figure 3.2)",
+  title: tl("COMPANY veritabanının ER şeması (Elmasri & Navathe, Figure 3.2)", "The ER schema of the COMPANY database (Elmasri & Navathe, Figure 3.2)"),
   width: 1000, height: 720,
   nodes: [
     { id: "EMP", type: "entity", x: 330, y: 330, label: "EMPLOYEE" },

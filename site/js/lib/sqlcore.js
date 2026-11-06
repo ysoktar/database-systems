@@ -3,6 +3,7 @@
 //   resultHash    the notebook's exercise fingerprint (sha256 of the normalized rows), ported from Python
 //   commandTag    mysql-style status text for statements that return no rows
 import { isNumericType } from "./mysql.js";
+import { t as tl, EN } from "./i18n.js";
 
 function stripComments(s) {
   return s.replace(/\/\*[\s\S]*?\*\//g, " ").split("\n").map((l) => l.replace(/(--\s|--$|#).*$/, "")).join("\n");
@@ -160,12 +161,12 @@ export async function resultHash(rows, types, ordered) {
  * Returns { ok, reason, text } with a Turkish message.
  */
 export async function checkResult(exp, last, error) {
-  if (error) return { ok: false, reason: "error", text: "Önce yukarıdaki hatayı düzeltin." };
-  if (!last) return { ok: false, reason: "empty", text: "Henüz sonuç yok. Bir SELECT sorgusu yazıp çalıştırın." };
+  if (error) return { ok: false, reason: "error", text: tl("Önce yukarıdaki hatayı düzeltin.", "Fix the error above first.") };
+  if (!last) return { ok: false, reason: "empty", text: tl("Henüz sonuç yok. Bir SELECT sorgusu yazıp çalıştırın.", "No result yet. Write a SELECT query and run it.") };
   const { cols, types, rows } = last;
-  if (cols.length !== exp.ncols) return { ok: false, reason: "ncols", text: `Henüz değil. Sonuçta ${exp.ncols} sütun olmalı; sizinkinde ${cols.length} var.` };
-  if (rows.length !== exp.nrows) return { ok: false, reason: "nrows", text: `Henüz değil. Sonuçta ${exp.nrows} satır olmalı; sizinkinde ${rows.length} var.` };
-  if ((await resultHash(rows, types, false)) !== exp.hu) return { ok: false, reason: "values", text: "Henüz değil. Satır sayısı doğru ama bazı değerler farklı." };
-  if (exp.ordered && (await resultHash(rows, types, true)) !== exp.h) return { ok: false, reason: "order", text: "Neredeyse! Satırlar doğru ama istenen sırada değil." };
-  return { ok: true, reason: "ok", text: "Doğru!" };
+  if (cols.length !== exp.ncols) return { ok: false, reason: "ncols", text: tl(`Henüz değil. Sonuçta ${exp.ncols} sütun olmalı; sizinkinde ${cols.length} var.`, `Not yet. The result should have ${exp.ncols} columns; yours has ${cols.length}.`) };
+  if (rows.length !== exp.nrows) return { ok: false, reason: "nrows", text: tl(`Henüz değil. Sonuçta ${exp.nrows} satır olmalı; sizinkinde ${rows.length} var.`, `Not yet. The result should have ${exp.nrows} rows; yours has ${rows.length}.`) };
+  if ((await resultHash(rows, types, false)) !== exp.hu) return { ok: false, reason: "values", text: tl("Henüz değil. Satır sayısı doğru ama bazı değerler farklı.", "Not yet. The number of rows is right but some values differ.") };
+  if (exp.ordered && (await resultHash(rows, types, true)) !== exp.h) return { ok: false, reason: "order", text: tl("Neredeyse! Satırlar doğru ama istenen sırada değil.", "Almost! The rows are right but not in the requested order.") };
+  return { ok: true, reason: "ok", text: tl("Doğru!", "Correct!") };
 }

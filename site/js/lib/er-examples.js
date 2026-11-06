@@ -7,6 +7,7 @@ export const ER_EXAMPLES = [
       "R:MANAGES": { x: 560, y: 80 }, "R:WORKS_FOR": { x: 560, y: 245 }, "R:CONTROLS": { x: 760, y: 360 }, "R:WORKS_ON": { x: 560, y: 450 },
       "R:DEPENDENTS_OF": { x: 330, y: 530 }, "R:SUPERVISION": { x: 110, y: 470 } },
     desc: "Kitabın ana örneği: çalışanlar, departmanlar, projeler, bağımlılar. Bütün ER kavramları burada: bileşik, çok değerli, türetilmiş öznitelik, zayıf varlık, recursive ilişki, M:N.",
+    desc_en: "The book's main example: employees, departments, projects, dependents. Every ER concept is here: composite, multivalued and derived attributes, a weak entity, a recursive relationship, M:N.",
     dsl: `entity EMPLOYEE
   Ssn key
   Name(Fname, Minit, Lname)
@@ -43,11 +44,12 @@ identifying relationship DEPENDENTS_OF: EMPLOYEE 1, DEPENDENT N total
 `,
   },
   {
-    id: "university", title: "UNIVERSITY", kind: "ER", source: "Arasınav rehberi",
+    id: "university", title: "UNIVERSITY", kind: "ER", source: "Arasınav rehberi", source_en: "Midterm guide",
     layout: { "E:STUDENT": { x: 120, y: 220 }, "E:SECTION": { x: 470, y: 220 }, "E:COURSE": { x: 790, y: 220 }, "E:INSTRUCTOR": { x: 470, y: 390 },
       "E:DEPARTMENT": { x: 790, y: 390 }, "R:ENROLLS": { x: 295, y: 220 }, "R:OFFERING_OF": { x: 630, y: 220 }, "R:TEACHES": { x: 470, y: 305 },
       "R:OFFERS": { x: 790, y: 305 }, "R:WORKS_IN": { x: 630, y: 390 }, "R:PREREQ": { x: 790, y: 90 } },
     desc: "Öğrenciler, dersler, şubeler (zayıf varlık), öğretim üyeleri ve bölümler; önkoşul recursive M:N ilişkisi.",
+    desc_en: "Students, courses, sections (a weak entity), instructors and departments; a recursive M:N prerequisite relationship.",
     dsl: `entity STUDENT
   Sid key
   Name
@@ -85,6 +87,7 @@ relationship PREREQ: COURSE M role=course, COURSE N role=prerequisite
   {
     id: "bank", title: "BANK", kind: "ER", source: "Figure 3.21",
     desc: "Bankalar, şubeler (zayıf varlık), hesaplar, krediler, müşteriler; iki M:N ilişki.",
+    desc_en: "Banks, branches (a weak entity), accounts, loans, customers; two M:N relationships.",
     dsl: `entity BANK
   Code key
   Name
@@ -118,8 +121,9 @@ relationship L_C: CUSTOMER M, LOAN N total
 `,
   },
   {
-    id: "supply", title: "SUPPLY (üçlü ilişki)", kind: "ER", source: "Figure 3.17",
+    id: "supply", title: "SUPPLY (üçlü ilişki)", title_en: "SUPPLY (ternary relationship)", kind: "ER", source: "Figure 3.17",
     desc: "Üçlü (ternary) ilişki: hangi tedarikçi hangi projeye hangi parçayı sağlıyor. Eşleme Adım 7'yi gösterir.",
+    desc_en: "A ternary relationship: which supplier supplies which part to which project. The mapping shows Step 7.",
     dsl: `entity SUPPLIER
   Sname key
   City
@@ -136,8 +140,9 @@ relationship SUPPLY: SUPPLIER M, PROJECT N, PART P
 `,
   },
   {
-    id: "employee-eer", title: "EMPLOYEE özelleştirmeleri", kind: "EER", source: "Figure 4.1, 4.4",
+    id: "employee-eer", title: "EMPLOYEE özelleştirmeleri", title_en: "EMPLOYEE specializations", kind: "EER", source: "Figure 4.1, 4.4",
     desc: "İş tipine göre disjoint/partial, ödeme biçimine göre disjoint/total özelleştirme ve tek alt sınıflı MANAGER. Eşleme Adım 8 seçeneklerini (8A–8D) karşılaştırmak için.",
+    desc_en: "A disjoint/partial specialization by job type, a disjoint/total one by pay method, and MANAGER with a single subclass. For comparing the Step 8 options (8A–8D).",
     dsl: `entity EMPLOYEE
   Ssn key
   Name(Fname, Minit, Lname)
@@ -174,6 +179,7 @@ specialization EMPLOYEE -> HOURLY_EMPLOYEE, SALARIED_EMPLOYEE disjoint total
   {
     id: "part-eer", title: "PART (overlapping)", kind: "EER", source: "Figure 4.5",
     desc: "Overlapping ve total özelleştirme: bir parça hem üretilmiş hem satın alınmış olabilir. 8D seçeneği (çok sayıda Boolean tip sütunu) burada anlamlı.",
+    desc_en: "An overlapping, total specialization: a part can be both manufactured and purchased. Option 8D (several Boolean type columns) makes sense here.",
     dsl: `entity PART
   Part_no key
   Description
@@ -193,6 +199,7 @@ specialization PART -> MANUFACTURED_PART, PURCHASED_PART overlapping total
   {
     id: "vehicle-eer", title: "OWNER kategorisi", kind: "EER", source: "Figure 4.8",
     desc: "Kategori (union type): sahip bir kişi, banka ya da şirket olabilir; araçlar arabalar ve kamyonlardan oluşur (total kategori). Eşleme Adım 9 ve yapay anahtar (surrogate key).",
+    desc_en: "A category (union type): an owner can be a person, a bank or a company; vehicles are cars and trucks (a total category). Mapping Step 9 and a surrogate key.",
     dsl: `entity PERSON
   Ssn key
   Name
@@ -229,7 +236,7 @@ relationship OWNS: OWNER M, REGISTERED_VEHICLE N total
 `,
   },
   {
-    id: "university-eer", title: "UNIVERSITY EER (lattice)", kind: "EER", source: "Figure 4.7'nin sadeleştirilmişi",
+    id: "university-eer", title: "UNIVERSITY EER (lattice)", kind: "EER", source: "Figure 4.7'nin sadeleştirilmişi", source_en: "simplified from Figure 4.7",
     desc: "PERSON → EMPLOYEE, ALUMNUS, STUDENT (overlapping); STUDENT_ASSISTANT hem EMPLOYEE hem STUDENT (shared subclass, multiple inheritance).",
     dsl: `entity PERSON
   Ssn key

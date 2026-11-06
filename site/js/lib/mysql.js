@@ -14,7 +14,7 @@ export async function startEngine(source) {
     : await WebAssembly.instantiate(source, go.importObject);
   go.run(instance); // returns when the program exits, which it never does (it serves calls)
   for (let i = 0; !globalThis.gmsReady && i < 2000; i++) await new Promise((r) => setTimeout(r, 5));
-  if (!globalThis.gmsReady) throw new Error("MySQL motoru başlatılamadı");
+  if (!globalThis.gmsReady) throw new Error(document?.documentElement?.lang === "en" ? "the MySQL engine could not start" : "MySQL motoru başlatılamadı");
   return {
     query: (sql) => JSON.parse(globalThis.gmsQuery(rewriteQuantified(sql))),
     reset: () => globalThis.gmsReset(),

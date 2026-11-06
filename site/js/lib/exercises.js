@@ -249,3 +249,61 @@ WHERE  E.Salary = (SELECT ___(E2.Salary)
 SELECT Lname, Level FROM SUP_EMP;`,
 };
 for (const e of EXERCISES) e.skeleton = SKELETONS[e.n];
+
+// English for the English pages (the notebook's own text, queryEn, is the English question)
+const EXERCISES_EN = {
+ "1": {
+  "columns": "Fname, Lname, Salary",
+  "hint": "Filtering is done with <code>WHERE</code>, ordering with <code>ORDER BY</code>. <code>ORDER BY</code> can take several columns, each with its own <code>ASC</code>/<code>DESC</code>.",
+  "explain": "<code>DESC</code> applies only to the column right before it: <code>ORDER BY Salary DESC, Lname</code> = salary descending, ties by last name ascending. English and Zelaya have the same salary (25000), so the second key decides their order."
+ },
+ "2": {
+  "columns": "Pname, Dname",
+  "hint": "<code>PROJECT.Dnum</code> refers to <code>DEPARTMENT.Dnumber</code> (a foreign key).",
+  "explain": "The join condition (<code>Dnum = Dnumber</code>) and the selection condition (<code>Plocation = 'Houston'</code>) are different things. Forget the join condition and you get the Houston rows of a 6 × 3 = 18-row Cartesian product (6 rows)."
+ },
+ "3": {
+  "columns": "Fname, Lname, Salary",
+  "hint": "Look at how addresses are written, e.g. <code>'731 Fondren, Houston, TX'</code> (slide 6-40). <code>BETWEEN</code> includes both bounds.",
+  "explain": "<code>Address = 'Houston'</code> returns no rows: the city is in the <em>middle</em> of the address. <code>%</code> means zero or more characters, <code>_</code> exactly one. <code>BETWEEN 25000 AND 35000</code> ≡ <code>Salary &gt;= 25000 AND Salary &lt;= 35000</code>."
+ },
+ "4": {
+  "columns": "employee Lname, employee Dno, supervisor Lname, supervisor Dno",
+  "hint": "As in Q8 (slide 6-34), use the <code>EMPLOYEE</code> table twice with two aliases: one for the employee, one for the supervisor.",
+  "explain": "Think of E and S as two separate copies of the same table (tuple variables). Borg has no supervisor (<code>Super_ssn</code> is NULL), so <code>E.Super_ssn = S.Ssn</code> is UNKNOWN for him and he is not in the result, which is what we want."
+ },
+ "5": {
+  "columns": "Pname, number of employees, total hours",
+  "hint": "A condition on a group (an aggregate) goes in <code>HAVING</code>, not in <code>WHERE</code> (slides 7-31 – 7-33).",
+  "explain": "<code>WHERE SUM(Hours) &gt; 40</code> is an error: <code>WHERE</code> is applied to single rows, <em>before</em> the groups exist. In the Reorganization project Borg's hours are NULL: <code>COUNT(*)</code> counts him (3 people) but <code>SUM</code> skips the NULL (25 hours). Reorganization does not pass 40, so it is not in the result anyway."
+ },
+ "6": {
+  "columns": "Fname, Lname, number of dependents",
+  "hint": "Which join keeps the employees that have no matching <code>DEPENDENT</code> row? What does <code>COUNT(*)</code> count for such an employee?",
+  "explain": "There are two traps. (1) An inner join drops the 5 employees without dependents entirely. (2) With a left join, <code>COUNT(*)</code> also counts the row padded with NULLs and gives 1 for those employees. <code>COUNT(D.Essn)</code> counts only non-NULL values, so it gives 0."
+ },
+ "7": {
+  "columns": "Fname, Lname",
+  "hint": "Compare the project's controlling department (<code>PROJECT.Dnum</code>) with the employee's department (<code>EMPLOYEE.Dno</code>) inside a correlated <code>EXISTS</code> (slide 7-15).",
+  "explain": "The inner query uses the outer query's <code>E</code>, so it is correlated: it is evaluated again for every employee. <code>EXISTS</code> returns each employee at most once. With a join, Wong would appear twice because of two projects (10 and 20), so <code>DISTINCT</code> would be needed."
+ },
+ "8": {
+  "columns": "Fname, Lname",
+  "hint": "\"Every project of Smith\" means: Smith has <strong>no</strong> project that the employee does <strong>not</strong> work on (double negation, slides 7-16 and 7-17).",
+  "explain": "SQL has no operator for \"every\" (∀); with ∀x P(x) ≡ ¬∃x ¬P(x) you write two nested <code>NOT EXISTS</code>. Smith works on projects 1 and 2; the only other person working on both is Joyce English."
+ },
+ "9": {
+  "columns": "Dname, Fname, Lname, Salary",
+  "hint": "Compare each employee's salary with the highest salary of <strong>their own</strong> department: a correlated subquery (slide 7-12) or <code>WITH</code> (slide 7-34).",
+  "explain": "A common mistake: <code>SELECT Dname, Fname, Lname, MAX(Salary) ... GROUP BY Dname</code>. Fname and Lname are neither grouped nor aggregated, so SQL rejects it: which Fname of a group should it show? First find the group's maximum, then select the rows with that salary."
+ },
+ "10": {
+  "columns": "Lname, level",
+  "hint": "<code>WITH RECURSIVE</code> (slide 7-39): start with Borg's direct supervisees at level 1; each step adds the supervisees of the rows found so far, one level deeper.",
+  "explain": "The base query finds Wong and Wallace (level 1); the recursive step adds their supervisees (Smith, Narayan, English → Wong; Zelaya, Jabbar → Wallace) at level 2; the next step produces no new rows and it stops. The book's Q29 (slide 7-39) has the same structure but keeps no level."
+ }
+};
+for (const e of EXERCISES) {
+  const x = EXERCISES_EN[e.n];
+  e.topic_en = e.en; e.query_en = e.queryEn; e.columns_en = x.columns; e.hint_en = x.hint; e.explain_en = x.explain;
+}

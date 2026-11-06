@@ -5,6 +5,7 @@ import { h, $, $$, button } from "./ui.js";
 import { drawER } from "./erd.js";
 import { parseER, toDSL, cloneModel, findEntity, normalizeEnds, emptyModel } from "./ermodel.js";
 import { autoLayout, completePositions, toDiagram, entityId, relId, catId, attrId, diagramNodes } from "./erlayout.js";
+import { t as tl, tx, EN } from "./i18n.js";
 
 const NS = "http://www.w3.org/2000/svg";
 const U = (s) => String(s).toUpperCase();
@@ -33,19 +34,19 @@ export function createEditor(host, opts = {}) {
   // ---------------------------------------------------------------- DOM
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "ER diyagramı editörü");
+  svg.setAttribute("aria-label", tl("ER diyagramı editörü", "ER diagram editor"));
   svg.setAttribute("tabindex", "0");
   const fig = h("div", { class: "er er-canvas" }, svg,
-    h("div", { class: "zoom" }, button("+", () => zoom(0.8)), button("−", () => zoom(1.25)), button("Sığdır", () => fit())),
-    h("div", { class: "canvas-hint" }, "Sürükle: taşı · boş alanı sürükle: kaydır · Ctrl + tekerlek: yakınlaştır · Del: sil"));
+    h("div", { class: "zoom" }, button("+", () => zoom(0.8)), button("−", () => zoom(1.25)), button(tl("Sığdır", "Fit"), () => fit())),
+    h("div", { class: "canvas-hint" }, tl("Sürükle: taşı · boş alanı sürükle: kaydır · Ctrl + tekerlek: yakınlaştır · Del: sil", "Drag: move · drag empty space: pan · Ctrl + wheel: zoom · Del: delete")));
   fig.style.margin = "0";
   const panel = h("div", { class: "er-panel", "aria-live": "polite" });
-  const dsl = h("textarea", { spellcheck: "false", rows: 16, style: { width: "100%", fontFamily: "var(--mono)", fontSize: "0.82rem", lineHeight: "1.5" }, "aria-label": "ER şeması metin olarak" });
+  const dsl = h("textarea", { spellcheck: "false", rows: 16, style: { width: "100%", fontFamily: "var(--mono)", fontSize: "0.82rem", lineHeight: "1.5" }, "aria-label": tl("ER şeması metin olarak", "The ER schema as text") });
   const msgs = h("ul", { class: "dsl-msgs" });
 
-  const notationSel = h("select", { "aria-label": "Gösterim" }, h("option", { value: "ratio" }, "Gösterim: 1 / N + çift çizgi"), h("option", { value: "minmax" }, "Gösterim: (min, max)"));
+  const notationSel = h("select", { "aria-label": tl("Gösterim", "Notation") }, h("option", { value: "ratio" }, tl("Gösterim: 1 / N + çift çizgi", "Notation: 1 / N + double line")), h("option", { value: "minmax" }, tl("Gösterim: (min, max)", "Notation: (min, max)")));
   notationSel.addEventListener("change", () => { notation = notationSel.value; render(); save(); });
-  const undoBtn = button("↶ Geri al", () => undo(), { title: "Geri al (Ctrl+Z)" });
+  const undoBtn = button(tl("↶ Geri al", "↶ Undo"), () => undo(), { title: tl("Geri al (Ctrl+Z)", "Undo (Ctrl+Z)") });
   const redoBtn = button("↷ Yinele", () => redo(), { title: "Yinele (Ctrl+Y)" });
   const toolbar = h("div", { class: "er-toolbar" },
     button("+ Entity", () => addEntity(false), { kind: "primary" }),
@@ -55,16 +56,16 @@ export function createEditor(host, opts = {}) {
     button("+ Specialization", () => addSpecialization()),
     button("+ Category", () => addCategory()),
     h("span", { class: "sep" }),
-    button("Sil", () => removeSelected(), { title: "Seçili öğeyi sil (Delete)" }),
+    button(tl("Sil", "Delete"), () => removeSelected(), { title: tl("Seçili öğeyi sil (Delete)", "Delete the selected item (Delete)") }),
     undoBtn, redoBtn,
-    button("Otomatik yerleşim", () => { pos = autoLayout(model); commit({ layoutOnly: true }); fit(); }),
+    button(tl("Otomatik yerleşim", "Auto layout"), () => { pos = autoLayout(model); commit({ layoutOnly: true }); fit(); }),
     notationSel,
     h("span", { class: "sep" }),
-    button("SVG", () => exportSVG()), button("PNG", () => exportPNG()), button("Bağlantı", () => share(), { title: "Bu diyagramın paylaşılabilir bağlantısını kopyala" }));
+    button("SVG", () => exportSVG()), button("PNG", () => exportPNG()), button(tl("Bağlantı", "Link"), () => share(), { title: tl("Bu diyagramın paylaşılabilir bağlantısını kopyala", "Copy a shareable link to this diagram") }));
 
   host.append(toolbar, h("div", { class: "er-studio" }, fig, panel),
-    h("h3", {}, "Metin olarak"),
-    h("p", { class: "small muted", html: `Diyagram ile bu metin aynı şeydir: birini değiştirince diğeri güncellenir. Sözdizimi için <a href="${document.getElementById("syntax") ? "#syntax" : "er-studio.html#syntax"}">kısa kılavuz</a>.` }),
+    h("h3", {}, tl("Metin olarak", "As text")),
+    h("p", { class: "small muted", html: tl(`Diyagram ile bu metin aynı şeydir: birini değiştirince diğeri güncellenir. Sözdizimi için <a href="${document.getElementById("syntax") ? "#syntax" : "er-studio.html#syntax"}">kısa kılavuz</a>.`, `The diagram and this text are the same thing: change one and the other follows. For the syntax see the <a href="${document.getElementById("syntax") ? "#syntax" : "er-studio.html#syntax"}">short guide</a>.`) }),
     h("div", { class: "dsl-wrap" }, dsl, h("div", {}, msgs)));
 
   // ---------------------------------------------------------------- state changes
@@ -111,9 +112,9 @@ export function createEditor(host, opts = {}) {
   function syncText() { if (document.activeElement !== dsl) dsl.value = toDSL(model); }
   function showMsgs(res) {
     msgs.replaceChildren(
-      ...res.errors.map((e) => h("li", { class: "e" }, `Satır ${e.line}: ${e.msg}`)),
-      ...res.warnings.map((w) => h("li", { class: "w" }, `Satır ${w.line}: ${w.msg}`)));
-    if (!res.errors.length && !res.warnings.length) msgs.append(h("li", { class: "muted" }, "Hata yok. (Uyarılar da burada görünür: anahtarı olmayan varlık, partial key'i olmayan zayıf varlık, …)"));
+      ...res.errors.map((e) => h("li", { class: "e" }, `${tl("Satır", "Line")} ${e.line}: ${e.msg}`)),
+      ...res.warnings.map((w) => h("li", { class: "w" }, `${tl("Satır", "Line")} ${w.line}: ${w.msg}`)));
+    if (!res.errors.length && !res.warnings.length) msgs.append(h("li", { class: "muted" }, tl("Hata yok. (Uyarılar da burada görünür: anahtarı olmayan varlık, partial key'i olmayan zayıf varlık, …)", "No errors. (Warnings show here too: an entity without a key, a weak entity without a partial key, …)")));
   }
 
   let textTimer = 0;
@@ -146,7 +147,7 @@ export function createEditor(host, opts = {}) {
       const t = document.createElementNS(NS, "text");
       t.setAttribute("x", view.x + view.w / 2); t.setAttribute("y", view.y + view.h / 2);
       t.setAttribute("style", "fill:var(--muted);text-anchor:middle;font-size:14px");
-      t.textContent = "Boş diyagram: + Entity ile başlayın.";
+      t.textContent = tl("Boş diyagram: + Entity ile başlayın.", "Empty diagram: start with + Entity.");
       svg.append(t);
     }
     renderPanel();
@@ -273,7 +274,7 @@ export function createEditor(host, opts = {}) {
     commit();
   }
   function addRelationship() {
-    if (model.entities.length < 1) { alert("Önce en az bir entity ekleyin."); return; }
+    if (model.entities.length < 1) { alert(tl("Önce en az bir entity ekleyin.", "Add at least one entity first.")); return; }
     const first = selectedEntity() || model.entities[0];
     const second = model.entities.find((e) => e !== first) || first;
     const name = uniqueName("REL", new Set(model.relationships.map((r) => U(r.name))));
@@ -289,14 +290,14 @@ export function createEditor(host, opts = {}) {
   function addAttribute() {
     const r = resolve(selected);
     const target = r?.kind === "attr" ? r.owner : r;
-    if (!target || (target.kind !== "entity" && target.kind !== "rel")) { alert("Önce bir entity ya da relationship seçin."); return; }
+    if (!target || (target.kind !== "entity" && target.kind !== "rel")) { alert(tl("Önce bir entity ya da relationship seçin.", "Select an entity or a relationship first.")); return; }
     const name = uniqueName("Attr", new Set(target.obj.attrs.map((a) => U(a.name))));
     target.obj.attrs.push(newAttr(name));
     commit();
   }
   function addSpecialization() {
     const sup = selectedEntity();
-    if (!sup) { alert("Önce üst sınıf olacak entity'yi seçin."); return; }
+    if (!sup) { alert(tl("Önce üst sınıf olacak entity'yi seçin.", "Select the entity that will be the superclass first.")); return; }
     const taken = entityNames();
     const a = uniqueName(`${U(sup.name)}_SUB`, taken); taken.add(U(a));
     const b = uniqueName(`${U(sup.name)}_SUB`, taken);
@@ -311,7 +312,7 @@ export function createEditor(host, opts = {}) {
   }
   function addCategory() {
     const regular = model.entities.filter((e) => !e.weak);
-    if (regular.length < 2) { alert("Bir kategori için en az iki entity gerekli."); return; }
+    if (regular.length < 2) { alert(tl("Bir kategori için en az iki entity gerekli.", "A category needs at least two entities.")); return; }
     const first = selectedEntity() || regular[0];
     const second = regular.find((e) => e !== first);
     const name = uniqueName("CATEGORY", entityNames());
@@ -398,7 +399,7 @@ export function createEditor(host, opts = {}) {
     const row = (a, list, depth) => {
       const name = text(a.name, (v) => {
         v = v.trim().replace(/\s+/g, "_");
-        if (!/^[A-Za-z_]\w*$/.test(v)) { alert("Geçersiz ad"); renderPanel(); return; }
+        if (!/^[A-Za-z_]\w*$/.test(v)) { alert(tl("Geçersiz ad", "Invalid name")); renderPanel(); return; }
         const oid = owner.kind === "entity" ? entityId(owner.obj.name) : relId(owner.obj.name);
         const path = pathOf(owner.obj.attrs, a);
         const newPath = path.split(".").slice(0, -1).concat(v).join(".");
@@ -411,13 +412,13 @@ export function createEditor(host, opts = {}) {
         owner.kind === "entity" && owner.obj.weak ? check("partial", a.partial, (v) => { a.partial = v; if (v) a.key = false; commit(); }) : null,
         check("multi", a.multi, (v) => { a.multi = v; commit(); }),
         check("derived", a.derived, (v) => { a.derived = v; commit(); }),
-        button("+ bileşen", () => { a.comps = a.comps || []; a.comps.push(newAttr(uniqueName("Part", new Set(a.comps.map((c) => U(c.name)))))); commit(); }, { title: "Bileşik öznitelik yap: bir bileşen ekle" }),
-        button("×", () => { list.splice(list.indexOf(a), 1); if (depth && !list.length) delete a.comps; commit(); }, { title: "Özniteliği sil" }));
+        button(tl("+ bileşen", "+ component"), () => { a.comps = a.comps || []; a.comps.push(newAttr(uniqueName("Part", new Set(a.comps.map((c) => U(c.name)))))); commit(); }, { title: tl("Bileşik öznitelik yap: bir bileşen ekle", "Make it composite: add a component") }),
+        button("×", () => { list.splice(list.indexOf(a), 1); if (depth && !list.length) delete a.comps; commit(); }, { title: tl("Özniteliği sil", "Delete the attribute") }));
       box.append(h("div", { class: "row", style: { marginLeft: `${depth * 14}px`, background: a === focusAttr ? "var(--accent-wash)" : null } }, name, flags));
       for (const c of a.comps || []) row(c, a.comps, depth + 1);
     };
     for (const a of owner.obj.attrs) row(a, owner.obj.attrs, 0);
-    box.append(h("div", { class: "row" }, button("+ öznitelik", () => { owner.obj.attrs.push(newAttr(uniqueName("Attr", new Set(owner.obj.attrs.map((x) => U(x.name)))))); commit(); })));
+    box.append(h("div", { class: "row" }, button(tl("+ öznitelik", "+ attribute"), () => { owner.obj.attrs.push(newAttr(uniqueName("Attr", new Set(owner.obj.attrs.map((x) => U(x.name)))))); commit(); })));
     return box;
   }
   function pathOf(list, target, prefix = "") {
@@ -434,8 +435,8 @@ export function createEditor(host, opts = {}) {
     let focusAttr = null;
     if (r?.kind === "attr") { focusAttr = r.obj; r = r.owner; }
     if (!r) {
-      panel.replaceChildren(h("h4", {}, "Seçili öğe yok"),
-        h("p", { class: "muted" }, "Diyagramda bir öğeye tıklayın: adını, özniteliklerini, kardinalitesini ve katılımını buradan değiştirebilirsiniz."),
+      panel.replaceChildren(h("h4", {}, tl("Seçili öğe yok", "Nothing selected")),
+        h("p", { class: "muted" }, tl("Diyagramda bir öğeye tıklayın: adını, özniteliklerini, kardinalitesini ve katılımını buradan değiştirebilirsiniz.", "Click an item in the diagram: you can change its name, attributes, cardinality and participation here.")),
         h("p", { class: "muted", html: `<strong>${model.entities.length}</strong> entity, <strong>${model.relationships.length}</strong> relationship, <strong>${model.specializations.length}</strong> specialization, <strong>${model.categories.length}</strong> category.` }));
       return;
     }
@@ -443,30 +444,30 @@ export function createEditor(host, opts = {}) {
     const kids = [];
     if (r.kind === "entity") {
       kids.push(h("h4", {}, o.weak ? "Weak entity" : "Entity"),
-        field("Ad", text(o.name, (v) => { if (!renameEntity(o, v)) alert("Geçersiz ya da kullanılan bir ad."); commit(); })),
-        check("Weak entity (kendi anahtarı yok)", o.weak, (v) => { o.weak = v; for (const a of o.attrs) { if (v && a.key) { a.key = false; a.partial = true; } if (!v && a.partial) { a.partial = false; a.key = true; } } commit(); }),
-        h("div", { class: "muted", style: { marginTop: "8px" } }, "Öznitelikler"), attrRows(r, focusAttr));
+        field(tl("Ad", "Name"), text(o.name, (v) => { if (!renameEntity(o, v)) alert(tl("Geçersiz ya da kullanılan bir ad.", "Invalid name, or one already in use.")); commit(); })),
+        check(tl("Weak entity (kendi anahtarı yok)", "Weak entity (no key of its own)"), o.weak, (v) => { o.weak = v; for (const a of o.attrs) { if (v && a.key) { a.key = false; a.partial = true; } if (!v && a.partial) { a.partial = false; a.key = true; } } commit(); }),
+        h("div", { class: "muted", style: { marginTop: "8px" } }, tl("Öznitelikler", "Attributes")), attrRows(r, focusAttr));
       const rels = model.relationships.filter((x) => x.ends.some((e) => U(e.entity) === U(o.name)));
-      if (rels.length) kids.push(h("p", { class: "muted" }, "İlişkileri: ", ...rels.flatMap((x, i) => [i ? ", " : "", h("a", { href: "#", onclick: (ev) => { ev.preventDefault(); select(relId(x.name)); } }, x.name)])));
+      if (rels.length) kids.push(h("p", { class: "muted" }, tl("İlişkileri: ", "Relationships: "), ...rels.flatMap((x, i) => [i ? ", " : "", h("a", { href: "#", onclick: (ev) => { ev.preventDefault(); select(relId(x.name)); } }, x.name)])));
     } else if (r.kind === "rel") {
       kids.push(h("h4", {}, o.identifying ? "Identifying relationship" : "Relationship"),
-        field("Ad", text(o.name, (v) => {
+        field(tl("Ad", "Name"), text(o.name, (v) => {
           v = v.trim().replace(/\s+/g, "_");
-          if (!/^[A-Za-z_]\w*$/.test(v) || model.relationships.some((x) => x !== o && U(x.name) === U(v))) { alert("Geçersiz ya da kullanılan bir ad."); renderPanel(); return; }
+          if (!/^[A-Za-z_]\w*$/.test(v) || model.relationships.some((x) => x !== o && U(x.name) === U(v))) { alert(tl("Geçersiz ya da kullanılan bir ad.", "Invalid name, or one already in use.")); renderPanel(); return; }
           rekey(relId(o.name), relId(v)); o.name = v; commit();
         })),
-        check("Identifying (zayıf varlığın tanımlayıcı ilişkisi)", o.identifying, (v) => { o.identifying = v; commit(); }),
-        h("div", { class: "muted", style: { marginTop: "8px" } }, notation === "minmax" ? "Uçlar: (min,max) bu varlığın katılımıdır" : "Uçlar: kardinalite etiketi, çift çizgi = total"));
+        check(tl("Identifying (zayıf varlığın tanımlayıcı ilişkisi)", "Identifying (the weak entity's identifying relationship)"), o.identifying, (v) => { o.identifying = v; commit(); }),
+        h("div", { class: "muted", style: { marginTop: "8px" } }, notation === "minmax" ? tl("Uçlar: (min,max) bu varlığın katılımıdır", "Ends: (min,max) is this entity's participation") : tl("Uçlar: kardinalite etiketi, çift çizgi = total", "Ends: cardinality label, double line = total")));
       for (const [i, e] of o.ends.entries()) {
         const card = h("select", { "aria-label": "Kardinalite" }, ...["1", "N", "M"].map((c) => h("option", { value: c }, c)));
         card.value = e.card === "1" ? "1" : e.card === "M" ? "M" : "N";
         card.addEventListener("change", () => { e.card = card.value; e.minmax = null; commit(); });
-        const mmBox = h("input", { type: "text", value: e.minmax ? `${e.minmax[0]},${e.minmax[1]}` : "", placeholder: "min,max", style: { width: "70px", flex: "0 0 70px" }, title: "İsteğe bağlı (min,max), ör. 0,N ya da 1,1" });
+        const mmBox = h("input", { type: "text", value: e.minmax ? `${e.minmax[0]},${e.minmax[1]}` : "", placeholder: "min,max", style: { width: "70px", flex: "0 0 70px" }, title: tl("İsteğe bağlı (min,max), ör. 0,N ya da 1,1", "Optional (min,max), e.g. 0,N or 1,1") });
         mmBox.addEventListener("change", () => {
           const m = mmBox.value.replace(/[()\s]/g, "").match(/^(\d+),(\d+|[Nn*])$/);
           if (!mmBox.value.trim()) e.minmax = null;
           else if (m) e.minmax = [Number(m[1]), /^\d+$/.test(m[2]) ? Number(m[2]) : "N"];
-          else { alert("Biçim: min,max (ör. 0,N)"); return; }
+          else { alert(tl("Biçim: min,max (ör. 0,N)", "Format: min,max (e.g. 0,N)")); return; }
           commit();
         });
         kids.push(h("div", { class: "row" },
@@ -477,17 +478,17 @@ export function createEditor(host, opts = {}) {
           text(e.role || "", (v) => { e.role = v.trim() || null; commit(); }),
           o.ends.length > 2 ? button("×", () => { o.ends.splice(i, 1); commit(); }) : null));
         const roleInput = kids[kids.length - 1].querySelectorAll("input[type=text]")[1];
-        roleInput.placeholder = "rol adı";
+        roleInput.placeholder = tl("rol adı", "role name");
         roleInput.style.flex = "1 1 80px";
       }
-      kids.push(h("div", { class: "row" }, button("+ uç (n-ary)", () => { o.ends.push({ entity: model.entities[0].name, card: "N", total: false, role: null, minmax: null }); commit(); })));
+      kids.push(h("div", { class: "row" }, button(tl("+ uç (n-ary)", "+ end (n-ary)"), () => { o.ends.push({ entity: model.entities[0].name, card: "N", total: false, role: null, minmax: null }); commit(); })));
       const ratio = o.ends.length === 2 ? `${o.ends[0].card === "1" ? "1" : "N"}:${o.ends[1].card === "1" ? "1" : "N"}`.replace("N:N", "M:N") : `${o.ends.length}-ary`;
       kids.push(h("p", { class: "muted" }, `Oran: ${o.ends.map((e) => e.entity).join(" : ")} = ${ratio}`),
-        h("div", { class: "muted" }, "İlişkinin öznitelikleri"), attrRows(r, focusAttr));
+        h("div", { class: "muted" }, tl("İlişkinin öznitelikleri", "Attributes of the relationship")), attrRows(r, focusAttr));
     } else if (r.kind === "spec") {
       const sup = findEntity(model, o.super);
       const subsBox = h("div", { class: "flags" }, ...model.entities.filter((e) => U(e.name) !== U(o.super)).map((e) =>
-        check(e.name, o.subs.some((x) => U(x) === U(e.name)), (v) => { o.subs = v ? [...o.subs, e.name] : o.subs.filter((x) => U(x) !== U(e.name)); if (!o.subs.length) { alert("En az bir alt sınıf kalmalı."); o.subs = [e.name]; } commit(); })));
+        check(e.name, o.subs.some((x) => U(x) === U(e.name)), (v) => { o.subs = v ? [...o.subs, e.name] : o.subs.filter((x) => U(x) !== U(e.name)); if (!o.subs.length) { alert(tl("En az bir alt sınıf kalmalı.", "At least one subclass must remain.")); o.subs = [e.name]; } commit(); })));
       const onSel = h("select", {}, h("option", { value: "" }, "— (user/predicate-defined)"), ...(sup?.attrs || []).map((a) => h("option", { value: a.name }, a.name)));
       onSel.value = o.on || "";
       onSel.addEventListener("change", () => { o.on = onSel.value || null; commit(); });
@@ -495,21 +496,21 @@ export function createEditor(host, opts = {}) {
       dj.value = o.disjoint ? "d" : "o";
       dj.addEventListener("change", () => { o.disjoint = dj.value === "d"; commit(); });
       kids.push(h("h4", {}, "Specialization"),
-        field("Üst sınıf", entSelect(o.super, (v) => { o.super = v; o.subs = o.subs.filter((x) => U(x) !== U(v)); commit(); })),
-        h("div", { class: "muted" }, "Alt sınıflar"), subsBox,
-        field("Kısıt", dj),
-        check("total (her üst sınıf varlığı bir alt sınıfta)", o.total, (v) => { o.total = v; commit(); }),
+        field(tl("Üst sınıf", "Superclass"), entSelect(o.super, (v) => { o.super = v; o.subs = o.subs.filter((x) => U(x) !== U(v)); commit(); })),
+        h("div", { class: "muted" }, tl("Alt sınıflar", "Subclasses")), subsBox,
+        field(tl("Kısıt", "Constraint"), dj),
+        check(tl("total (her üst sınıf varlığı bir alt sınıfta)", "total (every superclass entity is in a subclass)"), o.total, (v) => { o.total = v; commit(); }),
         field("Defining attribute", onSel),
-        h("p", { class: "muted" }, o.subs.length === 1 ? "Tek alt sınıf: daire çizilmez, yalnızca ⊂." : `${o.disjoint ? "Disjoint" : "Overlapping"}, ${o.total ? "total (çift çizgi)" : "partial"}.`));
+        h("p", { class: "muted" }, o.subs.length === 1 ? tl("Tek alt sınıf: daire çizilmez, yalnızca ⊂.", "A single subclass: no circle, only ⊂.") : `${o.disjoint ? "Disjoint" : "Overlapping"}, ${o.total ? tl("total (çift çizgi)", "total (double line)") : "partial"}.`));
     } else if (r.kind === "cat") {
       const supBox = h("div", { class: "flags" }, ...model.entities.filter((e) => U(e.name) !== U(o.name)).map((e) =>
         check(e.name, o.supers.some((x) => U(x) === U(e.name)), (v) => { o.supers = v ? [...o.supers, e.name] : o.supers.filter((x) => U(x) !== U(e.name)); commit(); })));
       kids.push(h("h4", {}, `Category ${o.name}`),
-        h("p", { class: "muted" }, "Kategorinin adını ve özniteliklerini değiştirmek için diyagramda kategori entity'sine tıklayın."),
-        h("div", { class: "muted" }, "Üst sınıflar (birleşim)"), supBox,
-        check("total (birleşimdeki her varlık kategoride)", o.total, (v) => { o.total = v; commit(); }));
+        h("p", { class: "muted" }, tl("Kategorinin adını ve özniteliklerini değiştirmek için diyagramda kategori entity'sine tıklayın.", "To change the category's name and attributes, click the category entity in the diagram.")),
+        h("div", { class: "muted" }, tl("Üst sınıflar (birleşim)", "Superclasses (union)")), supBox,
+        check(tl("total (birleşimdeki her varlık kategoride)", "total (every entity of the union is in the category)"), o.total, (v) => { o.total = v; commit(); }));
     }
-    kids.push(h("div", { class: "row" }, button("Bu öğeyi sil", () => removeSelected())));
+    kids.push(h("div", { class: "row" }, button(tl("Bu öğeyi sil", "Delete this item"), () => removeSelected())));
     panel.replaceChildren(...kids);
   }
 
@@ -549,8 +550,8 @@ export function createEditor(host, opts = {}) {
   }
   async function share() {
     const url = `${location.origin}${location.pathname}#dsl=${b64encode(toDSL(model))}`;
-    try { await navigator.clipboard.writeText(url); alert("Bağlantı kopyalandı. Açan kişi aynı diyagramı görür."); }
-    catch { prompt("Bu bağlantıyı kopyalayın:", url); }
+    try { await navigator.clipboard.writeText(url); alert(tl("Bağlantı kopyalandı. Açan kişi aynı diyagramı görür.", "Link copied. Whoever opens it sees the same diagram.")); }
+    catch { prompt(tl("Bu bağlantıyı kopyalayın:", "Copy this link:"), url); }
   }
 
   // ---------------------------------------------------------------- public API

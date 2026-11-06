@@ -2,6 +2,7 @@ import { NAV } from "../layout.js";
 import { h, $ } from "../lib/ui.js";
 import { schemaCards } from "../lib/schema.js";
 import { drawER } from "../lib/erd.js";
+import { t as tl, tx, EN } from "../lib/i18n.js";
 
 // ---- part cards
 const parts = $("#parts");
@@ -32,5 +33,5 @@ fig.append(drawER({
   ],
   links: [{ a: "W", b: "E", card: "N", total: true }, { a: "W", b: "D", card: "1", total: true }],
 }));
-fig.append(h("figcaption", {}, "Her çalışan tam bir departmanda çalışır (N:1, çift çizgi = total participation)."));
+fig.append(h("figcaption", {}, tl("Her çalışan tam bir departmanda çalışır (N:1, çift çizgi = total participation).", "Every employee works for exactly one department (N:1, double line = total participation).")));
 hero.append(fig);

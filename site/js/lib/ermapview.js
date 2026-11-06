@@ -4,6 +4,7 @@ import { h, highlightSQL, button } from "./ui.js";
 import { mapER, toDDL, ident } from "./ermap.js";
 import { runSQL } from "./db.js";
 import { renderItems, createSqlBox } from "./sqlbox.js";
+import { t as tl, EN } from "./i18n.js";
 
 /** One table as a schema card: PK underlined, FKs in blue with their target. */
 export function tableCard(t, { highlight = [] } = {}) {
@@ -38,14 +39,14 @@ export function renderMapping(host, model, { spec = "8A", showSteps = true, show
       if (s.snapshot) {
         const fresh = s.added.length === s.snapshot.cols.length;
         li.append(tableCard(s.snapshot, { highlight: fresh ? [] : s.added }));
-        if (!fresh && s.added.length) li.append(h("div", { class: "small muted" }, `Bu adımda eklenen sütunlar vurgulandı: ${s.added.join(", ")}.`));
+        if (!fresh && s.added.length) li.append(h("div", { class: "small muted" }, tl(`Bu adımda eklenen sütunlar vurgulandı: ${s.added.join(", ")}.`, `Columns added at this step are highlighted: ${s.added.join(", ")}.`)));
       }
       ol.append(li);
     }
     kids.push(ol);
   }
   if (res.notes.length) kids.push(h("div", { class: "callout note", html: `<div class="callout-label"><span>Notlar</span></div><ul>${res.notes.map((n) => `<li>${n}</li>`).join("")}</ul>` }));
-  kids.push(h("h4", {}, `Sonuç: ${res.tables.length} tablo`), h("div", { class: "schema-grid" }, ...res.tables.map(tableCard)));
+  kids.push(h("h4", {}, tl(`Sonuç: ${res.tables.length} tablo`, `Result: ${res.tables.length} tables`)), h("div", { class: "schema-grid" }, ...res.tables.map(tableCard)));
   if (showDDL) {
     const ddl = toDDL(res.tables);
     const pre = h("pre", { class: "sql" });
@@ -56,17 +57,17 @@ export function renderMapping(host, model, { spec = "8A", showSteps = true, show
       const out = h("div", { class: "sqlbox-out" });
       const queryHost = h("div");
       const schema = schemaName || `er_${++schemaCounter}`;
-      const run = button("Tabloları MySQL'de oluştur", async () => {
-        out.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "MySQL çalışıyor …"));
+      const run = button(tl("Tabloları MySQL'de oluştur", "Create the tables in MySQL"), async () => {
+        out.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), tl("MySQL çalışıyor …", "MySQL is running …")));
         const r = await runSQL(`DROP DATABASE IF EXISTS ${schema};\nCREATE DATABASE ${schema};\nUSE ${schema};\n${ddl}`);
         out.replaceChildren();
         renderItems(out, r.items.filter((it) => it.kind !== "status" && it.kind !== "notice"));
         if (!r.error) {
-          out.append(h("div", { class: "res-msg ok" }, `${res.tables.length} tablo "${schema}" veritabanında oluşturuldu. Aşağıdaki kutuda sorgulayabilir, satır ekleyerek kısıtları deneyebilirsiniz.`));
+          out.append(h("div", { class: "res-msg ok" }, tl(`${res.tables.length} tablo "${schema}" veritabanında oluşturuldu. Aşağıdaki kutuda sorgulayabilir, satır ekleyerek kısıtları deneyebilirsiniz.`, `${res.tables.length} tables were created in the database "${schema}". Query them in the box below, or insert rows to try the constraints.`)));
           const first = res.tables[0];
           queryHost.replaceChildren(createSqlBox({
-            title: `Veritabanı ${schema}`, resetButton: false, database: schema,
-            note: `Bu kutu COMPANY'de değil, az önce oluşturulan ${schema} veritabanında çalışır (tablolar boş).`,
+            title: tl(`Veritabanı ${schema}`, `Database ${schema}`), resetButton: false, database: schema,
+            note: tl(`Bu kutu COMPANY'de değil, az önce oluşturulan ${schema} veritabanında çalışır (tablolar boş).`, `This box runs not on COMPANY but on the database ${schema} just created (its tables are empty).`),
             code: `-- the tables just created (they are empty: try an INSERT that violates a key or a foreign key)\nSHOW TABLES;\nSELECT * FROM ${ident(first.name)};`,
           }));
         }

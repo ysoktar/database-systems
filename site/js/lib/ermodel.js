@@ -14,6 +14,7 @@
 //
 // Attribute flags: key, partial (partial key of a weak entity), multi (multivalued), derived.
 // Comments start with # or --. Indented lines are attributes of the entity or relationship above them.
+import { t as tl, tx, EN } from "./i18n.js";
 
 export const emptyModel = () => ({ entities: [], relationships: [], specializations: [], categories: [] });
 
@@ -37,13 +38,13 @@ function splitTop(s, sep = ",") {
 function parseAttr(text, err) {
   const t = text.trim();
   const m = t.match(/^([A-Za-z_ÇĞİÖŞÜçğıöşü][\wÇĞİÖŞÜçğıöşü]*)\s*(\((.*)\))?\s*(.*)$/);
-  if (!m) { err(`Öznitelik okunamadı: "${t}"`); return null; }
+  if (!m) { err(tl(`Öznitelik okunamadı: "${t}"`, `Could not read the attribute: "${t}"`)); return null; }
   const attr = { name: m[1], key: false, partial: false, multi: false, derived: false, comps: null };
   if (m[2] !== undefined) attr.comps = splitTop(m[3]).map((c) => parseAttr(c, err)).filter(Boolean);
   for (const f of m[4].split(/\s+/).filter(Boolean)) {
     const fl = f.toLowerCase();
     if (FLAGS.has(fl)) attr[fl] = true;
-    else err(`Bilinmeyen öznitelik özelliği "${f}" (key, partial, multi, derived olabilir)`);
+    else err(tl(`Bilinmeyen öznitelik özelliği "${f}" (key, partial, multi, derived olabilir)`, `Unknown attribute property "${f}" (can be key, partial, multi, derived)`));
   }
   return attr;
 }
@@ -51,7 +52,7 @@ function parseAttr(text, err) {
 /** "EMPLOYEE N total role=supervisor" or "DEPARTMENT (4,N)" → relationship end */
 function parseEnd(text, err) {
   const m = text.match(/^([A-Za-z_][\w]*)\s+(\(\s*\d+\s*,\s*(?:\d+|[A-Za-z*])\s*\)|\d+|[A-Za-z])\s*(.*)$/);
-  if (!m) { err(`İlişki ucu okunamadı: "${text}" (biçim: VARLIK 1|N|M [total] [role=ad] ya da VARLIK (min,max))`); return null; }
+  if (!m) { err(tl(`İlişki ucu okunamadı: "${text}" (biçim: VARLIK 1|N|M [total] [role=ad] ya da VARLIK (min,max))`, `Could not read the relationship end: "${text}" (format: ENTITY 1|N|M [total] [role=name] or ENTITY (min,max))`)); return null; }
   const end = { entity: m[1], card: "1", total: false, role: null, minmax: null };
   const c = m[2];
   if (c.startsWith("(")) {
@@ -64,7 +65,7 @@ function parseEnd(text, err) {
     if (tl === "total") end.total = true;
     else if (tl === "partial") end.total = false;
     else if (tl.startsWith("role=")) end.role = tok.slice(5);
-    else err(`Bilinmeyen ilişki ucu özelliği "${tok}" (total, partial, role=ad)`);
+    else err(tl(`Bilinmeyen ilişki ucu özelliği "${tok}" (total, partial, role=ad)`, `Unknown relationship end property "${tok}" (total, partial, role=name)`));
   }
   return end;
 }
@@ -114,7 +115,7 @@ export function parseER(text) {
     } else if ((m = s.match(/^(identifying\s+)?relationship\s+([A-Za-z_]\w*)\s*:\s*(.+)$/i))) {
       const ends = splitTop(m[3]).map((t) => parseEnd(t, err)).filter(Boolean);
       const r = { name: m[2], identifying: !!m[1], ends, attrs: [], line };
-      if (ends.length < 2) err(`${r.name}: bir ilişkinin en az iki ucu olmalı`);
+      if (ends.length < 2) err(tl(`${r.name}: bir ilişkinin en az iki ucu olmalı`, `${r.name}: a relationship needs at least two ends`));
       model.relationships.push(r);
       block = r;
     } else if ((m = s.match(/^specialization\s+([A-Za-z_]\w*)\s*->\s*(.+)$/i))) {
@@ -129,9 +130,9 @@ export function parseER(text) {
         else if (tl === "partial") sp.total = false;
         else if (tl === "on") sp.on = toks[++k] || null;
         else if (/^[A-Za-z_]\w*$/.test(t)) sp.subs.push(t);
-        else err(`specialization: "${t}" anlaşılamadı`);
+        else err(tl(`specialization: "${t}" anlaşılamadı`, `specialization: "${t}" not understood`));
       }
-      if (!sp.subs.length) err("specialization: en az bir alt sınıf gerekli");
+      if (!sp.subs.length) err(tl("specialization: en az bir alt sınıf gerekli", "specialization: at least one subclass is needed"));
       model.specializations.push(sp);
     } else if ((m = s.match(/^category\s+([A-Za-z_]\w*)\s*=\s*(.+)$/i))) {
       const toks = m[2].split(/\s*\|\s*|\s+/).filter(Boolean);
@@ -142,12 +143,12 @@ export function parseER(text) {
         else if (tl === "partial") c.total = false;
         else c.supers.push(t);
       }
-      if (c.supers.length < 2) err(`category ${c.name}: en az iki üst sınıf gerekli`);
+      if (c.supers.length < 2) err(tl(`category ${c.name}: en az iki üst sınıf gerekli`, `category ${c.name}: at least two superclasses are needed`));
       model.categories.push(c);
     } else if (indented) {
-      err("Girintili satır bir entity ya da relationship satırının altında olmalı");
+      err(tl("Girintili satır bir entity ya da relationship satırının altında olmalı", "An indented line must be under an entity or relationship line"));
     } else {
-      err(`Anlaşılamadı: "${s}". Satırlar entity, weak entity, relationship, identifying relationship, specialization ya da category ile başlar.`);
+      err(tl(`Anlaşılamadı: "${s}". Satırlar entity, weak entity, relationship, identifying relationship, specialization ya da category ile başlar.`, `Not understood: "${s}". Lines start with entity, weak entity, relationship, identifying relationship, specialization or category.`));
     }
   });
 
@@ -171,23 +172,23 @@ function validate(model, errors, warnings) {
   const ent = new Map();
   for (const e of model.entities) {
     const k = e.name.toUpperCase();
-    if (ent.has(k) && !e.implicit) errors.push({ line: e.line, msg: `${e.name} iki kez tanımlanmış` });
+    if (ent.has(k) && !e.implicit) errors.push({ line: e.line, msg: tl(`${e.name} iki kez tanımlanmış`, `${e.name} is defined twice`) });
     ent.set(k, e);
   }
   const relNames = new Set();
   for (const r of model.relationships) {
-    if (relNames.has(r.name.toUpperCase())) errors.push({ line: r.line, msg: `${r.name} ilişkisi iki kez tanımlanmış` });
+    if (relNames.has(r.name.toUpperCase())) errors.push({ line: r.line, msg: tl(`${r.name} ilişkisi iki kez tanımlanmış`, `the relationship ${r.name} is defined twice`) });
     relNames.add(r.name.toUpperCase());
-    for (const end of r.ends) if (!ent.has(end.entity.toUpperCase())) errors.push({ line: r.line, msg: `${r.name}: ${end.entity} diye bir varlık tipi yok` });
+    for (const end of r.ends) if (!ent.has(end.entity.toUpperCase())) errors.push({ line: r.line, msg: tl(`${r.name}: ${end.entity} diye bir varlık tipi yok`, `${r.name}: there is no entity type ${end.entity}`) });
     const seen = new Set();
     for (const end of r.ends) {
-      if (seen.has(end.entity.toUpperCase()) && !end.role) warnings.push({ line: r.line, msg: `${r.name}: ${end.entity} ilişkiye iki kez katılıyor; recursive ilişkilerde rol adı (role=…) gerekli` });
+      if (seen.has(end.entity.toUpperCase()) && !end.role) warnings.push({ line: r.line, msg: tl(`${r.name}: ${end.entity} ilişkiye iki kez katılıyor; recursive ilişkilerde rol adı (role=…) gerekli`, `${r.name}: ${end.entity} takes part twice; a recursive relationship needs role names (role=…)`) });
       seen.add(end.entity.toUpperCase());
     }
     if (r.identifying) {
       const weakEnd = r.ends.find((e) => ent.get(e.entity.toUpperCase())?.weak);
-      if (!weakEnd) warnings.push({ line: r.line, msg: `${r.name}: identifying relationship'in bir ucu weak entity olmalı` });
-      else if (!weakEnd.total) warnings.push({ line: r.line, msg: `${r.name}: zayıf varlığın (${weakEnd.entity}) tanımlayıcı ilişkiye katılımı total olmalı` });
+      if (!weakEnd) warnings.push({ line: r.line, msg: tl(`${r.name}: identifying relationship'in bir ucu weak entity olmalı`, `${r.name}: one end of an identifying relationship must be a weak entity`) });
+      else if (!weakEnd.total) warnings.push({ line: r.line, msg: tl(`${r.name}: zayıf varlığın (${weakEnd.entity}) tanımlayıcı ilişkiye katılımı total olmalı`, `${r.name}: the weak entity (${weakEnd.entity}) must take part totally in its identifying relationship`) });
     }
   }
   const subs = new Set(model.specializations.flatMap((s) => s.subs.map((x) => x.toUpperCase())));
@@ -195,19 +196,19 @@ function validate(model, errors, warnings) {
   for (const e of model.entities) {
     const keys = keysOf(e);
     if (e.weak) {
-      if (!e.attrs.some((a) => a.partial)) warnings.push({ line: e.line, msg: `${e.name}: zayıf varlığın bir partial key'i olmalı` });
-      if (!model.relationships.some((r) => r.identifying && r.ends.some((x) => x.entity.toUpperCase() === e.name.toUpperCase()))) warnings.push({ line: e.line, msg: `${e.name}: zayıf varlık bir identifying relationship'e katılmalı` });
+      if (!e.attrs.some((a) => a.partial)) warnings.push({ line: e.line, msg: tl(`${e.name}: zayıf varlığın bir partial key'i olmalı`, `${e.name}: a weak entity needs a partial key`) });
+      if (!model.relationships.some((r) => r.identifying && r.ends.some((x) => x.entity.toUpperCase() === e.name.toUpperCase()))) warnings.push({ line: e.line, msg: tl(`${e.name}: zayıf varlık bir identifying relationship'e katılmalı`, `${e.name}: a weak entity must take part in an identifying relationship`) });
     } else if (!keys.length && !subs.has(e.name.toUpperCase()) && !cats.has(e.name.toUpperCase())) {
-      warnings.push({ line: e.line, msg: `${e.name}: anahtar (key) yok. Kendi anahtarı yoksa weak entity olmalı.` });
+      warnings.push({ line: e.line, msg: tl(`${e.name}: anahtar (key) yok. Kendi anahtarı yoksa weak entity olmalı.`, `${e.name}: no key. Without a key of its own it should be a weak entity.`) });
     }
   }
   for (const sp of model.specializations) {
-    if (!ent.has(sp.super.toUpperCase())) errors.push({ line: sp.line, msg: `specialization: ${sp.super} diye bir varlık tipi yok` });
+    if (!ent.has(sp.super.toUpperCase())) errors.push({ line: sp.line, msg: tl(`specialization: ${sp.super} diye bir varlık tipi yok`, `specialization: there is no entity type ${sp.super}`) });
     if (sp.on && ent.has(sp.super.toUpperCase()) && !ent.get(sp.super.toUpperCase()).attrs.some((a) => a.name.toUpperCase() === sp.on.toUpperCase())) {
-      warnings.push({ line: sp.line, msg: `specialization: ${sp.super}'in ${sp.on} diye bir özniteliği yok (defining attribute)` });
+      warnings.push({ line: sp.line, msg: tl(`specialization: ${sp.super}'in ${sp.on} diye bir özniteliği yok (defining attribute)`, `specialization: ${sp.super} has no attribute ${sp.on} (defining attribute)`) });
     }
   }
-  for (const c of model.categories) for (const s of c.supers) if (!ent.has(s.toUpperCase())) errors.push({ line: c.line, msg: `category ${c.name}: ${s} diye bir varlık tipi yok` });
+  for (const c of model.categories) for (const s of c.supers) if (!ent.has(s.toUpperCase())) errors.push({ line: c.line, msg: tl(`category ${c.name}: ${s} diye bir varlık tipi yok`, `category ${c.name}: there is no entity type ${s}`) });
 }
 
 /** Key attributes of an entity (composite keys count as one key). */

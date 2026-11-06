@@ -4,6 +4,7 @@
 import { SCHEMA_SQL, DATA_SQL, TABLES } from "./company.js";
 import { splitSQL, firstWord, caption, commandTag } from "./sqlcore.js";
 import { startEngine } from "./mysql.js";
+import { t as tl, EN } from "./i18n.js";
 
 let dbPromise = null;
 let queue = Promise.resolve(); // statements of different boxes never interleave
@@ -22,7 +23,7 @@ function loadGlue() {
     const s = document.createElement("script");
     s.src = new URL("wasm_exec.js", base).href;
     s.onload = resolve;
-    s.onerror = () => reject(new Error("wasm_exec.js yüklenemedi"));
+    s.onerror = () => reject(new Error(tl("wasm_exec.js yüklenemedi", "wasm_exec.js could not be loaded")));
     document.head.append(s);
   });
 }
@@ -39,7 +40,7 @@ async function download(url) {
   arm();
   try {
     const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`mysql.wasm indirilemedi (HTTP ${res.status})`);
+    if (!res.ok) throw new Error(tl(`mysql.wasm indirilemedi (HTTP ${res.status})`, `mysql.wasm could not be downloaded (HTTP ${res.status})`));
     if (!res.body?.getReader) return new Uint8Array(await res.arrayBuffer());
     const reader = res.body.getReader();
     const chunks = [];
@@ -57,8 +58,8 @@ async function download(url) {
     for (const c of chunks) { bytes.set(c, at); at += c.length; }
     return bytes;
   } catch (e) {
-    if (ctrl.signal.aborted) throw new Error(`indirme ${STALL_MS / 1000} saniyedir ilerlemiyor`);
-    throw new Error(`mysql.wasm indirilemedi (${e?.message || e})`);
+    if (ctrl.signal.aborted) throw new Error(tl(`indirme ${STALL_MS / 1000} saniyedir ilerlemiyor`, `the download has made no progress for ${STALL_MS / 1000} seconds`));
+    throw new Error(tl(`mysql.wasm indirilemedi (${e?.message || e})`, `mysql.wasm could not be downloaded (${e?.message || e})`));
   } finally {
     clearTimeout(stall);
   }
@@ -74,7 +75,7 @@ async function create() {
   let timer = 0;
   const db = await Promise.race([
     startEngine(bytes),
-    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`motor ${COMPILE_MS / 1000} saniyede başlamadı`)), COMPILE_MS); }),
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(tl(`motor ${COMPILE_MS / 1000} saniyede başlamadı`, `the engine did not start within ${COMPILE_MS / 1000} seconds`))), COMPILE_MS); }),
   ]).finally(() => clearTimeout(timer));
   setState("loading", { stage: "setup" });
   await nextFrame();
@@ -94,7 +95,7 @@ export function resetCompany(db) {
   inTransaction = false;
   for (const s of ["CREATE DATABASE IF NOT EXISTS demo", "USE company", ...splitSQL(SCHEMA_SQL), ...splitSQL(DATA_SQL)]) {
     const r = db.query(s);
-    if (r.error) throw new Error(`COMPANY kurulamadı: ${r.error.message} (${s.slice(0, 60)})`);
+    if (r.error) throw new Error(`${tl("COMPANY kurulamadı", "COMPANY could not be set up")}: ${r.error.message} (${s.slice(0, 60)})`);
   }
 }
 
@@ -123,7 +124,7 @@ export function runSQL(text, { expectError = false, database = "company" } = {})
       db = await getDB();
     } catch (e) {
       const message = e?.message || String(e);
-      return { items: [{ kind: "startup", message }], last: null, error: { startup: true, message: `MySQL başlatılamadı: ${message}` }, inTransaction: false };
+      return { items: [{ kind: "startup", message }], last: null, error: { startup: true, message: `${tl("MySQL başlatılamadı", "MySQL could not start")}: ${message}` }, inTransaction: false };
     }
     const stmts = splitSQL(text);
     db.query(`USE ${database}`);
