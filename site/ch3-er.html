@@ -81,7 +81,7 @@
 <ul>
   <li><strong>Relationship type</strong> R, n entity type (E<sub>1</sub>, …, E<sub>n</sub>) arasında bir ilişkilendirme kümesidir. Her <strong>relationship instance</strong> r<sub>i</sub>, her E<sub>j</sub>'den tam bir varlığı birbirine bağlar. Matematiksel olarak R ⊆ E<sub>1</sub> × E<sub>2</sub> × … × E<sub>n</sub>.</li>
   <li><strong>Degree</strong> (derece): katılan entity type sayısı: <em>binary</em> (2, en yaygın), <em>ternary</em> (3), <em>n-ary</em>.</li>
-  <li><strong>Öznitelik mi, ilişki mi?</strong> İlk taslakta bir ilişki, öznitelik gibi görünebilir (ör. EMPLOYEE'nin <code>Department</code> özniteliği). ER tasarımında bir varlık tipine başvuran öznitelikler ilişkiye dönüştürülür.</li>
+  <li><strong>Öznitelik mi, ilişki mi?</strong> İlk taslakta bir ilişki, öznitelik gibi görünebilir (ör. EMPLOYEE'nin <code>Department</code> özniteliği). ER tasarımında bir varlık tipine referans veren öznitelikler ilişkiye dönüştürülür.</li>
   <li><strong>Role name</strong>: bir varlığın ilişkideki rolü. Aynı entity type ilişkiye farklı rollerle iki kez katılıyorsa (<strong>recursive</strong> / <em>self-referencing</em> ilişki) rol adları zorunludur: SUPERVISION'da EMPLOYEE hem <em>supervisor</em> hem <em>supervisee</em>.</li>
 </ul>
 
@@ -164,7 +164,7 @@
 <ul>
   <li>Entity type ve relationship type adları <strong>tekil</strong> isim ve BÜYÜK harf: EMPLOYEE, WORKS_FOR. Öznitelikler ilk harfi büyük: Fname. Rol adları küçük: supervisor.</li>
   <li>Gereksinimlerdeki <em>isimler</em> entity type, <em>fiiller</em> relationship type, isimleri niteleyen sözcükler öznitelik adayıdır.</li>
-  <li>Tasarım yinelemelidir: bir öznitelik başka bir varlığa başvuruyorsa ilişkiye dönüşür; birçok varlığın paylaştığı bir öznitelik (ör. DEPARTMENT'ta ve PROJECT'te tekrar eden Location) kendi varlığına dönüşebilir; tek bir varlığa bağlı, tek öznitelikli bir varlık özniteliğe dönüştürülebilir.</li>
+  <li>Tasarım yinelemelidir: bir öznitelik başka bir varlığa referans veriyorsa ilişkiye dönüşür; birçok varlığın paylaştığı bir öznitelik (ör. DEPARTMENT'ta ve PROJECT'te tekrar eden Location) kendi varlığına dönüşebilir; tek bir varlığa bağlı, tek öznitelikli bir varlık özniteliğe dönüştürülebilir.</li>
 </ul>
 <div class="callout note">
   <p><strong>Alternatif gösterimler.</strong> Kitap UML sınıf diyagramlarını da gösterir: varlık = sınıf (öznitelikler kutunun içinde), ilişki = <em>association</em>, (min,max) yerine <em>multiplicity</em> (0..1, 1..*, *); zayıf varlık = <em>qualified association</em>; ilişki özniteliği = <em>link attribute</em>. Ayrıca kaz ayağı (crow's foot) gösterimi yaygındır.</p>

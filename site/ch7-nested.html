@@ -117,7 +117,7 @@ WHERE  NOT EXISTS (SELECT * FROM EMPLOYEE S WHERE S.Super_ssn = E.Ssn);
 <p>Nitelenmemiş bir sütun adı, onu içeren <em>en içteki</em> sorgunun tablolarına aittir. İç ve dış sorguda aynı tablo kullanılıyorsa alias kullanmak gerekir. Kural: iç sorguda bir tabloda bulunamayan ad, dışarıdaki tablolarda aranır.</p>
 
 <h2>Correlated nested queries</h2>
-<p>İç sorgunun <code>WHERE</code>'i dış sorgunun bir sütununa başvuruyorsa sorgular <strong>correlated</strong>'dır. İç sorgu, dış sorgunun <em>her satırı için bir kez</em> değerlendirilir (kavramsal olarak). Bu yüzden "içeriden dışarıya" okuma burada tek adımda olmaz: iç sorgunun sonucu, dış sorgunun o an baktığı satıra göre değişir.</p>
+<p>İç sorgunun <code>WHERE</code>'i dış sorgunun bir sütununu kullanıyorsa sorgular <strong>correlated</strong>'dır. İç sorgu, dış sorgunun <em>her satırı için bir kez</em> değerlendirilir (kavramsal olarak). Bu yüzden "içeriden dışarıya" okuma burada tek adımda olmaz: iç sorgunun sonucu, dış sorgunun o an baktığı satıra göre değişir.</p>
 <div class="callout example" data-label="Bir satır için izleyin">
   <p>Aşağıdaki Q16'da dış sorgu E = Wong satırına baktığında iç sorgu <code>WHERE 'Franklin' = D.Dependent_name AND 'M' = D.Sex</code> olur: Wong'un bağımlıları Alice, Theodore ve Joy; hiçbiri Franklin değil, iç sorgu boş döner, Wong seçilmez. Sonra E = Smith için iç sorgu <code>'John' = Dependent_name AND 'M' = Sex</code> olur, yine boş. Sekiz çalışanın her biri için iç sorgu yeniden, o çalışanın değerleriyle hesaplanır.</p>
 </div>
@@ -261,11 +261,11 @@ WHERE  E.Super_ssn = S.Ssn;
   <p>Hangisi correlated bir nested query'dir?</p>
   <ol>
     <li data-why="İç sorgu yalnızca DEPARTMENT'ın kendi sütunlarını kullanıyor; dış sorgudan bağımsız, bir kez hesaplanır ({5})."><code>SELECT Lname FROM EMPLOYEE WHERE Dno IN (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research')</code></li>
-    <li data-why="İç sorgu (bütün çalışanların ortalaması) dış sorgunun hiçbir sütununa başvurmuyor; bir kez hesaplanan tek bir sayı."><code>SELECT Lname FROM EMPLOYEE WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE)</code></li>
+    <li data-why="İç sorgu (bütün çalışanların ortalaması) dış sorgunun hiçbir sütununu kullanmıyor; bir kez hesaplanan tek bir sayı."><code>SELECT Lname FROM EMPLOYEE WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE)</code></li>
     <li data-why="Burada iç sorgu yok, yalnızca açık bir değer kümesi var."><code>SELECT Pname FROM PROJECT WHERE Pnumber IN (1, 2, 3)</code></li>
-    <li data-why="Doğru: iç sorgu dış sorgunun E.Dno'suna başvuruyor, her çalışan için yeniden hesaplanır."><code>SELECT Lname FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno)</code></li>
+    <li data-why="Doğru: iç sorgu dış sorgunun E.Dno'sunu kullanıyor, her çalışan için yeniden hesaplanır."><code>SELECT Lname FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno)</code></li>
   </ol>
-  <div class="explain">Ölçüt: iç sorgu dış sorgudaki bir tablonun sütununa başvuruyor mu? D'de iç sorgu <code>E.Dno</code>'yu kullanıyor; her çalışan için kendi departmanının ortalaması yeniden hesaplanır. B ise bağımsızdır: bir kez hesaplanır. (<code>AVG</code> ortalamayı veren aggregate fonksiyondur; <a href="ch7-joins.html#aggregate-fonksiyonlar">sonraki sayfada</a>.)</div>
+  <div class="explain">Ölçüt: iç sorgu dış sorgudaki bir tablonun sütununu kullanıyor mu? D'de iç sorgu <code>E.Dno</code>'yu kullanıyor; her çalışan için kendi departmanının ortalaması yeniden hesaplanır. B ise bağımsızdır: bir kez hesaplanır. (<code>AVG</code> ortalamayı veren aggregate fonksiyondur; <a href="ch7-joins.html#aggregate-fonksiyonlar">sonraki sayfada</a>.)</div>
 </div>
 <div class="quiz" data-answer="1">
   <p>"Bütün projelerde çalışan çalışanlar" için doğru şablon hangisidir?</p>

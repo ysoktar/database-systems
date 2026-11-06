@@ -103,7 +103,7 @@ export function reverseER(catalog) {
         e.attrs.unshift({ name: `${U(t.name)}_key`, key: true, partial: false, multi: false, derived: false, comps });
         notes.push(`${U(t.name)}: bileşik primary key (${t.pk.join(", ")}) bileşik bir anahtar özniteliği oldu.`);
       }
-      steps.push({ kind: "entity", table: t.name, html: `<strong>${U(t.name)}</strong>: primary key'i başka bir tabloya başvurmuyor → <em>regular entity</em>. Anahtar: ${t.pk.join(", ") || "yok"}${t.uniques.length ? `; UNIQUE sütunlar da anahtar: ${t.uniques.map((u) => u.join(", ")).join("; ")}` : ""}.` });
+      steps.push({ kind: "entity", table: t.name, html: `<strong>${U(t.name)}</strong>: primary key'i başka bir tabloya referans vermiyor → <em>regular entity</em>. Anahtar: ${t.pk.join(", ") || "yok"}${t.uniques.length ? `; UNIQUE sütunlar da anahtar: ${t.uniques.map((u) => u.join(", ")).join("; ")}` : ""}.` });
     } else if (r === "weak") {
       const e = addEntity(t, true);
       const pkFKs = t.fks.filter((f) => subset(f.cols, t.pk));
@@ -115,7 +115,7 @@ export function reverseER(catalog) {
       const owner = pkFKs[0];
       model.relationships.push({ name: uniqueName(`${t.name}_OF`), identifying: true, attrs: [], line: 0,
         ends: [{ entity: U(owner.ref), card: "1", total: false, role: null, minmax: null }, { entity: U(t.name), card: "N", total: true, role: null, minmax: null }] });
-      for (const extra of pkFKs.slice(1)) notes.push(`${U(t.name)}: primary key'de ${U(extra.ref)}'e başvuran ikinci bir foreign key var; yalnızca ${U(owner.ref)} sahip olarak alındı.`);
+      for (const extra of pkFKs.slice(1)) notes.push(`${U(t.name)}: primary key'de ${U(extra.ref)}'e referans veren ikinci bir foreign key var; yalnızca ${U(owner.ref)} sahip olarak alındı.`);
       steps.push({ kind: "weak", table: t.name, html: `<strong>${U(t.name)}</strong>: primary key (${t.pk.join(", ")}) = ${U(owner.ref)}'e foreign key (${owner.cols.join(", ")}) + kendi sütunları → <em>weak entity</em>, sahibi ${U(owner.ref)}; kendi sütunları partial key.` });
     } else if (r === "sub") {
       const e = addEntity(t, false);

@@ -35,7 +35,7 @@
       <td>(1) İsimleri varlık, fiilleri ilişki adayı olarak işaretleyin. (2) Her varlığın anahtarını bulun ("benzersiz"); bulamıyorsanız zayıf varlık olabilir. (3) Öznitelik türlerini belirleyin (bileşik, çok değerli, türetilmiş). (4) Her ilişki için iki soru: en çok kaç (kardinalite), en az kaç (katılım). (5) Alt gruplar varsa: iki alt sınıfta birden olabilir mi (d/o), hiçbirinde olmayabilir mi (total/partial)?</td>
       <td><a href="ch3-er.html#ikili-iliskilerde-yapisal-kisitlar">Ch 3: cümleden kısıta</a>, <a href="ch4-eer.html#ozellestirme-kisitlari">Ch 4: kısıtlara karar vermek</a>, aşağıdaki problem 1</td></tr>
     <tr><td><strong>Bir işlem hangi kısıtı ihlal eder?</strong></td>
-      <td>(1) PK alanı NULL mı? → entity integrity. (2) PK/UNIQUE değeri zaten var mı? → key. (3) FK değeri başvurulan tabloda var mı? Silmede: bu satıra başvuran var mı? → referential integrity. (4) Değer tipine/aralığına uyuyor mu? → domain. Sonra DBMS'in seçeneklerini yazın: reject, cascade, set null (FK PK'nın parçası değilse), set default.</td>
+      <td>(1) PK alanı NULL mı? → entity integrity. (2) PK/UNIQUE değeri zaten var mı? → key. (3) FK değeri referans verilen tabloda var mı? Silmede: bu satıra referans veren var mı? → referential integrity. (4) Değer tipine/aralığına uyuyor mu? → domain. Sonra DBMS'in seçeneklerini yazın: reject, cascade, set null (FK PK'nın parçası değilse), set default.</td>
       <td><a href="ch5-relational.html#guncelleme-islemleri-ve-kisit-ihlalleri">Ch 5: güncelleme işlemleri</a>, aşağıdaki problem 2</td></tr>
     <tr><td><strong>Anahtar bulmak</strong></td>
       <td>(1) Her kuraldan "bunlar birlikte tek bir satırı belirler" diyen öznitelik kümelerini çıkarın. (2) Her kümenin minimal olduğunu kontrol edin: bir öznitelik çıkarınca kural bozuluyor mu? (3) Minimal olanlar candidate key; birini primary key seçin, diğerleri UNIQUE.</td>
@@ -72,7 +72,7 @@
   <li><strong>Superkey ile key (candidate key) arasındaki fark nedir? Bir örnek verin.</strong>
     <div class="hint" data-label="Cevabı göster"><p>Superkey: değerleri hiçbir geçerli durumda iki tuple'da aynı olmayan öznitelik kümesi. Key: minimal superkey: hiçbir özniteliği çıkarılamaz. EMPLOYEE'de {Ssn, Lname} superkey'dir ama key değildir; {Ssn} key'dir.</p></div></li>
   <li><strong>Entity integrity ve referential integrity kısıtlarını tanımlayın.</strong>
-    <div class="hint" data-label="Cevabı göster"><p>Entity integrity: hiçbir primary key değeri (bileşik PK'nın hiçbir parçası) NULL olamaz. Referential integrity: bir foreign key değeri ya başvurulan ilişkide var olan bir PK değerine eşittir ya da NULL'dur.</p></div></li>
+    <div class="hint" data-label="Cevabı göster"><p>Entity integrity: hiçbir primary key değeri (bileşik PK'nın hiçbir parçası) NULL olamaz. Referential integrity: bir foreign key değeri ya referans verilen ilişkide var olan bir PK değerine eşittir ya da NULL'dur.</p></div></li>
   <li><strong>Disjoint ile overlapping, total ile partial specialization'ı birer örnekle açıklayın.</strong>
     <div class="hint" data-label="Cevabı göster"><p>Disjoint: bir varlık en fazla bir alt sınıfta (EMPLOYEE → {HOURLY, SALARIED}). Overlapping: birden çok alt sınıfta olabilir (PART → {MANUFACTURED, PURCHASED}). Total: üst sınıftaki her varlık en az bir alt sınıfta (her çalışan saatli ya da maaşlı). Partial: bazıları hiçbirinde değil (her çalışan SECRETARY/ENGINEER/TECHNICIAN değildir).</p></div></li>
   <li><strong>Shared subclass ile category farkı nedir?</strong>
@@ -112,10 +112,10 @@
 </ol>
 <div class="hint" data-label="Cevabı göster">
   <ol type="a">
-    <li>İhlal yok: English'in (453453453) 'John' adlı bağımlısı yok, PK (Essn, Dependent_name) yeni; Essn var olan bir çalışana başvuruyor.</li>
+    <li>İhlal yok: English'in (453453453) 'John' adlı bağımlısı yok, PK (Essn, Dependent_name) yeni; Essn var olan bir çalışana referans veriyor.</li>
     <li>İki ihlal: <strong>entity integrity</strong> (Pno, PK'nın parçası ve NULL) ve <strong>referential integrity</strong> (677678989 diye bir çalışan yok). Reddedilir.</li>
-    <li><strong>Referential integrity</strong>: WORKS_ON'da ProductX'e (Pno = 1) başvuran satırlar var. Seçenekler: reddet; CASCADE (o WORKS_ON satırlarını da sil); SET NULL kullanılamaz, çünkü Pno PK'nın parçası.</li>
-    <li><strong>Key kısıtı</strong>: Pnumber = 30 zaten var (Newbenefits). Ayrıca 10'a başvuran WORKS_ON satırları var: PK değişirse referential integrity de etkilenir (ON UPDATE CASCADE olsaydı onlar da 30 olurdu, yine de key ihlali kalır).</li>
+    <li><strong>Referential integrity</strong>: WORKS_ON'da ProductX'e (Pno = 1) referans veren satırlar var. Seçenekler: reddet; CASCADE (o WORKS_ON satırlarını da sil); SET NULL kullanılamaz, çünkü Pno PK'nın parçası.</li>
+    <li><strong>Key kısıtı</strong>: Pnumber = 30 zaten var (Newbenefits). Ayrıca 10'a referans veren WORKS_ON satırları var: PK değişirse referential integrity de etkilenir (ON UPDATE CASCADE olsaydı onlar da 30 olurdu, yine de key ihlali kalır).</li>
     <li><strong>Referential integrity</strong>: 2 numaralı departman yok. Reddedilir.</li>
   </ol>
   <p>Kendiniz deneyin:</p>
@@ -205,8 +205,8 @@ SELECT COUNT(Super_ssn), COUNT(DISTINCT Super_ssn), COUNT(*) FROM EMPLOYEE;
   </div>
   <div class="quiz" data-answer="3" data-topic="Rehber">
     <p>Bir departman silindiğinde o departmanın konumlarının (DEPT_LOCATIONS) da silinmesi isteniyor. FK nasıl tanımlanmalı?</p>
-    <ol><li data-why="SET NULL, DEPT_LOCATIONS.Dnumber'ı NULL yapardı; Dnumber PK'nın parçası olduğu için mümkün değil ve konumları silmez."><code>ON DELETE SET NULL</code></li><li data-why="ON UPDATE, departman numarası <em>değişince</em> ne olacağını söyler; silmeyle ilgili değil."><code>ON UPDATE CASCADE</code></li><li data-why="Doğru: departman silinince ona başvuran konum satırları da silinir."><code>ON DELETE CASCADE</code></li><li data-why="SET DEFAULT konumları silmez, başka bir departmana bağlar; ayrıca PK'nın parçası olan bir sütunda anlamsız olabilir."><code>ON DELETE SET DEFAULT</code></li></ol>
-    <div class="explain">CASCADE, silmeyi başvuran satırlara yayar. SET NULL burada olamazdı: Dnumber, DEPT_LOCATIONS'ın PK'sının parçası.</div>
+    <ol><li data-why="SET NULL, DEPT_LOCATIONS.Dnumber'ı NULL yapardı; Dnumber PK'nın parçası olduğu için mümkün değil ve konumları silmez."><code>ON DELETE SET NULL</code></li><li data-why="ON UPDATE, departman numarası <em>değişince</em> ne olacağını söyler; silmeyle ilgili değil."><code>ON UPDATE CASCADE</code></li><li data-why="Doğru: departman silinince ona referans veren konum satırları da silinir."><code>ON DELETE CASCADE</code></li><li data-why="SET DEFAULT konumları silmez, başka bir departmana bağlar; ayrıca PK'nın parçası olan bir sütunda anlamsız olabilir."><code>ON DELETE SET DEFAULT</code></li></ol>
+    <div class="explain">CASCADE, silmeyi referans veren satırlara yayar. SET NULL burada olamazdı: Dnumber, DEPT_LOCATIONS'ın PK'sının parçası.</div>
   </div>
   <div class="quiz" data-answer="1" data-topic="Rehber">
     <p>Hangi SQL özelliği <em>ilişkisel modelin</em> biçimsel tanımıyla çelişir?</p>

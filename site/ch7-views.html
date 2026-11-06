@@ -201,11 +201,11 @@ UPDATE DEPT5_EMPS SET Dno = 4 WHERE Lname = 'Wong';                 -- Wong woul
 <h3>DROP</h3>
 <ul>
   <li><code>DROP SCHEMA COMPANY CASCADE;</code> şemayı ve içindeki her şeyi siler. <code>RESTRICT</code>: yalnızca şema boşsa siler.</li>
-  <li><code>DROP TABLE DEPENDENT CASCADE;</code> tabloyu ve ona başvuran bütün kısıtları ve view'ları siler. <code>RESTRICT</code>: tabloya bir FK ya da view başvuruyorsa silmeyi reddeder.</li>
+  <li><code>DROP TABLE DEPENDENT CASCADE;</code> tabloyu ve ona referans veren bütün kısıtları ve view'ları siler. <code>RESTRICT</code>: tabloya bir FK ya da view referans veriyorsa silmeyi reddeder.</li>
   <li><code>DROP TABLE</code> tablonun tanımını da siler; yalnızca satırları silmek için <code>DELETE</code>.</li>
 </ul>
-<p><strong>MySQL'de</strong> bu kurallar farklı işler; sınavda kitabın (standart SQL'in) anlamını yazın. MySQL <code>RESTRICT</code> ve <code>CASCADE</code> sözcüklerini kabul eder ama <em>yok sayar</em>: başka bir tablonun foreign key'i başvuruyorsa <code>DROP TABLE</code> her zaman reddedilir (hata 3730), view'lar ise hiç kontrol edilmez: tablo silinir ve ona dayanan view geçersiz kalır. MySQL'de <code>DROP SCHEMA</code> ile <code>DROP DATABASE</code> aynıdır.</p>
-<pre class="sql run" data-expect-error data-title="DEPARTMENT'a foreign key'ler başvuruyor: DROP reddedilir">
+<p><strong>MySQL'de</strong> bu kurallar farklı işler; sınavda kitabın (standart SQL'in) anlamını yazın. MySQL <code>RESTRICT</code> ve <code>CASCADE</code> sözcüklerini kabul eder ama <em>yok sayar</em>: başka bir tablonun foreign key'i referans veriyorsa <code>DROP TABLE</code> her zaman reddedilir (hata 3730), view'lar ise hiç kontrol edilmez: tablo silinir ve ona dayanan view geçersiz kalır. MySQL'de <code>DROP SCHEMA</code> ile <code>DROP DATABASE</code> aynıdır.</p>
+<pre class="sql run" data-expect-error data-title="DEPARTMENT'a foreign key'ler referans veriyor: DROP reddedilir">
 DROP TABLE DEPARTMENT;   -- EMPLOYEE.Dno, PROJECT.Dnum, DEPT_LOCATIONS.Dnumber reference it
 </pre>
 <pre class="sql run" data-expect-error data-title="View'a dayanan bir tabloyu silmek (MySQL: RESTRICT yok sayılır)">
@@ -233,7 +233,7 @@ ALTER TABLE COMPANY.EMPLOYEE DROP COLUMN Address;
 SELECT COLUMN_NAME FROM information_schema.COLUMNS
 WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POSITION;
 </pre>
-<p>Kitapta <code>DROP COLUMN</code> için <code>CASCADE</code> (sütuna başvuran kısıt ve view'lar da silinir) ya da <code>RESTRICT</code> (başvuran yoksa silinir) seçilmelidir; MySQL bu sözcükleri kullanmaz. Kısıtı kaldırabilmek için <em>adı olmalıdır</em>: Ch 6'da kısıtlara ad vermenin nedeni budur. (MySQL foreign key için <code>DROP FOREIGN KEY ad</code>, diğer kısıtlar için <code>DROP CONSTRAINT ad</code> ya da <code>DROP CHECK ad</code> yazar.)</p>
+<p>Kitapta <code>DROP COLUMN</code> için <code>CASCADE</code> (sütuna referans veren kısıt ve view'lar da silinir) ya da <code>RESTRICT</code> (referans veren yoksa silinir) seçilmelidir; MySQL bu sözcükleri kullanmaz. Kısıtı kaldırabilmek için <em>adı olmalıdır</em>: Ch 6'da kısıtlara ad vermenin nedeni budur. (MySQL foreign key için <code>DROP FOREIGN KEY ad</code>, diğer kısıtlar için <code>DROP CONSTRAINT ad</code> ya da <code>DROP CHECK ad</code> yazar.)</p>
 
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="3">
@@ -290,12 +290,12 @@ WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POS
 <div class="quiz" data-answer="4">
   <p><code>DROP TABLE DEPARTMENT RESTRICT;</code> COMPANY'de ne olur?</p>
   <ol>
-    <li data-why="Bu, CASCADE'in davranışıdır. RESTRICT tam tersine, başvuran varsa hiçbir şey silmez.">DEPARTMENT ve ona başvuran bütün FK'lar silinir.</li>
+    <li data-why="Bu, CASCADE'in davranışıdır. RESTRICT tam tersine, referans veren varsa hiçbir şey silmez.">DEPARTMENT ve ona referans veren bütün FK'lar silinir.</li>
     <li data-why="Bu, <code>DELETE FROM DEPARTMENT</code>'ın hedefidir; DROP TABLE tablonun tanımını kaldırır.">Yalnızca satırlar silinir, tablo tanımı kalır.</li>
-    <li data-why="DROP, başvuran tablolardaki değerleri değiştirmez (ON DELETE SET NULL satır silmeyle ilgilidir, tablo silmeyle değil).">DEPARTMENT silinir, EMPLOYEE.Dno değerleri NULL olur.</li>
-    <li data-why="Doğru: RESTRICT, başvuran bir kısıt varsa silmeyi reddeder.">Reddedilir: EMPLOYEE, PROJECT ve DEPT_LOCATIONS DEPARTMENT'a başvuruyor.</li>
+    <li data-why="DROP, referans veren tablolardaki değerleri değiştirmez (ON DELETE SET NULL satır silmeyle ilgilidir, tablo silmeyle değil).">DEPARTMENT silinir, EMPLOYEE.Dno değerleri NULL olur.</li>
+    <li data-why="Doğru: RESTRICT, referans veren bir kısıt varsa silmeyi reddeder.">Reddedilir: EMPLOYEE, PROJECT ve DEPT_LOCATIONS DEPARTMENT'a referans veriyor.</li>
   </ol>
-  <div class="explain">RESTRICT, başvuran bir kısıt ya da view varsa silmeyi reddeder. CASCADE olsaydı tablo ve başvuran kısıtlar (FK'lar) silinirdi; başvuran tabloların kendisi silinmez. (MySQL'de foreign key ile başvurulan tablo, RESTRICT yazılsın yazılmasın silinemez; yukarıdaki kutuda gördünüz.)</div>
+  <div class="explain">RESTRICT, referans veren bir kısıt ya da view varsa silmeyi reddeder. CASCADE olsaydı tablo ve referans veren kısıtlar (FK'lar) silinirdi; referans veren tabloların kendisi silinmez. (MySQL'de foreign key ile referans verilen tablo, RESTRICT yazılsın yazılmasın silinemez; yukarıdaki kutuda gördünüz.)</div>
 
 </div>
 
