@@ -55,6 +55,7 @@ for (const ex of EXERCISES) {
     saveKey: `sql:notebook:ex${ex.n}`,
     check: { n: ex.n, expect: ex.expect },
     rows: 4,
+    tables: TABLES, // all six, so the rows can be looked up while writing (the exercise's own tables would be a hint)
   });
   sec.append(box);
 

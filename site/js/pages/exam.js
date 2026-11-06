@@ -2,6 +2,7 @@
 // and a practice set dealt from the guide's own question bank plus the quizzes of every chapter page.
 import { enhanceQuizzes, enhanceCallouts, PAGES } from "../layout.js";
 import { h, $, $$, button } from "../lib/ui.js";
+import { TABLES } from "../lib/company.js";
 import { createSqlBox } from "../lib/sqlbox.js";
 import { SQL_PROBLEMS } from "../lib/exam-problems.js";
 import { mountExercise } from "../lib/er-inline.js";
@@ -19,7 +20,7 @@ for (const p of SQL_PROBLEMS) {
     h("div", { class: "hint callout note", "data-label": tl("İpucu", "Hint"), html: `<p>${tx(p, "hint")}</p>` }));
   sec.append(createSqlBox({
     title: `Problem ${p.id.slice(1)} <span class="muted">· ${tl("cevabınız", "your answer")}</span>`,
-    code: "-- your query\n", saveKey: `sql:exam:${p.id}`, rows: 4,
+    code: "-- your query\n", saveKey: `sql:exam:${p.id}`, rows: 4, tables: TABLES,
     reference: { sql: p.solution, label: `Problem ${p.id.slice(1)}` },
   }));
   const sol = h("div", { hidden: true },
