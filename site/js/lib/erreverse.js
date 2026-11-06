@@ -9,6 +9,7 @@
 // What the tables cannot tell (derived and composite attributes, the participation of the "1" side, specialization
 // constraints, relationship names) is reported in the notes.
 import { emptyModel, normalizeEnds } from "./ermodel.js";
+import { t as tl, tx, EN } from "./i18n.js";
 
 const U = (s) => String(s).toUpperCase();
 const nice = (c) => c.charAt(0).toUpperCase() + c.slice(1);
@@ -101,9 +102,9 @@ export function reverseER(catalog) {
         const comps = t.pk.map((c) => ({ name: nice(c), key: false, partial: false, multi: false, derived: false, comps: null }));
         e.attrs = e.attrs.filter((a) => !t.pk.map(nice).includes(a.name));
         e.attrs.unshift({ name: `${U(t.name)}_key`, key: true, partial: false, multi: false, derived: false, comps });
-        notes.push(`${U(t.name)}: bileşik primary key (${t.pk.join(", ")}) bileşik bir anahtar özniteliği oldu.`);
+        notes.push(tl(`${U(t.name)}: bileşik primary key (${t.pk.join(", ")}) bileşik bir anahtar özniteliği oldu.`, `${U(t.name)}: the composite primary key (${t.pk.join(", ")}) became a composite key attribute.`));
       }
-      steps.push({ kind: "entity", table: t.name, html: `<strong>${U(t.name)}</strong>: primary key'i başka bir tabloya referans vermiyor → <em>regular entity</em>. Anahtar: ${t.pk.join(", ") || "yok"}${t.uniques.length ? `; UNIQUE sütunlar da anahtar: ${t.uniques.map((u) => u.join(", ")).join("; ")}` : ""}.` });
+      steps.push({ kind: "entity", table: t.name, html: tl(`<strong>${U(t.name)}</strong>: primary key'i başka bir tabloya referans vermiyor → <em>regular entity</em>. Anahtar: ${t.pk.join(", ") || "yok"}${t.uniques.length ? `; UNIQUE sütunlar da anahtar: ${t.uniques.map((u) => u.join(", ")).join("; ")}` : ""}.`, `<strong>${U(t.name)}</strong>: its primary key refers to no other table → <em>regular entity</em>. Key: ${t.pk.join(", ") || "none"}${t.uniques.length ? `; the UNIQUE columns are keys too: ${t.uniques.map((u) => u.join(", ")).join("; ")}` : ""}.`) });
     } else if (r === "weak") {
       const e = addEntity(t, true);
       const pkFKs = t.fks.filter((f) => subset(f.cols, t.pk));
@@ -115,8 +116,8 @@ export function reverseER(catalog) {
       const owner = pkFKs[0];
       model.relationships.push({ name: uniqueName(`${t.name}_OF`), identifying: true, attrs: [], line: 0,
         ends: [{ entity: U(owner.ref), card: "1", total: false, role: null, minmax: null }, { entity: U(t.name), card: "N", total: true, role: null, minmax: null }] });
-      for (const extra of pkFKs.slice(1)) notes.push(`${U(t.name)}: primary key'de ${U(extra.ref)}'e referans veren ikinci bir foreign key var; yalnızca ${U(owner.ref)} sahip olarak alındı.`);
-      steps.push({ kind: "weak", table: t.name, html: `<strong>${U(t.name)}</strong>: primary key (${t.pk.join(", ")}) = ${U(owner.ref)}'e foreign key (${owner.cols.join(", ")}) + kendi sütunları → <em>weak entity</em>, sahibi ${U(owner.ref)}; kendi sütunları partial key.` });
+      for (const extra of pkFKs.slice(1)) notes.push(tl(`${U(t.name)}: primary key'de ${U(extra.ref)}'e referans veren ikinci bir foreign key var; yalnızca ${U(owner.ref)} sahip olarak alındı.`, `${U(t.name)}: the primary key holds a second foreign key, to ${U(extra.ref)}; only ${U(owner.ref)} was taken as the owner.`));
+      steps.push({ kind: "weak", table: t.name, html: tl(`<strong>${U(t.name)}</strong>: primary key (${t.pk.join(", ")}) = ${U(owner.ref)}'e foreign key (${owner.cols.join(", ")}) + kendi sütunları → <em>weak entity</em>, sahibi ${U(owner.ref)}; kendi sütunları partial key.`, `<strong>${U(t.name)}</strong>: primary key (${t.pk.join(", ")}) = a foreign key to ${U(owner.ref)} (${owner.cols.join(", ")}) + its own columns → <em>weak entity</em>, owner ${U(owner.ref)}; its own columns are the partial key.`) });
     } else if (r === "sub") {
       const e = addEntity(t, false);
       const exclude = [...t.pk, ...nonPkFKcols];
@@ -127,7 +128,7 @@ export function reverseER(catalog) {
         if (!sp) { sp = { super: s, subs: [], disjoint: false, total: false, on: null, line: 0, fromReverse: true }; model.specializations.push(sp); }
         sp.subs.push(U(t.name));
       }
-      steps.push({ kind: "sub", table: t.name, html: `<strong>${U(t.name)}</strong>: primary key'inin tamamı (${t.pk.join(", ")}) ${supers.join(" ve ")}'in primary key'ine foreign key → <em>alt sınıf</em> (IS-A, seçenek 8A)${supers.length > 1 ? "; birden çok üst sınıf: paylaşılan alt sınıf" : ""}.` });
+      steps.push({ kind: "sub", table: t.name, html: tl(`<strong>${U(t.name)}</strong>: primary key'inin tamamı (${t.pk.join(", ")}) ${supers.join(" ve ")}'in primary key'ine foreign key → <em>alt sınıf</em> (IS-A, seçenek 8A)${supers.length > 1 ? "; birden çok üst sınıf: paylaşılan alt sınıf" : ""}.`, `<strong>${U(t.name)}</strong>: its whole primary key (${t.pk.join(", ")}) is a foreign key to the primary key of ${supers.join(" and ")} → <em>subclass</em> (IS-A, option 8A)${supers.length > 1 ? "; several superclasses: a shared subclass" : ""}.`) });
     }
   }
 
@@ -147,8 +148,8 @@ export function reverseER(catalog) {
       const otherFKs = t.fks.filter((f) => !subset(f.cols, t.pk));
       const rel = { name: uniqueName(t.name), identifying: false, ends, attrs: attrsOf(t, keyAndFK), line: 0 };
       model.relationships.push(rel);
-      if (otherFKs.length) notes.push(`${U(t.name)}: primary key dışındaki foreign key'ler (${otherFKs.map((f) => f.cols.join(", ")).join("; ")}) ilişki özniteliği olarak bırakıldı.`);
-      steps.push({ kind: "rel", table: t.name, html: `<strong>${U(t.name)}</strong>: primary key, ${pkFKs.length} foreign key'in birleşimi → <em>${pkFKs.length === 2 ? "M:N" : `${pkFKs.length}-ary`} ilişki</em> (${ends.map((e) => e.entity).join(", ")})${rel.attrs.length ? `; diğer sütunlar ilişkinin öznitelikleri: ${rel.attrs.map((a) => a.name).join(", ")}` : ""}. Katılımlar tablodan bilinemez (partial varsayıldı).` });
+      if (otherFKs.length) notes.push(tl(`${U(t.name)}: primary key dışındaki foreign key'ler (${otherFKs.map((f) => f.cols.join(", ")).join("; ")}) ilişki özniteliği olarak bırakıldı.`, `${U(t.name)}: the foreign keys outside the primary key (${otherFKs.map((f) => f.cols.join(", ")).join("; ")}) were left as attributes of the relationship.`));
+      steps.push({ kind: "rel", table: t.name, html: tl(`<strong>${U(t.name)}</strong>: primary key, ${pkFKs.length} foreign key'in birleşimi → <em>${pkFKs.length === 2 ? "M:N" : `${pkFKs.length}-ary`} ilişki</em> (${ends.map((e) => e.entity).join(", ")})${rel.attrs.length ? `; diğer sütunlar ilişkinin öznitelikleri: ${rel.attrs.map((a) => a.name).join(", ")}` : ""}. Katılımlar tablodan bilinemez (partial varsayıldı).`, `<strong>${U(t.name)}</strong>: the primary key is the combination of ${pkFKs.length} foreign keys → <em>${pkFKs.length === 2 ? "M:N" : `${pkFKs.length}-ary`} relationship</em> (${ends.map((e) => e.entity).join(", ")})${rel.attrs.length ? `; the other columns are its attributes: ${rel.attrs.map((a) => a.name).join(", ")}` : ""}. Participation cannot be told from the table (assumed partial).`) });
     } else if (r === "multi") {
       const f = t.fks.find((x) => subset(x.cols, t.pk));
       const owner = entityOf.get(f.ref);
@@ -157,8 +158,8 @@ export function reverseER(catalog) {
         ? { name: nice(valCols[0]), key: false, partial: false, multi: true, derived: false, comps: null }
         : { name: nice(t.name), key: false, partial: false, multi: true, derived: false, comps: valCols.map((c) => ({ name: nice(c), key: false, partial: false, multi: false, derived: false, comps: null })) };
       if (owner) owner.attrs.push(attr);
-      else notes.push(`${U(t.name)}: sahibi ${U(f.ref)} bir varlık tablosu değil; çok değerli öznitelik eklenemedi.`);
-      steps.push({ kind: "multi", table: t.name, html: `<strong>${U(t.name)}</strong>: yalnızca anahtar sütunları var, biri ${U(f.ref)}'e foreign key → ${U(f.ref)}'in <em>çok değerli özniteliği</em> ${attr.name}.` });
+      else notes.push(tl(`${U(t.name)}: sahibi ${U(f.ref)} bir varlık tablosu değil; çok değerli öznitelik eklenemedi.`, `${U(t.name)}: its owner ${U(f.ref)} is not an entity table; the multivalued attribute could not be added.`));
+      steps.push({ kind: "multi", table: t.name, html: tl(`<strong>${U(t.name)}</strong>: yalnızca anahtar sütunları var, biri ${U(f.ref)}'e foreign key → ${U(f.ref)}'in <em>çok değerli özniteliği</em> ${attr.name}.`, `<strong>${U(t.name)}</strong>: only key columns, one of them a foreign key to ${U(f.ref)} → the <em>multivalued attribute</em> ${attr.name} of ${U(f.ref)}.`) });
     }
   }
 
@@ -167,7 +168,7 @@ export function reverseER(catalog) {
     if (!isEntityTable(t.name)) continue;
     for (const f of t.fks) {
       if (subset(f.cols, t.pk) && ["weak", "sub"].includes(role.get(t.name))) continue; // already identifying / IS-A
-      if (!isEntityTable(f.ref)) { notes.push(`${U(t.name)}.${f.cols.join(", ")}: ${U(f.ref)} bir varlık tablosu değil, ilişki çıkarılamadı.`); continue; }
+      if (!isEntityTable(f.ref)) { notes.push(tl(`${U(t.name)}.${f.cols.join(", ")}: ${U(f.ref)} bir varlık tablosu değil, ilişki çıkarılamadı.`, `${U(t.name)}.${f.cols.join(", ")}: ${U(f.ref)} is not an entity table; no relationship could be derived.`)); continue; }
       const oneOne = t.uniques.some((u) => sameSet(u, f.cols)) || sameSet(t.pk, f.cols);
       const total = f.cols.every((c) => t.cols.find((x) => x.name === c)?.notNull);
       const refKey = f.refCols[0] || "";
@@ -180,11 +181,11 @@ export function reverseER(catalog) {
         { entity: U(t.name), card: oneOne ? "1" : "N", total, role: recursive ? t.name.toLowerCase() : null, minmax: null },
       ];
       model.relationships.push({ name, identifying: false, ends, attrs: [], line: 0 });
-      steps.push({ kind: "fk", table: t.name, html: `<strong>${U(t.name)}.${f.cols.join(", ")}</strong> → ${U(f.ref)}: primary key'in parçası olmayan foreign key → <em>${oneOne ? "1:1" : "1:N"}${recursive ? " recursive" : ""} ilişki</em> ${name}${oneOne ? " (FK UNIQUE)" : ` (${U(t.name)} N tarafı)`}; ${total ? "NOT NULL → total participation" : "NULL olabilir → partial"}.` });
+      steps.push({ kind: "fk", table: t.name, html: tl(`<strong>${U(t.name)}.${f.cols.join(", ")}</strong> → ${U(f.ref)}: primary key'in parçası olmayan foreign key → <em>${oneOne ? "1:1" : "1:N"}${recursive ? " recursive" : ""} ilişki</em> ${name}${oneOne ? " (FK UNIQUE)" : ` (${U(t.name)} N tarafı)`}; ${total ? "NOT NULL → total participation" : "NULL olabilir → partial"}.`, `<strong>${U(t.name)}.${f.cols.join(", ")}</strong> → ${U(f.ref)}: a foreign key outside the primary key → <em>${oneOne ? "1:1" : "1:N"}${recursive ? " recursive" : ""} relationship</em> ${name}${oneOne ? " (FK UNIQUE)" : ` (${U(t.name)} is the N side)`}; ${total ? "NOT NULL → total participation" : "may be NULL → partial"}.`) });
     }
   }
   for (const r of model.relationships) normalizeEnds(r);
   for (const sp of model.specializations) delete sp.fromReverse;
-  notes.push("Tablolardan geri kazanılamayanlar: türetilmiş öznitelikler (saklanmadıkları için), bileşik özniteliklerin yapısı (sütunlara ayrılmışlardır), \"1\" tarafının katılımı (total mı?), (min,max) sınırları, özelleştirmelerin disjoint/total kısıtları ve ilişkilerin gerçek adları. Bunlar varsayılan değerlerle dolduruldu; diyagramı editörde düzeltebilirsiniz.");
+  notes.push(tl("Tablolardan geri kazanılamayanlar: türetilmiş öznitelikler (saklanmadıkları için), bileşik özniteliklerin yapısı (sütunlara ayrılmışlardır), \"1\" tarafının katılımı (total mı?), (min,max) sınırları, özelleştirmelerin disjoint/total kısıtları ve ilişkilerin gerçek adları. Bunlar varsayılan değerlerle dolduruldu; diyagramı editörde düzeltebilirsiniz.", "What the tables cannot give back: derived attributes (they are not stored), the structure of composite attributes (split into columns), the participation of the \"1\" side (total?), (min,max) bounds, the disjoint/total constraints of specializations and the real names of relationships. These were filled with defaults; you can fix the diagram in the editor."));
   return { model, steps, notes };
 }

@@ -1,9 +1,11 @@
 // One MySQL per page, in the browser: go-mysql-server (a MySQL-compatible engine) compiled to WebAssembly (engine/).
-// It is downloaded (≈ 23 MB compressed, cached by the browser afterwards) the first time a SQL box is used on a page,
+// It is downloaded (≈ 23 MB compressed) the first time a SQL box is used and then kept in Cache Storage under its content
+// hash (engineBytes below), so later visits and new deploys of the site load it from the disk until the engine changes;
 // then set up with the COMPANY schema and data, as the notebook's sqlnb.setup(reset=True) does.
 import { SCHEMA_SQL, DATA_SQL, TABLES } from "./company.js";
 import { splitSQL, firstWord, caption, commandTag } from "./sqlcore.js";
 import { startEngine } from "./mysql.js";
+import { t as tl, EN } from "./i18n.js";
 
 let dbPromise = null;
 let queue = Promise.resolve(); // statements of different boxes never interleave
@@ -22,7 +24,7 @@ function loadGlue() {
     const s = document.createElement("script");
     s.src = new URL("wasm_exec.js", base).href;
     s.onload = resolve;
-    s.onerror = () => reject(new Error("wasm_exec.js yüklenemedi"));
+    s.onerror = () => reject(new Error(tl("wasm_exec.js yüklenemedi", "wasm_exec.js could not be loaded")));
     document.head.append(s);
   });
 }
@@ -39,7 +41,7 @@ async function download(url) {
   arm();
   try {
     const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`mysql.wasm indirilemedi (HTTP ${res.status})`);
+    if (!res.ok) throw new Error(tl(`mysql.wasm indirilemedi (HTTP ${res.status})`, `mysql.wasm could not be downloaded (HTTP ${res.status})`));
     if (!res.body?.getReader) return new Uint8Array(await res.arrayBuffer());
     const reader = res.body.getReader();
     const chunks = [];
@@ -57,24 +59,60 @@ async function download(url) {
     for (const c of chunks) { bytes.set(c, at); at += c.length; }
     return bytes;
   } catch (e) {
-    if (ctrl.signal.aborted) throw new Error(`indirme ${STALL_MS / 1000} saniyedir ilerlemiyor`);
-    throw new Error(`mysql.wasm indirilemedi (${e?.message || e})`);
+    if (ctrl.signal.aborted) throw new Error(tl(`indirme ${STALL_MS / 1000} saniyedir ilerlemiyor`, `the download has made no progress for ${STALL_MS / 1000} seconds`));
+    throw new Error(tl(`mysql.wasm indirilemedi (${e?.message || e})`, `mysql.wasm could not be downloaded (${e?.message || e})`));
   } finally {
     clearTimeout(stall);
   }
+}
+
+/**
+ * The engine, from the browser's Cache Storage when this exact engine was downloaded before.
+ * engine.json (a few bytes, always revalidated) names the engine by a hash of its content; the engine is kept under
+ * that hash, so a new deploy of the site does not download it again unless the engine itself changed. Without
+ * Cache Storage (a private window, an old browser, a full disk) it is simply downloaded, as before.
+ */
+const CACHE = "mysql-engine";
+async function engineBytes() {
+  let info = null;
+  try {
+    const r = await fetch(new URL("engine.json", base), { cache: "no-cache" });
+    if (r.ok) info = await r.json();
+  } catch { /* no manifest: download without caching */ }
+  const url = new URL(info?.hash ? `mysql.wasm?v=${info.hash}` : "mysql.wasm", base);
+  let cache = null;
+  try { cache = info?.hash && globalThis.caches ? await caches.open(CACHE) : null; } catch { cache = null; }
+  if (cache) {
+    try {
+      const hit = await cache.match(url);
+      if (hit) {
+        setState("loading", { stage: "cache" });
+        const bytes = new Uint8Array(await hit.arrayBuffer());
+        if (!info.bytes || bytes.length === info.bytes) return bytes;
+      }
+    } catch { /* a broken entry: download again */ }
+  }
+  const bytes = await download(url);
+  if (cache) {
+    try {
+      for (const req of await cache.keys()) if (req.url !== url.href) await cache.delete(req); // older engines
+      await cache.put(url, new Response(bytes, { headers: { "content-type": "application/wasm" } }));
+    } catch { /* quota or private mode: the next visit downloads again */ }
+  }
+  return bytes;
 }
 
 async function create() {
   setState("loading", { stage: "download", mb: 0 });
   const t0 = performance.now();
   await loadGlue();
-  const bytes = await download(new URL("mysql.wasm", base));
+  const bytes = await engineBytes();
   setState("loading", { stage: "compile" });
   await nextFrame();
   let timer = 0;
   const db = await Promise.race([
     startEngine(bytes),
-    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`motor ${COMPILE_MS / 1000} saniyede başlamadı`)), COMPILE_MS); }),
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(tl(`motor ${COMPILE_MS / 1000} saniyede başlamadı`, `the engine did not start within ${COMPILE_MS / 1000} seconds`))), COMPILE_MS); }),
   ]).finally(() => clearTimeout(timer));
   setState("loading", { stage: "setup" });
   await nextFrame();
@@ -94,7 +132,7 @@ export function resetCompany(db) {
   inTransaction = false;
   for (const s of ["CREATE DATABASE IF NOT EXISTS demo", "USE company", ...splitSQL(SCHEMA_SQL), ...splitSQL(DATA_SQL)]) {
     const r = db.query(s);
-    if (r.error) throw new Error(`COMPANY kurulamadı: ${r.error.message} (${s.slice(0, 60)})`);
+    if (r.error) throw new Error(`${tl("COMPANY kurulamadı", "COMPANY could not be set up")}: ${r.error.message} (${s.slice(0, 60)})`);
   }
 }
 
@@ -123,7 +161,7 @@ export function runSQL(text, { expectError = false, database = "company" } = {})
       db = await getDB();
     } catch (e) {
       const message = e?.message || String(e);
-      return { items: [{ kind: "startup", message }], last: null, error: { startup: true, message: `MySQL başlatılamadı: ${message}` }, inTransaction: false };
+      return { items: [{ kind: "startup", message }], last: null, error: { startup: true, message: `${tl("MySQL başlatılamadı", "MySQL could not start")}: ${message}` }, inTransaction: false };
     }
     const stmts = splitSQL(text);
     db.query(`USE ${database}`);

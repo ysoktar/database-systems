@@ -36,7 +36,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The engine is rebuilt only when its sources change. Reusing the same bytes keeps its content hash
+      # (vendor/mysql/engine.json) the same, so visitors' browsers keep the copy they already downloaded.
+      - name: Restore the MySQL engine built from the same sources
+        id: engine-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            engine/dist/mysql.wasm
+            engine/dist/wasm_exec.js
+          key: engine-${{ hashFiles('engine/main.go', 'engine/go.mod', 'engine/go.sum', 'engine/build.sh', 'engine/patches/**') }}
+
       - name: Build the MySQL engine (go-mysql-server → WebAssembly)
+        if: steps.engine-cache.outputs.cache-hit != 'true'
         run: npm run engine
 
       - name: Run tests (exercise solutions on MySQL, site structure)

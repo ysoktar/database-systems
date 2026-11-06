@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The EER model · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 4: Enhanced ER; subclasses and superclasses, inheritance, specialization and generalization, predicate/attribute/user-defined subclasses, disjointness and completeness constraints, hierarchies and lattices, categories (union types).">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch4-eer.js"></script>
+</head>
+<body data-page="ch4-eer">
+<main><div class="content">
+
+<h1>The EER model</h1>
+<p class="lead">Enhanced ER (EER) adds the subclass/superclass relationship and inheritance to the ER model. The figures are drawn in the book's notation.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Explain subclass / superclass and inheritance with an example; tell specialization and generalization apart.</li>
+    <li>Determine the specialization constraints (disjoint/overlapping, total/partial) from a requirement and draw them correctly.</li>
+    <li>Tell predicate-defined, attribute-defined and user-defined subclasses apart.</li>
+    <li>Compare a shared subclass (lattice) with a category (union type) in terms of membership and inheritance.</li>
+  </ul>
+</div>
+
+<h2>Why EER?</h2>
+<p>In COMPANY all employees are of a single type, EMPLOYEE. Now suppose the company also wants to keep: the typing speed of secretaries, the engineering type of engineers, the pay rate of hourly employees; and that only engineers can be technical leads of projects. With ER there are two bad options:</p>
+<ul>
+  <li>Make them all attributes of EMPLOYEE: <code>Typing_speed</code> stays NULL for everyone who is not a secretary; the rule "only engineers can be technical leads" does not show in the diagram.</li>
+  <li>Create separate entity types SECRETARY, ENGINEER, …: then an engineer and the EMPLOYEE record of the same person look like two separate entities; common attributes such as name and salary are repeated in every type.</li>
+</ul>
+<p>EER's answer: ENGINEER is not a separate entity but a <em>subset</em> of EMPLOYEE. It inherits the common properties from EMPLOYEE and adds only its own.</p>
+
+<h2>Subclass, superclass, inheritance</h2>
+<ul>
+  <li>The entities of an entity type can be divided into meaningful subgroups: among EMPLOYEEs, SECRETARY, ENGINEER, MANAGER, HOURLY_EMPLOYEE… Each group is a <strong>subclass</strong>, EMPLOYEE their <strong>superclass</strong>. The relationship between them is <strong>IS-A</strong>: "a SECRETARY is an EMPLOYEE".</li>
+  <li>An entity in a subclass is <em>the same real-world entity</em> as in the superclass, not a separate entity. Formally, for a subclass S of a superclass C, always <strong>S ⊆ C</strong>. An entity can be in several subclasses (a salaried engineer is both an ENGINEER and a SALARIED_EMPLOYEE).</li>
+  <li><strong>Type inheritance</strong>: a subclass inherits all the attributes and relationships of its superclass. It can also have its own <strong>local (specific) attributes</strong> (SECRETARY's <code>Typing_speed</code>) and its own <strong>specific relationships</strong> (BELONGS_TO a trade union that only HOURLY_EMPLOYEEs are members of).</li>
+</ul>
+
+<h2>Specialization and generalization</h2>
+<ul>
+  <li><strong>Specialization</strong> (top-down): dividing the entities of an entity type into subclasses based on a distinguishing characteristic. {SECRETARY, TECHNICIAN, ENGINEER} is a specialization of EMPLOYEE by job type.</li>
+  <li><strong>Generalization</strong> (bottom-up): deriving a superclass from entity types that have common attributes. The common attributes of CAR and TRUCK move to VEHICLE.</li>
+</ul>
+<p>The two are two design directions of the same construct and are drawn the same way: the superclass is connected to a circle, the circle to the subclasses; the <strong>⊂</strong> on a subclass line shows the direction of the subset. With a single subclass no circle is drawn.</p>
+<div id="spec-employee"></div>
+
+<h2>Who decides membership?</h2>
+<table class="simple">
+  <thead><tr><th>Kind</th><th>Membership</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Predicate-defined</strong> subclass</td><td>A condition on an attribute of the superclass: S = C[p]. The condition is written on the subclass line.</td><td>SECRETARY: <code>Job_type = 'Secretary'</code></td></tr>
+    <tr><td><strong>Attribute-defined</strong> specialization</td><td>All the subclasses by conditions on the <em>same</em> attribute (the defining attribute): S<sub>i</sub> = C[A = c<sub>i</sub>]. The attribute name is written on the line to the circle.</td><td>{SECRETARY, TECHNICIAN, ENGINEER} by <code>Job_type</code></td></tr>
+    <tr><td><strong>User-defined</strong> subclass</td><td>No condition; entities are added to the subclass one by one.</td><td>MANAGER</td></tr>
+  </tbody>
+</table>
+<p>In predicate- and attribute-defined subclasses the DBMS itself determines membership from the attribute value; in user-defined subclasses insertion and deletion are done by hand.</p>
+
+<h2>Constraints on specialization</h2>
+<table class="simple">
+  <thead><tr><th>Constraint</th><th>Options</th><th>Notation</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Disjointness</strong></td><td><strong>Disjoint</strong>: an entity is in at most one subclass (S<sub>i</sub> ∩ S<sub>j</sub> = ∅). <strong>Overlapping</strong>: it can be in several subclasses.</td><td><strong>d</strong> / <strong>o</strong> in the circle</td></tr>
+    <tr><td><strong>Completeness</strong></td><td><strong>Total</strong>: every entity of the superclass is in at least one subclass (S<sub>1</sub> ∪ … ∪ S<sub>n</sub> = C). <strong>Partial</strong>: some are in none.</td><td>total: a <strong>double line</strong> from the superclass to the circle</td></tr>
+  </tbody>
+</table>
+<p>The two constraints are independent; all four combinations are possible. A specialization by a single-valued defining attribute is automatically disjoint; a superclass obtained by generalization is usually total.</p>
+<div class="callout example" data-label="Step by step: deciding the constraints">
+  <p>Ask two questions of the requirement:</p>
+  <ol>
+    <li><strong>Can an entity be in two subclasses at the same time?</strong> Yes → overlapping (o); no → disjoint (d).</li>
+    <li><strong>Can there be an entity that is in no subclass?</strong> Yes → partial (single line); no → total (double line).</li>
+  </ol>
+  <p>EMPLOYEE → {SECRETARY, TECHNICIAN, ENGINEER}: an employee has a single job type (d); there are employees that are none of the three, such as managers (partial). PART → {MANUFACTURED_PART, PURCHASED_PART} (the figure below): a part can be both manufactured and purchased (o); every part is at least one of the two (total).</p>
+</div>
+<div id="spec-part"></div>
+<div class="callout gotcha">
+  <p><strong>A double line means two different things.</strong> In ER a double line from an entity to a relationship means <em>total participation</em> (every entity takes part in the relationship). In EER a double line from the superclass to the specialization circle means <em>total specialization</em> (every entity is in a subclass). Same symbol, similar idea ("all of them"), but one is about a relationship and the other about subclasses.</p>
+</div>
+
+<div class="callout example" data-label="Rules that follow from the constraints">
+  <ul>
+    <li>An entity deleted from the superclass is also deleted from all its subclasses.</li>
+    <li>An entity inserted into the superclass automatically enters the predicate-defined subclasses whose condition it satisfies.</li>
+    <li>In a total specialization an entity inserted into the superclass must also be inserted into at least one subclass.</li>
+  </ul>
+</div>
+
+<h2>Hierarchies and lattices</h2>
+<ul>
+  <li><strong>Hierarchy</strong>: every subclass has a single superclass (a tree, single inheritance).</li>
+  <li><strong>Lattice</strong>: a subclass can have several superclasses. Such a <strong>shared subclass</strong> inherits from all its superclasses (<strong>multiple inheritance</strong>); an attribute arriving along two paths is inherited once. The classes on the path from the root to a class are its <em>predecessors</em>; a class with no subclasses is a <em>leaf node</em>.</li>
+</ul>
+<div id="lattice"></div>
+
+<h2>Categories (union types)</h2>
+<p>The owner of a vehicle can be a person, a bank or a company. OWNER is a subset of the union of <em>different</em> superclasses: <strong>T ⊆ (D<sub>1</sub> ∪ … ∪ D<sub>n</sub>)</strong>. Such a subclass is called a <strong>category</strong>. A total category (double line) contains every entity of the union (REGISTERED_VEHICLE = CAR ∪ TRUCK); a partial category need not (not every person owns a vehicle).</p>
+<div id="category"></div>
+<table class="simple">
+  <thead><tr><th></th><th>Shared subclass (lattice)</th><th>Category (union type)</th></tr></thead>
+  <tbody>
+    <tr><td>Member</td><td>In the <strong>intersection</strong> of the superclasses: every ENGINEERING_MANAGER is both an ENGINEER and a MANAGER.</td><td>In the <strong>union</strong> of the superclasses: every OWNER belongs to only one of PERSON, BANK or COMPANY.</td></tr>
+    <tr><td>Inheritance</td><td>From all superclasses (multiple inheritance).</td><td>Only from the superclass it belongs to (<strong>selective inheritance</strong>).</td></tr>
+    <tr><td>Superclasses</td><td>Usually from the same root, with the same key.</td><td>Usually different entity types with different keys; that is why a category is often given a surrogate key (Owner_id).</td></tr>
+    <tr><td>Notation</td><td>The subclass is connected to several superclasses with ⊂.</td><td>The superclasses are connected to a <strong>∪</strong> circle, the circle to the category with ⊂.</td></tr>
+  </tbody>
+</table>
+<p>A total category can also be modelled as a generalization (VEHICLE as the superclass of CAR and TRUCK). With many common attributes choose a generalization, with few a category.</p>
+
+<h2>Design notes</h2>
+<ul>
+  <li>A subclass with no attributes or relationships of its own is unnecessary; an attribute in the superclass (e.g. <code>Job_type</code>) is enough.</li>
+  <li>UML equivalents: generalization (a hollow triangle arrow), <em>{disjoint}</em> / <em>{overlapping}</em>, <em>{complete}</em> (total) / <em>{incomplete}</em> (partial).</li>
+  <li>Mapping EER to tables (options 8A–8D and categories) is in Ch 9.2 of the book; not on the midterm.</li>
+</ul>
+
+<h2>Draw it yourself: an airline (EER)</h2>
+<p>One specialization and two relationships: <strong>Check</strong> tells you whether you chose the constraints (d/o, total/partial) correctly.</p>
+<div id="draw-airline"></div>
+
+<h2>Try it in the studio</h2>
+<p>All the schemas on this page can be opened and changed in the ER studio. Change the constraints in the panel and watch the mapping to tables:</p>
+<div class="btn-row">
+  <a class="btn" href="er-studio.html#example=employee-eer">EMPLOYEE specializations</a>
+  <a class="btn" href="er-studio.html#example=part-eer">PART (overlapping, total)</a>
+  <a class="btn" href="er-studio.html#example=university-eer">Lattice: STUDENT_ASSISTANT</a>
+  <a class="btn" href="er-studio.html#example=vehicle-eer">The OWNER category</a>
+  <a class="btn primary" href="er-studio.html#exercise=airline">Exercise: Airline (EER)</a>
+</div>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="3">
+  <p>In a hospital every STAFF member is either a DOCTOR, a NURSE or an ADMINISTRATOR; the same person cannot hold two of these jobs and there are no other staff. How is this specialization drawn?</p>
+  <ol>
+    <li data-why="'Cannot hold two jobs' means disjoint (d), not overlapping.">o in the circle, a double line from the superclass to the circle</li>
+    <li data-why="'There are no other staff' means total: a double line from the superclass to the circle is needed.">d in the circle, a single line from the superclass to the circle</li>
+    <li data-why="Correct: disjoint (d) and total (a double line): every staff member is in exactly one subclass.">d in the circle, a double line from the superclass to the circle</li>
+    <li data-why="A category (∪) is the union of different superclasses; here a single superclass (STAFF) is divided into subclasses.">A category with a ∪ circle</li>
+  </ol>
+  <div class="explain">Two questions: can a person be in two subclasses at once? No → d. Can there be staff in no subclass? No → total, a double line.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>At a university every person is a student, a staff member or both; people may also be neither (alumni). What are the constraints of the specialization PERSON → {STUDENT, STAFF}?</p>
+  <ol>
+    <li data-why="Two mistakes: 'can be both' breaks disjoint, 'may be neither' breaks total.">Disjoint, total</li>
+    <li data-why="Partial is right (alumni are in no subclass), but since a person can be both a student and staff, it is not disjoint.">Disjoint, partial</li>
+    <li data-why="Correct: can be both (overlapping), may be neither (partial).">Overlapping, partial</li>
+    <li data-why="Overlapping is right, but alumni are neither students nor staff: not every person has to be in a subclass, so it is partial.">Overlapping, total</li>
+  </ol>
+  <div class="explain">"Can be both" → overlapping (o). "May be neither" → partial (a single line).</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>What is the specialization {SECRETARY, ENGINEER, TECHNICIAN} of EMPLOYEE based on its <code>Job_type</code> attribute?</p>
+  <ol>
+    <li data-why="User-defined subclasses have no condition that decides membership.">User-defined</li>
+    <li data-why="Correct: membership is decided by the value of a single attribute (Job_type); since it is single-valued, it is disjoint.">Attribute-defined (and disjoint, since Job_type is single-valued)</li>
+    <li data-why="A category is the union of different entity types.">A category</li>
+    <li data-why="Generalization is the bottom-up design process; here the subclasses are decided by an attribute value.">A generalization, because three subclasses are gathered in one superclass</li>
+  </ol>
+  <div class="explain">All the subclasses are defined by conditions on the same attribute (the <em>defining attribute</em>). Since an employee has a single Job_type, it cannot be in two subclasses at the same time: disjoint.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>What is the essential difference between a shared subclass and a category?</p>
+  <ol>
+    <li data-why="Both have several superclasses; the difference is whether a member is in <em>all</em> of them or in <em>one</em> of them.">A shared subclass has only one superclass; a category has several.</li>
+    <li data-why="That is the definition of a shared subclass. A member of a category is in only one of the superclasses (an OWNER is a PERSON, a BANK or a COMPANY).">The members of a category are members of all the superclasses.</li>
+    <li data-why="Their meanings differ: intersection (∩) and union (∪). Inheritance differs too: a shared subclass inherits from every superclass, a category only from the superclass the member belongs to.">They are the same; only the notation differs.</li>
+    <li data-why="Correct: shared subclass ⊆ the intersection of the superclasses; category ⊆ their union.">A member of a shared subclass is in the intersection of all the superclasses, a member of a category in their union (in only one of them).</li>
+  </ol>
+  <div class="explain">An ENGINEERING_MANAGER is both an ENGINEER and a MANAGER and inherits from both. An OWNER is a PERSON, a BANK or a COMPANY and inherits only from the class it belongs to (selective inheritance).</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>The specialization VEHICLE → {CAR, TRUCK} is disjoint and total. Which of the following is a valid situation?</p>
+  <ol>
+    <li data-why="Correct: total (in at least one) + disjoint (in at most one) = in exactly one.">Every vehicle is either a car or a truck, not both.</li>
+    <li data-why="This is possible in a partial specialization; in a total one every vehicle must be in at least one subclass.">Some vehicles are neither cars nor trucks.</li>
+    <li data-why="This is possible in an overlapping specialization; in a disjoint one the subclasses do not intersect.">A vehicle can be both a car and a truck.</li>
+    <li data-why="A subclass always inherits all the attributes and relationships of its superclass; this does not depend on the constraints.">A car does not inherit the attributes of VEHICLE.</li>
+
+  </ol>
+  <div class="explain">Total: VEHICLE = CAR ∪ TRUCK (every vehicle in at least one). Disjoint: CAR ∩ TRUCK = ∅ (in at most one). Together: in exactly one. Inheritance is always there.</div>
+</div>
+
+</div></main>
+</body>
+</html>

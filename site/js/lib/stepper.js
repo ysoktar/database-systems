@@ -6,6 +6,7 @@
 import { h, $$, highlightSQL } from "./ui.js";
 import { runSQL } from "./db.js";
 import { relationTable, startError } from "./sqlbox.js";
+import { t as tl, EN } from "./i18n.js";
 
 export function queryStepper(steps, { intro } = {}) {
   const seg = h("div", { class: "stepper-steps", role: "group" });
@@ -21,7 +22,7 @@ export function queryStepper(steps, { intro } = {}) {
     note.innerHTML = s.note || "";
     code.innerHTML = `<code>${highlightSQL(s.display || s.sql)}</code>`;
     code.hidden = s.showSql === false;
-    out.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), "MySQL çalışıyor …"));
+    out.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), tl("MySQL çalışıyor …", "MySQL is running …")));
     const my = ++token;
     const res = await runSQL(s.sql);
     if (my !== token) return;
@@ -45,7 +46,7 @@ export function queryStepper(steps, { intro } = {}) {
       shade = rows.map((r) => { if (r[gIdx] !== last) { on = !on; last = r[gIdx]; } return on; });
     }
     rowClass = (r, i) => [flags && !flags[i] ? "dim" : "", shade[i] ? "hl" : "", s.pad && r.some((v) => v === null) ? "pad" : ""].join(" ").trim() || null;
-    out.append(h("div", { class: "res-caption" }, `${rows.length} satır` + (flags ? ` · soluk olanlar bu adımda elenir (${flags.filter((f) => !f).length})` : "")));
+    out.append(h("div", { class: "res-caption" }, tl(`${rows.length} satır`, `${rows.length} rows`) + (flags ? tl(` · soluk olanlar bu adımda elenir (${flags.filter((f) => !f).length})`, ` · the faded rows are dropped at this step (${flags.filter((f) => !f).length})`) : "")));
     out.append(relationTable(cols, types, rows, { rowClass }));
   }
 

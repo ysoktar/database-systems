@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constraints, triggers, views, ALTER · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 7.2–7.4: CREATE ASSERTION, triggers (ECA rules), views and updatability, WITH CHECK OPTION, view implementation, schema change with DROP and ALTER; with examples you can run on MySQL.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/layout.js"></script>
+</head>
+<body data-page="ch7-views">
+<main><div class="content">
+
+<h1>Constraints, triggers, views, ALTER</h1>
+<p class="lead">The second half of Ch 7: general constraints that go beyond single tables (assertions), rules that react to events (triggers), virtual tables (views) and changing an existing schema (DROP, ALTER).</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Explain when an assertion is needed and how it differs from CHECK.</li>
+    <li>Read and write a trigger as an event, a condition and an action (ECA).</li>
+    <li>Define a view, tell query modification and materialization apart; decide whether a view is updatable.</li>
+    <li>Say what DROP (CASCADE/RESTRICT) and ALTER TABLE do to the schema.</li>
+  </ul>
+</div>
+
+<h2>Assertions: general constraints (7.2.1)</h2>
+<p><code>CREATE ASSERTION</code> is a declarative constraint not tied to a single table. It takes a name and a <code>CHECK</code> condition; the condition must be TRUE in <em>every</em> state of the database. The pattern: "write a query that finds the violating rows, and put <code>NOT EXISTS</code> in front of it."</p>
+<pre class="sql">
+-- "An employee's salary must not be greater than the salary of the manager of the department
+--  that the employee works for."
+CREATE ASSERTION SALARY_CONSTRAINT
+CHECK ( NOT EXISTS ( SELECT *
+                     FROM   EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
+                     WHERE  E.Salary > M.Salary
+                       AND  E.Dno = D.Dnumber
+                       AND  D.Mgr_ssn = M.Ssn ) );
+</pre>
+<ul>
+  <li>The DBMS rejects any operation that would change the database so that this condition is violated.</li>
+  <li>The difference from <strong>CHECK (on an attribute / tuple / domain)</strong>: a CHECK is checked only when the row concerned is inserted or modified. That is why it is not reliable for conditions that look at other tables. An assertion must hold at all times. CHECK is preferred when possible, because it is enforced more efficiently.</li>
+  <li>Few DBMSs support assertions; MySQL does not either. In practice the same rule is enforced with a trigger (below). But the query inside the assertion runs on any DBMS: an empty result means the rule holds.</li>
+</ul>
+<p>The box below runs the query in the assertion's condition: at first there are no violating rows; then Narayan's salary is raised above that of his manager Wong (40000) and the same query now returns a row. With the assertion, the DBMS would reject this UPDATE.</p>
+<pre class="sql run" data-title="The assertion's condition: are there violating rows?">
+-- violating rows before the update (none)
+SELECT E.Lname AS employee, E.Salary, M.Lname AS manager, M.Salary AS mgr_salary
+FROM   EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
+WHERE  E.Salary > M.Salary AND E.Dno = D.Dnumber AND D.Mgr_ssn = M.Ssn;
+-- now break the rule and look again
+UPDATE EMPLOYEE SET Salary = 45000 WHERE Lname = 'Narayan';
+-- violating rows after the update
+SELECT E.Lname AS employee, E.Salary, M.Lname AS manager, M.Salary AS mgr_salary
+FROM   EMPLOYEE E, EMPLOYEE M, DEPARTMENT D
+WHERE  E.Salary > M.Salary AND E.Dno = D.Dnumber AND D.Mgr_ssn = M.Ssn;
+</pre>
+
+<h2>Triggers (7.2.2)</h2>
+<p>A trigger specifies an action to be taken when certain events occur and certain conditions are satisfied: an <strong>ECA rule</strong> (Event–Condition–Action).</p>
+<ol>
+  <li><strong>Event</strong>: usually an update operation: <code>INSERT</code>, <code>DELETE</code>, <code>UPDATE</code> (or <code>UPDATE OF Salary, Super_ssn</code> on particular columns). Timing: <code>BEFORE</code>, <code>AFTER</code> (or <code>INSTEAD OF</code>).</li>
+  <li><strong>Condition</strong>: with <code>WHEN</code>; optional. Without a condition the action runs when the event occurs; with one, only if the condition is TRUE.</li>
+  <li><strong>Action</strong>: usually a sequence of SQL statements or a call to a stored procedure.</li>
+</ol>
+<p><code>FOR EACH ROW</code> (<em>row-level</em>): once for each affected row; <code>NEW</code> and <code>OLD</code> are the new and old versions of that row. <code>FOR EACH STATEMENT</code>: once per statement. The book's example (close to Oracle syntax):</p>
+<pre class="sql">
+-- R5: inform the supervisor whenever an employee's salary becomes greater than the supervisor's
+CREATE TRIGGER SALARY_VIOLATION
+BEFORE INSERT OR UPDATE OF Salary, Super_ssn ON EMPLOYEE
+FOR EACH ROW
+WHEN ( NEW.Salary > ( SELECT Salary FROM EMPLOYEE WHERE Ssn = NEW.Super_ssn ) )
+  INFORM_SUPERVISOR(NEW.Super_ssn, NEW.Ssn);
+</pre>
+<p><strong>In MySQL</strong> the same trigger is written a little differently: a trigger is tied to a single event (a separate trigger for each event instead of <code>INSERT OR UPDATE</code>), there is no <code>UPDATE OF columns</code> and no <code>WHEN</code>; the condition is written inside the action with <code>IF … THEN … END IF</code>. Since the action contains several statements, it is in a <code>BEGIN … END</code> block. So that the <code>;</code>s inside the block do not end the statement, the delimiter is changed temporarily with <code>DELIMITER //</code> (as in the mysql client; the boxes on this site understand it too).</p>
+<p>The version below logs the event in a table (<code>demo.SALARY_LOG</code>) instead of informing the supervisor. Smith's supervisor Wong earns 40000. When Smith's salary is set to 42000 the condition is TRUE and the trigger writes a row; when Narayan's is set to 31000 the condition is FALSE and nothing is written.</p>
+<pre class="sql run" data-title="SALARY_VIOLATION, in MySQL">
+DROP TRIGGER IF EXISTS SALARY_VIOLATION;   -- so that the box can be run again
+DROP TABLE IF EXISTS demo.SALARY_LOG;
+CREATE TABLE demo.SALARY_LOG (Super_ssn CHAR(9), Ssn CHAR(9), New_salary DECIMAL(10,2), At DATETIME);
+
+DELIMITER //
+CREATE TRIGGER SALARY_VIOLATION
+BEFORE UPDATE ON EMPLOYEE                 -- event (a second trigger would cover BEFORE INSERT)
+FOR EACH ROW
+BEGIN
+  IF NEW.Salary > (SELECT Salary FROM EMPLOYEE WHERE Ssn = NEW.Super_ssn) THEN    -- condition
+    INSERT INTO demo.SALARY_LOG VALUES (NEW.Super_ssn, NEW.Ssn, NEW.Salary, NOW()); -- action
+  END IF;
+END//
+DELIMITER ;
+
+-- Smith (supervisor Wong, 40000) gets a raise to 42000: the trigger fires
+UPDATE EMPLOYEE SET Salary = 42000 WHERE Ssn = '123456789';
+-- Narayan (supervisor Wong) gets 31000: the condition is FALSE, nothing is logged
+UPDATE EMPLOYEE SET Salary = 31000 WHERE Ssn = '666884444';
+SELECT * FROM demo.SALARY_LOG;
+</pre>
+<p>A trigger can also be used to <em>enforce</em> a constraint: the action stops the operation with an error. In MySQL the way to do this is <code>SIGNAL SQLSTATE '45000'</code> (a user-defined error). In DBMSs that do not support assertions, the rule "a salary cannot exceed the supervisor's" is enforced like this:</p>
+<pre class="sql run" data-expect-error data-title="A constraint with a trigger: the UPDATE that breaks the rule is rejected">
+DROP TRIGGER IF EXISTS SALARY_VIOLATION;
+DROP TRIGGER IF EXISTS SALARY_CONSTRAINT;
+DELIMITER //
+CREATE TRIGGER SALARY_CONSTRAINT
+BEFORE UPDATE ON EMPLOYEE
+FOR EACH ROW
+BEGIN
+  IF NEW.Salary > (SELECT Salary FROM EMPLOYEE WHERE Ssn = NEW.Super_ssn) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A salary cannot exceed the supervisor''s salary';
+  END IF;
+END//
+DELIMITER ;
+UPDATE EMPLOYEE SET Salary = 35000 WHERE Ssn = '453453453';   -- English, supervisor Wong (40000): fine
+UPDATE EMPLOYEE SET Salary = 50000 WHERE Ssn = '453453453';   -- rejected by the trigger
+</pre>
+<p class="small muted">This trigger runs only when the supervisee's row changes. A violation can still arise when the supervisor's salary is lowered; a complete solution needs a second condition that also checks changes on the supervisor side of EMPLOYEE. That is why giving the "TRUE in every state" meaning of an assertion with triggers takes more effort. To remove the trigger: <code>DROP TRIGGER SALARY_CONSTRAINT;</code> or <em>Reset database</em>.</p>
+<div class="callout key">
+  <p><strong>Uses of triggers:</strong> enforcing constraints (instead of assertions), keeping derived data up to date (e.g. a <code>Total_sal</code> column added to DEPARTMENT: the book's rules R1–R4), notifying users of a situation, keeping materialized views up to date, an audit log.</p>
+</div>
+
+<h2>Views (7.3)</h2>
+<p>A <strong>view</strong> is a single table derived from other tables: a <em>virtual table</em>. Usually not stored physically. Used to simplify complex queries that are asked often, for security (showing the user only some columns) and for logical data independence.</p>
+<pre class="sql run" id="v1v2" data-title="V1 and V2 · Two view definitions and the query QV1">
+-- the book writes CREATE VIEW; OR REPLACE lets the box run again
+CREATE OR REPLACE VIEW WORKS_ON1 AS
+  SELECT Fname, Lname, Pname, Hours
+  FROM   EMPLOYEE, PROJECT, WORKS_ON
+  WHERE  Ssn = Essn AND Pno = Pnumber;
+
+CREATE OR REPLACE VIEW DEPT_INFO (Dept_name, No_of_emps, Total_sal) AS
+  SELECT   Dname, COUNT(*), SUM(Salary)
+  FROM     DEPARTMENT, EMPLOYEE
+  WHERE    Dnumber = Dno
+  GROUP BY Dname;
+
+-- QV1: a view is queried like a table
+SELECT Fname, Lname FROM WORKS_ON1 WHERE Pname = 'ProductX';
+SELECT * FROM DEPT_INFO;
+</pre>
+<p>A view is <strong>always up to date</strong>: when the base tables change, the view's result changes too. It is computed when it is queried, not when it is defined. (Compare with the WORKS_ON_INFO copy in Ch 6.)</p>
+<pre class="sql run" data-setup="v1v2" data-title="A view stays up to date">
+SELECT * FROM DEPT_INFO;          -- before
+UPDATE EMPLOYEE SET Dno = 1 WHERE Lname = 'English';
+SELECT * FROM DEPT_INFO;          -- after: Research lost one employee, Headquarters gained one
+</pre>
+
+<h3>How are views implemented?</h3>
+<ul>
+  <li><strong>Query modification</strong>: a query on the view is turned into a query on the base tables (QV1 → a query combined with WORKS_ON1's definition). Disadvantage: complex views that are queried often are recomputed every time.</li>
+  <li><strong>View materialization</strong>: the view is stored physically when it is first queried (a <em>materialized view</em>) and updated as the base tables change. Update strategies: <em>immediate</em> (as soon as a base table changes), <em>lazy</em> (when the view is queried), <em>periodic</em> (at intervals; being out of date for a short time is accepted). Efficient updating is called <em>incremental update</em>.</li>
+</ul>
+
+<h3>Updating through views</h3>
+<p>An INSERT/UPDATE/DELETE on a view is possible if it can be turned into updates that have a counterpart on the base tables. The general rules:</p>
+<ul>
+  <li>A view on <strong>a single table, without aggregates</strong>, that contains the base table's primary key (and its NOT NULL columns without a DEFAULT) is <strong>updatable</strong>: each view row corresponds to exactly one base table row.</li>
+  <li>In views with <strong>joins over several tables</strong> an update is usually <strong>ambiguous</strong>: the same view update can be done by several different base table updates.</li>
+  <li>Views with <strong>grouping and aggregates</strong> cannot be updated: changing <code>DEPT_INFO.Total_sal</code> has no single meaning on the base tables.</li>
+  <li>In SQL <code>WITH CHECK OPTION</code> is added to a view that is meant to be updatable: inserts and updates through the view must satisfy the view's condition, otherwise they are rejected.</li>
+</ul>
+<div class="callout example" data-label="Step by step: is this view updatable?">
+  <ol>
+    <li><strong>How many base tables are there?</strong> If more than one (a join), an update is usually ambiguous: not updatable in standard SQL.</li>
+    <li><strong>Is there grouping, an aggregate or DISTINCT?</strong> If so, a view row was computed from many base rows: not updatable.</li>
+    <li><strong>Are the base table's primary key and its NOT NULL columns (without a DEFAULT) in the view?</strong> If not, you cannot INSERT into the view (the missing columns cannot be given values); UPDATE and DELETE may still be possible.</li>
+  </ol>
+  <p>Apply it: WORKS_ON1 is a join over three tables (stuck at question 1). DEPT_INFO contains <code>GROUP BY</code> and <code>COUNT</code>/<code>SUM</code> (stuck at question 2). DEPT5_EMPS below is a single table, no aggregate, Ssn included: updatable.</p>
+</div>
+<pre class="sql">
+-- UV1: Smith moves from ProductX to ProductY? or ProductX is renamed? Ambiguous:
+UPDATE WORKS_ON1 SET Pname = 'ProductY'
+WHERE  Lname = 'Smith' AND Fname = 'John' AND Pname = 'ProductX';
+</pre>
+<p>The book gives two possible translations of this update: (a) move Smith's ProductX row in WORKS_ON to ProductY (the intended one), (b) rename ProductX to ProductY in PROJECT (a change that is also visible for the project's other employees; wrong). That is why standard SQL does not consider views with joins updatable. <strong>MySQL</strong>, however, updates a view with a join if all the changed columns belong to a single base table: since Pname is a column of PROJECT, it does (b) and ProductX is renamed for everybody. That is the practical consequence of the ambiguity.</p>
+<p>The engine on this site does not support updating through views (an <code>UPDATE</code> on a view gives an error). You can make the two translations on the base tables and look at how the view changes:</p>
+<pre class="sql run" data-setup="v1v2" data-title="The two translations of UV1, on the base tables">
+-- (a) the intended one: Smith's WORKS_ON row for ProductX (1) moves to ProductY (2)?
+--     Smith already works on ProductY, so (Essn, Pno) would repeat the key; move his hours instead:
+UPDATE WORKS_ON SET Hours = Hours + 32.5 WHERE Essn = '123456789' AND Pno = 2;
+DELETE FROM WORKS_ON WHERE Essn = '123456789' AND Pno = 1;
+SELECT * FROM WORKS_ON1 WHERE Lname = 'Smith';
+-- (b) the other one (what MySQL does): rename the project for everybody
+UPDATE PROJECT SET Pname = 'ProductY2' WHERE Pname = 'ProductX';   -- Pname is UNIQUE, so 'ProductY2'
+SELECT * FROM WORKS_ON1 WHERE Pname LIKE 'ProductY%' ORDER BY Pname, Lname;
+</pre>
+<p>A single-table view without aggregates, on the other hand, is updatable. <code>WITH CHECK OPTION</code> prevents an update through the view from moving a row out of the view:</p>
+<pre class="sql">
+CREATE VIEW DEPT5_EMPS AS
+  SELECT Ssn, Fname, Lname, Salary, Dno
+  FROM   EMPLOYEE
+  WHERE  Dno = 5
+  WITH CHECK OPTION;
+UPDATE DEPT5_EMPS SET Salary = Salary + 1000 WHERE Lname = 'Wong';   -- fine: changes one EMPLOYEE row
+UPDATE DEPT5_EMPS SET Dno = 4 WHERE Lname = 'Wong';                 -- Wong would leave the view: rejected
+-- MySQL: ERROR 1369 (HY000): CHECK OPTION failed 'company.DEPT5_EMPS'
+</pre>
+<p class="small muted">This box cannot be run (the engine on the site does not support updating through views); in real MySQL the first UPDATE changes Wong's EMPLOYEE row and the second is rejected with the error in the comment. Without CHECK OPTION the second UPDATE would be accepted and Wong would "disappear" from the view.</p>
+<p>Other uses of views: <strong>authorization</strong> (giving a user privileges only on a view: the employees of one department, or a view of EMPLOYEE without salaries) and inline views (views defined inside FROM). To remove a view: <code>DROP VIEW WORKS_ON1;</code></p>
+
+<h2>Schema change (7.4)</h2>
+<h3>DROP</h3>
+<ul>
+  <li><code>DROP SCHEMA COMPANY CASCADE;</code> deletes the schema and everything in it. <code>RESTRICT</code>: deletes it only if the schema is empty.</li>
+  <li><code>DROP TABLE DEPENDENT CASCADE;</code> deletes the table and all the constraints and views that refer to it. <code>RESTRICT</code>: rejects the drop if an FK or a view refers to the table.</li>
+  <li><code>DROP TABLE</code> also deletes the table's definition; to delete only the rows, <code>DELETE</code>.</li>
+</ul>
+<p><strong>In MySQL</strong> these rules work differently; in the exam write the book's (standard SQL) meaning. MySQL accepts the words <code>RESTRICT</code> and <code>CASCADE</code> but <em>ignores</em> them: if another table's foreign key refers to it, <code>DROP TABLE</code> is always rejected (error 3730), while views are not checked at all: the table is dropped and the view that depends on it is left invalid. In MySQL <code>DROP SCHEMA</code> and <code>DROP DATABASE</code> are the same.</p>
+<pre class="sql run" data-expect-error data-title="Foreign keys refer to DEPARTMENT: DROP is rejected">
+DROP TABLE DEPARTMENT;   -- EMPLOYEE.Dno, PROJECT.Dnum, DEPT_LOCATIONS.Dnumber reference it
+</pre>
+<pre class="sql run" data-expect-error data-title="Dropping a table a view depends on (MySQL: RESTRICT is ignored)">
+CREATE OR REPLACE VIEW DEP_VIEW AS SELECT Essn, Dependent_name FROM DEPENDENT;
+-- the book: RESTRICT refuses the drop, because the view depends on DEPENDENT.
+-- MySQL ignores RESTRICT: DEPENDENT is dropped (no foreign key references it) ...
+DROP TABLE DEPENDENT RESTRICT;
+-- ... and the view is left behind, invalid:
+SELECT * FROM DEP_VIEW;
+</pre>
+
+<h3>ALTER</h3>
+<p>Changes the definition of a table: adding/dropping columns, changing a column definition, adding/dropping constraints.</p>
+<pre class="sql run" data-title="ALTER TABLE examples">
+-- add a column: existing rows get NULL (or the DEFAULT); NOT NULL is only allowed with a DEFAULT
+ALTER TABLE COMPANY.EMPLOYEE ADD COLUMN Job VARCHAR(12);
+UPDATE EMPLOYEE SET Job = 'Engineer' WHERE Dno = 5;
+SELECT Lname, Dno, Job FROM EMPLOYEE ORDER BY Dno;
+-- change a default, drop a default
+ALTER TABLE COMPANY.DEPARTMENT ALTER COLUMN Mgr_ssn DROP DEFAULT;
+ALTER TABLE COMPANY.DEPARTMENT ALTER COLUMN Mgr_ssn SET DEFAULT '333445555';
+-- drop a named constraint (the book: DROP CONSTRAINT EMPSUPERFK CASCADE), then a column
+ALTER TABLE COMPANY.EMPLOYEE DROP FOREIGN KEY EMPSUPERFK;
+ALTER TABLE COMPANY.EMPLOYEE DROP COLUMN Address;
+SELECT COLUMN_NAME FROM information_schema.COLUMNS
+WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POSITION;
+</pre>
+<p>In the book, for <code>DROP COLUMN</code> either <code>CASCADE</code> (the constraints and views that refer to the column are deleted too) or <code>RESTRICT</code> (deleted only if nothing refers to it) must be chosen; MySQL does not use these words. To be able to drop a constraint it <em>must have a name</em>: that is why constraints are named in Ch 6. (MySQL writes <code>DROP FOREIGN KEY name</code> for a foreign key, and <code>DROP CONSTRAINT name</code> or <code>DROP CHECK name</code> for other constraints.)</p>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="3">
+  <p><code>CREATE VIEW V AS SELECT Ssn, Lname, Salary FROM EMPLOYEE WHERE Salary &gt; 30000 WITH CHECK OPTION;</code> Which update through this view is <em>rejected</em>?</p>
+  <ol>
+    <li data-why="Wong earns 40000; 45000 is still greater than 30000: the row stays in the view, accepted."><code>UPDATE V SET Salary = 45000 WHERE Lname = 'Wong'</code></li>
+    <li data-why="Changing the last name does not affect the view's condition (Salary &gt; 30000); accepted."><code>UPDATE V SET Lname = 'Wang' WHERE Lname = 'Wong'</code></li>
+    <li data-why="Correct: the new salary is not greater than 30000; since the row would leave the view, CHECK OPTION rejects it."><code>UPDATE V SET Salary = 28000 WHERE Lname = 'Wong'</code></li>
+    <li data-why="Deleting a row from the view does not break the condition; DELETE is not stopped by CHECK OPTION (though it can be stopped by EMPLOYEE's foreign keys)."><code>DELETE FROM V WHERE Lname = 'Wong'</code></li>
+  </ol>
+  <div class="explain">WITH CHECK OPTION requires that after an INSERT or UPDATE through the view the row still satisfies the view's condition. Since Wong, with his salary lowered to 28000, would "disappear" from the view, the update is rejected.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>If you read a trigger as "when an employee is inserted or their salary changes, inform the supervisor if the salary exceeds the supervisor's", what are its ECA components?</p>
+  <ol>
+    <li data-why="Correct: event = INSERT or UPDATE OF Salary; condition = NEW.Salary &gt; the supervisor's salary; action = inform the supervisor.">Event: an INSERT or a Salary update · Condition: new salary &gt; the supervisor's salary · Action: inform the supervisor</li>
+    <li data-why="'The salary exceeds the supervisor's' is a condition, not an event: not a change in the database itself, but something tested after that change.">Event: the salary exceeding the supervisor's · Condition: INSERT · Action: inform the supervisor</li>
+    <li data-why="Informing is the work to be done (the action), not a condition; besides, this sentence has a condition.">Event: an INSERT or a Salary update · Condition: inform the supervisor · Action: none</li>
+    <li data-why="The trigger's action here is to inform the supervisor, not to reject the operation; triggers that enforce constraints are the ones that reject the operation on a violation.">Event: a salary update · Condition: none · Action: reject the update</li>
+  </ol>
+  <div class="explain">First "when?" (the event: an INSERT/UPDATE/DELETE), then "in which situation?" (the condition, optional), then "what should be done?" (the action). The book's SALARY_VIOLATION trigger is this sentence in SQL.</div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p>Which is true of the view <code>CREATE VIEW V AS SELECT Dno, AVG(Salary) AS Avg_sal FROM EMPLOYEE GROUP BY Dno;</code>?</p>
+  <ol>
+    <li data-why="There are infinitely many ways to make an average 40000 (whose salary changes by how much?); a DBMS makes no such translation."><code>UPDATE V SET Avg_sal = 40000 WHERE Dno = 5</code> is valid; the DBMS raises the salaries proportionally.</li>
+    <li data-why="Correct: a view with an aggregate cannot be updated; since it is recomputed when queried, it is always up to date.">V cannot be updated because it contains an aggregate; but it can be queried and is always up to date.</li>
+    <li data-why="That is a copy made with CREATE TABLE … AS SELECT (like WORKS_ON_INFO). A view is computed when it is queried.">V stores the data of the moment it was defined; it does not show later changes.</li>
+    <li data-why="WITH CHECK OPTION only enforces, in a view that is already updatable, that an update satisfies the view's condition.">V becomes updatable if <code>WITH CHECK OPTION</code> is added.</li>
+  </ol>
+  <div class="explain">Changing an average has no single counterpart on the base tables. A view is recomputed when it is queried (query modification), so it is always up to date. WITH CHECK OPTION enforces the condition in updatable views; it does not make a non-updatable view updatable.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>Why can the rule "an employee's salary cannot exceed their supervisor's" not be enforced reliably with a <em>tuple CHECK</em>?</p>
+  <ol>
+    <li data-why="CHECK can make numeric comparisons: <code>CHECK (Salary &gt; 0)</code>. The problem is not the comparison but looking at another row.">CHECK cannot make numeric comparisons.</li>
+    <li data-why="CHECK can be written on any column or row; it has nothing to do with the primary key.">CHECK can only be used on primary keys.</li>
+    <li data-why="Correct: the rule depends on two rows; when the supervisor's row changes, the supervisee's CHECK does not run.">A CHECK is checked only when that row is inserted or changed; when the supervisor's salary is lowered, the supervisee's row is not checked.</li>
+    <li data-why="If a CHECK condition is UNKNOWN because of NULL, the constraint is not considered violated (only FALSE is rejected); it gives no error.">CHECK gives an error on NULL values.</li>
+  </ol>
+  <div class="explain">The rule depends on two different rows. A violation can arise when the supervisor's row changes, but the CHECK on the supervisee's row is not triggered. Such rules are enforced with an assertion or a trigger.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>What are the three components of a trigger, in order?</p>
+  <ol>
+    <li data-why="Correct: ECA. First the event happens, then the condition is looked at, and if it is TRUE the action runs.">Event, Condition, Action</li>
+    <li data-why="A condition is evaluated only when an event happens; a condition without an event is never tested.">Condition, Event, Action</li>
+    <li data-why="The action is last: it runs after the event has happened and the condition is satisfied.">Action, Event, Condition</li>
+    <li data-why="Commit is a transaction concept, not a component of a trigger; besides, the condition is missing.">Event, Action, Commit</li>
+  </ol>
+  <div class="explain">ECA: an event (INSERT/UPDATE/DELETE) happens; if the condition (WHEN) is TRUE, the action runs. The condition is optional.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>What happens with <code>DROP TABLE DEPARTMENT RESTRICT;</code> in COMPANY?</p>
+  <ol>
+    <li data-why="That is how CASCADE behaves. RESTRICT is the opposite: if anything refers to it, nothing is deleted.">DEPARTMENT and all the FKs referring to it are deleted.</li>
+    <li data-why="That is the aim of <code>DELETE FROM DEPARTMENT</code>; DROP TABLE removes the table's definition.">Only the rows are deleted, the table definition remains.</li>
+    <li data-why="DROP does not change the values in referencing tables (ON DELETE SET NULL is about deleting rows, not dropping tables).">DEPARTMENT is dropped and the EMPLOYEE.Dno values become NULL.</li>
+    <li data-why="Correct: RESTRICT rejects the drop if a constraint refers to the table.">It is rejected: EMPLOYEE, PROJECT and DEPT_LOCATIONS refer to DEPARTMENT.</li>
+  </ol>
+  <div class="explain">RESTRICT rejects the drop if a constraint or a view refers to the table. With CASCADE the table and the referring constraints (the FKs) would be dropped; the referring tables themselves are not dropped. (In MySQL a table referenced by a foreign key cannot be dropped, whether RESTRICT is written or not; you saw it in the box above.)</div>
+
+</div>
+
+</div></main>
+</body>
+</html>

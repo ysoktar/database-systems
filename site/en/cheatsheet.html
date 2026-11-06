@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cheat sheet and glossary · Database Systems</title>
+<meta name="description" content="A one-page summary: SQL syntax and order of evaluation, query patterns, NULL rules, ER/EER notation, constraints and an English–Turkish glossary of database terms.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/cheatsheet.js"></script>
+</head>
+<body data-page="cheatsheet">
+<main><div class="content">
+
+<h1>Cheat sheet and glossary</h1>
+<p class="lead">For the last review before the exam: SQL syntax, patterns, NULL rules, ER/EER symbols and terms. You can use your browser's print command to print it.</p>
+
+<h2>The structure of an SQL query</h2>
+<p class="small sql-legend">The SQL colours on the site: <code><span class="tok-kw">SELECT FROM WHERE</span></code> commands and clauses · <code><span class="tok-op">AND NOT IN =</span></code> conditions and logic · <code><span class="tok-type">INT VARCHAR</span></code> data types · <code><span class="tok-con">PRIMARY KEY CASCADE</span></code> constraints · <code><span class="tok-lit">NULL</span></code> special values · <code><span class="tok-fn">COUNT</span></code> functions · <code><span class="tok-str">'text'</span></code> · <code><span class="tok-num">42</span></code> · <code><span class="tok-cmt">-- comment</span></code></p>
+<pre class="sql">
+SELECT   [DISTINCT] &lt;columns, aggregates, expressions&gt;  -- 5
+FROM     &lt;tables / joins&gt;                                -- 1
+[WHERE   &lt;row condition&gt;]                               -- 2
+[GROUP BY &lt;grouping columns&gt;]                           -- 3
+[HAVING  &lt;group condition&gt;]                             -- 4
+[ORDER BY &lt;columns&gt; [ASC | DESC]];                      -- 6
+</pre>
+<pre class="sql">
+-- joins
+FROM A JOIN B ON A.x = B.y              -- inner
+FROM A LEFT  [OUTER] JOIN B ON …        -- keep all of A
+FROM A RIGHT [OUTER] JOIN B ON …        -- keep all of B
+FROM A FULL  [OUTER] JOIN B ON …        -- keep both (not in MySQL: LEFT … UNION … RIGHT)
+FROM A NATURAL JOIN B                   -- equal same-named columns
+FROM A CROSS JOIN B                     -- Cartesian product
+-- set operations (duplicates removed; add ALL to keep them)
+(q1) UNION (q2)   (q1) INTERSECT (q2)   (q1) EXCEPT (q2)
+</pre>
+
+<h2>Conditions and operators</h2>
+<table class="simple stack">
+  <thead><tr><th>Syntax</th><th>Meaning</th><th>Example in COMPANY</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Syntax"><code>= &lt;&gt; &lt; &lt;= &gt; &gt;=</code></td>
+      <td data-label="Meaning">Comparison: equal, <strong>not equal</strong> (<code>&lt;&gt;</code> is the ≠ of mathematics; MySQL also accepts <code>!=</code>), less than, less than or equal, greater than, greater than or equal. If either side is NULL the result is not TRUE or FALSE but UNKNOWN.</td>
+      <td data-label="Example"><code>WHERE Dno &lt;&gt; 5</code>: those whose department is not 5 (Borg, Wallace, Zelaya, Jabbar)</td></tr>
+    <tr><td data-label="Syntax"><code>A BETWEEN x AND y</code></td>
+      <td data-label="Meaning">A is between x and y; <strong>both bounds included</strong>. The same as <code>A &gt;= x AND A &lt;= y</code>.</td>
+      <td data-label="Example"><code>Salary BETWEEN 30000 AND 40000</code>: 30000 (Smith) and 40000 (Wong) come too</td></tr>
+    <tr><td data-label="Syntax"><code>A LIKE 'pattern'</code></td>
+      <td data-label="Meaning">Does the text match the pattern? <code>%</code> means any number of characters (zero included), <code>_</code> exactly one character.</td>
+      <td data-label="Example"><code>Address LIKE '%Houston%'</code>: those whose address contains Houston; <code>Fname LIKE 'A____'</code>: five-letter names starting with A</td></tr>
+    <tr><td data-label="Syntax"><code>A IS NULL</code>, <code>A IS NOT NULL</code></td>
+      <td data-label="Meaning">The <strong>only</strong> way to test whether a value is NULL. Since <code>A = NULL</code> is always UNKNOWN, it selects no rows.</td>
+      <td data-label="Example"><code>WHERE Super_ssn IS NULL</code>: the employee with no supervisor (Borg)</td></tr>
+    <tr><td data-label="Syntax"><code>A IN (…)</code></td>
+      <td data-label="Meaning">Is A one of the values in the parentheses? The parentheses can hold a list of values or a subquery returning a single column. The same as <code>= ANY</code>.</td>
+      <td data-label="Example"><code>Pno IN (1, 2, 3)</code>; <code>Dno IN (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research')</code></td></tr>
+    <tr><td data-label="Syntax"><code>A &gt; ALL (subquery)</code>, <code>A &gt; ANY (subquery)</code></td>
+      <td data-label="Meaning">ALL: greater than <strong>every</strong> value of the subquery. ANY (= SOME): greater than <strong>at least one</strong> value. If the subquery is empty, ALL is always TRUE and ANY always FALSE.</td>
+      <td data-label="Example"><code>Salary &gt; ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5)</code>: those who earn more than everyone in 5 (Borg, Wallace)</td></tr>
+    <tr><td data-label="Syntax"><code>EXISTS (subquery)</code>, <code>NOT EXISTS (…)</code></td>
+      <td data-label="Meaning">Does the subquery return at least one row? The result is only TRUE or FALSE, never UNKNOWN; so it is not affected by NULLs.</td>
+      <td data-label="Example"><code>NOT EXISTS (SELECT * FROM DEPENDENT WHERE Essn = Ssn)</code>: employees with no dependents</td></tr>
+    <tr><td data-label="Syntax"><code>CASE WHEN condition THEN value … ELSE value END</code></td>
+      <td data-label="Meaning">Chooses a value by condition: the value of the first WHEN that is TRUE, the ELSE's if none is. Can be used in SELECT, in WHERE or in the SET of an UPDATE.</td>
+      <td data-label="Example"><code>CASE WHEN Salary &gt;= 40000 THEN 'high' ELSE 'low' END</code></td></tr>
+  </tbody>
+</table>
+
+<h2>NULL rules</h2>
+<p>NULL means "an unknown or missing value". SQL gives every comparison involving NULL a third value instead of TRUE or FALSE: <strong>UNKNOWN</strong>. All the rules below follow from that.</p>
+<table class="simple stack">
+  <thead><tr><th>Rule</th><th>Why / example</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Rule">Every comparison with NULL is UNKNOWN.</td>
+      <td data-label="Why / example">Borg's Hours value is NULL. <code>Hours &gt; 10</code> is UNKNOWN for him; <code>NOT (Hours &gt; 10)</code> is UNKNOWN too. So Borg is in neither result.</td></tr>
+    <tr><td data-label="Rule">In AND, FALSE decides the result; in OR, TRUE.</td>
+      <td data-label="Why / example">UNKNOWN AND FALSE = FALSE (one side is already false); UNKNOWN OR TRUE = TRUE (one side is already true). If it cannot be decided the result stays UNKNOWN; NOT UNKNOWN = UNKNOWN.</td></tr>
+    <tr><td data-label="Rule">WHERE, HAVING and ON keep only the rows that are TRUE.</td>
+      <td data-label="Why / example">UNKNOWN is discarded just like FALSE. The row counts of a condition and its negation may not add up to the table's row count: in WORKS_ON 8 + 7 = 15, but the table has 16 rows.</td></tr>
+    <tr><td data-label="Rule">If the subquery returns a NULL, <code>NOT IN</code> selects no rows.</td>
+      <td data-label="Why / example"><code>x NOT IN (a, NULL)</code> means <code>x &lt;&gt; a AND x &lt;&gt; NULL</code>; since the second term is UNKNOWN, the whole condition is never TRUE. The fix: use <code>NOT EXISTS</code>.</td></tr>
+    <tr><td data-label="Rule"><code>COUNT(*)</code> counts rows; <code>COUNT(A)</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code> skip NULLs.</td>
+      <td data-label="Why / example">In WORKS_ON <code>COUNT(*)</code> = 16, <code>COUNT(Hours)</code> = 15. <code>AVG(Hours)</code> is the average of 15 values; the NULL is not counted as 0.</td></tr>
+    <tr><td data-label="Rule">On an empty set COUNT returns 0, the other aggregates NULL.</td>
+      <td data-label="Why / example"><code>SELECT COUNT(*), MAX(Salary) FROM EMPLOYEE WHERE Dno = 7</code> → 0 and NULL (there is no department 7).</td></tr>
+    <tr><td data-label="Rule">In GROUP BY the NULLs form a single group of their own.</td>
+      <td data-label="Why / example">If two employees had a NULL Dno, <code>GROUP BY Dno</code> would gather them into a single group called "NULL".</td></tr>
+    <tr><td data-label="Rule">In an inner join a NULL join column matches no row.</td>
+      <td data-label="Why / example"><code>E.Super_ssn = S.Ssn</code> is UNKNOWN for Borg: Borg is not in the list of employees matched with their supervisors (Q8). To see him too, a LEFT OUTER JOIN is needed.</td></tr>
+  </tbody>
+</table>
+
+<h2>Query patterns</h2>
+<pre class="sql">
+-- "every Y" (division): no Y that x is not related to
+SELECT … FROM X x
+WHERE NOT EXISTS (SELECT * FROM Y y
+                  WHERE NOT EXISTS (SELECT * FROM R r
+                                    WHERE r.x = x.id AND r.y = y.id));
+
+-- "no related row" (anti-join)
+SELECT … FROM X x WHERE NOT EXISTS (SELECT * FROM R r WHERE r.x = x.id);
+SELECT … FROM X x LEFT JOIN R r ON r.x = x.id WHERE r.x IS NULL;
+</pre>
+<pre class="sql">
+-- the maximum within each group
+SELECT … FROM T t
+WHERE t.v = (SELECT MAX(u.v) FROM T u WHERE u.g = t.g);
+
+-- count including zero
+SELECT x.id, COUNT(r.x) FROM X x LEFT JOIN R r ON r.x = x.id
+GROUP BY x.id;
+
+-- groups whose members satisfy something overall (Q28)
+… WHERE cond AND g IN (SELECT g FROM T GROUP BY g HAVING …)
+</pre>
+
+<h2>DDL and updates</h2>
+<pre class="sql">
+CREATE TABLE T ( A INT NOT NULL DEFAULT 0 CHECK (A > 0),
+                 B VARCHAR(20) UNIQUE,
+                 C CHAR(9),
+                 CONSTRAINT TPK PRIMARY KEY (A),
+                 CONSTRAINT TFK FOREIGN KEY (C) REFERENCES S(Id)
+                   ON DELETE {CASCADE | SET NULL | SET DEFAULT | NO ACTION} ON UPDATE CASCADE );
+ALTER TABLE T ADD COLUMN D DATE;          ALTER TABLE T DROP COLUMN D {CASCADE | RESTRICT};
+ALTER TABLE T ALTER COLUMN A SET DEFAULT 1;  ALTER TABLE T DROP CONSTRAINT TFK;
+DROP TABLE T {CASCADE | RESTRICT};        DROP SCHEMA S CASCADE;
+INSERT INTO T (A, B) VALUES (1, 'x');     INSERT INTO T SELECT …;
+UPDATE T SET A = A + 1 WHERE …;           DELETE FROM T WHERE …;
+CREATE VIEW V (c1, c2) AS SELECT … [WITH CHECK OPTION];
+CREATE ASSERTION N CHECK (NOT EXISTS (SELECT … violating rows …));
+CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
+  FOR EACH ROW WHEN (cond) &lt;action&gt;;
+</pre>
+<h3 id="kitap-ve-mysql">Differences between the book (standard SQL) and MySQL</h3>
+<p>The syntax above is the book's, and <strong>it is what you write in the exam</strong>. The boxes on the site, however, run on MySQL. The two are the same in most places; the table below shows where they differ. If you type the book's command into a box and get an error, look at this table first.</p>
+<table class="simple stack">
+  <thead><tr><th>Topic</th><th>In the book (standard SQL)</th><th>In MySQL</th><th>What does it mean?</th></tr></thead>
+  <tbody>
+    <tr><td data-label="Topic">String concatenation</td><td data-label="In the book"><code>Fname || ' ' || Lname</code></td><td data-label="In MySQL"><code>CONCAT(Fname, ' ', Lname)</code></td>
+      <td data-label="What does it mean?">In MySQL <code>||</code> means "or" (OR): <code>'a' || 'b'</code> returns 0, not a string, and gives no error. So the mistake may go unnoticed.</td></tr>
+    <tr><td data-label="Topic">Full outer join</td><td data-label="In the book"><code>A FULL OUTER JOIN B ON …</code></td><td data-label="In MySQL"><code>A LEFT JOIN B ON … UNION A RIGHT JOIN B ON …</code></td>
+      <td data-label="What does it mean?">MySQL has no FULL OUTER JOIN. To keep the unmatched rows of both sides, the union (UNION) of the left and right outer joins is taken; UNION keeps the matches that appear on both sides once.</td></tr>
+    <tr><td data-label="Topic">General constraint</td><td data-label="In the book"><code>CREATE ASSERTION … CHECK (NOT EXISTS …)</code></td><td data-label="In MySQL">none; a trigger instead</td>
+      <td data-label="What does it mean?">A rule that looks at several tables (e.g. "a salary cannot exceed the supervisor's") is checked inside a trigger in MySQL, and the operation is rejected on a violation (<a href="ch7-views.html#triggers-7-2-2">Ch 7</a>).</td></tr>
+    <tr><td data-label="Topic">Domain</td><td data-label="In the book"><code>CREATE DOMAIN SSN_TYPE AS CHAR(9)</code></td><td data-label="In MySQL">none</td>
+      <td data-label="What does it mean?">A type cannot be given a name; the type is written in each column separately: <code>Ssn CHAR(9)</code>.</td></tr>
+    <tr><td data-label="Topic">Deferred constraint</td><td data-label="In the book"><code>DEFERRABLE INITIALLY DEFERRED</code></td><td data-label="In MySQL">none; <code>SET FOREIGN_KEY_CHECKS = 0</code></td>
+      <td data-label="What does it mean?">When filling two tables that refer to each other (EMPLOYEE ↔ DEPARTMENT) you cannot defer the check to the end of the transaction; in MySQL foreign key checking is turned off during the load and turned back on afterwards.</td></tr>
+    <tr><td data-label="Topic">Reverting to the default on delete</td><td data-label="In the book"><code>ON DELETE SET DEFAULT</code></td><td data-label="In MySQL">not accepted</td>
+      <td data-label="What does it mean?">MySQL's table engine InnoDB does not support this action. The options are <code>RESTRICT</code> / <code>NO ACTION</code> (reject), <code>CASCADE</code> (delete them too), <code>SET NULL</code>.</td></tr>
+    <tr><td data-label="Topic">Dropping a table</td><td data-label="In the book"><code>DROP TABLE T RESTRICT</code> / <code>CASCADE</code></td><td data-label="In MySQL">the words can be written but have no effect</td>
+      <td data-label="What does it mean?">In the book RESTRICT means "do not drop if anything refers to it", CASCADE "drop the referring things too". MySQL looks at neither: if another table's foreign key refers to it, the drop is always rejected (error 3730), while views are not checked.</td></tr>
+    <tr><td data-label="Topic">Dropping a constraint</td><td data-label="In the book"><code>ALTER TABLE T DROP CONSTRAINT TFK</code></td><td data-label="In MySQL"><code>ALTER TABLE T DROP FOREIGN KEY TFK</code></td>
+      <td data-label="What does it mean?">MySQL has its own syntax for foreign keys. That is why naming constraints (<code>CONSTRAINT TFK …</code>) matters in both places: a constraint without a name is hard to drop.</td></tr>
+    <tr><td data-label="Topic">Trigger</td><td data-label="In the book"><code>BEFORE INSERT OR UPDATE OF Salary … WHEN (condition) action</code></td><td data-label="In MySQL">a separate trigger for each event; the condition in the body with <code>IF … THEN … END IF</code></td>
+      <td data-label="What does it mean?">In MySQL a trigger is tied to a single event (INSERT, UPDATE or DELETE) and there is no <code>WHEN</code>. Since the body has several statements inside <code>BEGIN … END</code>, it is written with <code>DELIMITER //</code>; <code>SIGNAL SQLSTATE '45000'</code> is used to reject the operation.</td></tr>
+    <tr><td data-label="Topic">A non-grouped column</td><td data-label="In the book">an invalid query</td><td data-label="In MySQL">error 1055</td>
+      <td data-label="What does it mean?"><code>SELECT Dno, Lname, COUNT(*) … GROUP BY Dno</code> is wrong in both places: it is undefined which Lname of a group would be shown. MySQL reports it with error 1055.</td></tr>
+    <tr><td data-label="Topic">Upper/lower case</td><td data-label="In the book"><code>'smith' = 'Smith'</code> FALSE</td><td data-label="In MySQL">TRUE</td>
+      <td data-label="What does it mean?">MySQL compares strings without regard to case by default; <code>WHERE Lname = 'smith'</code> finds Smith. In answers based on the book, assume letters are written with the right case.</td></tr>
+  </tbody>
+</table>
+
+
+<h2>Constraints and violations</h2>
+<table class="simple">
+  <thead><tr><th>Operation</th><th>Constraints it can violate</th><th>Options</th></tr></thead>
+  <tbody>
+    <tr><td>INSERT</td><td>domain, key, entity integrity, referential integrity</td><td>reject</td></tr>
+    <tr><td>DELETE</td><td>only referential integrity</td><td>restrict, cascade, set null, set default</td></tr>
+    <tr><td>UPDATE (PK)</td><td>key, entity integrity, referential integrity</td><td>reject; ON UPDATE CASCADE/SET NULL/SET DEFAULT</td></tr>
+    <tr><td>UPDATE (FK)</td><td>referential integrity, domain</td><td>reject</td></tr>
+    <tr><td>UPDATE (other)</td><td>domain, NOT NULL, CHECK</td><td>reject</td></tr>
+  </tbody>
+</table>
+<p><strong>Superkey</strong> ⊇ <strong>key</strong> (minimal superkey) = <strong>candidate key</strong>; one is chosen as the <strong>primary key</strong> (cannot be NULL: entity integrity), the others are UNIQUE.</p>
+
+<h2>ER / EER notation</h2>
+<div id="notation"></div>
+<table class="simple">
+  <thead><tr><th>Constraint</th><th>Notation</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>Cardinality 1:1, 1:N, M:N</td><td>1 / N / M on the edges</td><td>at <em>most</em> how many; the number is the other side's participation</td></tr>
+    <tr><td>Total participation</td><td>a double line</td><td>every entity takes part at least once</td></tr>
+    <tr><td>(min, max)</td><td>next to its own entity</td><td>min = 0 → partial, min ≥ 1 → total</td></tr>
+    <tr><td>Specialization</td><td>a circle: <strong>d</strong> disjoint / <strong>o</strong> overlapping; a double line for total</td><td>⊂ on the subclass line</td></tr>
+    <tr><td>Category</td><td><strong>∪</strong> in the circle</td><td>a subset of the union of the superclasses</td></tr>
+  </tbody>
+</table>
+
+<h2>Glossary</h2>
+<p class="small muted">The Turkish terms are the ones used in the Turkish version of this site and in Turkish course material.</p>
+<table class="simple" id="glossary">
+  <thead><tr><th>English</th><th>Turkish</th><th>Short definition</th></tr></thead>
+  <tbody>
+    <tr><td>attribute</td><td>öznitelik</td><td>a property of an entity or a relationship; a column in a table</td></tr>
+    <tr><td>candidate key</td><td>aday anahtar</td><td>each of the minimal superkeys of a relation</td></tr>
+    <tr><td>cardinality ratio</td><td>kardinalite oranı</td><td>the maximum number of relationship instances an entity can take part in: 1:1, 1:N, M:N</td></tr>
+    <tr><td>category (union type)</td><td>kategori</td><td>a subclass that is a subset of the union of different superclasses</td></tr>
+    <tr><td>catalog</td><td>katalog</td><td>where the meta-data is stored (data dictionary)</td></tr>
+    <tr><td>correlated nested query</td><td>ilintili iç içe sorgu</td><td>an inner query that refers to a column of the outer query</td></tr>
+    <tr><td>derived attribute</td><td>türetilmiş öznitelik</td><td>an attribute computed from other data</td></tr>
+    <tr><td>domain</td><td>alan / değer kümesi</td><td>the atomic values an attribute can take</td></tr>
+    <tr><td>entity integrity</td><td>varlık bütünlüğü</td><td>a PK cannot be NULL</td></tr>
+    <tr><td>foreign key</td><td>yabancı anahtar</td><td>attributes that refer to the PK of another (or the same) relation</td></tr>
+    <tr><td>generalization / specialization</td><td>genelleştirme / özelleştirme</td><td>deriving a superclass from subclasses / dividing a superclass into subclasses</td></tr>
+    <tr><td>identifying relationship</td><td>tanımlayıcı ilişki</td><td>the relationship that ties a weak entity to its owner</td></tr>
+    <tr><td>inheritance</td><td>kalıtım</td><td>a subclass taking on the attributes and relationships of its superclass</td></tr>
+    <tr><td>instance / state / extension</td><td>örnek / durum</td><td>the data at a particular moment</td></tr>
+    <tr><td>multivalued attribute</td><td>çok değerli öznitelik</td><td>an attribute that can take several values for one entity</td></tr>
+    <tr><td>participation constraint</td><td>katılım kısıtı</td><td>total (mandatory) or partial (optional) participation</td></tr>
+    <tr><td>partial key (discriminator)</td><td>kısmi anahtar</td><td>the attribute that distinguishes weak entities with the same owner</td></tr>
+    <tr><td>primary key</td><td>birincil anahtar</td><td>the candidate key chosen to identify tuples</td></tr>
+    <tr><td>referential integrity</td><td>referans bütünlüğü</td><td>an FK value equals an existing PK or is NULL</td></tr>
+    <tr><td>relation / tuple</td><td>ilişki / demet (satır)</td><td>a set of tuples / a row</td></tr>
+    <tr><td>relationship type</td><td>ilişki tipi</td><td>an association among entity types</td></tr>
+    <tr><td>schema / intension</td><td>şema</td><td>the description of the database</td></tr>
+    <tr><td>superkey</td><td>süper anahtar</td><td>a set of attributes whose values are different for every tuple</td></tr>
+    <tr><td>three-valued logic</td><td>üç değerli mantık</td><td>TRUE, FALSE, UNKNOWN</td></tr>
+    <tr><td>transaction</td><td>hareket (işlem)</td><td>a sequence of operations applied entirely or not at all</td></tr>
+    <tr><td>trigger</td><td>tetikleyici</td><td>an event-condition-action (ECA) rule</td></tr>
+    <tr><td>view</td><td>görünüm (sanal tablo)</td><td>a table derived from other tables, usually not stored</td></tr>
+    <tr><td>weak entity type</td><td>zayıf varlık tipi</td><td>an entity type with no key of its own, tied to its owner</td></tr>
+  </tbody>
+</table>
+
+</div></main>
+</body>
+</html>

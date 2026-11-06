@@ -1,5 +1,6 @@
 import "../layout.js";
 import { h, $, $$ } from "../lib/ui.js";
+import { t as tl, tx, EN } from "../lib/i18n.js";
 
 // Three-valued logic: AND / OR / NOT truth tables; click two values to see the result highlighted.
 const V = ["TRUE", "FALSE", "UNKNOWN"];
@@ -26,7 +27,7 @@ if (host) {
     const not = h("table", { class: "truth" }, h("tr", {}, h("th", {}, "NOT"), h("th", {}, "")),
       ...V.map((x) => h("tr", {}, h("th", {}, x), h("td", { class: cls[NOT(x)] + (x === a ? " hl" : "") }, NOT(x)))));
     tables.replaceChildren(table("AND", AND), table("OR", OR), not);
-    result.innerHTML = `A AND B = <strong>${AND(a, b)}</strong> · A OR B = <strong>${OR(a, b)}</strong> · NOT A = <strong>${NOT(a)}</strong>. WHERE yalnızca <strong>TRUE</strong> olan satırları tutar: ${AND(a, b) === "TRUE" ? "A AND B koşullu satır seçilir" : "A AND B koşullu satır <em>seçilmez</em>"}.`;
+    result.innerHTML = `A AND B = <strong>${AND(a, b)}</strong> · A OR B = <strong>${OR(a, b)}</strong> · NOT A = <strong>${NOT(a)}</strong>. ${tl("WHERE yalnızca <strong>TRUE</strong> olan satırları tutar: ", "WHERE keeps only rows that are <strong>TRUE</strong>: ")}${AND(a, b) === "TRUE" ? tl("A AND B koşullu satır seçilir", "a row with the condition A AND B is selected") : tl("A AND B koşullu satır <em>seçilmez</em>", "a row with the condition A AND B is <em>not</em> selected")}.`;
   };
   for (const v of V) {
     pickA.append(h("button", { type: "button", onclick: () => { a = v; paint(); } }, v));

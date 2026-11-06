@@ -94,3 +94,56 @@ WHERE  E.Bdate = (SELECT MAX(X.Bdate) FROM EMPLOYEE X WHERE X.Dno = E.Dno);`,
     explain: "Tarihlerde MAX en geç tarihtir, yani en genç kişi. Research: English (1972), Administration: Zelaya (1968), Headquarters: Borg.",
   },
 ];
+
+// English for the English pages
+const SQL_PROBLEMS_EN = {
+ "p1": {
+  "title": "Department summary",
+  "text": "For every department, list the department's name, its manager's first and last name, and how many different locations the department has.",
+  "hint": "Three tables: DEPARTMENT, EMPLOYEE for the manager, DEPT_LOCATIONS for the locations. Group to count the locations.",
+  "explain": "The grouping columns must include every non-aggregate column of the SELECT. LEFT JOIN would also show a department without locations (COUNT = 0); in this data every department has at least one."
+ },
+ "p2": {
+  "title": "Managers without dependents",
+  "text": "List the first and last names of department managers who have no dependents.",
+  "hint": "Two conditions: (1) the Mgr_ssn of some department, (2) no row in DEPENDENT. NOT EXISTS or EXCEPT.",
+  "explain": "The managers are Wong, Wallace and Borg. Wong and Wallace have dependents, Borg does not. A question that comes up often in the book's exercises."
+ },
+ "p3": {
+  "title": "Houston project, department not in Houston",
+  "text": "List the first and last names of employees who work on a project located in Houston but whose department has no location in Houston.",
+  "hint": "PROJECT.Plocation and DEPT_LOCATIONS.Dlocation are in different tables. The second condition is a NOT EXISTS (or NOT IN).",
+  "explain": "The Houston projects are ProductZ and Reorganization; their employees are Narayan, Wong (dept 5), Wallace (dept 4), Borg (dept 1). The departments with a Houston location are 1 and 5. Wallace is left. Wong works on two Houston projects, so without DISTINCT he would appear twice if the condition held."
+ },
+ "p4": {
+  "title": "Departments above the average",
+  "text": "List the name and the average salary of the departments whose employees' average salary is higher than the company's overall average salary.",
+  "hint": "The group condition goes in HAVING; the company average is a (non-correlated) subquery.",
+  "explain": "The company average is 35125. Department averages: Research 33250, Administration 31000, Headquarters 55000. A subquery can be used inside HAVING."
+ },
+ "p5": {
+  "title": "Earning above their department's average",
+  "text": "List the last name, department number and salary of the employees whose salary is higher than the average salary of their own department.",
+  "hint": "Each employee's own department average: a correlated subquery (or department averages with WITH).",
+  "explain": "Research averages 33250 → Wong (40000) and Narayan (38000); Administration 31000 → Wallace (43000); Headquarters has one person, who cannot earn more than their own average."
+ },
+ "p6": {
+  "title": "Many projects, few hours",
+  "text": "List the last name, number of projects and total hours of the employees who work on at least two projects and less than 40 hours a week in total.",
+  "hint": "Group WORKS_ON by employee; both conditions are about the groups.",
+  "explain": "Most employees work exactly 40 hours (40 < 40 is false). Wallace works 20 + 15 = 35 hours, on two projects."
+ },
+ "p7": {
+  "title": "Every project of one's own department",
+  "text": "List the first and last names of the employees who work on <strong>every</strong> project controlled by their own department. (An employee whose department controlled no project would also be in the result.)",
+  "hint": "Division: \"their department has no project that E does not work on\". The outer NOT EXISTS ranges over projects (Dnum = E.Dno), the inner one over WORKS_ON.",
+  "explain": "Dept 4's projects are 10 and 30: Zelaya and Jabbar work on both (Wallace not on 10). Dept 1's only project is 20: Borg. Nobody works on all of dept 5's projects 1, 2 and 3."
+ },
+ "p8": {
+  "title": "The youngest in each department",
+  "text": "For every department, list the department name and the first name, last name and birth date of its <strong>youngest</strong> employee.",
+  "hint": "Youngest = the largest (latest) birth date. The \"largest within a group\" pattern of exercise 9.",
+  "explain": "On dates MAX is the latest date, i.e. the youngest person. Research: English (1972), Administration: Zelaya (1968), Headquarters: Borg."
+ }
+};
+for (const p of SQL_PROBLEMS) Object.assign(p, Object.fromEntries(Object.entries(SQL_PROBLEMS_EN[p.id]).map(([k, v]) => [`${k}_en`, v])));

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Midterm study guide · Database Systems</title>
+<meta name="description" content="A study guide for the BIL372/BIL071 midterm (Elmasri &amp; Navathe Ch 1–7): what to know chapter by chapter, worked ER design and constraint problems, SQL problems checked automatically on MySQL, common mistakes and a practice set.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/exam.js"></script>
+</head>
+<body data-page="exam-midterm">
+<main><div class="content">
+
+<h1>Midterm study guide</h1>
+<p class="lead">Scope: Elmasri &amp; Navathe Ch 1–7. What you need to know, chapter by chapter; exam-style worked problems; SQL problems you can write and have checked automatically; and a practice set you can filter by topic.</p>
+
+<h2>How to study</h2>
+<ol>
+  <li>Read the <a href="#approach">approach to question types</a> table: four question patterns and the steps for each.</li>
+  <li>Read the <strong>what you need to know</strong> list for each chapter. If there is an item you do not know, go back to the linked page.</li>
+  <li>Solve the <strong>worked problems</strong> (ER design, constraint violations, keys, NULL) on paper first, then open the answer.</li>
+  <li>Solve the <a href="notebook.html">notebook's 10 exercises</a> and the <a href="#sql-problems">8 SQL problems</a> below, having them checked by the site's MySQL. Write first without running, as you will on paper in the exam.</li>
+  <li>Read the list of <a href="#mistakes">common mistakes</a>.</li>
+  <li>Repeat the <a href="#practice">practice set</a> until you pass 80% on the first try.</li>
+</ol>
+
+<h2 id="approach">Approach to question types</h2>
+<p>Most midterm questions fit one of four patterns. For each there is a method worked out on the site; follow the same order in the exam.</p>
+<table class="simple">
+  <thead><tr><th>Question type</th><th>Steps</th><th>To practise</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Drawing ER/EER from requirements</strong></td>
+      <td>(1) Mark the nouns as candidate entities, the verbs as candidate relationships. (2) Find each entity's key ("unique"); if you cannot find one, it may be a weak entity. (3) Determine the kinds of attributes (composite, multivalued, derived). (4) For each relationship two questions: at most how many (cardinality), at least how many (participation). (5) If there are subgroups: can an entity be in two subclasses at once (d/o), can it be in none (total/partial)?</td>
+      <td><a href="ch3-er.html#structural-constraints-of-binary-relationships">Ch 3: from a sentence to a constraint</a>, <a href="ch4-eer.html#constraints-on-specialization">Ch 4: deciding the constraints</a>, problem 1 below</td></tr>
+    <tr><td><strong>Which constraint does an operation violate?</strong></td>
+      <td>(1) Is a PK field NULL? → entity integrity. (2) Does the PK/UNIQUE value already exist? → key. (3) Does the FK value exist in the referenced table? For a deletion: does anything refer to this row? → referential integrity. (4) Does the value fit its type/range? → domain. Then write the DBMS's options: reject, cascade, set null (if the FK is not part of the PK), set default.</td>
+      <td><a href="ch5-relational.html#update-operations-and-constraint-violations">Ch 5: update operations</a>, problem 2 below</td></tr>
+    <tr><td><strong>Finding keys</strong></td>
+      <td>(1) From each rule, extract the sets of attributes that "together determine a single row". (2) Check that each set is minimal: does the rule break when an attribute is removed? (3) The minimal ones are candidate keys; choose one as the primary key, the others are UNIQUE.</td>
+      <td><a href="ch5-relational.html#key-constraints">Ch 5: key constraints</a>, problem 3 below</td></tr>
+    <tr><td><strong>Writing SQL</strong></td>
+      <td>(1) What is asked for → SELECT. (2) In which tables → FROM. (3) How are the tables connected through foreign keys → n − 1 join conditions for n tables. (4) Which rows → WHERE. Then check: if the word "every" appears, division (double NOT EXISTS); "a count/total for each …", GROUP BY; a condition on groups, HAVING; "including those with none, as 0", LEFT JOIN + COUNT(column); can there be duplicates → DISTINCT.</td>
+      <td><a href="ch6-sql.html#select-from-where">Ch 6: turning a question into SQL</a>, <a href="notebook.html">the notebook</a>, the SQL problems below</td></tr>
+  </tbody>
+</table>
+
+<h2>What you need to know, chapter by chapter</h2>
+
+<table class="simple">
+  <thead><tr><th>Chapter</th><th>What you need to know</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>Ch 1</td><td>Definitions of database / DBMS / database system · the functions of a DBMS (define, construct, manipulate, share) · the 4 characteristics of the database approach (self-describing, program-data independence &amp; data abstraction, multiple views, sharing &amp; transactions) · actors (DBA, designer, kinds of end users, analyst/programmer) and the workers behind the scene · advantages of a DBMS (controlling redundancy, authorization, backup/recovery, constraints…) · when not to use a DBMS</td><td><a href="ch1-intro.html">Databases and DBMS</a></td></tr>
+    <tr><td>Ch 2</td><td>Categories of data models (conceptual, representational, physical) · schema vs. state (intension/extension) · <strong>the three-schema architecture</strong> and mappings · <strong>logical vs. physical data independence</strong> · DDL, SDL, VDL, DML (procedural/nonprocedural) · DBMS components · 2-tier / 3-tier · classification</td><td><a href="ch2-architecture.html">Architecture</a></td></tr>
+    <tr><td>Ch 3</td><td>Entity, entity type, entity set · kinds of attributes (simple/composite, single/multivalued, stored/derived, NULL, complex) · key and value set · relationship type, degree, role, recursive · <strong>cardinality ratio and participation</strong>, <strong>(min,max)</strong> · relationship attributes and where they can be moved · <strong>weak entity</strong>, identifying relationship, partial key · ternary relationships · drawing an ER diagram from requirements</td><td><a href="ch3-er.html">The ER model</a></td></tr>
+    <tr><td>Ch 4</td><td>Subclass/superclass, IS-A, inheritance · specialization / generalization · predicate-defined, attribute-defined, user-defined · <strong>disjoint/overlapping × total/partial</strong> · hierarchy vs. lattice, shared subclass, multiple inheritance · <strong>category</strong> (union type), selective inheritance · drawing an EER diagram</td><td><a href="ch4-eer.html">The EER model</a></td></tr>
+    <tr><td>Ch 5</td><td>Domain, attribute, tuple, relation, degree, cardinality · characteristics of relations · <strong>superkey, key, candidate key, primary key</strong> · <strong>entity integrity, referential integrity</strong>, foreign key · which constraints insert/delete/update can violate and the options (restrict, cascade, set null, set default)</td><td><a href="ch5-relational.html">The relational model</a></td></tr>
+    <tr><td>Ch 6</td><td>CREATE TABLE, data types, NOT NULL / DEFAULT / CHECK / PRIMARY KEY / UNIQUE / FOREIGN KEY and referential triggered actions · SELECT-FROM-WHERE, join condition, alias, self-join · <strong>the Cartesian product</strong> · DISTINCT, multisets · UNION/EXCEPT/INTERSECT · LIKE, BETWEEN, arithmetic · ORDER BY · INSERT/DELETE/UPDATE</td><td><a href="ch6-sql.html">Basic SQL</a></td></tr>
+    <tr><td>Ch 7</td><td><strong>NULL and three-valued logic</strong>, IS NULL · IN, ANY/ALL · <strong>correlated</strong> queries · EXISTS/NOT EXISTS · <strong>division</strong> (every/all) · kinds of JOIN, outer join · aggregates and NULL · <strong>GROUP BY / HAVING</strong>, the difference from WHERE · WITH, CASE, WITH RECURSIVE · assertion, trigger (ECA) · view, updatability, WITH CHECK OPTION · DROP/ALTER, CASCADE/RESTRICT</td><td><a href="ch7-nested.html">NULL and nesting</a>, <a href="ch7-joins.html">Joins and grouping</a>, <a href="ch7-views.html">Triggers and views</a></td></tr>
+  </tbody>
+</table>
+<p class="small muted">Ch 8 (relational algebra) is not on the midterm; the <a href="ch8-algebra.html">preview page</a> is for preparing for the final.</p>
+
+<h2>Short-answer concept questions</h2>
+<p>"Define / compare" questions that come up often in exams. Answer in your own words, then open the answer.</p>
+<ol>
+  <li><strong>Define logical and physical data independence; which one is harder to achieve, and why?</strong>
+    <div class="hint" data-label="Show the answer"><p>Logical: being able to change the conceptual schema without changing the external schemas/programs (e.g. adding a column to a table). Physical: being able to change the internal schema without changing the conceptual schema (e.g. adding an index, reorganizing a file). Logical independence is harder, because application programs depend directly on the logical structure of the data (tables, columns); they do not depend on the physical details anyway.</p></div></li>
+  <li><strong>What is a weak entity type? Why is its participation in the identifying relationship always total?</strong>
+    <div class="hint" data-label="Show the answer"><p>An entity type with no key of its own, whose entities are identified by being related to an entity of another entity type (the owner). Its full identifier = the owner's key + the partial key. Since it cannot be identified without its owner, every weak entity must be related to an owner: existence dependency, i.e. total participation.</p></div></li>
+  <li><strong>What is the difference between a superkey and a key (candidate key)? Give an example.</strong>
+    <div class="hint" data-label="Show the answer"><p>Superkey: a set of attributes whose values are the same in no two tuples in any valid state. Key: a minimal superkey: no attribute can be removed from it. In EMPLOYEE {Ssn, Lname} is a superkey but not a key; {Ssn} is a key.</p></div></li>
+  <li><strong>Define the entity integrity and referential integrity constraints.</strong>
+    <div class="hint" data-label="Show the answer"><p>Entity integrity: no primary key value (no part of a composite PK) can be NULL. Referential integrity: a foreign key value is either equal to an existing PK value in the referenced relation or NULL.</p></div></li>
+  <li><strong>Explain disjoint vs. overlapping and total vs. partial specialization with an example each.</strong>
+    <div class="hint" data-label="Show the answer"><p>Disjoint: an entity is in at most one subclass (EMPLOYEE → {HOURLY, SALARIED}). Overlapping: it can be in several subclasses (PART → {MANUFACTURED, PURCHASED}). Total: every entity of the superclass is in at least one subclass (every employee is hourly or salaried). Partial: some are in none (not every employee is a SECRETARY/ENGINEER/TECHNICIAN).</p></div></li>
+  <li><strong>What is the difference between a shared subclass and a category?</strong>
+    <div class="hint" data-label="Show the answer"><p>The members of a shared subclass are in the intersection of all the superclasses and inherit from all of them (multiple inheritance). The members of a category are in the union of the superclasses, belong to only one of them and inherit only from it (selective inheritance).</p></div></li>
+  <li><strong>What is the difference between WHERE and HAVING?</strong>
+    <div class="hint" data-label="Show the answer"><p>WHERE is applied to individual rows before grouping and cannot contain aggregates. HAVING is applied to groups after grouping and can contain aggregates.</p></div></li>
+  <li><strong>When is a view updatable?</strong>
+    <div class="hint" data-label="Show the answer"><p>A view defined on a single base table, without aggregates or grouping, that contains the base table's primary key (and its NOT NULL columns without a default) is updatable: each view row corresponds to a single base row. In views with joins an update is usually ambiguous, in those with aggregates/grouping impossible.</p></div></li>
+  <li><strong>What is the difference between an assertion and a trigger?</strong>
+    <div class="hint" data-label="Show the answer"><p>An assertion is a declarative constraint: the condition must always be TRUE and an operation that violates it is rejected. A trigger is procedural: when an event (INSERT/UPDATE/DELETE) and an optional condition occur, it runs the specified action (ECA). The action does not have to be a rejection: it can be sending a notification or updating another table.</p></div></li>
+</ol>
+
+<h2>Worked problem 1: ER design</h2>
+<div class="callout example" data-label="Requirements">
+  <ul>
+    <li>University <strong>students</strong> are kept with a student number (unique), a name, one or more phones and a grade point average (computed from the grades).</li>
+    <li>Every <strong>course</strong> has a unique code and a number of credits. A course's prerequisites are other courses.</li>
+    <li>Courses are offered in terms as <strong>sections</strong>. A section is identified by a section number, a term and a year, but only <em>within its course</em> (the same section number is used in different courses).</li>
+    <li>Each section is taught by exactly one <strong>instructor</strong>; an instructor can teach many sections or none.</li>
+    <li>Students enroll in sections and a <strong>grade</strong> is kept for each enrollment.</li>
+    <li>Each instructor works in exactly one department; each course is offered by exactly one department.</li>
+  </ul>
+</div>
+<p><strong>Required:</strong> an ER diagram showing the entities, relationships, cardinality and participation constraints, keys and kinds of attributes.</p>
+<p>Draw the diagram below: add items with <strong>+ Entity</strong>, <strong>+ Relationship</strong>, <strong>+ Attribute</strong>, click an item to edit it in the panel on the right (or write it as text). When you are done, <strong>Check</strong>.</p>
+<div id="er-draw"></div>
+
+<h2>Worked problem 2: constraint violations</h2>
+<p>On COMPANY's starting data (the data all the boxes on the site use), which constraints does each of the following operations violate if applied on its own? If there is a violation, what can the DBMS do? You can look at the rows needed for the answer from the table names below. The values are written in the order of the tables' columns: DEPENDENT(Essn, Dependent_name, Sex, Bdate, Relationship), WORKS_ON(Essn, Pno, Hours), DEPT_LOCATIONS(Dnumber, Dlocation).</p>
+<div class="company-data" data-tables="EMPLOYEE DEPARTMENT DEPT_LOCATIONS PROJECT WORKS_ON DEPENDENT"></div>
+<ol type="a">
+  <li><code>INSERT INTO DEPENDENT VALUES ('453453453', 'John', 'M', '1990-12-12', 'Son');</code></li>
+  <li><code>INSERT INTO WORKS_ON VALUES ('677678989', NULL, 40.0);</code></li>
+  <li><code>DELETE FROM PROJECT WHERE Pname = 'ProductX';</code></li>
+  <li><code>UPDATE PROJECT SET Pnumber = 30 WHERE Pnumber = 10;</code></li>
+  <li><code>INSERT INTO DEPT_LOCATIONS VALUES (2, 'Houston');</code></li>
+</ol>
+<div class="hint" data-label="Show the answer">
+  <ol type="a">
+    <li>No violation: English (453453453) has no dependent named 'John', the PK (Essn, Dependent_name) is new; Essn refers to an existing employee.</li>
+    <li>Two violations: <strong>entity integrity</strong> (Pno is part of the PK and NULL) and <strong>referential integrity</strong> (there is no employee 677678989). Rejected.</li>
+    <li><strong>Referential integrity</strong>: rows in WORKS_ON refer to ProductX (Pno = 1). Options: reject; CASCADE (delete those WORKS_ON rows too); SET NULL cannot be used, because Pno is part of the PK.</li>
+    <li><strong>Key constraint</strong>: Pnumber = 30 already exists (Newbenefits). Also WORKS_ON rows refer to 10: if the PK changes, referential integrity is affected too (with ON UPDATE CASCADE they would become 30 as well; the key violation would still remain).</li>
+    <li><strong>Referential integrity</strong>: there is no department 2. Rejected.</li>
+  </ol>
+  <p>Try it yourself:</p>
+  <pre class="sql run" data-expect-error data-title="b · two violations, MySQL reports the first one it meets">INSERT INTO WORKS_ON VALUES ('677678989', NULL, 40.0);</pre>
+  <pre class="sql run" data-expect-error data-title="c">DELETE FROM PROJECT WHERE Pname = 'ProductX';</pre>
+</div>
+
+<h2>Worked problem 3: keys</h2>
+<p><code>FLIGHT(Flight_no, Date, Gate, Pilot_id, Departure_time)</code>. Rules: the same flight number flies once a day; a pilot cannot take two flights on the same day at the same time; a single flight departs from a gate on the same day at the same time. Find all the candidate keys; choose one as the primary key.</p>
+<div class="hint" data-label="Show the answer">
+  <p>{Flight_no, Date}: a flight number once a day. {Pilot_id, Date, Departure_time}: a pilot on a single flight at a time. {Gate, Date, Departure_time}: a gate with a single flight at a time. All three are minimal (the rule breaks when an attribute is removed), so all three are candidate keys. The smallest, {Flight_no, Date}, is chosen as the primary key; the others are defined as <code>UNIQUE</code>. {Flight_no, Date, Gate} is a superkey but not a key.</p>
+</div>
+
+<h2>Worked problem 4: predict the result</h2>
+<p>How many rows does each query return? Answer without running them, then check in the boxes.</p>
+<pre class="sql">
+-- (1)
+SELECT * FROM EMPLOYEE WHERE Super_ssn <> '333445555';
+-- (2)
+SELECT Dno, COUNT(*) FROM EMPLOYEE GROUP BY Dno HAVING COUNT(*) > 1;
+-- (3)
+SELECT E.Lname FROM EMPLOYEE E LEFT JOIN DEPENDENT D ON E.Ssn = D.Essn WHERE D.Essn IS NULL;
+-- (4)
+SELECT COUNT(Super_ssn), COUNT(DISTINCT Super_ssn), COUNT(*) FROM EMPLOYEE;
+</pre>
+<div class="hint" data-label="Show the answer">
+  <p>(1) 4 rows: the 3 people whose supervisor is Wong (Smith, Narayan, English) are discarded; Borg's Super_ssn is NULL, so the condition is UNKNOWN and he is discarded too: 8 − 3 − 1 = 4 (Zelaya, Wallace, Jabbar, Wong). (2) 2 rows: department 5 (4 people) and 4 (3 people); department 1 has a single person. (3) 5 rows: those with no dependents (outer join + IS NULL = an "anti-join"). (4) 7, 3, 8: NULL is not counted; 3 distinct supervisors (Wong, Wallace, Borg).</p>
+  <pre class="sql run" data-title="Check">
+SELECT * FROM EMPLOYEE WHERE Super_ssn <> '333445555';
+SELECT Dno, COUNT(*) FROM EMPLOYEE GROUP BY Dno HAVING COUNT(*) > 1;
+SELECT E.Lname FROM EMPLOYEE E LEFT JOIN DEPENDENT D ON E.Ssn = D.Essn WHERE D.Essn IS NULL;
+SELECT COUNT(Super_ssn), COUNT(DISTINCT Super_ssn), COUNT(*) FROM EMPLOYEE;
+  </pre>
+</div>
+
+<h2 id="sql-problems">SQL problems</h2>
+<p>Exam-style queries. Write your answer and run it: the result is compared with the model solution's result on the same database (column names and row order do not matter). Try writing it on paper first.</p>
+<div id="sql-list"></div>
+
+<h2 id="mistakes">Common mistakes</h2>
+<ol>
+  <li><strong>Forgetting the join condition</strong> → a Cartesian product. Usually n − 1 join conditions for n tables in FROM.</li>
+  <li><strong>Writing <code>= NULL</code>.</strong> It is always UNKNOWN; use <code>IS NULL</code>.</li>
+  <li><strong>NOT IN + NULL.</strong> If the inner query returns a NULL, NOT IN selects no rows; use NOT EXISTS.</li>
+  <li><strong>An aggregate in WHERE.</strong> <code>WHERE COUNT(*) &gt; 2</code> is invalid; HAVING.</li>
+  <li><strong>A non-grouped column.</strong> Only GROUP BY columns and aggregates in SELECT.</li>
+  <li><strong>The Q28 trap.</strong> A condition in WHERE also reduces the rows HAVING counts. For a condition about <em>all</em> the members of a group, a subquery.</li>
+  <li><strong>"At least one" instead of "every".</strong> <code>IN</code> means ∃; for ∀ a double NOT EXISTS or EXCEPT.</li>
+  <li><strong>Outer join + COUNT(*).</strong> Rows padded with NULLs are counted too; <code>COUNT(a_column_of_the_right_table)</code>.</li>
+  <li><strong>Duplicates.</strong> Joins can produce the same row several times; DISTINCT (or EXISTS) if needed.</li>
+  <li><strong>Mixing up where (min,max) and 1:N go.</strong> (min,max) is written next to its own entity, 1/N on the other side.</li>
+  <li><strong>Taking a weak entity's partial key for a key.</strong> The full identifier = the owner's key + the partial key.</li>
+  <li><strong>Putting an M:N relationship's attribute on an entity.</strong> It can be moved only in 1:1 and 1:N (to the N side).</li>
+  <li><strong>Saying a deletion violates the domain or key constraint.</strong> A deletion can violate only referential integrity.</li>
+  <li><strong>Taking a superkey for a key.</strong> A key must be minimal.</li>
+</ol>
+
+<h2 id="practice">Practice set</h2>
+<p>The test-yourself questions of all the chapter pages and this guide's own questions. Choose the topics and the number of questions; every <em>New set</em> shuffles the questions.</p>
+<div id="bank"></div>
+
+<template id="exam-questions">
+  <div class="quiz" data-answer="2" data-topic="Rehber">
+    <p>A company wants to show its employees' salary information to the accounting unit and hide it from the other units. Which characteristic/tool of the database approach provides this most directly?</p>
+    <ol><li data-why="Self-describing means the definition of the structure is stored in the catalog; it is not about who sees what.">Self-describing nature</li><li data-why="Correct: views show each group a subset of the database, and privileges restrict access to those views.">Multiple views (views) and authorization</li><li data-why="Physical independence means storage changes do not affect the conceptual schema; it provides no access control.">Physical data independence</li><li data-why="Backup/recovery brings data back after failures; it does not decide who sees it.">Backup and recovery</li></ol>
+    <div class="explain">Views that show each user group a subset of the database, and privileges granted on those views. That is the purpose of the external level.</div>
+  </div>
+  <div class="quiz" data-answer="3" data-topic="Rehber">
+    <p>EMPLOYEE —(1,1)— WORKS_FOR —(5,N)— DEPARTMENT. What does this diagram say?</p>
+    <ol><li data-why="EMPLOYEE's (1,1) says each employee takes part exactly once; the 5 belongs to the department's (5,N) side.">Every employee works in at least 5 departments.</li><li data-why="In (5,N) the max is N, i.e. no upper bound; 5 is the lower bound.">Every department has at most 5 employees.</li><li data-why="Correct: (min,max) gives each entity's own participation.">Every employee works in exactly one department; every department has at least 5 employees.</li><li data-why="Since EMPLOYEE's max is 1, the ratio is N:1 (many employees, one department).">The relationship is M:N.</li></ol>
+    <div class="explain">(min,max) describes the participation of its own entity: EMPLOYEE (1,1) → exactly once; DEPARTMENT (5,N) → at least 5 times. The cardinality ratio is N:1.</div>
+  </div>
+  <div class="quiz" data-answer="1" data-topic="Rehber">
+    <p>In the relation R(A, B, C), {A} and {B, C} are candidate keys. How many superkeys are there?</p>
+    <ol><li data-why="Correct: the 4 sets containing A + {B, C} = 5.">5</li><li data-why="2 is only the number of candidate keys; the supersets of every candidate key are superkeys too.">2</li><li data-why="Supersets are missing from the count: there are 4 sets containing {A} ({A}, {A,B}, {A,C}, {A,B,C}).">3</li><li data-why="7 is all the non-empty subsets; but {B} and {C} on their own are not superkeys.">7</li></ol>
+    <div class="explain">Every set containing A: {A}, {A,B}, {A,C}, {A,B,C} (4 of them). Containing {B,C} but not A: {B,C} (1). 5 in all.</div>
+  </div>
+  <div class="quiz" data-answer="4" data-topic="Rehber">
+    <p>Which of the following is a <em>transition (dynamic) constraint</em>?</p>
+    <ol><li data-why="The format of a value is a domain constraint that must hold in every state (a state constraint).">Ssn has 9 characters.</li><li data-why="A state constraint that every valid state must satisfy on its own; it does not compare an old and a new value.">Every department has a manager.</li><li data-why="A key constraint looks at the rows of a single state: a state constraint.">Dname is unique.</li><li data-why="Correct: it compares the new salary with the old one; it is about a transition, not a single state.">An employee's salary can only increase.</li></ol>
+    <div class="explain">A transition constraint compares the old and the new state: the value before and after the update. The others are state (static) constraints that every valid state must satisfy on its own.</div>
+  </div>
+  <div class="quiz" data-answer="2" data-topic="Rehber" data-tables="EMPLOYEE">
+    <p>How many rows does <code>SELECT Dno, AVG(Salary) FROM EMPLOYEE WHERE Sex = 'F' GROUP BY Dno;</code> return? (Female employees: Zelaya and Wallace in dept 4, English in dept 5.)</p>
+    <ol><li data-why="Department 1 has no female employee: after WHERE no row of that department remains, so its group is not formed.">3</li><li data-why="Correct: the Dno values of the 3 remaining rows are 4, 4, 5: two groups.">2</li><li data-why="Dept 4 and dept 5 are separate groups; GROUP BY Dno produces one row for each distinct Dno.">1</li><li data-why="WHERE Sex = 'F' filters the rows; besides, GROUP BY produces a single row per group.">8</li></ol>
+    <div class="explain">3 rows remain after WHERE; Dno values 4, 4, 5 → 2 groups. Since department 1 has no female employee, its group is never formed.</div>
+  </div>
+  <div class="quiz" data-answer="3" data-topic="Rehber">
+    <p>When a department is deleted, its locations (DEPT_LOCATIONS) should be deleted too. How should the FK be defined?</p>
+    <ol><li data-why="SET NULL would set DEPT_LOCATIONS.Dnumber to NULL; since Dnumber is part of the PK that is not possible, and it does not delete the locations."><code>ON DELETE SET NULL</code></li><li data-why="ON UPDATE says what happens when the department number <em>changes</em>; it is not about deletion."><code>ON UPDATE CASCADE</code></li><li data-why="Correct: when the department is deleted, the location rows that refer to it are deleted too."><code>ON DELETE CASCADE</code></li><li data-why="SET DEFAULT does not delete the locations, it ties them to another department; it can also be meaningless on a column that is part of the PK."><code>ON DELETE SET DEFAULT</code></li></ol>
+    <div class="explain">CASCADE propagates the deletion to the referencing rows. SET NULL is not possible here: Dnumber is part of DEPT_LOCATIONS's PK.</div>
+  </div>
+  <div class="quiz" data-answer="1" data-topic="Rehber">
+    <p>Which SQL feature conflicts with the formal definition of the <em>relational model</em>?</p>
+    <ol><li data-why="Correct: a formal relation is a set; the same tuple cannot appear twice.">That the same row can appear several times in a table (if there is no PK)</li><li data-why="A formal relation has attribute names too; the column name is part of the model.">That tables have column names</li><li data-why="Every attribute has a domain; the data type is its counterpart.">That columns have a data type</li><li data-why="A foreign key is the relational model's referential integrity constraint; it is inside the model.">That foreign keys can be defined</li></ol>
+    <div class="explain">A formal relation is a set of tuples; there can be no duplicates. SQL tables are multisets; DISTINCT or a PK constraint prevents duplicates.</div>
+  </div>
+  <div class="quiz" data-answer="4" data-topic="Rehber">
+    <p>A database designer drew the attribute <code>Age</code> in an ER diagram with a dashed ellipse. What does that mean?</p>
+    <ol><li data-why="A multivalued attribute is drawn with a double ellipse.">Age is multivalued.</li><li data-why="A key attribute has its name underlined.">Age is a key.</li><li data-why="A composite attribute is drawn with ellipses connected to its components.">Age is composite.</li><li data-why="Correct: a dashed ellipse is a derived attribute; Age is computed from Birth_date.">Age is derived (e.g. computed from Birth_date).</li></ol>
+    <div class="explain">Dashed ellipse = derived attribute. A double ellipse is multivalued, an underlined one a key, an ellipse connected to components a composite attribute.</div>
+  </div>
+  <div class="quiz" data-answer="2" data-topic="Rehber">
+    <p>Which is true of "employees who work on at least one of the projects of every department"?</p>
+    <ol><li data-why="Two nested NOT EXISTS are for a full division like 'every department, every project' (∀∀); here the inner quantifier is 'at least one' (∃).">Two nested NOT EXISTS are needed.</li><li data-why="Correct: ∀ outside (the departments), ∃ inside (one of that department's projects).">It requires working, for every department, on at least one of that department's projects: ∀ over the departments, ∃ over the projects.</li><li data-why="A simple join answers only 'at least one project of at least one department' (∃∃).">A simple join is enough.</li><li data-why="Counting is one option but not required; it can be written with NOT EXISTS without GROUP BY.">It cannot be written without GROUP BY.</li></ol>
+    <div class="explain">"For every department, works on one of that department's projects": ∀ outside (NOT EXISTS department … NOT EXISTS (project ∧ works on it)), ∃ inside. Rewriting questions with quantifiers (∀/∃) first makes it easier to find the right SQL.</div>
+  </div>
+  <div class="quiz" data-answer="3" data-topic="Rehber">
+    <p>In a three-tier web application, where do the business rules usually run?</p>
+    <ol><li data-why="The browser (client) only shows the interface; putting business rules on the client weakens security.">In the browser</li><li data-why="The database server processes queries and transactions; the place for business rules is the middle tier (some can also be in the database as triggers/constraints).">On the database server</li><li data-why="Correct: the middle tier (application server) runs the business rules.">On the application (web) server</li><li data-why="The catalog stores meta-data (table definitions); it runs no code.">In the DBMS catalog</li></ol>
+    <div class="explain">The middle tier (application server) processes the client's requests according to the business rules and accesses the database on its behalf.</div>
+  </div>
+</template>
+
+</div></main>
+</body>
+</html>

@@ -6,6 +6,7 @@ import { h, $$, highlightSQL, dedent, button } from "./ui.js";
 import { runSQL, reset, onState, state, stateInfo, getDB } from "./db.js";
 import { checkResult, resultHash } from "./sqlcore.js";
 import { companyData, tablesIn } from "./companydata.js";
+import { t as tl, EN } from "./i18n.js";
 
 import { isNumericType } from "./mysql.js";
 const store = {
@@ -27,7 +28,7 @@ export function relationTable(cols, types, rows, { caption, rowClass, maxRows = 
   });
   t.append(tb);
   const wrap = h("div", { class: "rel-wrap" }, t);
-  if (rows.length > maxRows) wrap.append(h("div", { class: "res-caption" }, `… ${rows.length - maxRows} satır daha`));
+  if (rows.length > maxRows) wrap.append(h("div", { class: "res-caption" }, tl(`… ${rows.length - maxRows} satır daha`, `… ${rows.length - maxRows} more rows`)));
   return wrap;
 }
 
@@ -35,7 +36,7 @@ export function relationTable(cols, types, rows, { caption, rowClass, maxRows = 
 export function renderItems(out, items) {
   for (const it of items) {
     if (it.kind === "result") {
-      const label = `${it.rows.length} satır`;
+      const label = tl(`${it.rows.length} satır`, `${it.rows.length} row${it.rows.length === 1 ? "" : "s"}`);
       out.append(h("div", { class: "res-caption" }, it.caption ? `> ${it.caption}   (${label})` : label));
       if (it.cols.length === 1 && /^(plan|EXPLAIN|QUERY PLAN)$/i.test(it.cols[0])) out.append(h("pre", {}, it.rows.map((r) => r[0]).join("\n")));
       else if (it.rows.length) out.append(relationTable(it.cols, it.types, it.rows));
@@ -45,11 +46,11 @@ export function renderItems(out, items) {
     else if (it.kind === "startup") out.append(startError(it.message));
     else if (it.kind === "error") {
       // as the mysql client prints it: ERROR 1062 (23000): Duplicate entry …
-      const lines = [`${it.expected ? "BEKLENEN HATA" : "HATA"} ${it.code || ""} (${it.state || "HY000"}): ${it.message}`];
-      if (it.total > 1) lines.push(`(Kutudaki ${it.total} komutun ${it.index}. komutu; kalanlar çalıştırılmadı.)`);
+      const lines = [`${it.expected ? tl("BEKLENEN HATA", "EXPECTED ERROR") : tl("HATA", "ERROR")} ${it.code || ""} (${it.state || "HY000"}): ${it.message}`];
+      if (it.total > 1) lines.push(tl(`(Kutudaki ${it.total} komutun ${it.index}. komutu; kalanlar çalıştırılmadı.)`, `(Statement ${it.index} of the ${it.total} in the box; the rest were not run.)`));
       // objects that already exist (or are already gone) usually mean the box changed the database on an earlier run
       if (!it.expected && [1050, 1060, 1061, 1146, 1054, 1091, 1062, 1359, 1304, 1007, 1008, 1051].includes(it.code)) {
-        lines.push("İpucu: bu kutu ya da sayfadaki başka bir kutu veritabanını daha önce değiştirmiş olabilir. \"Veritabanını sıfırla\" ile COMPANY'yi ilk hâline döndürüp tekrar deneyin.");
+        lines.push(tl("İpucu: bu kutu ya da sayfadaki başka bir kutu veritabanını daha önce değiştirmiş olabilir. \"Veritabanını sıfırla\" ile COMPANY'yi ilk hâline döndürüp tekrar deneyin.", "Hint: this box or another box on the page may have changed the database earlier. Use \"Reset database\" to bring COMPANY back to its starting state and try again."));
       }
       out.append(h("div", { class: `res-msg ${it.expected ? "expected" : "error"}` }, lines.join("\n")));
     }
@@ -61,10 +62,10 @@ export function renderItems(out, items) {
  * Rows come from the running database when it is up (so earlier INSERTs show), otherwise from Figure 5.6.
  * getSQL() is called again on refresh() (the box's code can change). Returns the element, with .refresh().
  */
-export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow = false } = {}) {
+export function tableContext(getSQL, { label = tl("COMPANY veritabanı", "COMPANY database"), alwaysShow = false } = {}) {
   const chips = h("span", { class: "ctx-chips" });
   const panel = h("div", { class: "ctx-panel", hidden: true });
-  const el = h("div", { class: "sqlbox-ctx" }, h("span", { class: "ctx-db", title: "Kutular kitabın COMPANY veritabanı üzerinde çalışır: 8 çalışan, 3 departman, 6 proje" }, label), chips, panel);
+  const el = h("div", { class: "sqlbox-ctx" }, h("span", { class: "ctx-db", title: tl("Kutular kitabın COMPANY veritabanı üzerinde çalışır: 8 çalışan, 3 departman, 6 proje", "The boxes run on the book's COMPANY database: 8 employees, 3 departments, 6 projects") }, label), chips, panel);
   let open = null;
   async function show(t, { reload = false } = {}) {
     if (!reload) open = open === t ? null : t;
@@ -79,14 +80,14 @@ export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow
     if (!cols) ({ cols, rows } = companyData()[t]);
     if (open !== t) return;
     panel.replaceChildren(
-      relationTable(cols, types, rows, { caption: `${t}: ${rows.length} satır` }),
-      h("div", { class: "small muted" }, live ? "Veritabanının şu anki hâli (kutularda yaptığınız değişiklikler dahil)." : "COMPANY'nin başlangıç verisi (kitapta Figure 5.6). Kutularda yaptığınız değişiklikler, veritabanı başlayınca burada görünür."));
+      relationTable(cols, types, rows, { caption: tl(`${t}: ${rows.length} satır`, `${t}: ${rows.length} rows`) }),
+      h("div", { class: "small muted" }, live ? tl("Veritabanının şu anki hâli (kutularda yaptığınız değişiklikler dahil).", "The database as it is now (including changes made in the boxes).") : tl("COMPANY'nin başlangıç verisi (kitapta Figure 5.6). Kutularda yaptığınız değişiklikler, veritabanı başlayınca burada görünür.", "COMPANY's starting data (Figure 5.6 in the book). Once the database has started, changes made in the boxes show here.")));
   }
   el.refresh = () => {
     const ts = tablesIn(getSQL());
     el.hidden = !ts.length && !alwaysShow;
     if (ts.join() === [...chips.children].map((c) => c.dataset.t).join()) return;
-    chips.replaceChildren(...ts.map((t) => h("button", { type: "button", class: "ctx-chip", dataset: { t }, "aria-pressed": "false", title: `${t} tablosunun satırlarını göster`, onclick: () => show(t) }, t)));
+    chips.replaceChildren(...ts.map((t) => h("button", { type: "button", class: "ctx-chip", dataset: { t }, "aria-pressed": "false", title: tl(`${t} tablosunun satırlarını göster`, `Show the rows of ${t}`), onclick: () => show(t) }, t)));
     if (open && !ts.includes(open)) show(open);
     el.hidden = !ts.length && !alwaysShow;
   };
@@ -102,10 +103,11 @@ const announceChange = () => window.dispatchEvent(new Event(DB_CHANGED));
 
 /** What the engine is doing right now, in words (shown next to the spinner). */
 export function loadingText(info) {
-  if (info?.stage === "compile") return "MySQL derleniyor … (yavaş bilgisayarlarda 10–30 saniye sürebilir)";
-  if (info?.stage === "setup") return "COMPANY veritabanı kuruluyor …";
-  const mb = info?.mb ? `${Math.round(info.mb)} / ≈ 87 MB` : "başlıyor";
-  return `MySQL tarayıcınıza indiriliyor: ${mb} (yalnızca ilk seferde; sonra tarayıcının önbelleğinden gelir)`;
+  if (info?.stage === "cache") return tl("MySQL önbellekten yükleniyor …", "Loading MySQL from the cache …");
+  if (info?.stage === "compile") return tl("MySQL derleniyor … (yavaş bilgisayarlarda 10–30 saniye sürebilir)", "Compiling MySQL … (10–30 seconds on a slow computer)");
+  if (info?.stage === "setup") return tl("COMPANY veritabanı kuruluyor …", "Setting up the COMPANY database …");
+  const mb = info?.mb ? `${Math.round(info.mb)} / ≈ 87 MB` : tl("başlıyor", "starting");
+  return tl(`MySQL tarayıcınıza indiriliyor: ${mb} (yalnızca ilk seferde; sonra tarayıcının önbelleğinden gelir)`, `Downloading MySQL into your browser: ${mb} (first time only; afterwards it comes from the browser's cache)`);
 }
 
 function loadingLine() {
@@ -118,7 +120,12 @@ function loadingLine() {
 /** The engine failed to start: the reason and what the reader can do about it. */
 export function startError(e) {
   return h("div", { class: "res-msg error" },
-    `MySQL başlatılamadı: ${e?.message || e}\n`
+    EN ? `MySQL could not start: ${e?.message || e}\n`
+      + "What you can do: (1) Press ▶ Run again, or reload the page. "
+      + "(2) Check your connection: the engine is downloaded once, about 24 MB compressed. "
+      + "(3) An ad blocker or a school/company network filter may be blocking .wasm files; try another network or a private window. "
+      + "(4) Use a current Chrome, Edge, Firefox or Safari; if the computer is low on memory, close other tabs."
+    : `MySQL başlatılamadı: ${e?.message || e}\n`
     + "Yapabilecekleriniz: (1) Tekrar ▶ Çalıştır'a basın, ya da sayfayı yenileyin. "
     + "(2) Bağlantınızı kontrol edin: motor ilk seferde ≈ 24 MB sıkıştırılmış olarak indirilir. "
     + "(3) Reklam engelleyici ya da kurum/okul ağının filtresi .wasm dosyalarını engelliyor olabilir; başka bir ağda ya da gizli pencerede deneyin. "
@@ -136,7 +143,7 @@ export function createSqlBox(opts = {}) {
   const id = ++boxCount;
   const original = opts.code ?? "";
   const saved = opts.saveKey ? store.get(opts.saveKey) : null;
-  const ta = h("textarea", { spellcheck: "false", autocapitalize: "off", autocomplete: "off", "aria-label": `SQL editörü ${opts.title || id}`, placeholder: opts.placeholder || "" });
+  const ta = h("textarea", { spellcheck: "false", autocapitalize: "off", autocomplete: "off", "aria-label": tl(`SQL editörü ${opts.title || id}`, `SQL editor ${opts.title || id}`), placeholder: opts.placeholder || "" });
   ta.value = saved ?? original;
   const pre = h("pre", { "aria-hidden": "true" });
   const editor = h("div", { class: "editor" }, pre, ta);
@@ -159,22 +166,22 @@ export function createSqlBox(opts = {}) {
     }
   });
 
-  const runBtn = button("▶ Çalıştır", () => run(), { kind: "primary", title: "Çalıştır (Ctrl+Enter)" });
+  const runBtn = button(tl("▶ Çalıştır", "▶ Run"), () => run(), { kind: "primary", title: tl("Çalıştır (Ctrl+Enter)", "Run (Ctrl+Enter)") });
   const actions = h("div", { class: "sqlbox-actions" }, runBtn);
   if (original || opts.saveKey) {
-    actions.append(button("↺ Koda dön", () => { ta.value = original; store.set(opts.saveKey, null); paint(); out.replaceChildren(); }, { title: "Kutunun ilk hâline dön" }));
+    actions.append(button(tl("↺ Koda dön", "↺ Restore code"), () => { ta.value = original; store.set(opts.saveKey, null); paint(); out.replaceChildren(); }, { title: tl("Kutunun ilk hâline dön", "Go back to the box's original code") }));
   }
   if (opts.resetButton !== false) {
-    actions.append(button("Veritabanını sıfırla", async () => {
+    actions.append(button(tl("Veritabanını sıfırla", "Reset database"), async () => {
       out.replaceChildren(loadingLine());
       try {
         await reset();
         announceChange();
-        out.replaceChildren(h("div", { class: "res-msg ok" }, "COMPANY başlangıç verisine döndürüldü (yaptığınız değişiklikler geri alındı)."));
+        out.replaceChildren(h("div", { class: "res-msg ok" }, tl("COMPANY başlangıç verisine döndürüldü (yaptığınız değişiklikler geri alındı).", "COMPANY is back to its starting data (your changes were undone).")));
       } catch (e) {
         out.replaceChildren(startError(e));
       }
-    }, { title: "COMPANY tablolarını kitaptaki ilk hâline döndür (yaptığınız INSERT/UPDATE/DELETE geri alınır)" }));
+    }, { title: tl("COMPANY tablolarını kitaptaki ilk hâline döndür (yaptığınız INSERT/UPDATE/DELETE geri alınır)", "Bring the COMPANY tables back to the book's starting state (your INSERT/UPDATE/DELETE are undone)") }));
   }
   const head = h("div", { class: "sqlbox-head" }, h("div", { class: "sqlbox-title", html: opts.title || "SQL" }), actions);
   const box = h("div", { class: "sqlbox" }, head);
@@ -185,11 +192,11 @@ export function createSqlBox(opts = {}) {
     box.append(ctx);
   }
   box.append(editor, out);
-  if (opts.foot !== false) box.append(h("div", { class: "sqlbox-foot" }, opts.note ? `${opts.note} ` : "", "Düzenleyebilirsiniz · Ctrl+Enter ile çalıştırın · tarayıcınızda çalışan MySQL üzerinde"));
+  if (opts.foot !== false) box.append(h("div", { class: "sqlbox-foot" }, opts.note ? `${opts.note} ` : "", tl("Düzenleyebilirsiniz · Ctrl+Enter ile çalıştırın · tarayıcınızda çalışan MySQL üzerinde", "Editable · run with Ctrl+Enter · on MySQL running in your browser")));
 
   async function run() {
     const text = ta.value;
-    if (!text.trim()) { out.replaceChildren(h("div", { class: "res-msg warn" }, "Çalıştırılacak SQL yok.")); return null; }
+    if (!text.trim()) { out.replaceChildren(h("div", { class: "res-msg warn" }, tl("Çalıştırılacak SQL yok.", "There is no SQL to run."))); return null; }
     runBtn.disabled = true;
     if (state !== "ready") out.replaceChildren(loadingLine());
     let res;
@@ -201,10 +208,10 @@ export function createSqlBox(opts = {}) {
       runBtn.disabled = false;
       return null;
     }
-    if (res.error?.startup) { out.replaceChildren(startError(res.error.message.replace(/^MySQL başlatılamadı: /, ""))); runBtn.disabled = false; return res; }
+    if (res.error?.startup) { out.replaceChildren(startError(res.error.message.replace(/^(MySQL başlatılamadı|MySQL could not start): /, ""))); runBtn.disabled = false; return res; }
     out.replaceChildren();
     renderItems(out, res.items);
-    if (opts.expectError && !res.error) out.append(h("div", { class: "res-msg warn" }, "UYARI: bu kutunun hata vermesi bekleniyordu ama tüm komutlar başarılı oldu."));
+    if (opts.expectError && !res.error) out.append(h("div", { class: "res-msg warn" }, tl("UYARI: bu kutunun hata vermesi bekleniyordu ama tüm komutlar başarılı oldu.", "WARNING: this box was expected to fail, but every statement succeeded.")));
     if (opts.reference && !opts.check) {
       // expected answer = the model solution run on the same database state
       const ref = await runSQL(opts.reference.sql);
@@ -219,10 +226,10 @@ export function createSqlBox(opts = {}) {
     }
     if (opts.check) {
       const r = await checkResult(opts.check.expect, res.last, res.error);
-      out.append(h("div", { class: `res-msg ${r.ok ? "ok" : "warn"}` }, `${r.ok ? "✔" : "✘"} Alıştırma ${opts.check.n}: ${r.text}`));
+      out.append(h("div", { class: `res-msg ${r.ok ? "ok" : "warn"}` }, `${r.ok ? "✔" : "✘"} ${tl("Alıştırma", "Exercise")} ${opts.check.n}: ${r.text}`));
       box.dispatchEvent(new CustomEvent("exercisecheck", { bubbles: true, detail: { n: opts.check.n, ...r } }));
     }
-    if (res.inTransaction) out.append(h("div", { class: "res-msg warn" }, "Not: bir transaction hâlâ açık (BEGIN). Bitirmek için COMMIT ya da ROLLBACK çalıştırın."));
+    if (res.inTransaction) out.append(h("div", { class: "res-msg warn" }, tl("Not: bir transaction hâlâ açık (BEGIN). Bitirmek için COMMIT ya da ROLLBACK çalıştırın.", "Note: a transaction is still open (BEGIN). Run COMMIT or ROLLBACK to end it.")));
     runBtn.disabled = false;
     announceChange();
     opts.onResult?.(res);
@@ -252,7 +259,7 @@ export function enhanceSQL(root = document) {
       const setup = setupFrom ? (setupFrom.getCode ? setupFrom.getCode() : dedent(setupFrom.textContent)) : null;
       const box = createSqlBox({
         code, title: p.dataset.title, expectError: p.hasAttribute("data-expect-error"), setup,
-        note: setupFrom ? `Önce "${setupFrom.dataset?.title || (setupFrom.querySelector?.(".sqlbox-title")?.textContent ?? "")}" kutusunun kodu sessizce çalıştırılır.` : null,
+        note: setupFrom ? tl(`Önce "${setupFrom.dataset?.title || (setupFrom.querySelector?.(".sqlbox-title")?.textContent ?? "")}" kutusunun kodu sessizce çalıştırılır.`, `The code of the box "${setupFrom.dataset?.title || (setupFrom.querySelector?.(".sqlbox-title")?.textContent ?? "")}" is run first, silently.`) : null,
         rows: Number(p.dataset.rows) || undefined,
         saveKey: p.id ? `sql:${document.body.dataset.page}:${p.id}` : null,
       });
@@ -268,8 +275,8 @@ export function enhanceSQL(root = document) {
 export function engineBadge() {
   const el = h("span", { class: "small muted" });
   const paint = (s, info) => {
-    el.textContent = s === "ready" ? `MySQL hazır${info?.ms ? ` (${(info.ms / 1000).toFixed(1)} s)` : ""}`
-      : s === "loading" ? loadingText(info) : s === "failed" ? `MySQL yüklenemedi: ${info?.error?.message || ""}` : "MySQL ilk kullanımda yüklenecek";
+    el.textContent = s === "ready" ? `${tl("MySQL hazır", "MySQL ready")}${info?.ms ? ` (${(info.ms / 1000).toFixed(1)} s)` : ""}`
+      : s === "loading" ? loadingText(info) : s === "failed" ? `${tl("MySQL yüklenemedi", "MySQL failed to load")}: ${info?.error?.message || ""}` : tl("MySQL ilk kullanımda yüklenecek", "MySQL loads on first use");
   };
   paint(state, stateInfo);
   onState(paint);

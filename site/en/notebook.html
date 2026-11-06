@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notebook exercises · Database Systems</title>
+<meta name="description" content="The 10 SQL exercises of the class notebook (Ch 6–7, COMPANY database), on MySQL running in the browser with the notebook's own checker; hints, checked solutions and alternatives.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/notebook.js"></script>
+</head>
+<body data-page="notebook">
+<main><div class="content">
+
+<h1>Notebook exercises</h1>
+<p class="lead">The ten exercises of the class notebook <em>Exercises — Chapters 6 and 7</em>, from easy to hard: ★☆☆ easy (Ch 6), ★★☆ medium and ★★★ hard (Ch 7). No Colab or Docker needed: MySQL runs on this page.</p>
+
+<div class="callout key">
+  <p><strong>Answers are checked exactly as in the notebook.</strong> The result of the last query in the box is compared with the exercise's expected answer, and you get <strong>✔ Correct</strong>, or <strong>✘</strong> with what is wrong: the number of columns, the number of rows, the values or the order. Column names do not matter, numbers are compared to two decimals, and row order matters only if the exercise asks for it. As in the notebook, the expected answers are stored only as fingerprints (hashes).</p>
+</div>
+
+<div class="btn-row" style="align-items:center">
+  <div class="progress" id="progress"></div>
+  <span class="small muted" id="progress-text"></span>
+  <button type="button" class="btn small" id="reset-progress">Reset progress</button>
+</div>
+<p class="small muted">Your answers and progress are saved in this browser (they survive closing the page). If an exercise changes the data (e.g. you tried an UPDATE), the box's <em>Reset database</em> brings COMPANY back to its starting data.</p>
+
+<h2>The COMPANY schema</h2>
+<p>Underlined columns are primary keys, blue ones are foreign keys (hover to see what they refer to). The equivalent of the notebook's <code>%show</code> command, for all the rows:</p>
+<div id="schema"></div>
+<div id="show"></div>
+
+<div class="callout note">
+  <p><strong>To run the notebook on your own computer</strong>: <a href="https://colab.research.google.com/drive/1ArUuenMYSnN0ZNk_1Gsmn-CvnUnUeS30?usp=sharing" target="_blank" rel="noopener">Colab link</a> (run the two setup cells first; Colab installs PostgreSQL in a minute). The notebook was written for PostgreSQL; this page runs the same exercises on MySQL. The checker looks only at the rows of the result, so a correct query is accepted in both places. Mind the syntax differences: MySQL concatenates text with <code>CONCAT(a, b)</code> (not <code>||</code>) and has no <code>FULL OUTER JOIN</code>; <code>WITH RECURSIVE</code>, <code>EXCEPT</code> and <code>INTERSECT</code> exist in MySQL 8.</p>
+</div>
+
+<h2>Exercises</h2>
+<div id="exercises"></div>
+
+<h2>Next step</h2>
+<p>Done with the ten exercises? Move on to the <a href="exam-midterm.html#sql-problems">SQL problems of the midterm guide</a>, or write your own questions in the <a href="lab.html">SQL lab</a>.</p>
+
+</div></main>
+</body>
+</html>

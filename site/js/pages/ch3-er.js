@@ -2,20 +2,21 @@ import "../layout.js";
 import { mountExercise } from "../lib/er-inline.js";
 import { h, $, $$ } from "../lib/ui.js";
 import { erFigure, COMPANY_ER } from "../lib/erd.js";
+import { t as tl, tx, EN } from "../lib/i18n.js";
 
 const put = (id, fig) => { const host = $(`#${id}`); if (host) host.append(fig); };
 
 // ---- notation legend: one tiny diagram per symbol
 const legend = [
-  [{ id: "a", type: "entity", x: 70, y: 30, label: "ENTITY" }], "Entity type (varlık tipi)",
-  [{ id: "a", type: "entity", x: 70, y: 30, label: "WEAK", weak: true }], "Weak entity type (zayıf varlık)",
-  [{ id: "a", type: "rel", x: 70, y: 30, label: "RELATES" }], "Relationship type (ilişki tipi)",
-  [{ id: "a", type: "rel", x: 70, y: 30, label: "IDENT", ident: true }], "Identifying relationship (tanımlayıcı ilişki)",
-  [{ id: "a", type: "attr", x: 70, y: 30, label: "Attribute" }], "Attribute (öznitelik)",
-  [{ id: "a", type: "attr", x: 70, y: 30, label: "Key", key: true }], "Key attribute (anahtar, altı çizili)",
-  [{ id: "a", type: "attr", x: 70, y: 30, label: "Partial", pkey: true }], "Partial key (kısmi anahtar, kesik altı çizili)",
-  [{ id: "a", type: "attr", x: 70, y: 30, label: "Multi", multi: true }], "Multivalued attribute (çok değerli, çift elips)",
-  [{ id: "a", type: "attr", x: 70, y: 30, label: "Derived", derived: true }], "Derived attribute (türetilmiş, kesik elips)",
+  [{ id: "a", type: "entity", x: 70, y: 30, label: "ENTITY" }], tl("Entity type (varlık tipi)", "Entity type"),
+  [{ id: "a", type: "entity", x: 70, y: 30, label: "WEAK", weak: true }], tl("Weak entity type (zayıf varlık)", "Weak entity type"),
+  [{ id: "a", type: "rel", x: 70, y: 30, label: "RELATES" }], tl("Relationship type (ilişki tipi)", "Relationship type"),
+  [{ id: "a", type: "rel", x: 70, y: 30, label: "IDENT", ident: true }], tl("Identifying relationship (tanımlayıcı ilişki)", "Identifying relationship"),
+  [{ id: "a", type: "attr", x: 70, y: 30, label: "Attribute" }], tl("Attribute (öznitelik)", "Attribute"),
+  [{ id: "a", type: "attr", x: 70, y: 30, label: "Key", key: true }], tl("Key attribute (anahtar, altı çizili)", "Key attribute (underlined)"),
+  [{ id: "a", type: "attr", x: 70, y: 30, label: "Partial", pkey: true }], tl("Partial key (kısmi anahtar, kesik altı çizili)", "Partial key (dashed underline)"),
+  [{ id: "a", type: "attr", x: 70, y: 30, label: "Multi", multi: true }], tl("Multivalued attribute (çok değerli, çift elips)", "Multivalued attribute (double ellipse)"),
+  [{ id: "a", type: "attr", x: 70, y: 30, label: "Derived", derived: true }], tl("Derived attribute (türetilmiş, kesik elips)", "Derived attribute (dashed ellipse)"),
 ];
 const lg = h("div", { class: "schema-grid", style: { gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 200px), 1fr))" } });
 for (let i = 0; i < legend.length; i += 2) {
@@ -32,7 +33,7 @@ const comp = erFigure({
     { id: "m", type: "attr", x: 150, y: 22, label: "Minit", of: "n" },
     { id: "l", type: "attr", x: 240, y: 30, label: "Lname", of: "n" },
   ], links: [],
-}, "Composite attribute (bileşik): bileşenleri ana özniteliğe bağlanır.", { small: true });
+}, tl("Composite attribute (bileşik): bileşenleri ana özniteliğe bağlanır.", "Composite attribute: its components are attached to it."), { small: true });
 comp.style.margin = "0";
 const part = erFigure({
   width: 300, height: 80,
@@ -41,12 +42,12 @@ const part = erFigure({
     { id: "r", type: "rel", x: 150, y: 40, label: "R" },
     { id: "e2", type: "entity", x: 250, y: 40, label: "E2" },
   ], links: [{ a: "r", b: "e1", card: "1" }, { a: "r", b: "e2", card: "N", total: true }],
-}, "E1:E2 için 1:N kardinalite; E2'nin R'ye katılımı total (çift çizgi), E1'inki partial.", { small: true });
+}, tl("E1:E2 için 1:N kardinalite; E2'nin R'ye katılımı total (çift çizgi), E1'inki partial.", "Cardinality 1:N for E1:E2; E2 takes part in R totally (double line), E1 partially."), { small: true });
 part.style.margin = "0";
 lg.append(comp, part);
 put("legend", lg);
 
-put("company-er", erFigure(COMPANY_ER, "COMPANY ER şeması (Figure 3.2). Semboller için yukarıdaki gösterim tablosuna bakın."));
+put("company-er", erFigure(COMPANY_ER, tl("COMPANY ER şeması (Figure 3.2). Semboller için yukarıdaki gösterim tablosuna bakın.", "The COMPANY ER schema (Figure 3.2). See the notation table above for the symbols.")));
 
 // ---- relationship instances drawn from the Figure 5.6 data
 const EMPS = ["Smith", "Wong", "Zelaya", "Wallace", "Narayan", "English", "Jabbar", "Borg"];
@@ -54,15 +55,15 @@ const DEPTS = ["Research (5)", "Administration (4)", "Headquarters (1)"];
 const PROJS = ["ProductX", "ProductY", "ProductZ", "Computerization", "Reorganization", "Newbenefits"];
 const REL = {
   WORKS_FOR: { right: DEPTS, ratio: "N:1", pairs: [[0, 0], [1, 0], [2, 1], [3, 1], [4, 0], [5, 0], [6, 1], [7, 2]],
-    note: "Her çalışan <strong>tam bir</strong> departmanda çalışır; bir departmanda <strong>birçok</strong> çalışan olabilir → N:1. Tüm çalışanlar ve tüm departmanlar katılıyor → iki taraf da total." },
+    note: tl("Her çalışan <strong>tam bir</strong> departmanda çalışır; bir departmanda <strong>birçok</strong> çalışan olabilir → N:1. Tüm çalışanlar ve tüm departmanlar katılıyor → iki taraf da total.", "Every employee works for <strong>exactly one</strong> department; a department can have <strong>many</strong> employees → N:1. All employees and all departments take part → both sides total.") },
   MANAGES: { right: DEPTS, ratio: "1:1", pairs: [[1, 0], [3, 1], [7, 2]],
-    note: "Bir çalışan en fazla bir departmanı, bir departmanı tam bir çalışan yönetir → 1:1. 5 çalışan hiçbir şey yönetmiyor → EMPLOYEE'nin katılımı <strong>partial</strong>; her departmanın yöneticisi var → DEPARTMENT'ın katılımı <strong>total</strong>." },
+    note: tl("Bir çalışan en fazla bir departmanı, bir departmanı tam bir çalışan yönetir → 1:1. 5 çalışan hiçbir şey yönetmiyor → EMPLOYEE'nin katılımı <strong>partial</strong>; her departmanın yöneticisi var → DEPARTMENT'ın katılımı <strong>total</strong>.", "An employee manages at most one department, a department is managed by exactly one employee → 1:1. 5 employees manage nothing → EMPLOYEE's participation is <strong>partial</strong>; every department has a manager → DEPARTMENT's participation is <strong>total</strong>.") },
   WORKS_ON: { right: PROJS, ratio: "M:N", pairs: [[0, 0], [0, 1], [4, 2], [5, 0], [5, 1], [1, 1], [1, 2], [1, 3], [1, 4], [2, 5], [2, 3], [6, 3], [6, 5], [3, 5], [3, 4], [7, 4]],
-    note: "Bir çalışan birçok projede, bir projede birçok çalışan çalışabilir → M:N. Her ilişki örneğinin bir <em>Hours</em> değeri var: bu, ilişkinin özniteliğidir; ne yalnız çalışana ne yalnız projeye aittir." },
+    note: tl("Bir çalışan birçok projede, bir projede birçok çalışan çalışabilir → M:N. Her ilişki örneğinin bir <em>Hours</em> değeri var: bu, ilişkinin özniteliğidir; ne yalnız çalışana ne yalnız projeye aittir.", "An employee can work on many projects, a project can have many employees → M:N. Every relationship instance has an <em>Hours</em> value: an attribute of the relationship, belonging neither to the employee alone nor to the project alone.") },
 };
 const relHost = $("#instances");
 if (relHost) {
-  const seg = h("div", { class: "seg", role: "group", "aria-label": "İlişki tipi" });
+  const seg = h("div", { class: "seg", role: "group", "aria-label": tl("İlişki tipi", "Relationship type") });
   const note = h("p", { class: "stepper-note" });
   const svgHost = h("div");
   const draw = (name) => {
@@ -72,7 +73,7 @@ if (relHost) {
     const yR = (j) => R.right.length === 1 ? H / 2 : 30 + j * ((H - 50) / (R.right.length - 1));
     const used = new Set(R.pairs.map((p) => p[0]));
     const usedR = new Set(R.pairs.map((p) => p[1]));
-    let s = `<svg viewBox="0 0 620 ${H}" role="img" aria-label="${name} ilişki örnekleri">
+    let s = `<svg viewBox="0 0 620 ${H}" role="img" aria-label="${name} ${tl("ilişki örnekleri", "relationship instances")}">
       <style>.ri-t{font-size:12px;fill:var(--text);dominant-baseline:middle}.ri-d{fill:var(--s1)}.ri-d.off{fill:var(--surface-3);stroke:var(--axis)}.ri-r{fill:var(--s2)}.ri-r.off{fill:var(--surface-3);stroke:var(--axis)}
       .ri-l{stroke:var(--text-2);stroke-width:1.2}.ri-h{font-size:11px;font-weight:700;fill:var(--muted);letter-spacing:.05em;text-anchor:middle}.ri-x{fill:rgba(235,104,52,.12);stroke:var(--text-2)}</style>
       <text class="ri-h" x="80" y="12">EMPLOYEE</text><text class="ri-h" x="520" y="12">${name === "WORKS_ON" ? "PROJECT" : "DEPARTMENT"}</text>
@@ -85,8 +86,8 @@ if (relHost) {
     EMPS.forEach((e, i) => { s += `<circle class="ri-d${used.has(i) ? "" : " off"}" cx="150" cy="${yL(i)}" r="5"/><text class="ri-t" x="140" y="${yL(i)}" style="text-anchor:end">${e}</text>`; });
     R.right.forEach((d, j) => { s += `<circle class="ri-r${usedR.has(j) ? "" : " off"}" cx="460" cy="${yR(j)}" r="5"/><text class="ri-t" x="472" y="${yR(j)}" style="text-anchor:start">${d}</text>`; });
     s += "</svg>";
-    svgHost.innerHTML = `<figure class="er" style="margin:0">${s}<figcaption>Her küçük eşkenar dörtgen bir <em>relationship instance</em>'tır (kitapta Figure 3.9, 3.12, 3.13). Gri noktalar ilişkiye katılmayan varlıklar.</figcaption></figure>`;
-    note.innerHTML = `<strong>Kardinalite ${R.ratio}.</strong> ${R.note}`;
+    svgHost.innerHTML = `<figure class="er" style="margin:0">${s}<figcaption>${tl("Her küçük eşkenar dörtgen bir <em>relationship instance</em>'tır (kitapta Figure 3.9, 3.12, 3.13). Gri noktalar ilişkiye katılmayan varlıklar.", "Each small diamond is a <em>relationship instance</em> (Figures 3.9, 3.12, 3.13 in the book). Grey dots are entities that take no part in the relationship.")}</figcaption></figure>`;
+    note.innerHTML = `<strong>${tl("Kardinalite", "Cardinality")} ${R.ratio}.</strong> ${R.note}`;
     for (const b of $$("button", seg)) b.setAttribute("aria-pressed", String(b.textContent === name));
   };
   for (const name of Object.keys(REL)) seg.append(h("button", { type: "button", onclick: () => draw(name) }, name));
@@ -103,7 +104,7 @@ put("minmax", erFigure({
     { id: "D", type: "entity", x: 550, y: 60, label: "DEPARTMENT" },
   ],
   links: [{ a: "W", b: "E", card: "(1,1)", cardSide: -12, cardAtEntity: true }, { a: "W", b: "D", card: "(4,N)", cardSide: -12, cardAtEntity: true }],
-}, "(min, max) gösterimi: EMPLOYEE (1,1), DEPARTMENT (4,N); her çift kendi varlığının yanında.", { small: true }));
+}, tl("(min, max) gösterimi: EMPLOYEE (1,1), DEPARTMENT (4,N); her çift kendi varlığının yanında.", "(min, max) notation: EMPLOYEE (1,1), DEPARTMENT (4,N); each pair sits next to its own entity."), { small: true }));
 
 // ---- ternary relationship
 put("ternary", erFigure({
@@ -116,6 +117,6 @@ put("ternary", erFigure({
     { id: "q", type: "attr", x: 320, y: 10, label: "Quantity", of: "SU" },
   ],
   links: [{ a: "SU", b: "S", card: "M" }, { a: "SU", b: "P", card: "N" }, { a: "SU", b: "PA", card: "P" }],
-}, "Üçlü ilişki SUPPLY (Figure 3.17): s tedarikçisi j projesine p parçasını sağlıyor.", { small: true }));
+}, tl("Üçlü ilişki SUPPLY (Figure 3.17): s tedarikçisi j projesine p parçasını sağlıyor.", "The ternary relationship SUPPLY (Figure 3.17): supplier s supplies part p to project j."), { small: true }));
 
 mountExercise($("#draw-hospital"), "hospital");

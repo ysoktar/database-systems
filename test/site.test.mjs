@@ -32,6 +32,28 @@ for (const p of pages) {
   });
 }
 
+// The English twin of every page: same file name under en/, lang="en", same sections and the same SQL boxes,
+// so that the language switch can jump to the same section and every box behaves the same in both languages.
+const h2s = (html) => (html.match(/<h2[\s>]/g) || []).length;
+const boxes = (html) => [...html.matchAll(/<pre class="sql[^"]*"([^>]*)>([\s\S]*?)<\/pre>/g)].map((m) => m[1].replace(/data-title="[^"]*"/, "") + m[2]);
+const answers = (html) => [...html.matchAll(/data-answer="(\d)"/g)].map((m) => m[1]);
+for (const p of pages) {
+  test(`en/${p}: lang, data-page, links, same sections and SQL boxes as ${p}`, () => {
+    const enPath = join(site, "en", p);
+    assert.ok(existsSync(enPath), `en/${p} missing`);
+    const tr = readFileSync(join(site, p), "utf8"), en = readFileSync(enPath, "utf8");
+    assert.match(en, /<html lang="en">/);
+    assert.match(en, new RegExp(`data-page="${p.replace(/\.html$/, "")}"`));
+    for (const [, url] of en.matchAll(/(?:href|src)="([^"#:]+)(?:#[^"]*)?"/g)) {
+      if (url.startsWith("../vendor/")) continue;
+      assert.ok(existsSync(join(site, "en", url)), `en/${p}: ${url} does not exist`);
+    }
+    assert.equal(h2s(en), h2s(tr), `en/${p}: number of sections`);
+    assert.deepEqual(boxes(en), boxes(tr), `en/${p}: SQL boxes differ`);
+    assert.deepEqual(answers(en), answers(tr), `en/${p}: quiz answers differ`);
+  });
+}
+
 test("splitSQL splits like the notebook's _split_sql", () => {
   assert.deepEqual(splitSQL("SELECT 1; SELECT ';' -- x;\n; /* ; */ SELECT 2;"), ["SELECT 1", "SELECT ';' -- x;", "/* ; */ SELECT 2"]);
   // DELIMITER, as in the mysql client: a trigger body keeps its own semicolons

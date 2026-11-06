@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NULL and nested queries · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 7.1: NULL and three-valued logic, IS NULL, nested queries, IN, ANY/SOME/ALL, correlated nested queries, EXISTS and NOT EXISTS, division (every/all) queries, UNIQUE, explicit sets and renaming.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch7-nested.js"></script>
+</head>
+<body data-page="ch7-nested">
+<main><div class="content">
+
+<h1>NULL and nested queries</h1>
+<p class="lead">The first half of Ch 7: how NULLs affect comparisons (three-valued logic), using a query inside another query, and how to ask an "every" (∀) question in SQL.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Say whether a condition involving NULL is TRUE, FALSE or UNKNOWN; use IS NULL.</li>
+    <li>Write nested queries with IN, ANY/ALL and EXISTS; recognize whether a subquery is correlated.</li>
+    <li>Explain the NULL trap of NOT IN and avoid it with NOT EXISTS.</li>
+    <li>Write an "every …" (division) question with a double NOT EXISTS or with EXCEPT.</li>
+  </ul>
+</div>
+
+<h2>NULL and three-valued logic</h2>
+<p>NULL has three meanings: an <strong>unknown value</strong> (the value exists but is not known: the birth date is unknown), an <strong>unavailable / withheld value</strong> (it exists but is withheld: an unlisted home phone), a <strong>not applicable attribute</strong> (the <code>LastCollegeDegree</code> of someone with no college degree). SQL does not distinguish them.</p>
+<p>Each NULL is considered different from every other; so the result of a comparison involving NULL is neither TRUE nor FALSE: <strong>UNKNOWN</strong>. That is why SQL uses a three-valued logic:</p>
+<div id="tvl"></div>
+<div class="callout key">
+  <p><strong>WHERE selects only the rows for which it is TRUE</strong>; FALSE and UNKNOWN are discarded. To remember it: in AND, FALSE "wins"; in OR, TRUE "wins"; UNKNOWN remains only if the result cannot be decided otherwise. <code>NOT UNKNOWN = UNKNOWN</code>.</p>
+</div>
+<h3>IS NULL and IS NOT NULL</h3>
+<p>You cannot test whether a value is NULL with <code>= NULL</code> (the result is always UNKNOWN). <code>IS NULL</code> / <code>IS NOT NULL</code> are used for that.</p>
+<pre class="sql run" data-title="Q18 · Employees with no supervisor: = NULL versus IS NULL">
+-- wrong: Super_ssn = NULL is UNKNOWN for every row, so no row is returned
+SELECT Fname, Lname FROM EMPLOYEE WHERE Super_ssn = NULL;
+-- right (Q18)
+SELECT Fname, Lname FROM EMPLOYEE WHERE Super_ssn IS NULL;
+</pre>
+<p>In one of WORKS_ON's 16 rows (Borg, project 20) Hours is NULL. The box below counts a condition and its negation separately. <code>COUNT(*)</code> gives the number of rows in the result (all the aggregate functions are on <a href="ch7-joins.html#aggregate-functions">the next page</a>; here it is only used for counting). Predict before running: do the two numbers add up to 16?</p>
+<pre class="sql run" data-title="UNKNOWN rows drop out of both the condition and its negation">
+-- Hours is NULL for Borg on project 20
+SELECT COUNT(*) AS more_than_10     FROM WORKS_ON WHERE Hours > 10;
+SELECT COUNT(*) AS not_more_than_10 FROM WORKS_ON WHERE NOT (Hours > 10);
+SELECT COUNT(*) AS all_rows         FROM WORKS_ON;   -- 16, not 9 + 6
+</pre>
+<p class="small muted">The same rule holds in joins: rows whose join column is NULL do not match in an inner join (in Q8 Borg has no supervisor). How NULLs are handled in aggregate functions is on <a href="ch7-joins.html">the next page</a>.</p>
+
+<h2>Nested queries</h2>
+<p>A complete <code>SELECT</code> written in the <code>WHERE</code> (or <code>FROM</code>, <code>SELECT</code>) part of a query is called a <strong>nested query</strong> (inner query, subquery), and the query that contains it the <strong>outer query</strong>.</p>
+<h3>IN</h3>
+<p><code>v IN V</code>: TRUE if the value v is an element of the multiset V.</p>
+<p>The easiest way to read a nested query is to go <strong>from the inside out</strong>: first run the inner query on its own and see what it returns, then put those values in its place in the outer query. The box below does this step by step:</p>
+<pre class="sql run" data-title="From the inside out: the employees in Research">
+-- step 1: the inner query alone: which department number is Research?
+SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research';
+-- step 2: the outer query with that value written in by hand
+SELECT Fname, Lname FROM EMPLOYEE WHERE Dno IN (5);
+-- step 3: the nested query: the same answer, without knowing the number in advance
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  Dno IN (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research');
+</pre>
+<p>Q4A uses the same idea with two inner queries: one "the projects of the department Smith manages", the other "the projects Smith works on". The outer query selects the projects that are in either of these two sets (OR).</p>
+<pre class="sql run" data-title="Q4A · Projects that involve someone with the last name Smith as a worker or as a manager (with IN)">
+SELECT DISTINCT Pnumber
+FROM   PROJECT
+WHERE  Pnumber IN (SELECT Pnumber
+                   FROM   PROJECT, DEPARTMENT, EMPLOYEE
+                   WHERE  Dnum = Dnumber AND Mgr_ssn = Ssn AND Lname = 'Smith')
+   OR  Pnumber IN (SELECT Pno
+                   FROM   WORKS_ON, EMPLOYEE
+                   WHERE  Essn = Ssn AND Lname = 'Smith');
+</pre>
+<p>If the inner query returns a single column and a single row (a <em>scalar</em>), <code>=</code> can be used instead of <code>IN</code>. Tuples can be compared too:</p>
+<pre class="sql run" data-title="Tuple comparison · Employees with the same (project, hours) pair as 123456789">
+SELECT DISTINCT Essn
+FROM   WORKS_ON
+WHERE  (Pno, Hours) IN (SELECT Pno, Hours
+                        FROM   WORKS_ON
+                        WHERE  Essn = '123456789');
+</pre>
+
+<h3>ANY / SOME and ALL</h3>
+<ul>
+  <li><code>v = ANY V</code> (= <code>SOME</code>): TRUE if V has <em>at least one</em> element equal to v. <code>= ANY</code> ≡ <code>IN</code>.</li>
+  <li><code>v &gt; ALL V</code>: TRUE if v is greater than <em>every</em> element of V. If V is empty, <code>ALL</code> returns TRUE and <code>ANY</code> FALSE.</li>
+  <li>The other operators can be combined too: <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&lt;&gt;</code> (not equal). E.g. <code>v &lt;&gt; ALL V</code> means "v is equal to no element of V", i.e. <code>NOT IN</code>.</li>
+</ul>
+<pre class="sql run" data-title="Those who earn more than everyone in department 5 (ALL)">
+SELECT Lname, Fname, Salary
+FROM   EMPLOYEE
+WHERE  Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5);
+</pre>
+<pre class="sql run" data-title="Those who earn more than AT LEAST ONE person in department 5 (ANY)">
+SELECT Lname, Fname, Salary
+FROM   EMPLOYEE
+WHERE  Salary > ANY (SELECT Salary FROM EMPLOYEE WHERE Dno = 5);
+</pre>
+<div class="callout gotcha">
+  <p><strong>NOT IN and the NULL trap.</strong> If the inner query returns a NULL, <code>x NOT IN (…)</code> can never be TRUE: <code>x &lt;&gt; NULL</code> is UNKNOWN and, ANDed in, makes everything UNKNOWN. <code>NOT EXISTS</code> does not have this problem. In the box below the two queries ask the same question but give different answers.</p>
+</div>
+<p class="small muted">The inner part of the first query, <code>SELECT Super_ssn FROM EMPLOYEE</code>, returns eight values; one of them is NULL because Borg has no supervisor. For Smith, for example, the condition becomes <code>'123456789' &lt;&gt; '333445555' AND … AND '123456789' &lt;&gt; NULL</code>; the last term is UNKNOWN, so the whole condition is at best UNKNOWN and the row is not selected.</p>
+<pre class="sql run" data-title="Employees who supervise nobody: NOT IN and NOT EXISTS">
+-- Super_ssn contains a NULL (Borg), so NOT IN returns nothing
+SELECT Lname FROM EMPLOYEE
+WHERE  Ssn NOT IN (SELECT Super_ssn FROM EMPLOYEE);
+-- NOT EXISTS gives the expected answer
+SELECT Lname FROM EMPLOYEE E
+WHERE  NOT EXISTS (SELECT * FROM EMPLOYEE S WHERE S.Super_ssn = E.Ssn);
+</pre>
+
+<h3>Ambiguity and scope</h3>
+<p>An unqualified column name belongs to the tables of the <em>innermost</em> query that contains it. If the same table is used in the inner and the outer query, aliases are needed. The rule: a name not found in a table of the inner query is looked up in the outer tables.</p>
+
+<h2>Correlated nested queries</h2>
+<p>If the <code>WHERE</code> of the inner query uses a column of the outer query, the queries are <strong>correlated</strong>. The inner query is evaluated <em>once for each row</em> of the outer query (conceptually). That is why reading "from the inside out" does not work in one step here: the result of the inner query changes with the row the outer query is looking at.</p>
+<div class="callout example" data-label="Follow it for one row">
+  <p>In Q16 below, when the outer query looks at the row E = Wong the inner query becomes <code>WHERE 'Franklin' = D.Dependent_name AND 'M' = D.Sex</code>: Wong's dependents are Alice, Theodore and Joy; none of them is Franklin, the inner query returns nothing and Wong is not selected. Then for E = Smith the inner query becomes <code>'John' = Dependent_name AND 'M' = Sex</code>, empty again. For each of the eight employees the inner query is computed again, with that employee's values.</p>
+</div>
+<pre class="sql run" data-title="Q16 · Employees who have a dependent with the same first name and sex">
+SELECT E.Fname, E.Lname
+FROM   EMPLOYEE AS E
+WHERE  E.Ssn IN (SELECT D.Essn
+                 FROM   DEPENDENT AS D
+                 WHERE  E.Fname = D.Dependent_name AND E.Sex = D.Sex);
+</pre>
+<p>On COMPANY's starting data the result is empty: nobody has a dependent with their own first name and sex. The box below gives Smith a son named John, runs the same query again and deletes the row it added. Only John Smith appears in the result: the dependents of Wong and Wallace have names different from their own. (If you ran the INSERT yourself, the box above shows Smith too; that is correct. <em>Reset database</em> brings back the starting data.)</p>
+<pre class="sql run" data-title="Q16, once such a dependent is added">
+-- Smith (John, M) gets a son named John: E.Fname = D.Dependent_name AND E.Sex = D.Sex now holds for Smith
+INSERT INTO DEPENDENT VALUES ('123456789', 'John', 'M', '1990-01-01', 'Son');
+-- Q16 again: now John Smith is returned
+SELECT E.Fname, E.Lname
+FROM   EMPLOYEE AS E
+WHERE  E.Ssn IN (SELECT D.Essn
+                 FROM   DEPENDENT AS D
+                 WHERE  E.Fname = D.Dependent_name AND E.Sex = D.Sex);
+-- undo the insert, so that COMPANY is unchanged and the box can be run again
+DELETE FROM DEPENDENT WHERE Essn = '123456789' AND Dependent_name = 'John';
+</pre>
+<p>Every nested query that uses <code>=</code> or <code>IN</code>, correlated or not, can also be written as a single flat query (with a join):</p>
+<pre class="sql run" data-title="Q16A · The same query, with a join">
+SELECT E.Fname, E.Lname
+FROM   EMPLOYEE AS E, DEPENDENT AS D
+WHERE  E.Ssn = D.Essn AND E.Sex = D.Sex AND E.Fname = D.Dependent_name;
+</pre>
+
+<h2>EXISTS and NOT EXISTS</h2>
+<p><code>EXISTS (Q)</code>: TRUE if the result of Q has <em>at least one row</em>, FALSE if it is empty. (The SELECT list of the inner query does not matter; by convention <code>SELECT *</code> is written.) EXISTS never returns UNKNOWN.</p>
+<pre class="sql run" data-title="Q6 · Employees with no dependents">
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  NOT EXISTS (SELECT *
+                   FROM   DEPENDENT
+                   WHERE  Ssn = Essn);
+</pre>
+<pre class="sql run" data-title="Q7 · Managers who have at least one dependent">
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  EXISTS (SELECT * FROM DEPENDENT  WHERE Ssn = Essn)
+  AND  EXISTS (SELECT * FROM DEPARTMENT WHERE Ssn = Mgr_ssn);
+</pre>
+
+<h2>Division: "for every …"</h2>
+<p>SQL has no universal quantifier (∀, "for all"). Questions of the form "X is related to <strong>every</strong> element of Y" are written in two ways:</p>
+<ol>
+  <li><strong>With set difference</strong>: if (the set Y) <code>EXCEPT</code> (the set X is related to) is empty. <code>NOT EXISTS ( … EXCEPT … )</code>.</li>
+  <li><strong>With double negation</strong>: ∀y P(x, y) ≡ ¬∃y ¬P(x, y). "There is <em>no</em> element of Y that X is <em>not</em> related to": two nested <code>NOT EXISTS</code>.</li>
+</ol>
+<p>Let us build Q3A piece by piece. The question: "the employees who work on <em>every</em> project controlled by department 5". Think of a single employee, Wong:</p>
+<pre class="sql run" data-title="Building the division piece by piece (for Wong)">
+-- (1) the set Y: the projects of department 5
+SELECT Pnumber FROM PROJECT WHERE Dnum = 5;
+-- (2) the projects Wong works on
+SELECT Pno FROM WORKS_ON WHERE Essn = '333445555';
+-- (3) Y EXCEPT Wong's projects: the projects of department 5 that Wong does NOT work on
+SELECT Pnumber FROM PROJECT WHERE Dnum = 5
+EXCEPT
+SELECT Pno FROM WORKS_ON WHERE Essn = '333445555';
+</pre>
+<p>If (3) were empty, Wong would be working on every project of 5; but the result contains 1 (ProductX), so Wong is not selected. Q3A makes this check for every employee: it puts the outer query's row (<code>Ssn</code>) in place of <code>'333445555'</code> and tests that (3) is empty with <code>NOT EXISTS</code>.</p>
+<pre class="sql run" data-title="Q3A · Employees who work on EVERY project controlled by department 5 (with EXCEPT)">
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  NOT EXISTS ( (SELECT Pnumber
+                     FROM   PROJECT
+                     WHERE  Dnum = 5)
+                    EXCEPT
+                    (SELECT Pno
+                     FROM   WORKS_ON
+                     WHERE  Ssn = Essn) );
+</pre>
+<pre class="sql run" data-title="Q3B · The same query, with two NOT EXISTS">
+SELECT Lname, Fname
+FROM   EMPLOYEE
+WHERE  NOT EXISTS ( SELECT *
+                    FROM   WORKS_ON B
+                    WHERE  B.Pno IN (SELECT Pnumber
+                                     FROM   PROJECT
+                                     WHERE  Dnum = 5)
+                      AND  NOT EXISTS ( SELECT *
+                                        FROM   WORKS_ON C
+                                        WHERE  C.Essn = Ssn
+                                          AND  C.Pno = B.Pno ) );
+</pre>
+<p>The result is empty: nobody in COMPANY works on all three projects (1, 2, 3) of department 5. Reading Q3B: select the employee if there is <em>no</em> B such that "(1) B is a WORKS_ON row of someone working on one of 5's projects and (2) there is no row C showing that this employee works on B's project".</p>
+<div class="callout try">
+  <p>Change Q3A so that Wong appears in the result. Wong works on 2, 3, 10, 20; if you add a row for project 1 he covers all the projects of 5: <code>INSERT INTO WORKS_ON VALUES ('333445555', 1, 5.0);</code> Then ask "every project of department 4" (10 and 30) instead: who comes out?</p>
+</div>
+<div class="callout gotcha">
+  <p><strong>A common mistake:</strong> writing the "on every project" question with <code>WHERE Pno IN (SELECT Pnumber FROM PROJECT WHERE Dnum = 5)</code>. That means "on <em>at least one</em> project" (∃), not "on every project" (∀). The counting method also works (<code>HAVING COUNT(*) = (SELECT COUNT(*) …)</code>, <a href="notebook.html#ex8">notebook Exercise 8</a>) but needs care with duplicates and grouping.</p>
+</div>
+
+<h2>Other constructs</h2>
+<ul>
+  <li><strong>UNIQUE(Q)</strong>: TRUE if the result of Q has no duplicate rows (standard SQL; MySQL does not support it). Tests whether the result of a query is a set or a multiset.</li>
+  <li><strong>Explicit sets</strong>: <code>WHERE Pno IN (1, 2, 3)</code>.</li>
+  <li><strong>Renaming</strong>: new names for result columns with <code>AS</code>: <code>SELECT E.Lname AS Employee_name, S.Lname AS Supervisor_name</code> (Q8A).</li>
+</ul>
+<pre class="sql run" data-title="Q17 and Q8A · An explicit set and renaming columns">
+SELECT DISTINCT Essn FROM WORKS_ON WHERE Pno IN (1, 2, 3);
+SELECT E.Lname AS Employee_name, S.Lname AS Supervisor_name
+FROM   EMPLOYEE AS E, EMPLOYEE AS S
+WHERE  E.Super_ssn = S.Ssn;
+</pre>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="1" data-tables="EMPLOYEE">
+  <p>What does <code>SELECT Lname FROM EMPLOYEE WHERE Salary &gt; ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 7)</code> return? (There is no department 7.)</p>
+  <ol>
+    <li data-why="Correct: the inner query is empty; 'greater than every element of the empty set' is TRUE for every value.">All the employees</li>
+    <li data-why="That is how ANY behaves: on an empty set 'greater than at least one' is never satisfied. ALL is TRUE on an empty set.">Nobody</li>
+    <li data-why="An empty subquery is not an error; only the result set is empty.">An error: the subquery is empty</li>
+    <li data-why="Since there are no values to compare with, the highest salary cannot be singled out either; ALL is unconditionally TRUE on an empty set.">Only the highest-paid one (Borg)</li>
+  </ol>
+  <div class="explain">x &gt; ALL V means "V has no element greater than or equal to x"; if V is empty this is always true. So when you use ALL, think about the possibility that the subquery comes back empty.</div>
+  <pre class="sql run" data-title="Check it">SELECT Lname FROM EMPLOYEE WHERE Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 7);</pre>
+</div>
+<div class="quiz" data-answer="3" data-tables="EMPLOYEE DEPENDENT">
+  <p>Which query is <em>not</em> a <em>correct</em> answer to "employees who have at least one dependent"?</p>
+  <ol>
+    <li data-why="A correct answer: if the Ssn is among the Essns in DEPENDENT, there is at least one dependent."><code>SELECT Lname FROM EMPLOYEE WHERE Ssn IN (SELECT Essn FROM DEPENDENT)</code></li>
+    <li data-why="A correct answer: the correlated EXISTS tests whether the employee has at least one DEPENDENT row."><code>SELECT Lname FROM EMPLOYEE E WHERE EXISTS (SELECT * FROM DEPENDENT D WHERE D.Essn = E.Ssn)</code></li>
+    <li data-why="This is the one that is not correct: the join produces one row per dependent, and without DISTINCT Wong and Smith appear three times each. The question asks for 'employees', without duplicates."><code>SELECT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
+    <li data-why="A correct answer: DISTINCT removes the duplicates coming from the join."><code>SELECT DISTINCT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
+  </ol>
+  <div class="explain">IN and EXISTS select each employee at most once; a join produces one row for each matching pair of rows. Wong has three dependents, Smith three, Wallace one: C returns seven rows, the others three. (If two employees had the same last name, D would merge them too; <code>SELECT DISTINCT Ssn, Lname</code> is safer for that.)</div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <p>For an employee whose Salary is NULL, what is the result of the condition <code>WHERE Salary &gt; 30000 OR Dno = 5</code>? (The employee's Dno is 5.)</p>
+  <ol>
+    <li data-why="Salary &gt; 30000 on its own is UNKNOWN, true; but the other side of the OR (Dno = 5) is TRUE. UNKNOWN OR TRUE = TRUE.">UNKNOWN; the row is not selected</li>
+    <li data-why="A comparison involving NULL gives UNKNOWN, not FALSE; besides, in an OR the TRUE side decides the result.">FALSE; the row is not selected</li>
+    <li data-why="Correct: in an OR a single TRUE is enough.">TRUE; the row is selected</li>
+    <li data-why="Comparing with NULL is not an error; in three-valued logic it gives UNKNOWN.">An error</li>
+  </ol>
+  <div class="explain">UNKNOWN OR TRUE = TRUE. In an OR a single TRUE is enough. If Dno were 4, it would be UNKNOWN OR FALSE = UNKNOWN and the row would not be selected.</div>
+</div>
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE PROJECT">
+  <p><code>SELECT Lname FROM EMPLOYEE WHERE Dno NOT IN (SELECT Dnum FROM PROJECT WHERE Plocation = 'Houston')</code>. The projects in Houston are ProductZ (Dnum 5) and Reorganization (Dnum 1). Who is in the result?</p>
+  <ol>
+    <li data-why="NOT IN stays empty only when the inner query returns a NULL. Here the inner query returns {5, 1}, no NULL.">Nobody, NOT IN always returns nothing</li>
+    <li data-why="Correct: the employees with Dno ∉ {5, 1}, i.e. those in department 4.">Those in department 4: Zelaya, Wallace, Jabbar</li>
+    <li data-why="That would be the result of IN. NOT IN selects those <em>not</em> among the values the inner query returns.">Those in departments 5 and 1</li>
+    <li data-why="If the inner query were empty, NOT IN would be TRUE for everyone; but there are two projects in Houston.">All the employees</li>
+  </ol>
+  <div class="explain">Since there is no NULL in the inner query, NOT IN works normally: Dno ∉ {5, 1}. NOT IN returns nothing only when the inner query contains a NULL.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which one is a correlated nested query?</p>
+  <ol>
+    <li data-why="The inner query uses only DEPARTMENT's own columns; it is independent of the outer query and is computed once ({5})."><code>SELECT Lname FROM EMPLOYEE WHERE Dno IN (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research')</code></li>
+    <li data-why="The inner query (the average of all employees) uses no column of the outer query; it is a single number computed once."><code>SELECT Lname FROM EMPLOYEE WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE)</code></li>
+    <li data-why="There is no inner query here, only an explicit set of values."><code>SELECT Pname FROM PROJECT WHERE Pnumber IN (1, 2, 3)</code></li>
+    <li data-why="Correct: the inner query uses the outer query's E.Dno and is computed again for each employee."><code>SELECT Lname FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno)</code></li>
+  </ol>
+  <div class="explain">The criterion: does the inner query use a column of a table in the outer query? In D the inner query uses <code>E.Dno</code>; for each employee the average of their own department is computed again. B is independent: it is computed once. (<code>AVG</code> is the aggregate function that gives the average; on <a href="ch7-joins.html#aggregate-functions">the next page</a>.)</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Which is the correct template for "employees who work on all the projects"?</p>
+  <ol>
+    <li data-why="Correct: 'there is no project that E does not work on' (double negation)."><code>… WHERE NOT EXISTS (SELECT * FROM PROJECT P WHERE NOT EXISTS (SELECT * FROM WORKS_ON W WHERE W.Essn = E.Ssn AND W.Pno = P.Pnumber))</code></li>
+    <li data-why="This says 'E has at least one WORKS_ON row': those who work on at least one project (∃), not on every project."><code>… WHERE EXISTS (SELECT * FROM WORKS_ON W WHERE W.Essn = E.Ssn)</code></li>
+    <li data-why="The same meaning as B: E is selected if its Ssn appears in WORKS_ON even once (at least one project)."><code>… WHERE E.Ssn IN (SELECT Essn FROM WORKS_ON)</code></li>
+    <li data-why="'E has no WORKS_ON row at all': those who work on no project."><code>… WHERE NOT EXISTS (SELECT * FROM WORKS_ON W WHERE W.Essn = E.Ssn)</code></li>
+  </ol>
+  <div class="explain">"There is no project that E does not work on": the outer NOT EXISTS ranges over the projects, the inner NOT EXISTS expresses "E does not work on this project". B and C mean "on at least one project", D "on no project".</div>
+
+</div>
+
+</div></main>
+</body>
+</html>

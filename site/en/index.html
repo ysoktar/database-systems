@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Database Systems · BIL372 midterm study site</title>
+<meta name="description" content="An interactive study site for the BIL372/BIL071 Database Systems midterm: Elmasri &amp; Navathe Ch 1–7, ER/EER, the relational model, SQL; notebook exercises on MySQL running in the browser.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/index.js"></script>
+</head>
+<body data-page="index">
+<main><div class="content">
+
+<section class="hero">
+  <div>
+    <div class="kicker"><span>BIL372/BIL071 Database Systems · Fall 2026–2027 · Elmasri &amp; Navathe, 7th edition, Ch 1–7</span></div>
+    <h1>Database Systems</h1>
+    <p class="question">How do we model a company's data, put it into tables, and query it with SQL?</p>
+    <p class="lead">Everything the midterm covers in one place: concepts, ER/EER modelling, the relational model and SQL. Every SQL box on these pages
+      is connected to <strong>a MySQL running in your browser</strong>: change the queries on the book's COMPANY database and run them right away.</p>
+    <div class="btn-row" style="margin-top:1rem">
+      <a class="btn primary" href="exam-midterm.html">Midterm guide →</a>
+      <a class="btn" href="notebook.html">Notebook exercises</a>
+      <a class="btn" href="er-studio.html">ER studio</a>
+    </div>
+  </div>
+  <div class="hero-viz" id="hero"></div>
+</section>
+
+<h2>Plan</h2>
+<p>The pages follow the order of the book's chapters. Each page gives the definitions, the book's COMPANY examples and the common mistakes, and ends with short quizzes; every example on the SQL pages can be run.</p>
+<div class="cards" id="parts"></div>
+
+<h2>How do the topics connect?</h2>
+<p>A database project goes in this order, and so does the book:</p>
+<ol>
+  <li><strong>Requirements → conceptual schema (Ch 3–4).</strong> Sentences like "every employee works for a department" become an ER/EER diagram: entities, relationships, cardinality and participation constraints.</li>
+  <li><strong>Conceptual schema → relational schema (Ch 5, the mapping in Ch 9).</strong> Entities and relationships become tables, keys become primary and foreign keys; integrity constraints protect the data.</li>
+  <li><strong>Relational schema → SQL (Ch 6–7).</strong> <code>CREATE TABLE</code> defines the schema; <code>SELECT</code> queries it, <code>INSERT/UPDATE/DELETE</code> change it; views, triggers and assertions add further rules.</li>
+  <li><strong>Underneath it all, the DBMS (Ch 1–2).</strong> The three-schema architecture and data independence keep programs safe from schema changes.</li>
+</ol>
+
+<h2>The sample database: COMPANY</h2>
+<p>The database used throughout the book (and in the notebook): 8 employees, 3 departments, 6 projects. Every query on these pages runs on this data (Figure 5.6 in the book). Underlined columns are primary keys, blue ones are foreign keys.</p>
+<div id="schema"></div>
+
+<h2>How to use the site</h2>
+<div class="two-col">
+  <div>
+    <h3>SQL boxes</h3>
+    <p>Change the query in a box and press <strong>▶ Run</strong> (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). The first run downloads the MySQL engine into your browser (≈ 23 MB, cached afterwards). Click the table names above a box to see the rows of the tables it uses. INSERT/UPDATE/DELETE change the data; <strong>Reset database</strong> brings everything back to the book's state.</p>
+  </div>
+  <div>
+    <h3>Boxes</h3>
+    <div class="callout key"><p>The rule to remember from a section.</p></div>
+    <div class="callout gotcha"><p>A mistake often made in exams, and how to avoid it.</p></div>
+  </div>
+</div>
+<pre class="sql run" data-title="Try it: the three best-paid employees">
+SELECT Fname, Lname, Salary
+FROM   EMPLOYEE
+ORDER BY Salary DESC
+LIMIT 3;
+</pre>
+
+<div class="callout note">
+  <p>This site is not official course material and does not replace the slides or the book. Scope: Ch 1–7. The checker of the notebook exercises uses the same fingerprints (hashes) as the notebook.</p>
+</div>
+
+</div></main>
+</body>
+</html>

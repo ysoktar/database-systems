@@ -128,7 +128,20 @@ WHERE  E.Ssn IN (SELECT D.Essn
                  FROM   DEPENDENT AS D
                  WHERE  E.Fname = D.Dependent_name AND E.Sex = D.Sex);
 </pre>
-<p>Sonuç boş: COMPANY'de böyle bir çalışan yok. Bir tane ekleyip tekrar deneyebilirsiniz: <code>INSERT INTO DEPENDENT VALUES ('123456789', 'John', 'M', '1990-01-01', 'Son');</code>. <code>=</code> ya da <code>IN</code> kullanan, correlated olan ya da olmayan her nested query, tek bir düz (join'li) sorgu olarak da yazılabilir:</p>
+<p>COMPANY'nin başlangıç verisinde sonuç boştur: kimsenin kendi adını ve cinsiyetini taşıyan bir bağımlısı yok. Aşağıdaki kutu Smith'e John adlı bir oğul ekler, aynı sorguyu yeniden çalıştırır ve eklediği satırı siler. Sonuçta yalnızca John Smith görünür: Wong'un, Wallace'ın bağımlılarının adları kendi adlarından farklıdır. (INSERT'i kendiniz çalıştırdıysanız yukarıdaki kutu da Smith'i gösterir; bu doğrudur. <em>Veritabanını sıfırla</em> ile başlangıç verisine dönersiniz.)</p>
+<pre class="sql run" data-title="Q16, böyle bir bağımlı eklenince">
+-- Smith (John, M) gets a son named John: E.Fname = D.Dependent_name AND E.Sex = D.Sex now holds for Smith
+INSERT INTO DEPENDENT VALUES ('123456789', 'John', 'M', '1990-01-01', 'Son');
+-- Q16 again: now John Smith is returned
+SELECT E.Fname, E.Lname
+FROM   EMPLOYEE AS E
+WHERE  E.Ssn IN (SELECT D.Essn
+                 FROM   DEPENDENT AS D
+                 WHERE  E.Fname = D.Dependent_name AND E.Sex = D.Sex);
+-- undo the insert, so that COMPANY is unchanged and the box can be run again
+DELETE FROM DEPENDENT WHERE Essn = '123456789' AND Dependent_name = 'John';
+</pre>
+<p><code>=</code> ya da <code>IN</code> kullanan, correlated olan ya da olmayan her nested query, tek bir düz (join'li) sorgu olarak da yazılabilir:</p>
 <pre class="sql run" data-title="Q16A · Aynı sorgu, join ile">
 SELECT E.Fname, E.Lname
 FROM   EMPLOYEE AS E, DEPENDENT AS D

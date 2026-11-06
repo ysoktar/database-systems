@@ -1,6 +1,7 @@
 import "../layout.js";
 import { $ } from "../lib/ui.js";
 import { erFigure } from "../lib/erd.js";
+import { t as tl, tx, EN } from "../lib/i18n.js";
 
 $("#notation").append(erFigure({
   title: "ER/EER sembolleri",
@@ -27,4 +28,4 @@ $("#notation").append(erFigure({
     { a: "R1", b: "E1", card: "1" }, { a: "R1", b: "E2", card: "N", total: true },
     { a: "S", b: "d", total: true }, { a: "d", b: "A", subset: true }, { a: "d", b: "B", subset: true },
   ],
-}, "Üst sıra: entity, weak entity, relationship, identifying relationship, attribute, key, partial key, multivalued. Alt sıra: derived; 1:N ilişki (E2 total); disjoint-total specialization."));
+}, tl("Üst sıra: entity, weak entity, relationship, identifying relationship, attribute, key, partial key, multivalued. Alt sıra: derived; 1:N ilişki (E2 total); disjoint-total specialization.", "Top row: entity, weak entity, relationship, identifying relationship, attribute, key, partial key, multivalued. Bottom row: derived; a 1:N relationship (E2 total); a disjoint, total specialization.")));

@@ -2,12 +2,13 @@ import "../layout.js";
 import { mountExercise } from "../lib/er-inline.js";
 import { $ } from "../lib/ui.js";
 import { erFigure } from "../lib/erd.js";
+import { t as tl, tx, EN } from "../lib/i18n.js";
 
 const put = (id, fig) => { const host = $(`#${id}`); if (host) host.append(fig); };
 
 // Figure 4.1: specializations of EMPLOYEE
 put("spec-employee", erFigure({
-  title: "EMPLOYEE'nin özelleştirmeleri",
+  title: tl("EMPLOYEE'nin özelleştirmeleri", "Specializations of EMPLOYEE"),
   width: 900, height: 400,
   nodes: [
     { id: "E", type: "entity", x: 450, y: 70, label: "EMPLOYEE" },
@@ -36,11 +37,11 @@ put("spec-employee", erFigure({
     { a: "E", b: "d2", via: [[700, 110]], total: true },
     { a: "d2", b: "HE", subset: true }, { a: "d2", b: "SE", subset: true },
   ],
-}, "EMPLOYEE'nin üç özelleştirmesi (Figure 4.1): iş tipine göre (disjoint, partial, defining attribute Job_type), tek alt sınıflı MANAGER, ödeme biçimine göre (disjoint, total)."));
+}, tl("EMPLOYEE'nin üç özelleştirmesi (Figure 4.1): iş tipine göre (disjoint, partial, defining attribute Job_type), tek alt sınıflı MANAGER, ödeme biçimine göre (disjoint, total).", "Three specializations of EMPLOYEE (Figure 4.1): by job type (disjoint, partial, defining attribute Job_type), MANAGER with a single subclass, by pay method (disjoint, total).")));
 
 // Overlapping specialization (Figure 4.5)
 put("spec-part", erFigure({
-  title: "PART'ın overlapping özelleştirmesi",
+  title: tl("PART'ın overlapping özelleştirmesi", "The overlapping specialization of PART"),
   width: 640, height: 260,
   nodes: [
     { id: "P", type: "entity", x: 320, y: 50, label: "PART" },
@@ -55,11 +56,11 @@ put("spec-part", erFigure({
     { id: "u2", type: "attr", x: 570, y: 245, label: "List_price", of: "U" },
   ],
   links: [{ a: "P", b: "o", total: true }, { a: "o", b: "M", subset: true }, { a: "o", b: "U", subset: true }],
-}, "PART: overlapping ve total özelleştirme (Figure 4.5).", { small: true }));
+}, tl("PART: overlapping ve total özelleştirme (Figure 4.5).", "PART: an overlapping, total specialization (Figure 4.5)."), { small: true }));
 
 // Specialization lattice with a shared subclass (Figure 4.6)
 put("lattice", erFigure({
-  title: "Paylaşılan alt sınıf: ENGINEERING_MANAGER",
+  title: tl("Paylaşılan alt sınıf: ENGINEERING_MANAGER", "A shared subclass: ENGINEERING_MANAGER"),
   width: 640, height: 260,
   nodes: [
     { id: "E", type: "entity", x: 320, y: 30, label: "EMPLOYEE" },
@@ -77,7 +78,7 @@ put("lattice", erFigure({
     { a: "E", b: "d2", via: [[560, 30]], total: true }, { a: "d2", b: "S", subset: true },
     { a: "ENG", b: "EM", subset: true }, { a: "MAN", b: "EM", subset: true },
   ],
-}, "Lattice: ENGINEERING_MANAGER, ENGINEER ve MANAGER'ın paylaşılan alt sınıfı (Figure 4.6'dan sadeleştirildi).", { small: true }));
+}, tl("Lattice: ENGINEERING_MANAGER, ENGINEER ve MANAGER'ın paylaşılan alt sınıfı (Figure 4.6'dan sadeleştirildi).", "Lattice: ENGINEERING_MANAGER, a shared subclass of ENGINEER and MANAGER (simplified from Figure 4.6)."), { small: true }));
 
 // Category (union type), Figure 4.8
 put("category", erFigure({
@@ -99,6 +100,6 @@ put("category", erFigure({
     { a: "u", b: "OW", subset: true },
     { a: "OW", b: "OWN" },
   ],
-}, "OWNER = PERSON ∪ BANK ∪ COMPANY'nin alt kümesi (Figure 4.8).", { small: true }));
+}, tl("OWNER = PERSON ∪ BANK ∪ COMPANY'nin alt kümesi (Figure 4.8).", "OWNER ⊆ PERSON ∪ BANK ∪ COMPANY (Figure 4.8)."), { small: true }));
 
 mountExercise($("#draw-airline"), "airline");
