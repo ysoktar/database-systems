@@ -5,7 +5,9 @@
 //             group: "col"  rows coloured per value of the column (one colour per group),
 //             pad: true     shade NULL cells produced by an outer join,
 //             rowsAre: "groups"  each row is a group (counts say groups),
-//             before: { sql, flag, group, rowsAre, caption }  the input of the step, shown on the left of the result (before → after) }]
+//             flagStyle: "keep"  marked rows stay (an outer join pads them with NULLs) instead of being dropped,
+//             flagNote: [tr, en]  the caption for the marked rows ({n} = how many),
+//             before: { … } or [{ … }, …]  the input(s) of the step: { sql, flag, flagStyle, flagNote, group, rowsAre, caption }  the input of the step, shown on the left of the result (before → after) }]
 import { h, $$, highlightSQL } from "./ui.js";
 import { runSQL } from "./db.js";
 import { relationTable, startError } from "./sqlbox.js";
@@ -28,11 +30,11 @@ function pane(res, spec, { title, dropText, colors = new Map() } = {}) {
     // one colour per value for the whole stepper, so a group keeps its colour in "before", "after" and every step
     const values = [...new Set(rows.map((r) => r[gi]))].sort((x, y) => (x > y) - (x < y));
     for (const v of values) if (!colors.has(String(v))) colors.set(String(v), colors.size);
-    rows.forEach((r, i) => { groupOf[i] = colors.get(String(r[gi])); });
+    rows.forEach((r, i) => { groupOf[i] = r[gi] == null ? null : colors.get(String(r[gi])); });
   }
   const rowClass = (r, i) => [
-    flags && !flags[i] ? (spec.dropStyle === "dim" ? "dim" : "drop") : "",
-    gi >= 0 && !(flags && !flags[i]) ? `g${groupOf[i] % 6}` : "", // a dropped row shows only as dropped
+    flags && !flags[i] ? (spec.dropStyle === "dim" ? "dim" : spec.flagStyle === "keep" ? "nomatch" : "drop") : "",
+    gi >= 0 && groupOf[i] != null && !(flags && !flags[i]) ? `g${groupOf[i] % 6}` : "", // a marked row shows only its mark
     gi >= 0 && spec.groupBorders !== false && i > 0 && groupOf[i] !== groupOf[i - 1] ? "gstart" : "",
     spec.pad && r.some((v) => v === null) ? "pad" : "",
   ].join(" ").trim() || null;
@@ -42,7 +44,8 @@ function pane(res, spec, { title, dropText, colors = new Map() } = {}) {
   const unitTR = spec.rowsAre === "groups" ? "grup" : "satır", unitEN = spec.rowsAre === "groups" ? "groups" : "rows";
   const bits = [tl(`${rows.length} ${unitTR}`, `${rows.length} ${unitEN}`)];
   if (groups && spec.groupBorders !== false && spec.rowsAre !== "groups") bits.push(tl(`${groups} grup`, `${groups} groups`));
-  if (flags) bits.push(dropText ? dropText(dropped) : tl(`işaretli ${dropped} ${unitTR} bu adımda elenir`, `the ${dropped} marked ${unitEN} are dropped at this step`));
+  if (flags && spec.flagNote) { if (dropped) bits.push(tl(...spec.flagNote).replace("{n}", dropped)); }
+  else if (flags) bits.push(dropText ? dropText(dropped) : tl(`işaretli ${dropped} ${unitTR} bu adımda elenir`, `the ${dropped} marked ${unitEN} are dropped at this step`));
   return h("div", { class: "stepper-pane" },
     title ? h("div", { class: "stepper-pane-title" }, title) : null,
     h("div", { class: "res-caption" }, bits.join(" · ")),
@@ -66,15 +69,16 @@ export function queryStepper(steps, { intro } = {}) {
     code.hidden = s.showSql === false;
     out.replaceChildren(h("div", { class: "loading-db" }, h("span", { class: "spinner" }), tl("MySQL çalışıyor …", "MySQL is running …")));
     const my = ++token;
-    const [res, pre] = await Promise.all([runSQL(s.sql), s.before ? runSQL(s.before.sql) : null]);
+    const befores = s.before ? [].concat(s.before) : [];
+    const [res, ...pres] = await Promise.all([runSQL(s.sql), ...befores.map((b) => runSQL(b.sql))]);
     if (my !== token) return;
     out.replaceChildren();
-    const bad = [res, pre].find((r) => r?.error);
+    const bad = [res, ...pres].find((r) => r?.error);
     if (bad?.error?.startup) { out.append(startError(bad.items[0].message)); return; }
     if (bad) { out.append(h("div", { class: "res-msg error" }, bad.error.message)); return; }
     if (!s.before) { out.append(pane(res.last, { ...s, dropStyle: s.flag ? "dim" : undefined }, { colors, dropText: (n) => tl(`soluk olanlar bu adımda elenir (${n})`, `the faded rows are dropped at this step (${n})`) })); return; }
     out.append(h("div", { class: "stepper-compare" },
-      pane(pre.last, s.before, { colors, title: s.before.caption || tl("Önce: bu adıma gelen", "Before: what comes into this step") }),
+      h("div", { class: "stepper-inputs" }, ...befores.map((b, k) => pane(pres[k].last, b, { colors, title: b.caption || tl("Önce: bu adıma gelen", "Before: what comes into this step") }))),
       h("div", { class: "stepper-arrow", "aria-hidden": "true" }, s.label.replace(/^\d+ · /, "")),
       pane(res.last, s, { colors, title: s.after || tl("Sonra: bu adımın sonucu", "After: the result of this step") })));
   }
