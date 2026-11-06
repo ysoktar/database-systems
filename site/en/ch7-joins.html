@@ -143,11 +143,11 @@ FROM     &lt;table list&gt;                      -- 1
 <div class="callout gotcha">
   <p><strong>The Q28 trap: WHERE or HAVING?</strong> The question: "For each department that has more than five employees, the number of its employees who earn more than 40000." The first query below is <em>wrong</em>: WHERE runs <em>before</em> HAVING. Salaries below 40000 are discarded first, then HAVING selects "the departments with more than five employees earning over 40000". The right way is to find "the departments with more than five employees" in a separate inner query.</p>
 </div>
-<pre class="sql run" data-title="Q28 · Wrong and right (the threshold is 2 instead of 5, since COMPANY is small)">
--- WRONG: counts only employees with Salary > 40000 when testing the department size
+<pre class="sql run" data-title="Q28 · Wrong and right (smaller thresholds, since COMPANY is small: 2 instead of 5, 30000 instead of 40000)">
+-- WRONG: counts only employees with Salary > 30000 when testing the department size
 SELECT   Dno, COUNT(*)
 FROM     EMPLOYEE
-WHERE    Salary > 40000
+WHERE    Salary > 30000
 GROUP BY Dno
 HAVING   COUNT(*) > 2;
 -- RIGHT: departments with more than 2 employees (in total), then count their high earners
@@ -160,7 +160,7 @@ WHERE    Salary > 30000
                  HAVING   COUNT(*) > 2)
 GROUP BY Dno;
 </pre>
-<p class="small muted">In the second query the threshold was lowered to 30000 to show the difference. The wrong query returns nothing (at most one person per department earns over 40000); the right query returns 2 for Research (5) and 1 for Administration (4).</p>
+<p class="small muted">Because COMPANY is small, the book's thresholds were lowered: 2 employees instead of 5, 30000 instead of 40000; both queries use the same thresholds, so the only difference is where the condition sits. In the wrong query WHERE first drops salaries of 30000 and below; 2 people remain in Research (Wong, Narayan), 1 in Administration (Wallace), 1 in Headquarters (Borg), and HAVING COUNT(*) &gt; 2 lets no department through: the result is empty. The right query counts the department size with all employees (Research 4, Administration 3) and then counts their high earners: 2 for Research (5), 1 for Administration (4).</p>
 
 <div class="callout gotcha">
   <p><strong>The non-grouped column error.</strong> <code>SELECT Dno, Lname, COUNT(*) FROM EMPLOYEE GROUP BY Dno</code> is invalid: every group has many Lnames, and it is undefined which one would be shown. MySQL 8 rejects it with error 1055 ("nonaggregated column … is not functionally dependent on columns in GROUP BY clause"; this rule is the <code>ONLY_FULL_GROUP_BY</code> setting). In old MySQL versions, or with this setting turned off, the query runs but shows an <em>arbitrary</em> Lname for each group; in the exam this query counts as wrong. One exception: MySQL 8 recognizes <em>functional dependency</em>. When grouping by a table's primary key there is one row of that table in each group, so the table's other columns can be selected too: <code>SELECT Pnumber, Pname, COUNT(*) … GROUP BY Pnumber</code> is accepted. For the book and the exam keep the rule simple: write every non-grouped column in SELECT into GROUP BY too (<code>GROUP BY Pnumber, Pname</code>, as in Q25).</p>
