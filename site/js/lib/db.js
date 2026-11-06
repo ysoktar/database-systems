@@ -1,5 +1,6 @@
 // One MySQL per page, in the browser: go-mysql-server (a MySQL-compatible engine) compiled to WebAssembly (engine/).
-// It is downloaded (≈ 23 MB compressed, cached by the browser afterwards) the first time a SQL box is used on a page,
+// It is downloaded (≈ 23 MB compressed) the first time a SQL box is used and then kept in Cache Storage under its content
+// hash (engineBytes below), so later visits and new deploys of the site load it from the disk until the engine changes;
 // then set up with the COMPANY schema and data, as the notebook's sqlnb.setup(reset=True) does.
 import { SCHEMA_SQL, DATA_SQL, TABLES } from "./company.js";
 import { splitSQL, firstWord, caption, commandTag } from "./sqlcore.js";
@@ -65,11 +66,47 @@ async function download(url) {
   }
 }
 
+/**
+ * The engine, from the browser's Cache Storage when this exact engine was downloaded before.
+ * engine.json (a few bytes, always revalidated) names the engine by a hash of its content; the engine is kept under
+ * that hash, so a new deploy of the site does not download it again unless the engine itself changed. Without
+ * Cache Storage (a private window, an old browser, a full disk) it is simply downloaded, as before.
+ */
+const CACHE = "mysql-engine";
+async function engineBytes() {
+  let info = null;
+  try {
+    const r = await fetch(new URL("engine.json", base), { cache: "no-cache" });
+    if (r.ok) info = await r.json();
+  } catch { /* no manifest: download without caching */ }
+  const url = new URL(info?.hash ? `mysql.wasm?v=${info.hash}` : "mysql.wasm", base);
+  let cache = null;
+  try { cache = info?.hash && globalThis.caches ? await caches.open(CACHE) : null; } catch { cache = null; }
+  if (cache) {
+    try {
+      const hit = await cache.match(url);
+      if (hit) {
+        setState("loading", { stage: "cache" });
+        const bytes = new Uint8Array(await hit.arrayBuffer());
+        if (!info.bytes || bytes.length === info.bytes) return bytes;
+      }
+    } catch { /* a broken entry: download again */ }
+  }
+  const bytes = await download(url);
+  if (cache) {
+    try {
+      for (const req of await cache.keys()) if (req.url !== url.href) await cache.delete(req); // older engines
+      await cache.put(url, new Response(bytes, { headers: { "content-type": "application/wasm" } }));
+    } catch { /* quota or private mode: the next visit downloads again */ }
+  }
+  return bytes;
+}
+
 async function create() {
   setState("loading", { stage: "download", mb: 0 });
   const t0 = performance.now();
   await loadGlue();
-  const bytes = await download(new URL("mysql.wasm", base));
+  const bytes = await engineBytes();
   setState("loading", { stage: "compile" });
   await nextFrame();
   let timer = 0;

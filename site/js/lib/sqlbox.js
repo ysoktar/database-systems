@@ -103,6 +103,7 @@ const announceChange = () => window.dispatchEvent(new Event(DB_CHANGED));
 
 /** What the engine is doing right now, in words (shown next to the spinner). */
 export function loadingText(info) {
+  if (info?.stage === "cache") return tl("MySQL önbellekten yükleniyor …", "Loading MySQL from the cache …");
   if (info?.stage === "compile") return tl("MySQL derleniyor … (yavaş bilgisayarlarda 10–30 saniye sürebilir)", "Compiling MySQL … (10–30 seconds on a slow computer)");
   if (info?.stage === "setup") return tl("COMPANY veritabanı kuruluyor …", "Setting up the COMPANY database …");
   const mb = info?.mb ? `${Math.round(info.mb)} / ≈ 87 MB` : tl("başlıyor", "starting");
