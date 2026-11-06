@@ -48,9 +48,10 @@ export function renderItems(out, items) {
     else if (it.kind === "error") {
       // as the mysql client prints it: ERROR 1062 (23000): Duplicate entry …
       const lines = [`${it.expected ? tl("BEKLENEN HATA", "EXPECTED ERROR") : tl("HATA", "ERROR")} ${it.code || ""} (${it.state || "HY000"}): ${it.message}`];
+      if (it.hint) lines.push(`→ ${it.hint}`);
       if (it.total > 1) lines.push(tl(`(Kutudaki ${it.total} komutun ${it.index}. komutu; kalanlar çalıştırılmadı.)`, `(Statement ${it.index} of the ${it.total} in the box; the rest were not run.)`));
       // objects that already exist (or are already gone) usually mean the box changed the database on an earlier run
-      if (!it.expected && [1050, 1060, 1061, 1146, 1054, 1091, 1062, 1359, 1304, 1007, 1008, 1051].includes(it.code)) {
+      if (!it.expected && !it.hint && [1050, 1060, 1061, 1146, 1054, 1091, 1062, 1359, 1304, 1007, 1008, 1051].includes(it.code)) {
         lines.push(tl("İpucu: bu kutu ya da sayfadaki başka bir kutu veritabanını daha önce değiştirmiş olabilir. \"Veritabanını sıfırla\" ile COMPANY'yi ilk hâline döndürüp tekrar deneyin.", "Hint: this box or another box on the page may have changed the database earlier. Use \"Reset database\" to bring COMPANY back to its starting state and try again."));
       }
       out.append(h("div", { class: `res-msg ${it.expected ? "expected" : "error"}` }, lines.join("\n")));
@@ -209,7 +210,13 @@ export function createSqlBox(opts = {}) {
     renderItems(out, res.items);
     // the statement that failed: its line numbers turn red (or amber when the error is the point of the box)
     const err = res.items.find((it) => it.kind === "error");
-    if (err?.index) cv.markLines(statementLines(text, splitSQL(text), err.index), err.expected ? "expected" : "error");
+    if (err?.index) {
+      const lines = statementLines(text, splitSQL(text), err.index);
+      // the line with the misspelled name, when it can be found; otherwise the whole statement
+      const src = text.split("\n");
+      const at = err.word ? lines.filter((n) => src[n - 1]?.toLowerCase().includes(err.word.toLowerCase())) : [];
+      cv.markLines(at.length ? at : lines, err.expected ? "expected" : "error");
+    }
     const n = splitSQL(text).length;
     out.append(h("div", { class: "res-time" }, [tl(`${n} komut`, `${n} statement${n === 1 ? "" : "s"}`), t0 ? `${Math.max(1, Math.round(performance.now() - t0))} ms` : null].filter(Boolean).join(" · ")));
     if (opts.expectError && !res.error) out.append(h("div", { class: "res-msg warn" }, tl("UYARI: bu kutunun hata vermesi bekleniyordu ama tüm komutlar başarılı oldu.", "WARNING: this box was expected to fail, but every statement succeeded.")));
