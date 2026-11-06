@@ -103,12 +103,12 @@ INSERT INTO WORKS_ON VALUES ('123456789', 3, 1000.0);
 </ul>
 
 <h3>Referential integrity ve foreign key</h3>
-<p>İki ilişki arasındaki tutarlılık: bir ilişkideki tuple, başka bir ilişkide <em>var olan</em> bir tuple'a başvurmalıdır.</p>
-<p>R<sub>1</sub>'deki FK öznitelik kümesi, R<sub>2</sub>'nin primary key'ine başvuran bir <strong>foreign key</strong>'dir ancak ve ancak: (1) FK'nın öznitelikleri PK'nınkilerle aynı domain'lere sahiptir; (2) R<sub>1</sub>'deki her t<sub>1</sub> için ya t<sub>1</sub>[FK] = t<sub>2</sub>[PK] olan bir t<sub>2</sub> ∈ r(R<sub>2</sub>) vardır ya da t<sub>1</sub>[FK] NULL'dur. R<sub>1</sub> <em>referencing</em>, R<sub>2</sub> <em>referenced</em> ilişkidir.</p>
+<p>İki ilişki arasındaki tutarlılık: bir ilişkideki tuple, başka bir ilişkide <em>var olan</em> bir tuple'a referans vermelidir.</p>
+<p>R<sub>1</sub>'deki FK öznitelik kümesi, R<sub>2</sub>'nin primary key'ine referans veren bir <strong>foreign key</strong>'dir ancak ve ancak: (1) FK'nın öznitelikleri PK'nınkilerle aynı domain'lere sahiptir; (2) R<sub>1</sub>'deki her t<sub>1</sub> için ya t<sub>1</sub>[FK] = t<sub>2</sub>[PK] olan bir t<sub>2</sub> ∈ r(R<sub>2</sub>) vardır ya da t<sub>1</sub>[FK] NULL'dur. R<sub>1</sub> <em>referencing</em>, R<sub>2</sub> <em>referenced</em> ilişkidir.</p>
 <ul>
-  <li>FK, kendi ilişkisinin PK'sına da başvurabilir: <code>EMPLOYEE.Super_ssn → EMPLOYEE.Ssn</code> (recursive ilişki).</li>
+  <li>FK, kendi ilişkisinin PK'sına da referans verebilir: <code>EMPLOYEE.Super_ssn → EMPLOYEE.Ssn</code> (recursive ilişki).</li>
   <li>FK, PK'nın parçası olabilir: WORKS_ON(<u>Essn</u>, <u>Pno</u>, Hours)'da Essn ve Pno hem PK'nın parçası hem FK. Bu durumda NULL olamazlar (entity integrity).</li>
-  <li>Şema diyagramında FK'dan başvurduğu PK'ya bir ok çizilir (kitapta Figure 5.7).</li>
+  <li>Şema diyagramında FK'dan referans verdiği PK'ya bir ok çizilir (kitapta Figure 5.7).</li>
 </ul>
 <div id="schema"></div>
 
@@ -133,7 +133,7 @@ INSERT INTO WORKS_ON VALUES ('123456789', 3, 1000.0);
 </div>
 
 <h3>Insert</h3>
-<p>Dört kısıtı da ihlal edebilir: domain (değer domain'de değil), key (PK ya da UNIQUE değeri zaten var), entity integrity (PK NULL), referential integrity (FK, başvurulan ilişkide olmayan bir değere başvuruyor). İhlalde varsayılan davranış işlemi <strong>reddetmek</strong>tir (ve kullanıcıya nedenini söylemek).</p>
+<p>Dört kısıtı da ihlal edebilir: domain (değer domain'de değil), key (PK ya da UNIQUE değeri zaten var), entity integrity (PK NULL), referential integrity (FK, referans verilen ilişkide olmayan bir değere referans veriyor). İhlalde varsayılan davranış işlemi <strong>reddetmek</strong>tir (ve kullanıcıya nedenini söylemek).</p>
 <p class="small muted">MySQL primary key sütunlarını kendiliğinden NOT NULL yaptığı için Insert 1'in mesajı "non-nullable" (1048) der; kitaptaki adı entity integrity ihlalidir.</p>
 <pre class="sql run" data-expect-error data-title="Insert 1 · Entity integrity: Ssn NULL">
 INSERT INTO EMPLOYEE VALUES ('Cecilia', 'F', 'Kolonsky', NULL, '1960-04-05',
@@ -154,19 +154,19 @@ SELECT Fname, Lname, Ssn, Dno FROM EMPLOYEE WHERE Ssn = '677678989';
 </pre>
 
 <h3>Delete</h3>
-<p>Yalnızca <strong>referential integrity</strong>'yi ihlal edebilir: silinen tuple'a başka tuple'lar başvuruyorsa. Seçenekler:</p>
+<p>Yalnızca <strong>referential integrity</strong>'yi ihlal edebilir: silinen tuple'a başka tuple'lar referans veriyorsa. Seçenekler:</p>
 <ul>
   <li><strong>Restrict / reject</strong> (<code>NO ACTION</code>, <code>RESTRICT</code>): silmeyi reddet.</li>
-  <li><strong>Cascade</strong> (<code>ON DELETE CASCADE</code>): başvuran tuple'ları da sil.</li>
-  <li><strong>Set null</strong> (<code>ON DELETE SET NULL</code>) ya da <strong>set default</strong> (<code>ON DELETE SET DEFAULT</code>): başvuran FK değerlerini NULL'a ya da varsayılana çek. FK PK'nın parçasıysa set null kullanılamaz (entity integrity). (MySQL'in standart depolama motoru InnoDB, <code>SET DEFAULT</code>'u kabul etmez; standart SQL'de ve kitapta vardır.)</li>
+  <li><strong>Cascade</strong> (<code>ON DELETE CASCADE</code>): referans veren tuple'ları da sil.</li>
+  <li><strong>Set null</strong> (<code>ON DELETE SET NULL</code>) ya da <strong>set default</strong> (<code>ON DELETE SET DEFAULT</code>): referans veren FK değerlerini NULL'a ya da varsayılana çek. FK PK'nın parçasıysa set null kullanılamaz (entity integrity). (MySQL'in standart depolama motoru InnoDB, <code>SET DEFAULT</code>'u kabul etmez; standart SQL'de ve kitapta vardır.)</li>
 </ul>
 <pre class="sql run" data-title="Delete 1 · Geçerli: bir WORKS_ON tuple'ı">
 DELETE FROM WORKS_ON WHERE Essn = '999887777' AND Pno = 10;
 </pre>
-<pre class="sql run" data-expect-error data-title="Delete 2 · Referential integrity: WORKS_ON hâlâ 999887777'ye başvuruyor">
+<pre class="sql run" data-expect-error data-title="Delete 2 · Referential integrity: WORKS_ON'daki satırlar hâlâ 999887777'ye referans veriyor">
 DELETE FROM EMPLOYEE WHERE Ssn = '999887777';
 </pre>
-<pre class="sql run" data-expect-error data-title="Delete 3 · 333445555'e (Wong) EMPLOYEE, DEPARTMENT, WORKS_ON ve DEPENDENT başvuruyor">
+<pre class="sql run" data-expect-error data-title="Delete 3 · EMPLOYEE, DEPARTMENT, WORKS_ON ve DEPENDENT'taki satırlar 333445555'e (Wong) referans veriyor">
 DELETE FROM EMPLOYEE WHERE Ssn = '333445555';
 </pre>
 
@@ -181,10 +181,10 @@ UPDATE EMPLOYEE SET Dno = 1 WHERE Ssn = '999887777';
 <pre class="sql run" data-expect-error data-title="Update 3 · Referential integrity: 7 numaralı departman yok">
 UPDATE EMPLOYEE SET Dno = 7 WHERE Ssn = '999887777';
 </pre>
-<pre class="sql run" data-expect-error data-title="Update 4 · PK değişikliği: 987654321 zaten var (Wallace) ve 999887777'ye başvuranlar var">
+<pre class="sql run" data-expect-error data-title="Update 4 · PK değişikliği: 987654321 zaten var (Wallace) ve 999887777'ye referans verenler var">
 UPDATE EMPLOYEE SET Ssn = '987654321' WHERE Ssn = '999887777';
 </pre>
-<p class="small muted">Kitap bu örneği key ihlali olarak verir. Ama Zelaya'nın Ssn'ine WORKS_ON ve EMPLOYEE.Super_ssn'deki satırlar da başvuruyor: PK'yı değiştirmek aynı anda referential integrity'yi de ihlal eder ve DBMS karşılaştığı ilk ihlali bildirir (bu motorda foreign key). Yalnızca key kısıtını görmek için, kimsenin başvurmadığı bir tabloda aynı şeyi yapın:</p>
+<p class="small muted">Kitap bu örneği key ihlali olarak verir. Ama Zelaya'nın Ssn'ine WORKS_ON ve EMPLOYEE.Super_ssn'deki satırlar da referans veriyor: PK'yı değiştirmek aynı anda referential integrity'yi de ihlal eder ve DBMS karşılaştığı ilk ihlali bildirir (bu motorda foreign key). Yalnızca key kısıtını görmek için, kimsenin referans vermediği bir tabloda aynı şeyi yapın:</p>
 <pre class="sql run" data-expect-error data-title="Update 5 · Yalnız key kısıtı: (5, 'Houston') zaten var">
 -- department 5 is in Bellaire, Sugarland and Houston; moving Bellaire to Houston duplicates the key (Dnumber, Dlocation)
 UPDATE DEPT_LOCATIONS SET Dlocation = 'Houston' WHERE Dnumber = 5 AND Dlocation = 'Bellaire';
@@ -210,7 +210,7 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
 </pre>
 
 <div class="callout gotcha">
-  <p><strong>Sınavda sık sorulan kalıp:</strong> "Şu işlem hangi kısıtları ihlal eder? İhlal ediyorsa DBMS ne yapabilir?" Cevap planı: (1) PK alanı NULL mı? → entity integrity. (2) PK/UNIQUE değeri zaten var mı? → key. (3) FK değeri başvurulan tabloda var mı? (Silmede: bu tuple'a başvuran var mı?) → referential integrity. (4) Değer tipine/aralığına uyuyor mu? → domain. Silme yalnızca referential integrity'yi ihlal edebilir; seçenekler restrict, cascade, set null, set default.</p>
+  <p><strong>Sınavda sık sorulan kalıp:</strong> "Şu işlem hangi kısıtları ihlal eder? İhlal ediyorsa DBMS ne yapabilir?" Cevap planı: (1) PK alanı NULL mı? → entity integrity. (2) PK/UNIQUE değeri zaten var mı? → key. (3) FK değeri referans verilen tabloda var mı? (Silmede: bu tuple'a referans veren var mı?) → referential integrity. (4) Değer tipine/aralığına uyuyor mu? → domain. Silme yalnızca referential integrity'yi ihlal edebilir; seçenekler restrict, cascade, set null, set default.</p>
 </div>
 
 <h2>Diğer kavramlar</h2>
@@ -257,9 +257,9 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
     <li data-why="Insert dört kısıtın hepsini ihlal edebilir: domain, key, entity integrity, referential integrity.">Insert</li>
     <li data-why="PK değiştirmek silip yeniden eklemek gibidir: key, entity integrity ve referential integrity'yi etkiler.">PK'yı değiştiren update</li>
     <li data-why="Yeni FK değeri tipine uymayabilir: referential integrity'nin yanında domain'i de ihlal edebilir.">FK'yı değiştiren update</li>
-    <li data-why="Doğru: silme yeni değer getirmez; tek risk, silinen satıra başka satırların başvurması.">Delete</li>
+    <li data-why="Doğru: silme yeni değer getirmez; tek risk, silinen satıra başka satırların referans vermesi.">Delete</li>
   </ol>
-  <div class="explain">Silme yeni değer getirmediği için domain, key ve entity integrity'yi ihlal edemez. Tek risk, silinen tuple'a başka tuple'ların başvuruyor olmasıdır. FK değiştiren update referential integrity'nin yanında domain'i de ihlal edebilir.</div>
+  <div class="explain">Silme yeni değer getirmediği için domain, key ve entity integrity'yi ihlal edemez. Tek risk, silinen tuple'a başka tuple'ların referans veriyor olmasıdır. FK değiştiren update referential integrity'nin yanında domain'i de ihlal edebilir.</div>
 </div>
 <div class="quiz" data-answer="1">
   <p>DEPENDENT.Essn → EMPLOYEE.Ssn için hangi silme seçeneği <em>anlamsızdır</em>?</p>

@@ -73,7 +73,7 @@ CREATE TABLE DEPT_LOCATIONS
 </pre>
 <p class="small muted">Kitabın tanımı. Bu sitedeki COMPANY bunu MySQL'de iki küçük farkla kurar: MySQL'in depolama motoru InnoDB <code>ON DELETE SET DEFAULT</code>'u kabul etmediği için o eylem çıkarılmıştır (silme reddedilir), ve döngüsel foreign key'ler aşağıda anlatıldığı gibi sonradan eklenir. Kurulan tanımın tamamını <a href="lab.html">SQL laboratuvarında</a> <code>SHOW CREATE TABLE EMPLOYEE;</code> ile görebilirsiniz.</p>
 <div class="callout gotcha">
-  <p><strong>Döngüsel foreign key'ler.</strong> EMPLOYEE.Dno → DEPARTMENT ve DEPARTMENT.Mgr_ssn → EMPLOYEE birbirine başvurur. EMPLOYEE oluşturulurken DEPARTMENT henüz yoktur. Çözüm: önce tabloları FK'sız oluşturup FK'yı sonra <code>ALTER TABLE … ADD CONSTRAINT</code> ile eklemek. Veri yüklerken de aynı sorun çıkar: standart SQL'de kısıt geçici olarak ertelenir (<code>DEFERRABLE</code>, <code>SET CONSTRAINTS … DEFERRED</code>) ya da önce NULL yazılıp sonra güncellenir. MySQL'de ertelenebilir kısıt yoktur; bunun yerine yükleme sırasında foreign key kontrolü kapatılıp açılır: <code>SET FOREIGN_KEY_CHECKS = 0; … SET FOREIGN_KEY_CHECKS = 1;</code>. Bu sitedeki COMPANY böyle yüklenir.</p>
+  <p><strong>Döngüsel foreign key'ler.</strong> EMPLOYEE.Dno → DEPARTMENT ve DEPARTMENT.Mgr_ssn → EMPLOYEE birbirine referans verir. EMPLOYEE oluşturulurken DEPARTMENT henüz yoktur. Çözüm: önce tabloları FK'sız oluşturup FK'yı sonra <code>ALTER TABLE … ADD CONSTRAINT</code> ile eklemek. Veri yüklerken de aynı sorun çıkar: standart SQL'de kısıt geçici olarak ertelenir (<code>DEFERRABLE</code>, <code>SET CONSTRAINTS … DEFERRED</code>) ya da önce NULL yazılıp sonra güncellenir. MySQL'de ertelenebilir kısıt yoktur; bunun yerine yükleme sırasında foreign key kontrolü kapatılıp açılır: <code>SET FOREIGN_KEY_CHECKS = 0; … SET FOREIGN_KEY_CHECKS = 1;</code>. Bu sitedeki COMPANY böyle yüklenir.</p>
 </div>
 
 <h3>Veri tipleri ve domain'ler</h3>
@@ -132,7 +132,7 @@ FROM   EMPLOYEE, DEPARTMENT
 WHERE  Dname = 'Research' AND Dnumber = Dno;
 </pre>
 <p><code>Dname = 'Research'</code> bir <strong>selection condition</strong>, <code>Dnumber = Dno</code> bir <strong>join condition</strong>'dır. Böyle sorgulara <em>select-project-join</em> sorgusu denir.</p>
-<p>Join koşulunu bulmak için foreign key'i izleyin: EMPLOYEE.Dno, DEPARTMENT.Dnumber'a başvuruyor (Ch 5'teki şema), o hâlde iki tablo <code>Dno = Dnumber</code> ile bağlanır. Koşul olmasaydı her çalışan her departmanla eşleşirdi (aşağıdaki Q10).</p>
+<p>Join koşulunu bulmak için foreign key'i izleyin: EMPLOYEE.Dno, DEPARTMENT.Dnumber'a referans veriyor (Ch 5'teki şema), o hâlde iki tablo <code>Dno = Dnumber</code> ile bağlanır. Koşul olmasaydı her çalışan her departmanla eşleşirdi (aşağıdaki Q10).</p>
 
 <div class="callout example" data-label="Adım adım: bir soruyu SQL'e çevirmek">
   <p>Soru (Q2): <em>"Stafford'daki her proje için proje numarasını, kontrol eden departmanın numarasını ve o departmanın yöneticisinin soyadını, adresini ve doğum tarihini listeleyin."</em></p>
@@ -377,9 +377,9 @@ WHERE  Ssn = Essn AND Pno = Pnumber AND Pname = 'ProductX';</pre>
     <li data-why="Tablonun tanımını kaldıran komut <code>DROP TABLE DEPARTMENT;</code>'tır. DELETE yalnızca satırlarla ilgilenir.">DEPARTMENT tablosunu şemadan siler.</li>
     <li data-why="WHERE isteğe bağlıdır; yazılmazsa koşul her satır için doğru sayılır.">Sözdizimi hatasıdır; WHERE zorunludur.</li>
     <li data-why="Tablolarda 'ilk satır' diye bir şey yoktur (satırların sırası yoktur); DELETE koşulu sağlayan <em>bütün</em> satırları siler.">Yalnızca ilk satırı siler.</li>
-    <li data-why="Doğru: bütün satırlar hedeflenir, tablo tanımı kalır; başvuran satırlar varsa referential integrity silmeyi reddettirebilir.">Tüm satırları silmeye çalışır; tablo tanımı kalır. FK'lar (ör. PROJECT.Dnum) silmeyi engelleyebilir.</li>
+    <li data-why="Doğru: bütün satırlar hedeflenir, tablo tanımı kalır; referans veren satırlar varsa referential integrity silmeyi reddettirebilir.">Tüm satırları silmeye çalışır; tablo tanımı kalır. FK'lar (ör. PROJECT.Dnum) silmeyi engelleyebilir.</li>
   </ol>
-  <div class="explain">WHERE'siz DELETE bütün satırları hedefler. Tabloyu kaldırmak için <code>DROP TABLE</code> gerekir. COMPANY'de EMPLOYEE.Dno ve PROJECT.Dnum departmanlara başvuruyor ve bu FK'ların silmeye izin veren bir ON DELETE eylemi yok; bu yüzden MySQL silmeyi reddeder (hata 1451) ve hiçbir satır silinmez. Kontrol kutusunda görebilirsiniz.</div>
+  <div class="explain">WHERE'siz DELETE bütün satırları hedefler. Tabloyu kaldırmak için <code>DROP TABLE</code> gerekir. COMPANY'de EMPLOYEE.Dno ve PROJECT.Dnum departmanlara referans veriyor ve bu FK'ların silmeye izin veren bir ON DELETE eylemi yok; bu yüzden MySQL silmeyi reddeder (hata 1451) ve hiçbir satır silinmez. Kontrol kutusunda görebilirsiniz.</div>
   <pre class="sql run" data-expect-error data-title="Kontrol edin">DELETE FROM DEPARTMENT;</pre>
 </div>
 

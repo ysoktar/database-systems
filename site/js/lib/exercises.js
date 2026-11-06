@@ -22,7 +22,7 @@ ORDER BY Salary DESC, Lname ASC;`,
     query: "<strong>Houston</strong>'da bulunan her proje için proje adını ve projeyi kontrol eden departmanın adını listeleyin.",
     queryEn: "For every project located in Houston, list the project name and the name of the department that controls the project.",
     columns: "Pname, Dname", ordered: false,
-    hint: "<code>PROJECT.Dnum</code>, <code>DEPARTMENT.Dnumber</code>'a başvurur (foreign key).",
+    hint: "<code>PROJECT.Dnum</code>, <code>DEPARTMENT.Dnumber</code>'a referans verir (foreign key).",
     expect: { h: null, hu: "c482a5f2479b508189f2", ncols: 2, nrows: 2, ordered: false },
     solution: `SELECT P.Pname, D.Dname
 FROM   PROJECT P JOIN DEPARTMENT D ON P.Dnum = D.Dnumber
@@ -107,7 +107,7 @@ WHERE  EXISTS (SELECT *
 SELECT DISTINCT E.Fname, E.Lname
 FROM   EMPLOYEE E, WORKS_ON W, PROJECT P
 WHERE  E.Ssn = W.Essn AND W.Pno = P.Pnumber AND P.Dnum <> E.Dno;`],
-    explain: "İç sorgu dış sorgunun <code>E</code>'sine başvurduğu için correlated'dır: her çalışan için yeniden değerlendirilir. <code>EXISTS</code> her çalışanı en fazla bir kez döndürür. Join ile çözerseniz Wong iki proje (10 ve 20) yüzünden iki kez çıkar, bu yüzden <code>DISTINCT</code> gerekir.",
+    explain: "İç sorgu dış sorgunun <code>E</code>'sini kullandığı için correlated'dır: her çalışan için yeniden değerlendirilir. <code>EXISTS</code> her çalışanı en fazla bir kez döndürür. Join ile çözerseniz Wong iki proje (10 ve 20) yüzünden iki kez çıkar, bu yüzden <code>DISTINCT</code> gerekir.",
   },
   {
     n: 8, stars: 3, topic: "Bölme (division): \"her\"", en: "Division: \"every\"", slides: "7-16, 7-17",

@@ -66,8 +66,8 @@ export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow
   const panel = h("div", { class: "ctx-panel", hidden: true });
   const el = h("div", { class: "sqlbox-ctx" }, h("span", { class: "ctx-db", title: "Kutular kitabın COMPANY veritabanı üzerinde çalışır: 8 çalışan, 3 departman, 6 proje" }, label), chips, panel);
   let open = null;
-  async function show(t) {
-    open = open === t ? null : t;
+  async function show(t, { reload = false } = {}) {
+    if (!reload) open = open === t ? null : t;
     for (const c of chips.children) c.setAttribute("aria-pressed", String(c.dataset.t === open));
     if (!open) { panel.hidden = true; panel.replaceChildren(); return; }
     panel.hidden = false;
@@ -91,8 +91,14 @@ export function tableContext(getSQL, { label = "COMPANY veritabanı", alwaysShow
     el.hidden = !ts.length && !alwaysShow;
   };
   el.refresh();
+  // an open table follows the database: after any box runs or the database is reset, its rows are read again
+  window.addEventListener(DB_CHANGED, () => { if (open && el.isConnected) show(open, { reload: true }); });
   return el;
 }
+
+/** Fired after a box ran statements or the database was reset; open table panels re-read their rows. */
+export const DB_CHANGED = "company-db-changed";
+const announceChange = () => window.dispatchEvent(new Event(DB_CHANGED));
 
 /** What the engine is doing right now, in words (shown next to the spinner). */
 export function loadingText(info) {
@@ -163,6 +169,7 @@ export function createSqlBox(opts = {}) {
       out.replaceChildren(loadingLine());
       try {
         await reset();
+        announceChange();
         out.replaceChildren(h("div", { class: "res-msg ok" }, "COMPANY başlangıç verisine döndürüldü (yaptığınız değişiklikler geri alındı)."));
       } catch (e) {
         out.replaceChildren(startError(e));
@@ -217,6 +224,7 @@ export function createSqlBox(opts = {}) {
     }
     if (res.inTransaction) out.append(h("div", { class: "res-msg warn" }, "Not: bir transaction hâlâ açık (BEGIN). Bitirmek için COMMIT ya da ROLLBACK çalıştırın."));
     runBtn.disabled = false;
+    announceChange();
     opts.onResult?.(res);
     return res;
   }

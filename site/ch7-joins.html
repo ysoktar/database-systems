@@ -196,7 +196,7 @@ FROM   EMPLOYEE ORDER BY Dno, Salary DESC;
 </pre>
 
 <h2>Recursive sorgular</h2>
-<p><code>WITH RECURSIVE</code>: bir başlangıç (base) sorgusu ile kendine başvuran bir sorgunun <code>UNION</code>'ı. Yeni satır üretmeyene kadar tekrar eder (<em>fixed point</em>). Supervisor/supervisee gibi recursive ilişkilerde, derinliği bilinmeyen zincirler için kullanılır.</p>
+<p><code>WITH RECURSIVE</code>: bir başlangıç (base) sorgusu ile kendini kullanan bir sorgunun <code>UNION</code>'ı. Yeni satır üretmeyene kadar tekrar eder (<em>fixed point</em>). Supervisor/supervisee gibi recursive ilişkilerde, derinliği bilinmeyen zincirler için kullanılır.</p>
 <pre class="sql run" data-title="Q29 · Her (amir, doğrudan ya da dolaylı ast) çifti">
 WITH RECURSIVE SUP_EMP (SupSsn, EmpSsn) AS
      ( SELECT Super_ssn, Ssn

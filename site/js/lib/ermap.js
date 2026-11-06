@@ -216,7 +216,7 @@ export function mapER(model, options = {}) {
         where.set(U(s), { table: t, pk: t.pk });
         made.push(t);
       }
-      log("8", `Adım 8B · ${label}`, `Üst sınıf için tablo yok; her alt sınıf tablosu üst sınıfın <em>bütün</em> özniteliklerini içerir. Yalnızca total özelleştirmede doğrudur (her varlık bir alt sınıfta olmalı). Disjoint değilse bir varlık birden çok tabloda tekrar eder. Üst sınıfa başvuran ilişkiler foreign key ile ifade edilemez.`, made[0]);
+      log("8", `Adım 8B · ${label}`, `Üst sınıf için tablo yok; her alt sınıf tablosu üst sınıfın <em>bütün</em> özniteliklerini içerir. Yalnızca total özelleştirmede doğrudur (her varlık bir alt sınıfta olmalı). Disjoint değilse bir varlık birden çok tabloda tekrar eder. Üst sınıfa referans veren ilişkiler foreign key ile ifade edilemez.`, made[0]);
     } else {
       // 8C / 8D: one relation for the superclass and all subclasses
       const t = supW.table;
@@ -264,7 +264,7 @@ export function mapER(model, options = {}) {
         w.table.fks.push({ cols: [col], ref: t.name, refCols: [sk], onDelete: null, why: `${w.table.name} ∈ ${c.name}` });
         w.table.uniques.push([col]);
       }
-      log("9", `Adım 9 · ${c.name} = ${c.supers.join(" ∪ ")}`, `Üst sınıfların anahtarları farklı: kategoriye bir <strong>yapay anahtar</strong> (surrogate key) <code>${sk}</code> verilir ve her üst sınıf tablosuna bu anahtara başvuran bir foreign key eklenir (kategoriye ait olmayanlar için NULL).`, t);
+      log("9", `Adım 9 · ${c.name} = ${c.supers.join(" ∪ ")}`, `Üst sınıfların anahtarları farklı: kategoriye bir <strong>yapay anahtar</strong> (surrogate key) <code>${sk}</code> verilir ve her üst sınıf tablosuna bu anahtara referans veren bir foreign key eklenir (kategoriye ait olmayanlar için NULL).`, t);
     }
     where.set(U(c.name), { table: t, pk: t.pk });
   }

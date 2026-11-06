@@ -150,11 +150,11 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
     <tr><td data-label="Konu">Domain</td><td data-label="Kitapta"><code>CREATE DOMAIN SSN_TYPE AS CHAR(9)</code></td><td data-label="MySQL'de">yok</td>
       <td data-label="Ne anlama gelir?">Tipe ad verilemez; her sütunda tip ayrıca yazılır: <code>Ssn CHAR(9)</code>.</td></tr>
     <tr><td data-label="Konu">Ertelenen kısıt</td><td data-label="Kitapta"><code>DEFERRABLE INITIALLY DEFERRED</code></td><td data-label="MySQL'de">yok; <code>SET FOREIGN_KEY_CHECKS = 0</code></td>
-      <td data-label="Ne anlama gelir?">Birbirine başvuran iki tablo (EMPLOYEE ↔ DEPARTMENT) doldurulurken kontrolü işlemin sonuna erteleyemezsiniz; MySQL'de yükleme sırasında foreign key kontrolü kapatılıp sonra açılır.</td></tr>
+      <td data-label="Ne anlama gelir?">Birbirine referans veren iki tablo (EMPLOYEE ↔ DEPARTMENT) doldurulurken kontrolü işlemin sonuna erteleyemezsiniz; MySQL'de yükleme sırasında foreign key kontrolü kapatılıp sonra açılır.</td></tr>
     <tr><td data-label="Konu">Silmede varsayılana dönmek</td><td data-label="Kitapta"><code>ON DELETE SET DEFAULT</code></td><td data-label="MySQL'de">kabul edilmez</td>
       <td data-label="Ne anlama gelir?">MySQL'in tablo motoru InnoDB bu eylemi desteklemez. Seçenekler <code>RESTRICT</code> / <code>NO ACTION</code> (reddet), <code>CASCADE</code> (onlar da silinsin), <code>SET NULL</code>.</td></tr>
     <tr><td data-label="Konu">Tablo silmek</td><td data-label="Kitapta"><code>DROP TABLE T RESTRICT</code> / <code>CASCADE</code></td><td data-label="MySQL'de">sözcükler yazılabilir ama etkisizdir</td>
-      <td data-label="Ne anlama gelir?">Kitapta RESTRICT "başvuran varsa silme", CASCADE "başvuranları da sil" demektir. MySQL ikisine de bakmaz: başka bir tablonun foreign key'i başvuruyorsa silme her zaman reddedilir (hata 3730), view'lar ise kontrol edilmez.</td></tr>
+      <td data-label="Ne anlama gelir?">Kitapta RESTRICT "referans veren varsa silme", CASCADE "referans verenleri da sil" demektir. MySQL ikisine de bakmaz: başka bir tablonun foreign key'i referans veriyorsa silme her zaman reddedilir (hata 3730), view'lar ise kontrol edilmez.</td></tr>
     <tr><td data-label="Konu">Kısıt kaldırmak</td><td data-label="Kitapta"><code>ALTER TABLE T DROP CONSTRAINT TFK</code></td><td data-label="MySQL'de"><code>ALTER TABLE T DROP FOREIGN KEY TFK</code></td>
       <td data-label="Ne anlama gelir?">Foreign key'ler için MySQL'in kendi sözdizimi var. Bu yüzden kısıtlara ad vermek (<code>CONSTRAINT TFK …</code>) iki yerde de önemlidir: adı olmayan kısıtı kaldırmak zordur.</td></tr>
     <tr><td data-label="Konu">Trigger</td><td data-label="Kitapta"><code>BEFORE INSERT OR UPDATE OF Salary … WHEN (koşul) eylem</code></td><td data-label="MySQL'de">her olaya ayrı trigger; koşul gövdede <code>IF … THEN … END IF</code></td>
@@ -202,11 +202,11 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
     <tr><td>cardinality ratio</td><td>kardinalite oranı</td><td>bir varlığın katılabileceği en çok ilişki örneği: 1:1, 1:N, M:N</td></tr>
     <tr><td>category (union type)</td><td>kategori</td><td>farklı üst sınıfların birleşiminin alt kümesi olan alt sınıf</td></tr>
     <tr><td>catalog</td><td>katalog</td><td>meta-data'nın saklandığı yer (data dictionary)</td></tr>
-    <tr><td>correlated nested query</td><td>ilintili iç içe sorgu</td><td>dış sorgunun sütununa başvuran iç sorgu</td></tr>
+    <tr><td>correlated nested query</td><td>ilintili iç içe sorgu</td><td>dış sorgunun sütununa referans veren iç sorgu</td></tr>
     <tr><td>derived attribute</td><td>türetilmiş öznitelik</td><td>başka verilerden hesaplanan öznitelik</td></tr>
     <tr><td>domain</td><td>alan / değer kümesi</td><td>bir özniteliğin alabileceği atomik değerler</td></tr>
     <tr><td>entity integrity</td><td>varlık bütünlüğü</td><td>PK NULL olamaz</td></tr>
-    <tr><td>foreign key</td><td>yabancı anahtar</td><td>başka (ya da aynı) ilişkinin PK'sına başvuran öznitelikler</td></tr>
+    <tr><td>foreign key</td><td>yabancı anahtar</td><td>başka (ya da aynı) ilişkinin PK'sına referans veren öznitelikler</td></tr>
     <tr><td>generalization / specialization</td><td>genelleştirme / özelleştirme</td><td>alt sınıflardan üst sınıf çıkarma / üst sınıfı alt sınıflara ayırma</td></tr>
     <tr><td>identifying relationship</td><td>tanımlayıcı ilişki</td><td>zayıf varlığı sahibine bağlayan ilişki</td></tr>
     <tr><td>inheritance</td><td>kalıtım</td><td>alt sınıfın üst sınıfın öznitelik ve ilişkilerini alması</td></tr>
