@@ -50,3 +50,10 @@ test("parentheses find their partner; comments and strings are ignored", () => {
   assert.deepEqual(texts(q, r, "match"), ["(", ")"]);
   assert.equal(linksAt(q, q.indexOf("WHERE (")), null);
 });
+
+test("marks cover the text only: no indentation, no line ends", async () => {
+  const { marksHTML } = await import("../site/js/lib/sqllinks.js");
+  const q = "WHERE  a = 1\n       AND b = 2  ";
+  const html = marksHTML(q, [{ start: 0, end: q.length, kind: "clause" }]);
+  assert.equal(html, '<mark class="m-clause">WHERE  a = 1</mark>\n       <mark class="m-clause">AND b = 2</mark>  ');
+});

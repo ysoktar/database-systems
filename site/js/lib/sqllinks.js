@@ -320,6 +320,17 @@ export function marksHTML(src, ranges) {
   const order = { clause: 0, sub: 0, kw: 1, same: 2, def: 2, outer: 3, match: 3 };
   const cls = new Array(src.length).fill(null);
   for (const r of [...ranges].sort((a, b) => order[a.kind] - order[b.kind])) for (let k = r.start; k < r.end; k++) cls[k] = r.kind;
+  // only the text is marked: indentation, spaces at the end of a line and line breaks stay unmarked;
+  // spaces between words on the same line keep the mark, so a clause reads as one stretch per line
+  let lineStart = 0;
+  for (let k = 0; k <= src.length; k++) {
+    if (k < src.length && src[k] !== "\n") continue;
+    let a = lineStart, b = k;
+    while (a < b && /\s/.test(src[a])) cls[a++] = null;
+    while (b > a && /\s/.test(src[b - 1])) cls[--b] = null;
+    if (k < src.length) cls[k] = null;
+    lineStart = k + 1;
+  }
   let out = "", k = 0;
   const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
   while (k < src.length) {
