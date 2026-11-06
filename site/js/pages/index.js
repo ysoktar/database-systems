@@ -8,8 +8,8 @@ import { t as tl, tx, EN } from "../lib/i18n.js";
 const parts = $("#parts");
 for (const p of NAV.slice(1)) {
   const card = h("div", { class: "card" },
-    h("div", { class: "card-kicker" }, p.part + (p.short ? ` · ${p.short}` : "")),
-    h("ol", {}, ...p.items.map((it) => h("li", {}, h("a", { href: `${it.id}.html` }, it.title), h("div", { class: "small muted" }, it.desc)))));
+    h("div", { class: "card-kicker" }, tx(p, "part") + (p.short ? ` · ${p.short}` : "")),
+    h("ol", {}, ...p.items.map((it) => h("li", {}, h("a", { href: `${it.id}.html` }, tx(it, "title")), h("div", { class: "small muted" }, tx(it, "desc"))))));
   parts.append(card);
 }
 

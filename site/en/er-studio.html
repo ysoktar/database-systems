@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ER studio · Database Systems</title>
+<meta name="description" content="Draw ER/EER diagrams by dragging or as text, map them step by step to tables with the Elmasri Ch 9 algorithm and create them in MySQL; turn your own CREATE TABLEs back into an ER diagram; ER design exercises with automatic checking.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/er-studio.js"></script>
+</head>
+<body data-page="er-studio">
+<main><div class="content">
+
+<h1>ER studio</h1>
+<p class="lead">Draw ER and EER diagrams, map them to tables automatically and create the tables in MySQL; or write your own tables and turn them back into an ER diagram. There and back in one place.</p>
+
+<h2 id="editor">1 · Diagram</h2>
+<p>Start from an example or draw your own on an empty diagram. Click items to edit them in the panel on the right, drag them to place them. Your work is saved in this browser.</p>
+<div class="btn-row" id="examples"></div>
+<div id="active-exercise"></div>
+<div id="studio"></div>
+
+<h2 id="to-tables">2 · ER → Tables</h2>
+<p>The diagram above is mapped to tables with the book's <strong>Ch 9 mapping algorithm</strong> (Elmasri &amp; Navathe 9.1–9.2). The result follows the diagram as you change it. Every step says which rule was applied and why.</p>
+<div class="btn-row" style="align-items:center">
+  <label class="small" for="spec-opt">Specialization option (Step 8):</label>
+  <select id="spec-opt">
+    <option value="8A">8A · a table for the superclass + one per subclass (always works)</option>
+    <option value="8B">8B · subclass tables only (needs total)</option>
+    <option value="8C">8C · one table + a single type column (needs disjoint)</option>
+    <option value="8D">8D · one table + Boolean type columns (overlapping)</option>
+  </select>
+</div>
+<div id="mapping"></div>
+
+<h2 id="to-er">3 · Tables → ER</h2>
+<p>Write your own <code>CREATE TABLE</code> statements (with PRIMARY KEY, FOREIGN KEY and UNIQUE constraints). The tables are created in a separate MySQL database, the constraints are read from <code>information_schema</code>, and an ER diagram is derived by running the mapping rules backwards. This is called <em>reverse engineering</em>.</p>
+<div class="btn-row">
+  <button type="button" class="btn small" id="load-company-ddl">The book's COMPANY DDL</button>
+  <button type="button" class="btn small" id="load-diagram-ddl">The DDL of the diagram above (round trip)</button>
+  <button type="button" class="btn small" id="load-sample-ddl">A small example: a school</button>
+</div>
+<div id="reverse"></div>
+
+<h2 id="exercises">4 · ER design exercises</h2>
+<p>Read the requirements, draw the diagram in the editor above and press <strong>Check</strong>. Your diagram is compared with the solution structurally: entities, weak entities, keys, kinds of attributes, cardinality and participation of relationships, specializations. Relationship names are free: relationships are matched by the entities they connect. Use the given names for entities and attributes.</p>
+<div id="exercise-list"></div>
+
+<h2 id="syntax">Syntax</h2>
+<p>The text form of the diagram. Indented lines are the attributes of the entity or relationship above them.</p>
+<pre class="sql">
+entity EMPLOYEE                    -- a regular entity type
+  Ssn key                          -- key attribute (underlined)
+  Name(Fname, Minit, Lname)        -- composite attribute
+  Locations multi                  -- multivalued (double ellipse)
+  Age derived                      -- derived (dashed ellipse)
+
+weak entity DEPENDENT              -- weak entity (double rectangle)
+  Dependent_name partial           -- partial key (dashed underline)
+
+relationship WORKS_FOR: EMPLOYEE N total, DEPARTMENT 1 total   -- N:1, both total (double lines)
+relationship WORKS_FOR: EMPLOYEE (1,1), DEPARTMENT (4,N)       -- the same with (min,max)
+  Hours                                                        -- relationship attribute
+identifying relationship DEPENDENTS_OF: EMPLOYEE 1, DEPENDENT N total
+relationship SUPERVISION: EMPLOYEE 1 role=supervisor, EMPLOYEE N role=supervisee   -- recursive
+relationship SUPPLY: SUPPLIER M, PROJECT N, PART P                                 -- ternary
+
+specialization EMPLOYEE -> SECRETARY, ENGINEER disjoint partial on Job_type   -- d / o, total / partial
+specialization EMPLOYEE -> MANAGER                                            -- one subclass
+category OWNER = PERSON | BANK | COMPANY partial                              -- union type
+</pre>
+<ul>
+  <li>Cardinality: <code>1</code>, <code>N</code>, <code>M</code> (any letter means "many"). Without <code>total</code> the participation is partial.</li>
+  <li>If you write <code>(min,max)</code>, the 1/N labels and total/partial are computed from it. The <em>Notation</em> selector under the diagram switches between the two notations.</li>
+  <li>Subclasses and categories not written as an <code>entity</code> are added as entities without attributes.</li>
+  <li>Parts starting with <code>#</code> or <code>--</code> are comments.</li>
+</ul>
+
+</div></main>
+</body>
+</html>

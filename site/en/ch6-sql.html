@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basic SQL · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 6: SQL data definition (CREATE TABLE, data types, constraints), SELECT-FROM-WHERE, ambiguous names and aliases, DISTINCT, set operations, LIKE, BETWEEN, arithmetic, ORDER BY, INSERT/DELETE/UPDATE; every query of the book can be run.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/layout.js"></script>
+</head>
+<body data-page="ch6-sql">
+<main><div class="content">
+
+<h1>Basic SQL</h1>
+<p class="lead">SQL (Structured Query Language) is both a DDL and a DML: it defines the schema and queries and updates the data. The queries on this page are the book's Ch 6 examples (Q0, Q1, …); you can change and run all of them.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Define a table of COMPANY with CREATE TABLE and its constraints (PRIMARY KEY, FOREIGN KEY, UNIQUE, NOT NULL, CHECK, DEFAULT).</li>
+    <li>Turn a question in plain English into a SELECT-FROM-WHERE query: which tables, which join conditions, which selection condition, which columns.</li>
+    <li>Predict the effect on the result of forgetting a join condition (a Cartesian product), of DISTINCT and of set operations.</li>
+    <li>Use LIKE, BETWEEN, ORDER BY, aliases and INSERT/UPDATE/DELETE.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Matching the terms:</strong> in SQL <em>table</em> = relation, <em>row</em> = tuple, <em>column</em> = attribute. One difference: SQL tables are multisets, not sets (<a href="#tablolar-multiset-tir-all-ve-distinct">below</a>).</p>
+</div>
+
+<h2>Data definition (DDL)</h2>
+<ul>
+  <li><strong>Schema</strong>: groups the tables, types, constraints and views of one application: <code>CREATE SCHEMA COMPANY AUTHORIZATION 'Jsmith';</code></li>
+  <li><strong>Catalog</strong>: a named collection of schemas; every catalog has a special schema called <code>INFORMATION_SCHEMA</code>. Integrity constraints can be defined only between relations in the same catalog.</li>
+  <li><strong>Base tables</strong> (created with <code>CREATE TABLE</code>, actually stored) and <strong>virtual relations</strong> (<code>CREATE VIEW</code>, Ch 7).</li>
+</ul>
+<h3>The definition of COMPANY (Figure 6.1/6.2)</h3>
+<pre class="sql">
+CREATE TABLE EMPLOYEE
+( Fname           VARCHAR(15)     NOT NULL,
+  Minit           CHAR,
+  Lname           VARCHAR(15)     NOT NULL,
+  Ssn             CHAR(9)         NOT NULL,
+  Bdate           DATE,
+  Address         VARCHAR(30),
+  Sex             CHAR,
+  Salary          DECIMAL(10,2),
+  Super_ssn       CHAR(9),
+  Dno             INT             NOT NULL    DEFAULT 1,
+  CONSTRAINT EMPPK      PRIMARY KEY (Ssn),
+  CONSTRAINT EMPSUPERFK FOREIGN KEY (Super_ssn) REFERENCES EMPLOYEE(Ssn)
+                        ON DELETE SET NULL  ON UPDATE CASCADE,
+  CONSTRAINT EMPDEPTFK  FOREIGN KEY (Dno) REFERENCES DEPARTMENT(Dnumber)
+                        ON DELETE SET DEFAULT  ON UPDATE CASCADE );   -- (MySQL: see the note below)
+
+CREATE TABLE DEPARTMENT
+( Dname           VARCHAR(15)     NOT NULL,
+  Dnumber         INT             NOT NULL,
+  Mgr_ssn         CHAR(9)         NOT NULL    DEFAULT '888665555',
+  Mgr_start_date  DATE,
+  CONSTRAINT DEPTPK    PRIMARY KEY (Dnumber),
+  CONSTRAINT DEPTSK    UNIQUE (Dname),
+  CONSTRAINT DEPTMGRFK FOREIGN KEY (Mgr_ssn) REFERENCES EMPLOYEE(Ssn)
+                       ON DELETE SET DEFAULT  ON UPDATE CASCADE );
+
+CREATE TABLE DEPT_LOCATIONS
+( Dnumber    INT          NOT NULL,
+  Dlocation  VARCHAR(15)  NOT NULL,
+  PRIMARY KEY (Dnumber, Dlocation),
+  FOREIGN KEY (Dnumber) REFERENCES DEPARTMENT(Dnumber)
+              ON DELETE CASCADE  ON UPDATE CASCADE );
+</pre>
+<p class="small muted">The book's definition. The COMPANY on this site builds it in MySQL with two small differences: since MySQL's storage engine InnoDB does not accept <code>ON DELETE SET DEFAULT</code>, that action is left out (the deletion is rejected), and the circular foreign keys are added afterwards as explained below. You can see the full definition that was built in the <a href="lab.html">SQL lab</a> with <code>SHOW CREATE TABLE EMPLOYEE;</code>.</p>
+<div class="callout gotcha">
+  <p><strong>Circular foreign keys.</strong> EMPLOYEE.Dno → DEPARTMENT and DEPARTMENT.Mgr_ssn → EMPLOYEE refer to each other. When EMPLOYEE is created, DEPARTMENT does not exist yet. The solution: first create the tables without the FKs, then add the FKs with <code>ALTER TABLE … ADD CONSTRAINT</code>. The same problem appears when loading data: in standard SQL the constraint is deferred temporarily (<code>DEFERRABLE</code>, <code>SET CONSTRAINTS … DEFERRED</code>) or NULL is written first and updated later. MySQL has no deferrable constraints; instead foreign key checking is turned off and on during the load: <code>SET FOREIGN_KEY_CHECKS = 0; … SET FOREIGN_KEY_CHECKS = 1;</code>. That is how the COMPANY on this site is loaded.</p>
+</div>
+
+<h3>Data types and domains</h3>
+<table class="simple">
+  <thead><tr><th>Type</th><th>Examples</th></tr></thead>
+  <tbody>
+    <tr><td>Numeric</td><td><code>INTEGER</code>/<code>INT</code>, <code>SMALLINT</code>, <code>FLOAT</code>/<code>REAL</code>, <code>DOUBLE PRECISION</code>, <code>DECIMAL(i,j)</code> = <code>NUMERIC(i,j)</code>: i total digits (precision), j digits after the decimal point (scale)</td></tr>
+    <tr><td>Character</td><td><code>CHAR(n)</code> fixed length (padded with blanks on the right), <code>VARCHAR(n)</code> varying length; <code>CLOB</code> for large texts. Literals in single quotes: <code>'Smith'</code>. In standard SQL comparisons are case sensitive; in MySQL's default collation (<code>utf8mb4_0900_ai_ci</code>, "ci" = case-insensitive) they are not: <code>'smith' = 'Smith'</code> is TRUE.</td></tr>
+    <tr><td>Bit</td><td><code>BIT(n)</code>, <code>BIT VARYING(n)</code>, <code>BLOB</code> (large binary values such as images)</td></tr>
+    <tr><td>Boolean</td><td><code>TRUE</code>, <code>FALSE</code>, <code>UNKNOWN</code> (three-valued because of NULL)</td></tr>
+    <tr><td>Date/time</td><td><code>DATE</code> 'YYYY-MM-DD', <code>TIME</code> 'HH:MM:SS', <code>TIMESTAMP</code>, <code>INTERVAL</code></td></tr>
+  </tbody>
+</table>
+<p><strong>Domain</strong>: gives a type a name, which makes changing it easier: <code>CREATE DOMAIN SSN_TYPE AS CHAR(9);</code> User-defined types with <code>CREATE TYPE</code>. (Standard SQL; MySQL has no <code>CREATE DOMAIN</code> or <code>CREATE TYPE</code>, the type is written in each column separately.)</p>
+
+<h3>Constraints</h3>
+<ul>
+  <li><strong>Attribute constraints</strong>: <code>NOT NULL</code>, <code>DEFAULT &lt;value&gt;</code>, <code>CHECK</code>: <code>Dnumber INT NOT NULL CHECK (Dnumber &gt; 0 AND Dnumber &lt; 21)</code>. CHECK can also be used inside <code>CREATE DOMAIN</code>.</li>
+  <li><strong>Key constraints</strong>: <code>PRIMARY KEY</code> (if it is a single column it can also be written directly in the column definition), <code>UNIQUE</code> (an alternate/candidate key).</li>
+  <li><strong>Referential integrity</strong>: <code>FOREIGN KEY … REFERENCES</code>. On a violation the default behaviour is to reject the operation (<code>NO ACTION</code>); a <em>referential triggered action</em> can be specified instead: <code>ON DELETE</code> / <code>ON UPDATE</code> + <code>SET NULL</code>, <code>CASCADE</code>, <code>SET DEFAULT</code>.</li>
+  <li><strong>Naming constraints</strong>: <code>CONSTRAINT EMPPK PRIMARY KEY (Ssn)</code>. The name is used to <code>DROP</code> or change the constraint later.</li>
+  <li><strong>Tuple-based CHECK</strong>: at the end of the table definition, about several columns of one row: <code>CHECK (Dept_create_date &lt;= Mgr_start_date)</code>. Checked whenever a row is inserted or modified.</li>
+</ul>
+<p>So as not to disturb COMPANY, the box below creates the table in a separate database called <code>demo</code> (<code>demo.DEPT_NEW</code> = the table DEPT_NEW in the demo database). In order: the table is defined with its constraints, a row that satisfies the constraints is inserted (Mgr_ssn is not given, so it gets its DEFAULT value), then a row that violates the CHECK with Dnumber = 25 is tried. The last command is expected to fail.</p>
+<pre class="sql run" data-expect-error data-title="CHECK, DEFAULT and UNIQUE constraints at work">
+DROP TABLE IF EXISTS demo.DEPT_NEW;   -- so that the box can be run again
+CREATE TABLE demo.DEPT_NEW
+( Dname            VARCHAR(15)  NOT NULL UNIQUE,
+  Dnumber          INT          PRIMARY KEY CHECK (Dnumber > 0 AND Dnumber < 21),
+  Mgr_ssn          CHAR(9)      DEFAULT '888665555',
+  Dept_create_date DATE,
+  Mgr_start_date   DATE,
+  CHECK (Dept_create_date <= Mgr_start_date) );
+INSERT INTO demo.DEPT_NEW (Dname, Dnumber, Dept_create_date, Mgr_start_date)
+       VALUES ('Research', 5, '1980-01-01', '1988-05-22');
+SELECT * FROM demo.DEPT_NEW;            -- Mgr_ssn got its DEFAULT
+INSERT INTO demo.DEPT_NEW VALUES ('Sales', 25, NULL, NULL, NULL);   -- violates the CHECK on Dnumber
+</pre>
+
+<h2>SELECT-FROM-WHERE</h2>
+<pre class="sql">
+SELECT &lt;attribute list&gt;      -- projection attributes: which columns
+FROM   &lt;table list&gt;          -- which relations
+WHERE  &lt;condition&gt;;          -- selection and join conditions: which rows
+</pre>
+<p>Comparison operators: <code>=</code> (equal), <code>&lt;</code> (less than), <code>&lt;=</code> (less than or equal), <code>&gt;</code> (greater than), <code>&gt;=</code> (greater than or equal), <code>&lt;&gt;</code> (<strong>not equal</strong>, the ≠ of mathematics; MySQL also accepts <code>!=</code>). For example <code>Dno &lt;&gt; 5</code> selects the employees whose department is not 5. Conditions are combined with <code>AND</code>, <code>OR</code>, <code>NOT</code>.</p>
+<pre class="sql run" data-title="Q0 · The birth date and address of John B. Smith">
+SELECT Bdate, Address
+FROM   EMPLOYEE
+WHERE  Fname = 'John' AND Minit = 'B' AND Lname = 'Smith';
+</pre>
+<p>Q0 is a single-table query: <code>WHERE</code> corresponds to <em>selection</em> (σ) in relational algebra, the <code>SELECT</code> list to <em>projection</em> (π). But SQL does not remove duplicates by itself.</p>
+<pre class="sql run" data-title="Q1 · The name and address of the employees in the Research department (select-project-join)">
+SELECT Fname, Lname, Address
+FROM   EMPLOYEE, DEPARTMENT
+WHERE  Dname = 'Research' AND Dnumber = Dno;
+</pre>
+<p><code>Dname = 'Research'</code> is a <strong>selection condition</strong>, <code>Dnumber = Dno</code> a <strong>join condition</strong>. Such queries are called <em>select-project-join</em> queries.</p>
+<p>To find the join condition, follow the foreign key: EMPLOYEE.Dno references DEPARTMENT.Dnumber (the schema in Ch 5), so the two tables are connected by <code>Dno = Dnumber</code>. Without the condition every employee would be matched with every department (Q10 below).</p>
+
+<div class="callout example" data-label="Step by step: turning a question into SQL">
+  <p>Question (Q2): <em>"For every project located in Stafford, list the project number, the controlling department number, and the department manager's last name, address and birth date."</em></p>
+  <ol>
+    <li><strong>What is asked for? → SELECT.</strong> Pnumber, Dnum (in PROJECT), Lname, Address, Bdate (the manager's information, i.e. in EMPLOYEE).</li>
+    <li><strong>Which tables hold this information? → FROM.</strong> PROJECT and EMPLOYEE. But a project and its manager are not connected directly: a project belongs to a department (Dnum), a department to a manager (Mgr_ssn). DEPARTMENT in between is needed too: <code>FROM PROJECT, DEPARTMENT, EMPLOYEE</code>.</li>
+    <li><strong>How are the tables connected? → join conditions.</strong> Each foreign key step is a condition: <code>Dnum = Dnumber</code> (project → department), <code>Mgr_ssn = Ssn</code> (department → manager). Three tables, two conditions.</li>
+    <li><strong>Which rows? → the selection condition.</strong> <code>Plocation = 'Stafford'</code>.</li>
+  </ol>
+  <p>Predict before running: how many projects are in Stafford and who are their managers? (You can look at the PROJECT and DEPARTMENT tables from above the box below.)</p>
+</div>
+<pre class="sql run" data-title="Q2 · Every project in Stafford: its number, the controlling department, the manager's last name, address, birth date">
+SELECT Pnumber, Dnum, Lname, Address, Bdate
+FROM   PROJECT, DEPARTMENT, EMPLOYEE
+WHERE  Dnum = Dnumber AND Mgr_ssn = Ssn AND Plocation = 'Stafford';
+</pre>
+<p>The result: the two projects in Stafford (10 Computerization, 30 Newbenefits) belong to department 4; its manager is Wallace. These four steps work for every SQL question on the site; in the exam, think in the same order on paper.</p>
+
+<h3>Ambiguous names, aliases, tuple variables</h3>
+<p>Different tables can have columns with the same name. To remove the ambiguity, the column name is <em>qualified</em> with the table name: <code>EMPLOYEE.Dno</code>. If the same table appears twice in a query an <strong>alias</strong> (tuple variable) is required.</p>
+<pre class="sql run" data-title="Q8 · The last name of every employee and of their direct supervisor (self-join)">
+SELECT E.Fname, E.Lname, S.Fname, S.Lname
+FROM   EMPLOYEE AS E, EMPLOYEE AS S
+WHERE  E.Super_ssn = S.Ssn;
+</pre>
+<p>Think of E and S as two separate copies of EMPLOYEE: E in the role of the employee, S in the role of the supervisor. This is a one-level <em>recursive query</em>. Borg is not in the result: his supervisor is NULL, so the join condition is not satisfied. Aliases can also rename the columns: <code>FROM EMPLOYEE AS E(Fn, Mi, Ln, Ssn, Bd, Addr, Sex, Sal, Sssn, Dno)</code> (standard SQL; MySQL does not accept this for base tables, only for subqueries such as <code>FROM (SELECT …) AS T(a, b)</code>).</p>
+
+<h3>No WHERE, * and the Cartesian product</h3>
+<p><strong>Predict:</strong> EMPLOYEE has 8 rows, DEPARTMENT 3. How many rows does the second query return?</p>
+<pre class="sql run" data-title="Q9 and Q10 · Without WHERE: all the rows; with two tables, a CARTESIAN PRODUCT">
+-- Q9: all Ssn values
+SELECT Ssn FROM EMPLOYEE;
+-- Q10: every combination of an employee Ssn and a department name: 8 x 3 = 24 rows
+SELECT Ssn, Dname FROM EMPLOYEE, DEPARTMENT;
+</pre>
+<div class="callout gotcha">
+  <p><strong>Forgetting the join condition</strong> is the most classic exam mistake: the result is the Cartesian product of the tables (wrong and very large). Rule: with n tables in FROM, you usually need at least n − 1 join conditions.</p>
+</div>
+<pre class="sql run" data-title="Q1C and Q1D · * means all the columns">
+SELECT * FROM EMPLOYEE WHERE Dno = 5;
+SELECT * FROM EMPLOYEE, DEPARTMENT WHERE Dname = 'Research' AND Dno = Dnumber;
+</pre>
+
+<h3 id="tablolar-multiset-tir-all-ve-distinct">Tables are multisets: ALL and DISTINCT</h3>
+<p>SQL does not remove duplicates by itself: removing duplicates is expensive (it needs sorting), the user may want to see the duplicates, and duplicates matter in aggregate functions (e.g. an average).</p>
+<p><strong>Predict:</strong> the salaries of the eight employees are 30000, 40000, 25000, 43000, 38000, 25000, 25000, 55000. How many rows does each query return?</p>
+<pre class="sql run" data-title="Q11 and Q11A · Salaries: with and without duplicates">
+SELECT ALL Salary FROM EMPLOYEE;        -- ALL is the default
+SELECT DISTINCT Salary FROM EMPLOYEE;   -- each value once
+</pre>
+
+<h3>Set operations: UNION, EXCEPT, INTERSECT</h3>
+<p>The results are <em>sets</em> (duplicates are removed). The two sides must have compatible numbers and types of columns (<em>union-compatible</em>). The multiset versions: <code>UNION ALL</code>, <code>EXCEPT ALL</code>, <code>INTERSECT ALL</code>.</p>
+<pre class="sql run" data-title="Q4A · Projects that involve someone with the last name Smith as a worker OR as the manager of the controlling department">
+(SELECT DISTINCT Pnumber
+ FROM   PROJECT, DEPARTMENT, EMPLOYEE
+ WHERE  Dnum = Dnumber AND Mgr_ssn = Ssn AND Lname = 'Smith')
+UNION
+(SELECT DISTINCT Pnumber
+ FROM   PROJECT, WORKS_ON, EMPLOYEE
+ WHERE  Pnumber = Pno AND Essn = Ssn AND Lname = 'Smith');
+</pre>
+<p><strong>Predict:</strong> the employees are in departments 1, 4 and 5; the projects are controlled by 4 and 5. What is the result of each query? UNION ALL keeps duplicates, INTERSECT and EXCEPT remove them.</p>
+<pre class="sql run" data-title="The difference between UNION ALL, INTERSECT and EXCEPT">
+SELECT Dno FROM EMPLOYEE  UNION ALL  SELECT Dnumber FROM DEPARTMENT;   -- 8 + 3 = 11 rows
+SELECT Dno FROM EMPLOYEE  INTERSECT  SELECT Dnum FROM PROJECT;         -- departments with employees AND projects
+SELECT Dnumber FROM DEPARTMENT  EXCEPT  SELECT Dnum FROM PROJECT;      -- departments that control no project
+</pre>
+
+<h3>LIKE, arithmetic, BETWEEN</h3>
+<ul>
+  <li><code>LIKE</code>: <code>%</code> zero or more characters, <code>_</code> exactly one character. To search for these characters themselves, an escape character: <code>'AB\_CD\%EF' ESCAPE '\'</code>. A single quote is written twice inside a string: <code>'O''Brien'</code>.</li>
+  <li>Arithmetic: <code>+</code>, <code>−</code>, <code>*</code>, <code>/</code>; string concatenation is <code>||</code> in standard SQL, <code>CONCAT(a, b)</code> in MySQL (in MySQL <code>||</code> means OR by default); adding and subtracting an <code>INTERVAL</code> with dates/times: <code>Bdate + INTERVAL 1 YEAR</code>.</li>
+  <li><code>BETWEEN a AND b</code> ≡ <code>&gt;= a AND &lt;= b</code> (both bounds included).</li>
+</ul>
+<pre class="sql run" data-title="Q12 · Employees whose address is in Houston, Texas">
+SELECT Fname, Lname
+FROM   EMPLOYEE
+WHERE  Address LIKE '%Houston,%TX%';
+</pre>
+<pre class="sql run" data-title="Q12A · Employees born in the 1950s">
+-- a DATE compared with LIKE is read as its text 'YYYY-MM-DD': the third character is the decade
+SELECT Fname, Lname, Bdate
+FROM   EMPLOYEE
+WHERE  Bdate LIKE '__5_______';
+-- the same without relying on the text form
+SELECT Fname, Lname, Bdate
+FROM   EMPLOYEE
+WHERE  YEAR(Bdate) BETWEEN 1950 AND 1959;
+</pre>
+<p class="small muted">The pattern has 10 characters: <code>__5_______</code> = any two characters, 5, any seven characters. '1955-12-08' matches (Wong); '1965-01-09' does not, because its third character is 6.</p>
+<pre class="sql run" data-title="Q13 · The salaries of the employees on ProductX after a 10% raise">
+SELECT E.Fname, E.Lname, 1.1 * E.Salary AS Increased_sal
+FROM   EMPLOYEE AS E, WORKS_ON AS W, PROJECT AS P
+WHERE  E.Ssn = W.Essn AND W.Pno = P.Pnumber AND P.Pname = 'ProductX';
+</pre>
+<pre class="sql run" data-title="Q14 · Employees in department 5 with a salary between 30000 and 40000">
+SELECT *
+FROM   EMPLOYEE
+WHERE  (Salary BETWEEN 30000 AND 40000) AND Dno = 5;
+</pre>
+
+<h3>ORDER BY</h3>
+<pre class="sql run" data-title="Q15 · Employees and their projects, ordered by department, then by last name and first name">
+SELECT   D.Dname, E.Lname, E.Fname, P.Pname
+FROM     DEPARTMENT D, EMPLOYEE E, WORKS_ON W, PROJECT P
+WHERE    D.Dnumber = E.Dno AND E.Ssn = W.Essn AND W.Pno = P.Pnumber
+ORDER BY D.Dname DESC, E.Lname ASC, E.Fname ASC;
+</pre>
+<p>The default order is <code>ASC</code>. Each column has its own direction: in <code>ORDER BY D.Dname DESC, E.Lname</code> DESC applies only to Dname.</p>
+
+<h3>Order of evaluation</h3>
+<p>Conceptually <strong>FROM</strong> is evaluated first, then <strong>WHERE</strong>, then <strong>SELECT</strong>, and <strong>ORDER BY</strong> last; the DBMS's actual execution plan may differ, but the result is defined by this order. The full order with GROUP BY and HAVING added, shown step by step, is <a href="ch7-joins.html#conceptual-order-of-evaluation">in Ch 7</a>.</p>
+
+<h2>Updates: INSERT, DELETE, UPDATE</h2>
+<h3>INSERT</h3>
+<pre class="sql run" data-title="U1 and U1A · Values in the order of the schema; or with the column names given">
+-- U1: one value per attribute, in CREATE TABLE order
+INSERT INTO EMPLOYEE
+VALUES ('Richard', 'K', 'Marini', '653298653', '1962-12-30', '98 Oak Forest, Katy, TX', 'M', 37000, '653298653', 4);
+-- U1A: only some attributes; the rest get NULL or their DEFAULT (Dno DEFAULT 1)
+INSERT INTO EMPLOYEE (Fname, Lname, Ssn)
+VALUES ('Richard', 'Marini', '653298654');
+SELECT Fname, Lname, Ssn, Super_ssn, Dno FROM EMPLOYEE WHERE Lname = 'Marini';
+</pre>
+<pre class="sql run" data-expect-error data-title="U2 · Rejected: the NOT NULL Ssn is missing (U2A: there is no department 2)">
+INSERT INTO EMPLOYEE (Fname, Lname, Dno)
+VALUES ('Robert', 'Hatcher', 2);
+</pre>
+<p>The result of a query can be inserted too (U3A/U3B): creating a temporary table and filling it.</p>
+<pre class="sql run" data-title="U3A and U3B · Inserting a query result into a new table">
+DROP TABLE IF EXISTS WORKS_ON_INFO;   -- so that the box can be run again
+CREATE TABLE WORKS_ON_INFO
+( Emp_name      VARCHAR(15),
+  Proj_name     VARCHAR(15),
+  Hours_per_week DECIMAL(3,1) );
+INSERT INTO WORKS_ON_INFO (Emp_name, Proj_name, Hours_per_week)
+  SELECT E.Lname, P.Pname, W.Hours
+  FROM   PROJECT P, WORKS_ON W, EMPLOYEE E
+  WHERE  P.Pnumber = W.Pno AND W.Essn = E.Ssn;
+SELECT * FROM WORKS_ON_INFO ORDER BY Emp_name;
+</pre>
+<p>WORKS_ON_INFO is a <em>copy</em>: if the base tables change later, it does not stay up to date. For an always up-to-date view, a view is used (Ch 7). Similarly a copy can be made with <code>CREATE TABLE D5EMPS LIKE EMPLOYEE</code> (structure only) or <code>CREATE TABLE … AS SELECT …</code> (structure and data; in standard SQL <code>WITH DATA</code> is added at the end, in MySQL it is not).</p>
+
+<h3>DELETE</h3>
+<p>Deletes the rows that satisfy the <code>WHERE</code> condition; without a condition it deletes <em>all the rows</em> (the table definition remains; that needs <code>DROP TABLE</code>). Referential triggered actions can propagate the deletion to other tables.</p>
+<pre class="sql run" data-title="U4A–U4C · Deletion examples (U4D: DELETE FROM EMPLOYEE; empties the whole table)">
+-- U4A: no employee is called Brown, so nothing is deleted
+DELETE FROM EMPLOYEE WHERE Lname = 'Brown';
+-- remove the rows that reference the employees we delete below (WORKS_ON, DEPENDENT have no CASCADE)
+DELETE FROM WORKS_ON WHERE Essn = '123456789';
+DELETE FROM DEPENDENT WHERE Essn = '123456789';
+-- U4B: nothing else references Smith now (he manages no department and supervises nobody)
+DELETE FROM EMPLOYEE WHERE Ssn = '123456789';
+SELECT COUNT(*) AS employees_left FROM EMPLOYEE;   -- COUNT(*): the number of rows (aggregates: Ch 7)
+</pre>
+
+<h3>UPDATE</h3>
+<pre class="sql run" data-title="U5 and U6 · Updating one row and many rows">
+-- U5: project 10 (Computerization) moves to Bellaire and is controlled by department 5
+UPDATE PROJECT
+SET    Plocation = 'Bellaire', Dnum = 5
+WHERE  Pnumber = 10;
+-- U6: a 10% raise for everyone in the Research department (5)
+UPDATE EMPLOYEE
+SET    Salary = Salary * 1.1
+WHERE  Dno = 5;
+SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
+</pre>
+<p>The four salaries in Research go from 30000, 40000, 38000, 25000 to 33000, 44000, 41800, 27500. The <code>Salary</code> on the right of the assignment is the old value; the left side gets the new value. <code>SET</code> can assign NULL or <code>DEFAULT</code>. UPDATE changes one table at a time; if a PK changes, the <code>ON UPDATE</code> actions of the FKs are triggered.</p>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="3" data-tables="EMPLOYEE WORKS_ON PROJECT">
+  <p>For "the last names of the employees who work on ProductX" you wrote <code>EMPLOYEE, WORKS_ON, PROJECT</code> in FROM. How many join conditions are needed in WHERE at least?</p>
+  <ol>
+    <li data-why="A single condition connects only two tables; the third table is added by a Cartesian product and every row is multiplied needlessly.">1</li>
+    <li data-why="Three conditions for three tables is not too many, but not needed: the chain is made of two links (EMPLOYEE–WORKS_ON, WORKS_ON–PROJECT). The question asks for 'at least'.">3</li>
+    <li data-why="Correct: for n tables usually n − 1 join conditions: Ssn = Essn and Pno = Pnumber. Plus a selection condition: Pname = 'ProductX'.">2</li>
+    <li data-why="Without join conditions the Cartesian product of the three tables in FROM is taken: 8 × 16 × 6 = 768 rows, most of them meaningless.">0; Pname = 'ProductX' alone in WHERE is enough</li>
+  </ol>
+  <div class="explain">Connect the tables in FROM like a chain through the foreign keys: EMPLOYEE.Ssn = WORKS_ON.Essn and WORKS_ON.Pno = PROJECT.Pnumber. Three tables, two links. Then the selection condition: Pname = 'ProductX'. The result is Smith and English.</div>
+  <pre class="sql run" data-title="Check it">SELECT Lname
+FROM   EMPLOYEE, WORKS_ON, PROJECT
+WHERE  Ssn = Essn AND Pno = Pnumber AND Pname = 'ProductX';</pre>
+</div>
+<div class="quiz" data-answer="2">
+  <p>What does <code>ORDER BY Dno DESC, Salary</code> express?</p>
+  <ol>
+    <li data-why="DESC belongs only to the column right before it; no direction is written for Salary, so the default ASC is used.">First by Dno, then by Salary, both from largest to smallest</li>
+    <li data-why="Correct: DESC belongs only to Dno; the rows with the same Dno are ordered by Salary ascending.">Dno from largest to smallest; rows with the same Dno by Salary from smallest to largest</li>
+    <li data-why="The order of the columns matters: the first column gives the main order, the second only breaks ties.">First by Salary, then by Dno</li>
+    <li data-why="ORDER BY can take several columns and each carries its own direction; this is valid syntax.">A syntax error; a direction must be written for every column</li>
+  </ol>
+  <div class="explain">Each sort column has its own direction and the default is ASC. The rows are first ordered by Dno descending; rows with equal Dno are ordered by Salary ascending.</div>
+</div>
+<div class="quiz" data-answer="4" data-tables="EMPLOYEE DEPARTMENT">
+  <p>How many rows does <code>SELECT Dno FROM EMPLOYEE UNION SELECT Dnumber FROM DEPARTMENT;</code> return? (The employees' Dno values: 5, 5, 4, 4, 5, 5, 4, 1; the departments: 5, 4, 1.)</p>
+  <ol>
+    <li data-why="11 would be the result of UNION ALL (8 + 3). UNION removes duplicates.">11</li>
+    <li data-why="8 is only the row count of the first query; UNION combines the two results and drops duplicates.">8</li>
+    <li data-why="UNION is a union: every value on either side appears once in the result. The result is empty only if both sides are empty.">0</li>
+    <li data-why="Correct: both sides contain only 1, 4 and 5; UNION keeps each once.">3</li>
+  </ol>
+  <div class="explain">UNION is set union: {5, 4, 1} ∪ {5, 4, 1} = {1, 4, 5}, three rows. To keep the duplicates write UNION ALL (11 rows).</div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p>In the starting state of COMPANY (EMPLOYEE has 8 rows, 4 of them in department 5; DEPARTMENT has 3 rows), how many rows does the following query return? Click the table names below to see the tables' rows.</p>
+  <pre class="sql">SELECT Lname FROM EMPLOYEE, DEPARTMENT WHERE Dno = 5;</pre>
+  <ol>
+    <li data-why="4 is the number of employees with Dno = 5; with a join condition (Dno = Dnumber) this would be the result. But there are two tables in FROM and no condition connecting them: every employee is matched with every department.">4</li>
+    <li data-why="Correct: of the 8 × 3 = 24 combinations, those with Dno = 5 remain, i.e. 4 employees × 3 departments.">12</li>
+    <li data-why="24 is the whole Cartesian product (8 × 3) that you would get with no WHERE at all. WHERE Dno = 5 still filters the employees.">24</li>
+    <li data-why="3 is the number of rows in DEPARTMENT. The WHERE condition looks not at DEPARTMENT but at EMPLOYEE's Dno.">3</li>
+  </ol>
+  <div class="explain">The conceptual order: FROM first, then WHERE. FROM produces the Cartesian product of the two tables: 8 × 3 = 24 rows. WHERE keeps only those with Dno = 5: since each of the 4 employees in department 5 is matched with 3 departments, 4 × 3 = 12 rows. Smith, Wong, Narayan and English each appear three times. Try it in the box below; then add <code>AND Dno = Dnumber</code> and see the result drop to 4.</div>
+  <pre class="sql run" data-title="Check it">SELECT Lname FROM EMPLOYEE, DEPARTMENT WHERE Dno = 5;</pre>
+</div>
+<div class="quiz" data-answer="3" data-tables="EMPLOYEE">
+  <p>How many rows do <code>SELECT Salary FROM EMPLOYEE</code> and <code>SELECT DISTINCT Salary FROM EMPLOYEE</code> return, respectively? (Salaries: 30000, 40000, 25000, 43000, 38000, 25000, 25000, 55000)</p>
+  <ol>
+    <li data-why="The second query uses DISTINCT: since 25000 appears three times, the duplicates are removed and 8 do not remain.">8 and 8</li>
+    <li data-why="The order is reversed: the query without DISTINCT returns more rows, because SQL does not remove duplicates by itself.">6 and 8</li>
+    <li data-why="Correct: without DISTINCT one row per employee (8), with DISTINCT the distinct salaries (6).">8 and 6</li>
+    <li data-why="SQL tables are multisets, not sets: unless DISTINCT is written duplicates stay, so the first query returns 8 rows.">6 and 6</li>
+  </ol>
+  <div class="explain">SQL tables are multisets; without DISTINCT 25000 comes three times (8 rows). With DISTINCT 6 distinct salaries remain.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Which is the correct condition for "employees whose first name starts with A and has exactly five letters"?</p>
+  <ol>
+    <li data-why="Correct: A + four _ = exactly five characters."><code>Fname LIKE 'A____'</code></li>
+    <li data-why="% means any number of characters: Alicia (6 letters) also matches; it does not limit the length."><code>Fname LIKE 'A%'</code></li>
+    <li data-why="= does not interpret wildcards: it finds only someone whose name is exactly 'A____' (A and four underscores)."><code>Fname = 'A____'</code></li>
+    <li data-why="Four % in a row are the same as a single % (each can also be zero characters): it behaves like 'A%'."><code>Fname LIKE 'A%%%%'</code></li>
+  </ol>
+  <div class="explain">Each <code>_</code> is exactly one character: A + four <code>_</code> = five letters (Ahmad, not Alicia). <code>%</code> has any length, so it does not limit the length; <code>=</code> does not interpret wildcards.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which is true of <code>DELETE FROM DEPARTMENT;</code>?</p>
+  <ol>
+    <li data-why="The command that removes the table's definition is <code>DROP TABLE DEPARTMENT;</code>. DELETE deals only with rows.">It removes the DEPARTMENT table from the schema.</li>
+    <li data-why="WHERE is optional; if it is not written the condition counts as true for every row.">It is a syntax error; WHERE is required.</li>
+    <li data-why="Tables have no 'first row' (rows have no order); DELETE deletes <em>all</em> the rows that satisfy the condition.">It deletes only the first row.</li>
+    <li data-why="Correct: all the rows are targeted, the table definition remains; if referencing rows exist, referential integrity can make the deletion be rejected.">It tries to delete all the rows; the table definition remains. FKs (e.g. PROJECT.Dnum) can prevent the deletion.</li>
+  </ol>
+  <div class="explain">DELETE without WHERE targets all the rows. Removing the table needs <code>DROP TABLE</code>. In COMPANY EMPLOYEE.Dno and PROJECT.Dnum reference the departments and these FKs have no ON DELETE action that allows the deletion; so MySQL rejects it (error 1451) and no rows are deleted. You can see it in the check box.</div>
+  <pre class="sql run" data-expect-error data-title="Check it">DELETE FROM DEPARTMENT;</pre>
+</div>
+
+
+</div></main>
+</body>
+</html>

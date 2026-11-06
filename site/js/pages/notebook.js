@@ -36,7 +36,7 @@ for (const ex of EXERCISES) {
   const status = h("span", { class: "ex-status" + (done.has(ex.n) ? " done" : "") }, done.has(ex.n) ? tl("✔ çözüldü", "✔ solved") : tl("çözülmedi", "not solved"));
   const sec = h("section", { class: "exercise", id: `ex${ex.n}` });
   sec.append(
-    h("h3", { "data-toc": `${tl("Alıştırma", "Exercise")} ${ex.n} · ${tx(ex, "topic")}` }, `${tl("Alıştırma", "Exercise")} ${ex.n}`, h("span", { class: "stars", title: (EN ? ["", "easy", "medium", "hard"] : ["", "kolay", "orta", "zor"])[ex.stars] }, "★".repeat(ex.stars) + "☆".repeat(3 - ex.stars)), h("span", {}, ex.topic), status),
+    h("h3", { "data-toc": `${tl("Alıştırma", "Exercise")} ${ex.n} · ${tx(ex, "topic")}` }, `${tl("Alıştırma", "Exercise")} ${ex.n}`, h("span", { class: "stars", title: (EN ? ["", "easy", "medium", "hard"] : ["", "kolay", "orta", "zor"])[ex.stars] }, "★".repeat(ex.stars) + "☆".repeat(3 - ex.stars)), h("span", {}, tx(ex, "topic")), status),
     h("p", { class: "small muted" }, `${(EN ? ["", "Easy (Ch 6)", "Medium (Ch 7)", "Hard (Ch 7)"] : ["", "Kolay (Ch 6)", "Orta (Ch 7)", "Zor (Ch 7)"])[ex.stars]} · ${tl("slaytlar", "slides")} ${ex.slides}`),
     h("p", { html: `<strong>${tl("Sorgu", "Query")}:</strong> ${tx(ex, "query")}` }),
     EN ? null : h("details", { class: "small muted" }, h("summary", {}, "Notebook'taki İngilizce metin"), h("p", {}, ex.queryEn)),

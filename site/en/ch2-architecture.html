@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture and data models · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 2: categories of data models, schema and database state, the three-schema architecture, logical and physical data independence, DBMS languages, interfaces, client-server architectures, classification of DBMSs.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch2-architecture.js"></script>
+</head>
+<body data-page="ch2-architecture">
+<main><div class="content">
+
+<h1>Architecture and data models</h1>
+<p class="lead">At which levels of abstraction does a DBMS show data to users? Why are the schema and the data kept apart, and how does this separation protect programs from changes?</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Tell the schema and the state (intension/extension) apart on an example.</li>
+    <li>Draw the three-schema architecture and explain its levels and mappings.</li>
+    <li>Say whether a change is an example of logical or of physical data independence.</li>
+    <li>Say which language (DDL, SDL, VDL, DML) a command belongs to, and the difference between 2-tier and 3-tier.</li>
+  </ul>
+</div>
+
+<h2>Data models</h2>
+<p><strong>Data model</strong>: a collection of concepts used to describe the structure of a database: data types, relationships and constraints. Most models also include <em>basic operations</em> and user-defined operations (the <em>dynamic aspect / behavior</em>).</p>
+<table class="simple">
+  <thead><tr><th>Category</th><th>How abstract?</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><td><strong>High-level / conceptual</strong></td><td>Close to the way users perceive data: <em>entity</em>, <em>attribute</em>, <em>relationship</em>.</td><td>The ER model (Ch 3), EER (Ch 4)</td></tr>
+    <tr><td><strong>Representational / implementation</strong></td><td>Understandable by users but not too far from the way data is organized in the computer; used by commercial DBMSs.</td><td>The relational model (Ch 5); formerly the network and hierarchical models; object-relational</td></tr>
+    <tr><td><strong>Low-level / physical</strong></td><td>How data is stored in the computer: record formats, orderings, access paths (e.g. an index).</td><td>File organizations, B+-tree indexes</td></tr>
+    <tr><td><strong>Self-describing</strong></td><td>The data and its description together.</td><td>XML, JSON, key-value NoSQL systems</td></tr>
+  </tbody>
+</table>
+
+<h2>Schema, state, instance</h2>
+<div class="two-col">
+  <div>
+    <ul>
+      <li><strong>Database schema</strong>: the <em>description</em> of the database. Specified during design and rarely changed. A drawing of the schema is a <em>schema diagram</em>, each object in it a <em>schema construct</em>.</li>
+      <li><strong>Database state</strong> (<em>snapshot</em>, <em>current set of occurrences/instances</em>): the <em>data</em> at a particular moment. Changes with every update.</li>
+      <li><strong>Empty state</strong>: the schema is defined but there is no data. <strong>Initial state</strong>: the first load. <strong>Valid state</strong>: a state that satisfies the structure and constraints of the schema.</li>
+      <li>Schema = <strong>intension</strong>, state = <strong>extension</strong>.</li>
+      <li><strong>Schema evolution</strong>: changing the schema when requirements change (e.g. adding a column to EMPLOYEE). Most DBMSs support it: <code>ALTER TABLE</code> (Ch 7).</li>
+    </ul>
+  </div>
+  <div class="callout example">
+    <p><strong>In COMPANY:</strong> the definition <code>EMPLOYEE(Fname, …, Ssn, …, Dno)</code> is the schema. Today there are 8 employees: that is a <em>state</em>. Adding a new employee (<code>INSERT</code>) changes the state, not the schema. Adding an <code>Email</code> column (<code>ALTER TABLE</code>) changes the schema.</p>
+  </div>
+</div>
+<p>The box below shows the difference on COMPANY (you will see the SQL commands in detail in Ch 6; here reading the comment lines is enough). It first counts the rows in EMPLOYEE (8), then adds an employee (<code>INSERT</code>) and counts again (9): the <em>state</em> changed. Then it reads EMPLOYEE's columns from the catalog: still the same ten columns, so the <em>schema</em> did not change. The last command deletes the added row, so COMPANY is back to its starting state and the box can be run again.</p>
+<pre class="sql run" data-title="The state changes, the schema does not">
+-- the current state: 8 employees
+SELECT COUNT(*) AS employees FROM EMPLOYEE;
+-- an update changes the state ...
+INSERT INTO EMPLOYEE (Fname, Lname, Ssn, Dno) VALUES ('Ayşe', 'Yılmaz', '111222333', 5);
+SELECT COUNT(*) AS employees FROM EMPLOYEE;
+-- ... the schema (the columns, read from the catalog) is still the same
+SELECT COLUMN_NAME FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POSITION;
+-- undo the insert, so that the box can be run again
+DELETE FROM EMPLOYEE WHERE Ssn = '111222333';
+</pre>
+
+<h2>The three-schema architecture</h2>
+<p>The goal: to separate user applications from the physical database. The schema is defined at three levels:</p>
+<div id="three-schema"></div>
+<ol>
+  <li><strong>Internal level</strong> → the <strong>internal schema</strong>: the physical storage structure, in full detail with a <em>physical data model</em>: files, record formats, access paths.</li>
+  <li><strong>Conceptual level</strong> → the <strong>conceptual schema</strong>: the structure of the whole database for all users. Hides the physical details; describes entities, data types, relationships, operations and constraints. Usually implemented with a <em>representational</em> model (e.g. relational).</li>
+  <li><strong>External level</strong> (<em>view level</em>) → several <strong>external schemas</strong> (<em>user views</em>): each shows the part one user group is interested in and hides the rest.</li>
+</ol>
+<p>The transformations of requests and results between levels are called <strong>mappings</strong>: the external/conceptual mapping and the conceptual/internal mapping. Mappings add overhead; that is why some DBMSs do not fully support the external level.</p>
+
+<h2>Data independence</h2>
+<p><strong>Definition:</strong> the capacity to change the schema at one level without having to change the schema at the next higher level.</p>
+<div class="two-col">
+  <div class="callout key">
+    <p><strong>Logical data independence</strong>: changing the <em>conceptual</em> schema without changing the external schemas or application programs. E.g. adding a column to a table, removing a record type, adding a constraint; only the view definitions and mappings change. <em>Harder to achieve</em>, because programs depend on the logical structure.</p>
+  </div>
+  <div class="callout key">
+    <p><strong>Physical data independence</strong>: changing the <em>internal</em> schema without changing the conceptual schema. E.g. adding an index, reorganizing a file, moving to a different storage device. Queries give the same result (perhaps faster). Well supported in most DBMSs.</p>
+  </div>
+</div>
+<p>You can try both kinds of independence on COMPANY. In the first box <code>EXPLAIN</code> shows <em>how</em> the DBMS will run a query (the execution plan), not the result. Before the index is added the plan scans the whole table and filters the rows (<code>Filter</code> + <code>Table</code>). <code>CREATE INDEX</code> adds a new access path to the internal schema; the plan now uses the index (<code>IndexedTableAccess</code>). The query itself and its result are the same.</p>
+<pre class="sql run" data-title="Physical independence: adding an index does not change the query's result">
+-- the query plan before: scan the whole table, keep the rows with Lname = 'Wong'
+EXPLAIN FORMAT=TREE SELECT * FROM EMPLOYEE WHERE Lname = 'Wong';
+-- a change to the internal schema (a new access path)
+CREATE INDEX emp_lname_idx ON EMPLOYEE (Lname);
+-- the query plan after: the new index is used
+EXPLAIN FORMAT=TREE SELECT * FROM EMPLOYEE WHERE Lname = 'Wong';
+-- the same query still gives the same answer
+SELECT Fname, Lname FROM EMPLOYEE WHERE Lname = 'Wong';
+-- undo, so that the box can be run again
+DROP INDEX emp_lname_idx ON EMPLOYEE;
+</pre>
+<p class="small muted">The plan text is produced by the engine on this site (go-mysql-server); real MySQL's <code>EXPLAIN FORMAT=TREE</code> output looks different but says the same thing: first a full scan, then access through the index.</p>
+<p>In the second box an <em>external schema</em>, i.e. a <strong>view</strong>, is defined for a user group (in detail in Ch 7): this group sees only the employee's name and the department name. Then the conceptual schema changes: a column is added to EMPLOYEE (<code>ALTER TABLE</code>). The query that uses the view keeps giving the same result without any change.</p>
+<pre class="sql run" data-title="Logical independence: the view hides the change in the conceptual schema">
+-- an external schema for a user group: name and department name only
+CREATE OR REPLACE VIEW EMP_DEPT AS
+  SELECT E.Fname, E.Lname, D.Dname
+  FROM   EMPLOYEE E JOIN DEPARTMENT D ON E.Dno = D.Dnumber;
+SELECT * FROM EMP_DEPT WHERE Dname = 'Research';
+-- the conceptual schema changes: a new column
+ALTER TABLE EMPLOYEE ADD COLUMN Email VARCHAR(40);
+-- programs that use the view do not notice
+SELECT * FROM EMP_DEPT WHERE Dname = 'Research';
+-- undo, so that the box can be run again
+ALTER TABLE EMPLOYEE DROP COLUMN Email;
+DROP VIEW EMP_DEPT;
+</pre>
+
+<h2>DBMS languages</h2>
+<table class="simple">
+  <thead><tr><th>Language</th><th>What does it define?</th></tr></thead>
+  <tbody>
+    <tr><td><strong>DDL</strong> (data definition language)</td><td>The conceptual schema (and, in systems without a clear internal/external separation, all of them). In SQL: <code>CREATE</code>, <code>ALTER</code>, <code>DROP</code>.</td></tr>
+    <tr><td><strong>SDL</strong> (storage definition language)</td><td>The internal schema. Today's relational DBMSs have no separate language; it is done with parameters and commands (e.g. <code>CREATE INDEX</code>).</td></tr>
+    <tr><td><strong>VDL</strong> (view definition language)</td><td>The external schemas. In SQL: <code>CREATE VIEW</code>.</td></tr>
+    <tr><td><strong>DML</strong> (data manipulation language)</td><td>Access and updates: retrieval, insertion, deletion, modification. In SQL: <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>.</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><strong>High-level / nonprocedural DML</strong> (<em>set-at-a-time</em>, <em>declarative</em>): says <em>what</em> is wanted, not <em>how</em> to find it. One command returns many records. E.g. SQL. Can be used interactively on its own or embedded in a program (<em>embedded</em>; then the programming language is the <em>host language</em> and the DML a <em>data sublanguage</em>).</li>
+  <li><strong>Low-level / procedural DML</strong> (<em>record-at-a-time</em>): retrieves records one by one; must be used together with programming constructs such as loops. E.g. the old network-model DML (DL/1).</li>
+  <li><strong>Query language</strong>: a high-level DML used interactively.</li>
+  <li>SQL combines DDL + VDL + DML (and constraint and privilege definitions) in one language.</li>
+</ul>
+
+<h2>DBMS interfaces</h2>
+<p>Menu-based (web) interfaces, apps for mobile devices, forms, graphical user interfaces (GUI), natural-language interfaces, keyword-based search, speech input and output, interfaces for <em>parametric users</em> (ready-made operations with few keystrokes) and interfaces for the DBA (privileged commands such as creating accounts, granting privileges, changing the schema).</p>
+
+<h2>The DBMS environment and its components</h2>
+<p>A summary of Figure 2.3 in the book: users at the top (DBA, casual, programmer, parametric), compilers and processors in the middle, storage at the bottom:</p>
+<ul>
+  <li><strong>DDL compiler</strong>: processes schema definitions and writes the meta-data to the <strong>system catalog</strong>.</li>
+  <li><strong>Interactive query interface → query compiler → query optimizer</strong>: parses and validates a query and turns it into an efficient execution plan.</li>
+  <li><strong>Precompiler</strong>: extracts the DML commands embedded in an application program; the <strong>DML compiler</strong> compiles them; the rest of the code goes to the host-language compiler. All of it is linked into <em>canned transactions</em>.</li>
+  <li><strong>Runtime database processor</strong>: runs the plans and canned transactions; accesses the disk through the <strong>stored data manager</strong> and <strong>buffer management</strong>.</li>
+  <li><strong>Concurrency control / backup / recovery subsystems</strong> work together with the runtime processor.</li>
+  <li><strong>Database system utilities</strong>: loading (files into the database), backup, database storage reorganization, performance monitoring; also sorting, data compression, user monitoring.</li>
+  <li>Other tools: CASE tools, <em>data dictionary / repository</em> systems (which also store design decisions and usage standards), application development environments, communications software.</li>
+</ul>
+
+<h2>Centralized and client/server architectures</h2>
+<div class="two-col">
+  <div>
+    <ul>
+      <li><strong>Centralized</strong>: all DBMS functionality, the applications and the interface on one system (formerly a mainframe; terminals were only displays).</li>
+      <li><strong>Basic client/server</strong>: <em>specialized servers</em> (file server, printer server, web server, DBMS server …) and the <em>clients</em> that connect to them.</li>
+      <li><strong>Two-tier client/server</strong>: the user interface and application programs on the client; query and transaction functionality on the server (<em>query server / transaction server</em>; in a relational DBMS an <em>SQL server</em>). The connection is through an API such as <strong>ODBC</strong> or <strong>JDBC</strong>.</li>
+      <li><strong>Three-tier / n-tier</strong> (web applications): client (GUI, web browser) ↔ <strong>application server / web server</strong> (business rules, the middle tier) ↔ <strong>database server</strong>. The middle tier improves security (the client does not access the database directly). In n-tier the business logic is split into more layers.</li>
+    </ul>
+  </div>
+  <div id="tiers"></div>
+</div>
+
+<h2>Classification of DBMSs</h2>
+<ul>
+  <li><strong>By data model</strong>: relational (the most common), object, object-relational, NoSQL (key-value, document, column-based, graph), hierarchical and network (legacy), XML.</li>
+  <li><strong>By number of users</strong>: single-user and multiuser.</li>
+  <li><strong>By distribution</strong>: centralized (data in one place) and distributed (a DDBMS; data at many sites of a network). Homogeneous (the same DBMS everywhere) or heterogeneous; <em>federated</em> (multidatabase) systems loosely combine independent DBMSs.</li>
+  <li><strong>By cost</strong>: open source (MySQL, PostgreSQL), commercial (Oracle, SQL Server, DB2), different kinds of licences.</li>
+  <li><strong>By types of access paths and purpose</strong>: general-purpose and special-purpose (e.g. the old airline reservation systems: OLTP, online transaction processing).</li>
+</ul>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="2">
+  <p>A company split the EMPLOYEE table in two: the personal information moved to EMP_PERSONAL, the salary information to EMP_PAY. The old programs keep working unchanged through a view named <code>EMPLOYEE</code>. What is this an example of?</p>
+  <ol>
+    <li data-why="Physical independence is about changes to the internal schema (storage, indexes); here the tables themselves, i.e. the conceptual schema, changed.">Physical data independence</li>
+    <li data-why="Correct: the conceptual schema changed, the external schema (the view) and the programs stayed the same.">Logical data independence</li>
+    <li data-why="Program-operation independence is separating an operation's interface from its implementation in object-oriented systems.">Program-operation independence</li>
+    <li data-why="This is a schema change (schema evolution), but the question asks why the programs are not affected: the independence the view provides.">None; this is just a data update</li>
+  </ol>
+  <div class="explain">Splitting tables changes the conceptual schema. Because the programs depend on the external schema (the view), only the external/conceptual mapping (the view definition) is updated: logical data independence. The EMP_DEPT box above shows the same idea.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>A new index was added to the EMPLOYEE table; all applications keep giving the same results without any change. What is this an example of?</p>
+  <ol>
+    <li data-why="Logical independence is the external schemas not changing when the conceptual schema (tables, columns) changes.">Logical data independence</li>
+    <li data-why="Correct: an index is an access path (the internal schema); the conceptual schema stayed the same.">Physical data independence</li>
+    <li data-why="Self-describing means the meta-data is stored in the database.">Self-describing nature</li>
+    <li data-why="Program-operation independence is separating an operation's interface from its implementation in object-oriented systems.">Program-operation independence</li>
+  </ol>
+  <div class="explain">An index is an access path, i.e. part of the <em>internal</em> schema. The internal schema changed, the conceptual schema stayed the same: this is physical data independence.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>Which pairs <em>intension</em> and <em>extension</em> correctly?</p>
+  <ol>
+    <li data-why="The other way round: the schema is the description (intension), the state is the current data that fits the description (extension).">Intension = the database state; extension = the schema</li>
+    <li data-why="Internal and external are levels of the three-schema architecture; both are schemas, so both are intension.">Intension = the internal schema; extension = the external schema</li>
+    <li data-why="Correct: the schema is the description of the database (intension), the state the data at a given moment (extension).">Intension = the schema; extension = the database state</li>
+    <li data-why="DDL and DML are languages; DDL defines the schema (intension), DML changes the state (extension), but they are not intension/extension themselves.">Intension = DDL; extension = DML</li>
+  </ol>
+  <div class="explain">The schema is the description of the database (intension) and rarely changes. The state is the data at a particular moment (extension) and changes with every update.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Which language category and which schema level does <code>CREATE VIEW</code> correspond to?</p>
+  <ol>
+    <li data-why="Correct: a view is a user group's view (the external level), and VDL defines it.">VDL, external schema</li>
+    <li data-why="The internal schema is physical storage (files, indexes); a view stores nothing physical.">DDL, internal schema</li>
+    <li data-why="SDL defines the internal schema (e.g. CREATE INDEX); the conceptual schema is defined with DDL. Neither is a view.">SDL, conceptual schema</li>
+    <li data-why="DML queries and updates data (SELECT, INSERT …); the <em>definition</em> of a view is schema, not data.">DML, external schema</li>
+  </ol>
+  <div class="explain">A view is a view specific to a user group: the external level. The language that defines it is VDL. In SQL VDL looks like part of DDL, but conceptually it is separate.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>In a web application, which architecture is the arrangement browser → application server → database server?</p>
+  <ol>
+    <li data-why="In centralized everything is on one system; here there are three separate tiers.">Centralized</li>
+    <li data-why="In two-tier the client (application program) connects directly to the database server with ODBC/JDBC; there is no application server in between.">Two-tier client/server</li>
+    <li data-why="Distributed means the <em>data</em> is spread over several sites; here there are tiers, but the data is on a single database server.">Distributed (DDBMS)</li>
+    <li data-why="Correct: the client (browser), the middle tier (application server), the database server.">Three-tier client/server</li>
+
+  </ol>
+  <div class="explain">The middle tier (application/web server) runs the business rules and accesses the database on behalf of the client. In two-tier the client connects directly to the database server with ODBC/JDBC.</div>
+</div>
+
+</div></main>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joins, grouping, WITH · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 7.1: joined tables (INNER, NATURAL, OUTER), aggregate functions and NULL, GROUP BY and HAVING, WHERE vs HAVING, WITH, CASE, WITH RECURSIVE and the conceptual order of evaluation of an SQL query.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch7-joins.js"></script>
+</head>
+<body data-page="ch7-joins">
+<main><div class="content">
+
+<h1>Joins, grouping, WITH</h1>
+<p class="lead">Explicit joins in FROM (inner and outer), aggregate functions, grouping and group conditions, WITH for intermediate results, CASE for conditional values, and recursive queries.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Predict the results of inner, left/right/full outer, natural and cross joins.</li>
+    <li>Use COUNT, SUM, AVG, MIN, MAX and know how they handle NULLs.</li>
+    <li>Write group queries with GROUP BY and HAVING; put WHERE and HAVING in the right place and follow the conceptual order of evaluation.</li>
+    <li>Read WITH, CASE and WITH RECURSIVE and write simple examples of them.</li>
+  </ul>
+</div>
+
+<h2>Joined tables (explicit joins)</h2>
+<p>Writing the join condition in FROM instead of mixing it into <code>WHERE</code> makes the query readable and makes outer joins possible.</p>
+<pre class="sql run" data-title="Q1A · The employees in Research, with JOIN … ON">
+SELECT Fname, Lname, Address
+FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
+WHERE  Dname = 'Research';
+</pre>
+<h3>NATURAL JOIN</h3>
+<p>No condition is written: an equality condition is added automatically for every pair of columns with <strong>the same name</strong> in the two tables, and these columns appear once in the result. In EMPLOYEE the department number is called <code>Dno</code>, in DEPARTMENT <code>Dnumber</code>; since there is no common name, DEPARTMENT's columns are renamed first. The book writes this as <code>(EMPLOYEE NATURAL JOIN (DEPARTMENT AS DEPT (Dname, Dno, Mssn, Msdate)))</code>. Since MySQL does not accept renaming with a column list on base tables, the same is done with a subquery:</p>
+<pre class="sql run" data-title="Q1B · NATURAL JOIN: DEPARTMENT's columns are renamed so that they match EMPLOYEE.Dno">
+SELECT Fname, Lname, Address
+FROM   EMPLOYEE NATURAL JOIN
+       (SELECT Dname, Dnumber AS Dno, Mgr_ssn AS Mssn, Mgr_start_date AS Msdate
+        FROM   DEPARTMENT) AS DEPT          -- now the only common column is Dno
+WHERE  Dname = 'Research';
+</pre>
+<div class="callout gotcha">
+  <p>NATURAL JOIN also equates same-named columns you <em>do not want</em> equated. EMPLOYEE NATURAL JOIN DEPENDENT tries to equate both the identifying columns (none: Ssn ≠ Essn) and <code>Sex</code> and <code>Bdate</code>; the result is meaningless. If you see NATURAL JOIN in an exam, check the common column names one by one.</p>
+</div>
+<h3>Compare the kinds of join</h3>
+<div id="joins"></div>
+<ul>
+  <li><strong>INNER JOIN</strong> (the default <code>JOIN</code>): only the matching pairs.</li>
+  <li><strong>LEFT / RIGHT / FULL OUTER JOIN</strong>: unmatched rows are kept too, with the other side padded with NULLs. (Old Oracle syntax: <code>+=</code>, <code>=+</code>, <code>+=+</code>.) MySQL has no <code>FULL OUTER JOIN</code>; the same result is obtained with the <code>UNION</code> of a LEFT and a RIGHT join (the FULL tab of the comparison above).</li>
+  <li><strong>CROSS JOIN</strong>: the Cartesian product. Combinations such as <strong>NATURAL LEFT OUTER JOIN</strong> are valid too.</li>
+  <li>Joins can be nested (a <em>multiway join</em>):</li>
+</ul>
+<pre class="sql run" data-title="Q8B and Q2A · Including those with no supervisor (LEFT OUTER) and a nested three-table join">
+-- Q8B: every employee with the supervisor's name; Borg appears with NULL
+SELECT E.Lname AS Employee_name, S.Lname AS Supervisor_name
+FROM   (EMPLOYEE AS E LEFT OUTER JOIN EMPLOYEE AS S ON E.Super_ssn = S.Ssn);
+-- Q2A: projects in Stafford, controlling department, manager
+SELECT Pnumber, Dnum, Lname, Address, Bdate
+FROM   ((PROJECT JOIN DEPARTMENT ON Dnum = Dnumber)
+          JOIN EMPLOYEE ON Mgr_ssn = Ssn)
+WHERE  Plocation = 'Stafford';
+</pre>
+
+<h2>Aggregate functions</h2>
+<p><code>COUNT</code>, <code>SUM</code>, <code>MAX</code>, <code>MIN</code>, <code>AVG</code>: summarize a set of rows into a single value. Used in the SELECT list or in HAVING; <strong>they cannot be used in WHERE</strong>.</p>
+<pre class="sql run" data-title="Q19 and Q20 · The sum, maximum, minimum and average of the salaries of all employees / of those in Research">
+SELECT SUM(Salary), MAX(Salary), MIN(Salary), AVG(Salary)
+FROM   EMPLOYEE;
+SELECT SUM(Salary) AS Total_sal, MAX(Salary) AS Highest_sal, MIN(Salary) AS Lowest_sal, AVG(Salary) AS Average_sal
+FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
+WHERE  Dname = 'Research';
+</pre>
+<pre class="sql run" data-title="Q21–Q23 · Counting: rows, those in one department, distinct salary values">
+SELECT COUNT(*) FROM EMPLOYEE;                                       -- Q21
+SELECT COUNT(*) FROM EMPLOYEE, DEPARTMENT
+WHERE  Dno = Dnumber AND Dname = 'Research';                          -- Q22
+SELECT COUNT(DISTINCT Salary) FROM EMPLOYEE;                          -- Q23
+</pre>
+<div class="callout key">
+  <p><strong>Aggregates and NULL:</strong> <code>COUNT(*)</code> counts rows (NULLs included). <code>COUNT(A)</code>, <code>SUM(A)</code>, <code>AVG(A)</code>, <code>MAX(A)</code>, <code>MIN(A)</code> are computed over the non-NULL values of A. On an empty set <code>COUNT</code> returns 0, the others NULL. <code>COUNT(DISTINCT A)</code> drops duplicates.</p>
+</div>
+<pre class="sql run" data-title="The effect of NULL on aggregates (one Hours value in WORKS_ON is NULL)">
+SELECT COUNT(*) AS all_rows, COUNT(Hours) AS non_null_hours,
+       SUM(Hours) AS total, AVG(Hours) AS avg_non_null,
+       SUM(Hours) / COUNT(*) AS avg_if_null_were_0
+FROM   WORKS_ON;
+</pre>
+<pre class="sql run" data-title="Q5 · Employees with at least two dependents (an aggregate in a correlated query)">
+SELECT Lname, Fname
+FROM   EMPLOYEE
+WHERE  (SELECT COUNT(*) FROM DEPENDENT WHERE Ssn = Essn) >= 2;
+</pre>
+
+<h2>GROUP BY and HAVING</h2>
+<p><code>GROUP BY</code> divides the rows into groups by the values of the grouping columns; the aggregates are applied to each group separately. <strong>Rule:</strong> the SELECT list can contain only <em>grouping columns</em> and <em>aggregates</em>.</p>
+<p>To see the grouping, first list the rows without grouping, ordered by Dno. Rows with the same Dno will form a group; each group shrinks to <em>a single row</em> in the result. <strong>Predict:</strong> how many rows does the second query return, and what is the average salary of department 5?</p>
+<pre class="sql run" data-title="Q24 · The number of employees and the average salary of each department (first without grouping)">
+-- the rows before grouping: three groups by Dno (1, 4, 5)
+SELECT   Dno, Lname, Salary
+FROM     EMPLOYEE
+ORDER BY Dno;
+-- Q24: one row per group
+SELECT   Dno, COUNT(*), AVG(Salary)
+FROM     EMPLOYEE
+GROUP BY Dno;
+</pre>
+<p>Group 5 has four rows (Smith 30000, Wong 40000, Narayan 38000, English 25000): COUNT(*) = 4, AVG = 133000 / 4 = 33250. Lname cannot be in SELECT, because it is undefined which of the group's four different Lnames would be shown.</p>
+<pre class="sql run" data-title="Q25 · For each project its number, name and number of employees (join + GROUP BY)">
+SELECT   Pnumber, Pname, COUNT(*)
+FROM     PROJECT, WORKS_ON
+WHERE    Pnumber = Pno
+GROUP BY Pnumber, Pname;
+</pre>
+<p>If the grouping column has NULL values, the NULLs form <em>a single group of their own</em> (e.g. employees whose Dno is NULL).</p>
+<p><code>HAVING</code> is a condition applied to groups: the groups that do not satisfy it are dropped from the result.</p>
+<pre class="sql run" data-title="Q26 · Projects with more than two employees">
+SELECT   Pnumber, Pname, COUNT(*)
+FROM     PROJECT, WORKS_ON
+WHERE    Pnumber = Pno
+GROUP BY Pnumber, Pname
+HAVING   COUNT(*) > 2;
+</pre>
+<pre class="sql run" data-title="Q27 · For each project, the number of its employees from department 5 only (WHERE + GROUP BY)">
+SELECT   Pnumber, Pname, COUNT(*)
+FROM     PROJECT, WORKS_ON, EMPLOYEE
+WHERE    Pnumber = Pno AND Ssn = Essn AND Dno = 5
+GROUP BY Pnumber, Pname;
+</pre>
+
+<h3 id="conceptual-order-of-evaluation">Conceptual order of evaluation</h3>
+<pre class="sql">
+SELECT   &lt;attribute and function list&gt;     -- 5
+FROM     &lt;table list&gt;                      -- 1
+[ WHERE  &lt;condition&gt; ]                    -- 2  rows
+[ GROUP BY &lt;grouping attribute(s)&gt; ]      -- 3
+[ HAVING &lt;group condition&gt; ]              -- 4  groups
+[ ORDER BY &lt;attribute list&gt; ];            -- 6
+</pre>
+<div id="order"></div>
+
+<div class="callout gotcha">
+  <p><strong>The Q28 trap: WHERE or HAVING?</strong> The question: "For each department that has more than five employees, the number of its employees who earn more than 40000." The first query below is <em>wrong</em>: WHERE runs <em>before</em> HAVING. Salaries below 40000 are discarded first, then HAVING selects "the departments with more than five employees earning over 40000". The right way is to find "the departments with more than five employees" in a separate inner query.</p>
+</div>
+<pre class="sql run" data-title="Q28 · Wrong and right (the threshold is 2 instead of 5, since COMPANY is small)">
+-- WRONG: counts only employees with Salary > 40000 when testing the department size
+SELECT   Dno, COUNT(*)
+FROM     EMPLOYEE
+WHERE    Salary > 40000
+GROUP BY Dno
+HAVING   COUNT(*) > 2;
+-- RIGHT: departments with more than 2 employees (in total), then count their high earners
+SELECT   Dno, COUNT(*)
+FROM     EMPLOYEE
+WHERE    Salary > 30000
+  AND    Dno IN (SELECT   Dno
+                 FROM     EMPLOYEE
+                 GROUP BY Dno
+                 HAVING   COUNT(*) > 2)
+GROUP BY Dno;
+</pre>
+<p class="small muted">In the second query the threshold was lowered to 30000 to show the difference. The wrong query returns nothing (at most one person per department earns over 40000); the right query returns 2 for Research (5) and 1 for Administration (4).</p>
+
+<div class="callout gotcha">
+  <p><strong>The non-grouped column error.</strong> <code>SELECT Dno, Lname, COUNT(*) FROM EMPLOYEE GROUP BY Dno</code> is invalid: every group has many Lnames, and it is undefined which one would be shown. MySQL 8 rejects it with error 1055 ("nonaggregated column … is not functionally dependent on columns in GROUP BY clause"; this rule is the <code>ONLY_FULL_GROUP_BY</code> setting). In old MySQL versions, or with this setting turned off, the query runs but shows an <em>arbitrary</em> Lname for each group; in the exam this query counts as wrong. One exception: MySQL 8 recognizes <em>functional dependency</em>. When grouping by a table's primary key there is one row of that table in each group, so the table's other columns can be selected too: <code>SELECT Pnumber, Pname, COUNT(*) … GROUP BY Pnumber</code> is accepted. For the book and the exam keep the rule simple: write every non-grouped column in SELECT into GROUP BY too (<code>GROUP BY Pnumber, Pname</code>, as in Q25).</p>
+</div>
+<pre class="sql run" data-expect-error data-title="Try it: a non-grouped column">
+SELECT Dno, Lname, COUNT(*) FROM EMPLOYEE GROUP BY Dno;
+</pre>
+
+<h2>WITH and CASE</h2>
+<p><code>WITH</code> defines a temporary table (an intermediate result) that exists only for that query: a kind of "single-use view".</p>
+<pre class="sql run" data-title="Q28' · With WITH: first the big departments, then their high earners">
+WITH BIGDEPTS (Dno) AS
+     ( SELECT   Dno
+       FROM     EMPLOYEE
+       GROUP BY Dno
+       HAVING   COUNT(*) > 2 )
+SELECT   Dno, COUNT(*)
+FROM     EMPLOYEE
+WHERE    Salary > 30000 AND Dno IN (SELECT Dno FROM BIGDEPTS)
+GROUP BY Dno;
+</pre>
+<p><code>CASE</code> chooses a value according to conditions: it can be used anywhere a value is expected, such as SELECT, WHERE or the SET of an UPDATE.</p>
+<pre class="sql run" data-title="U6' · A different raise per department (CASE)">
+UPDATE EMPLOYEE
+SET    Salary = CASE WHEN Dno = 5 THEN Salary + 2000
+                     WHEN Dno = 4 THEN Salary + 1500
+                     WHEN Dno = 1 THEN Salary + 3000
+                     ELSE Salary + 0
+                END;
+SELECT Fname, Lname, Dno, Salary,
+       CASE WHEN Salary >= 40000 THEN 'high' WHEN Salary >= 30000 THEN 'mid' ELSE 'low' END AS band
+FROM   EMPLOYEE ORDER BY Dno, Salary DESC;
+</pre>
+
+<h2>Recursive queries</h2>
+<p><code>WITH RECURSIVE</code>: the <code>UNION</code> of a base query and a query that uses itself. It repeats until no new rows are produced (a <em>fixed point</em>). Used for chains of unknown depth in recursive relationships such as supervisor/supervisee.</p>
+<pre class="sql run" data-title="Q29 · Every (supervisor, direct or indirect supervisee) pair">
+WITH RECURSIVE SUP_EMP (SupSsn, EmpSsn) AS
+     ( SELECT Super_ssn, Ssn
+       FROM   EMPLOYEE
+       WHERE  Super_ssn IS NOT NULL     -- base: direct supervision
+       UNION
+       SELECT E.Super_ssn, S.EmpSsn
+       FROM   EMPLOYEE AS E, SUP_EMP AS S
+       WHERE  E.Ssn = S.SupSsn          -- one level higher
+         AND  E.Super_ssn IS NOT NULL )
+SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
+</pre>
+<p class="small muted">The book's Q29 has no <code>IS NOT NULL</code> in the base query; Borg's NULL supervisor produces a (NULL, Borg) row in the result. For a version that also keeps the level, see <a href="notebook.html#ex10">notebook Exercise 10</a>.</p>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE">
+  <p>How many rows does <code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE Salary &gt;= 30000 GROUP BY Dno HAVING COUNT(*) &gt;= 2;</code> return? (Salaries: in dept 5, 30000, 40000, 38000, 25000; in dept 4, 25000, 43000, 25000; in dept 1, 55000.)</p>
+  <ol>
+    <li data-why="3 is the number of departments before grouping. But WHERE discards some rows and HAVING discards some groups.">3</li>
+    <li data-why="Correct: after WHERE, 3 rows remain in dept 5, 1 in dept 4, 1 in dept 1; HAVING COUNT(*) &gt;= 2 keeps only dept 5.">1</li>
+    <li data-why="For 2, two departments would each need at least two employees earning 30000 or more; in dept 4 only Wallace (43000) remains.">2</li>
+    <li data-why="Three people in dept 5 earn 30000 or more (Smith, Wong, Narayan); it is not empty.">0</li>
+  </ol>
+  <div class="explain">Apply them in order: WHERE first filters the rows (English, Zelaya, Jabbar are discarded), then GROUP BY groups the rest (5: 3 people, 4: 1 person, 1: 1 person), then HAVING filters the groups. The result is a single row: (5, 3).</div>
+  <pre class="sql run" data-title="Check it">SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE Salary >= 30000 GROUP BY Dno HAVING COUNT(*) >= 2;</pre>
+</div>
+<div class="quiz" data-answer="4" data-tables="EMPLOYEE DEPENDENT">
+  <p>For "every employee and their number of dependents (0 for those with none)" you wrote <code>FROM EMPLOYEE E LEFT JOIN DEPENDENT D ON E.Ssn = D.Essn GROUP BY E.Ssn</code>. What should you count in SELECT?</p>
+  <ol>
+    <li data-why="COUNT(*) counts rows: an employee with no dependents also comes from the LEFT JOIN with a row of NULLs and is counted as 1, not 0.">COUNT(*)</li>
+    <li data-why="E.Ssn is filled in every row (the left table); for an employee with no dependents it also counts 1.">COUNT(E.Ssn)</li>
+    <li data-why="SUM adds up a number, not the number of dependents. Besides, Essn is a text column.">SUM(D.Essn)</li>
+    <li data-why="Correct: COUNT(column) does not count NULLs; in the single row of an employee with no dependents D.Essn is NULL, so the result is 0.">COUNT(D.Essn)</li>
+  </ol>
+  <div class="explain">An outer join keeps the unmatched row with NULLs. COUNT(*) counts that row (1); COUNT(D.Essn) skips the NULL (0). This is exactly the notebook's exercise 6.</div>
+</div>
+
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE DEPENDENT">
+  <p>EMPLOYEE has 8 rows; DEPENDENT holds the dependents of only 3 different employees (Wong 3, Wallace 1, Smith 3: 7 rows in all). What does <code>SELECT COUNT(*) FROM EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn</code> return?</p>
+  <ol>
+    <li data-why="7 is the result of the inner join (INNER JOIN): only the rows of employees who have dependents. LEFT OUTER JOIN also keeps the employees with no dependents.">7</li>
+    <li data-why="Correct: 7 rows from the 3 employees with dependents + one row with NULLs for each of the 5 employees without.">12</li>
+    <li data-why="If every employee were counted once it would be 8; but an employee with several dependents produces a separate row for each dependent (Wong 3 rows).">8</li>
+    <li data-why="56 = 8 × 7 is the Cartesian product with no join condition (CROSS JOIN). The ON condition matches the rows.">56</li>
+  </ol>
+  <div class="explain">The 3 employees with dependents produce 7 rows (one per dependent). The 5 employees with no dependents produce one row each with NULLs: 7 + 5 = 12.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which query is invalid?</p>
+  <ol>
+    <li data-why="Valid: SELECT contains only the grouping column (Dno) and an aggregate."><code>SELECT Dno, MAX(Salary) FROM EMPLOYEE GROUP BY Dno</code></li>
+    <li data-why="Valid: HAVING can also use an aggregate that is not in the SELECT list."><code>SELECT Dno FROM EMPLOYEE GROUP BY Dno HAVING AVG(Salary) &gt; 30000</code></li>
+    <li data-why="Valid: without GROUP BY an aggregate summarizes all the rows left after WHERE as a single group."><code>SELECT COUNT(*) FROM EMPLOYEE WHERE Salary &gt; 30000</code></li>
+    <li data-why="This is the invalid one: WHERE works row by row before the groups are formed and cannot use an aggregate."><code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE COUNT(*) &gt; 2 GROUP BY Dno</code></li>
+  </ol>
+  <div class="explain">Aggregates cannot be used in WHERE: WHERE is evaluated row by row, before the groups are formed. The right way is <code>HAVING COUNT(*) &gt; 2</code>.</div>
+</div>
+<div class="quiz" data-answer="1" data-tables="WORKS_ON">
+  <p>What does <code>SELECT AVG(Hours) FROM WORKS_ON</code> return if WORKS_ON has 16 rows, one of them with a NULL Hours, and the total is 275?</p>
+  <ol>
+    <li data-why="Correct: AVG takes the average of the 15 non-NULL values.">275 / 15 ≈ 18.33</li>
+    <li data-why="That would be counting the NULL as 0 (SUM(Hours) / COUNT(*)). AVG does not take NULLs into account.">275 / 16 ≈ 17.19</li>
+    <li data-why="Aggregates skip NULLs; the result is NULL only if all the values are NULL (or the table is empty).">NULL</li>
+    <li data-why="Averaging a column that contains NULL is not an error.">An error</li>
+  </ol>
+  <div class="explain">AVG drops NULLs: the average of the 15 non-NULL values. To count the NULL as 0 we would write <code>SUM(Hours)/COUNT(*)</code> or <code>AVG(COALESCE(Hours, 0))</code>.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>What is the difference between WHERE and HAVING?</p>
+  <ol>
+    <li data-why="The difference changes the result: a row discarded in WHERE takes part in no group's COUNT/SUM (the Q28 trap).">There is none; HAVING is a synonym of WHERE used with GROUP BY.</li>
+    <li data-why="The other way round: WHERE applies to rows (before grouping), HAVING to groups (after grouping).">HAVING applies to rows, WHERE to groups.</li>
+    <li data-why="Correct: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY.">WHERE applies to rows before grouping, HAVING to groups after grouping.</li>
+    <li data-why="HAVING is used with GROUP BY (or with the whole result as a single group); it has nothing to do with ORDER BY.">HAVING can only be used together with ORDER BY.</li>
+
+  </ol>
+  <div class="explain">The order: FROM → WHERE (rows) → GROUP BY → HAVING (groups) → SELECT → ORDER BY. A row discarded in WHERE takes part in no group's aggregate (the Q28 trap).</div>
+</div>
+
+</div></main>
+</body>
+</html>

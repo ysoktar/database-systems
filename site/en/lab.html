@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL lab · Database Systems</title>
+<meta name="description" content="A MySQL console on the COMPANY database, running in the browser: free queries, example queries, a live schema browser and reset.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/lab.js"></script>
+</head>
+<body data-page="lab">
+<main><div class="content">
+
+<h1>SQL lab</h1>
+<p class="lead">Write any SQL you like on COMPANY: queries, DDL (<code>CREATE</code>, <code>ALTER</code>, <code>DROP</code>), updates, views, triggers, transactions. Separate statements with <code>;</code>; each result gets its own table. <span id="engine"></span></p>
+
+<div id="console"></div>
+<h3>Examples</h3>
+<div id="examples"></div>
+
+<h2>Schema browser</h2>
+<p>Read live from the MySQL catalog (<code>information_schema</code>): create a table or add a column and it shows up here. <span class="pk" style="color:var(--pk);text-decoration:underline">Underlined</span>: primary key; <span style="color:var(--fk)">blue</span>: foreign key.</p>
+<div id="browser"></div>
+
+<div class="callout note">
+  <p><strong>Good to know.</strong> The database lives only in this tab: reloading the page brings COMPANY back to its starting state (the text you typed in the console is kept). The tables are in the <code>company</code> database (in MySQL "schema" and "database" mean the same thing), and a <code>demo</code> database is ready for test tables: <code>CREATE TABLE demo.T (…)</code>. The engine is the MySQL-compatible <a href="https://github.com/dolthub/go-mysql-server" target="_blank" rel="noopener">go-mysql-server</a> compiled to WebAssembly: its syntax, error numbers and <code>information_schema</code> are like MySQL 8's. A few features are missing: you cannot update through a view, and <code>EXPLAIN</code> output looks different from real MySQL's. The pages concerned say so.</p>
+</div>
+
+</div></main>
+</body>
+</html>

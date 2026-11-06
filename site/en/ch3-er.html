@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The ER model · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 3: the ER model; entity types, kinds of attributes, keys, relationship types, degree, roles, recursive relationships, cardinality ratio, participation, (min,max) notation, weak entities, ternary relationships and the COMPANY ER schema.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch3-er.js"></script>
+</head>
+<body data-page="ch3-er">
+<main><div class="content">
+
+<h1>The ER model</h1>
+<p class="lead">The Entity-Relationship (ER) model is a high-level data model that turns requirements into a <em>conceptual schema</em>: it describes the real world with entities, their attributes and the relationships among them.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Extract the entities, attributes (with their kinds) and keys from a requirements text.</li>
+    <li>Find the relationships and determine the cardinality (1:1, 1:N, M:N) and participation (total/partial) of each; write the same constraint with (min,max) too.</li>
+    <li>Recognize a weak entity, its partial key and its identifying relationship, and draw them correctly.</li>
+    <li>Decide which entity a relationship attribute can be moved to; tell a ternary relationship apart from three binary ones.</li>
+  </ul>
+</div>
+
+<h2>The database design process</h2>
+<ol>
+  <li><strong>Requirements collection and analysis</strong>: data requirements and functional requirements (user operations).</li>
+  <li><strong>Conceptual design</strong>: a conceptual schema in a high-level model (ER). Independent of the DBMS; used to communicate with users.</li>
+  <li><strong>Logical design</strong> (<em>data model mapping</em>): translating the conceptual schema into the DBMS's model (e.g. relational). The ER→relational mapping is in Ch 9 of the book.</li>
+  <li><strong>Physical design</strong>: internal storage structures, indexes, access paths.</li>
+</ol>
+<p>This page covers step 2: reading a requirements text and drawing an ER diagram. This is the typical exam question: you are given a paragraph and asked to show its entities, attributes, relationships and constraints in a diagram. At the end of the page you will do it yourself with a hospital example.</p>
+
+<h2>Notation</h2>
+<p>The book uses Chen notation. All the diagrams on this site are drawn with the same symbols. The meaning of the symbols is explained one by one in the sections below; you do not need to memorize them now, you can come back to this table while reading:</p>
+<div id="legend"></div>
+
+<h2>Entities and attributes</h2>
+<ul>
+  <li><strong>Entity</strong>: a "thing" with an independent existence in the real world: physical (a person, a car) or conceptual (a company, a job, a course).</li>
+  <li><strong>Attribute</strong>: a property that describes an entity: <code>Name</code>, <code>Ssn</code>, <code>Salary</code>.</li>
+  <li><strong>Entity type</strong>: the type of entities with the same attributes (schema level: <em>intension</em>). <strong>Entity set</strong> (<em>collection</em>): the set of entities of that type at a particular moment (<em>extension</em>). The book calls both by the same name: EMPLOYEE.</li>
+</ul>
+<h3>Kinds of attributes</h3>
+<table class="simple">
+  <thead><tr><th>Kind</th><th>Meaning</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Simple</strong> (atomic) / <strong>composite</strong></td><td>A composite attribute can be divided into smaller, meaningful parts; it can form a hierarchy.</td><td><code>Name</code> = (Fname, Minit, Lname); <code>Address</code> = (Street_address(Number, Street, Apartment_number), City, State, Zip)</td></tr>
+    <tr><td><strong>Single-valued</strong> / <strong>multivalued</strong></td><td>A multivalued attribute can have several values for one entity; lower and upper bounds can be given.</td><td><code>Age</code> is single-valued; a car's <code>Colors</code>, a person's <code>College_degrees</code>, a department's <code>Locations</code> are multivalued</td></tr>
+    <tr><td><strong>Stored</strong> / <strong>derived</strong></td><td>A derived attribute is computed from other attributes or from related entities.</td><td><code>Age</code> from <code>Birth_date</code>; a department's <code>Number_of_employees</code> from WORKS_FOR</td></tr>
+    <tr><td><strong>NULL</strong> value</td><td>No value: not applicable (the <code>Apartment_number</code> of a single-family house) or unknown (exists but is unknown / not known whether it exists).</td><td><code>College_degrees</code> is NULL for someone without a college degree</td></tr>
+    <tr><td><strong>Complex</strong></td><td>Composite and multivalued attributes nested in each other. <code>()</code> means composite, <code>{}</code> multivalued.</td><td><code>{Address_phone({Phone(Area_code, Phone_number)}, Address(…))}</code></td></tr>
+  </tbody>
+</table>
+
+<h3>Keys and value sets</h3>
+<ul>
+  <li><strong>Key attribute</strong>: the attribute(s) whose value is distinct for each entity. <u>Underlined</u> in the diagram. A key is a <strong>constraint</strong> that holds for all <em>possible</em> states of the entity type (not just for today's data).</li>
+  <li>A key can be <strong>composite</strong>: then the composite attribute must be <em>minimal</em> (e.g. a car's <code>Registration(Number, State)</code>).</li>
+  <li>An entity type can have <strong>several keys</strong>: CAR has both <code>Vehicle_id</code> and <code>Registration</code>. A type with no key at all is a <strong>weak entity type</strong>.</li>
+  <li><strong>Value set</strong> (domain): the set of values an attribute can take (e.g. integers between 16 and 70 for Age). Mathematically an attribute A is a function from E to the power set of V: A : E → P(V).</li>
+</ul>
+
+<h2>COMPANY: from requirements to a schema</h2>
+<p>Let us see the concepts on an example. The requirements in the book (Section 3.2) are below; the diagram was drawn from them. The diagram contains constructs not explained yet (relationships, the 1/N numbers, double lines, a weak entity); they are explained in the sections <a href="#relationship-types">relationship types</a>, <a href="#structural-constraints-of-binary-relationships">structural constraints</a> and <a href="#weak-entity-types">weak entities</a>. For now look at the entities (rectangles) and attributes (ellipses).</p>
+<ol>
+  <li>The company is organized into <strong>departments</strong>. Each department has a unique name, a unique number and a particular employee who <strong>manages</strong> it; the date the manager started is kept. A department may have <strong>several locations</strong>.</li>
+  <li>A department <strong>controls</strong> a number of <strong>projects</strong>. Each project has a unique name, a unique number and a single location.</li>
+  <li>For each <strong>employee</strong> the name, Ssn, address, salary, sex and birth date are kept. An employee is assigned to one department but may work on several projects controlled by different departments; the weekly hours on each project and the employee's <strong>direct supervisor</strong> are kept.</li>
+  <li>For insurance purposes each employee's <strong>dependents</strong> are kept: name, sex, birth date, relationship to the employee.</li>
+</ol>
+<div id="company-er"></div>
+<div class="callout look">
+  <p>How did the words of the requirements turn into the diagram? "unique" → <u>key</u>; "several locations" → the <em>multivalued</em> <code>Locations</code>; "manages" → the 1:1 MANAGES, with the start date as the relationship's attribute <code>Start_date</code>; "weekly hours" → WORKS_ON's attribute <code>Hours</code>; "direct supervisor" → the recursive SUPERVISION relationship of EMPLOYEE with itself; "dependents" → the weak entity DEPENDENT (a dependent's name alone is not unique).</p>
+</div>
+
+<h2>Relationship types</h2>
+<ul>
+  <li>A <strong>relationship type</strong> R is a set of associations among n entity types (E<sub>1</sub>, …, E<sub>n</sub>). Each <strong>relationship instance</strong> r<sub>i</sub> associates exactly one entity from each E<sub>j</sub>. Mathematically R ⊆ E<sub>1</sub> × E<sub>2</sub> × … × E<sub>n</sub>.</li>
+  <li><strong>Degree</strong>: the number of participating entity types: <em>binary</em> (2, the most common), <em>ternary</em> (3), <em>n-ary</em>.</li>
+  <li><strong>Attribute or relationship?</strong> In a first draft a relationship can look like an attribute (e.g. an EMPLOYEE attribute <code>Department</code>). In ER design attributes that refer to an entity type are turned into relationships.</li>
+  <li><strong>Role name</strong>: the role an entity plays in the relationship. When the same entity type takes part twice in a relationship in different roles (a <strong>recursive</strong> / <em>self-referencing</em> relationship), role names are required: in SUPERVISION EMPLOYEE is both <em>supervisor</em> and <em>supervisee</em>.</li>
+</ul>
+
+<h2>Structural constraints of binary relationships</h2>
+<p>A relationship type is constrained by two questions: how many times can an entity take part in this relationship <em>at most</em> (cardinality), and how many times must it take part <em>at least</em> (participation)?</p>
+<div class="two-col">
+  <div>
+    <h3>Cardinality ratio</h3>
+    <p>The <em>maximum</em> number of relationship instances an entity can take part in: <strong>1:1</strong>, <strong>1:N</strong> (or N:1), <strong>M:N</strong>. In the diagram 1, N, M are written on the edges. All the relationships of COMPANY are in the table below.</p>
+  </div>
+  <div>
+    <h3>Participation constraint</h3>
+    <p>Does the existence of an entity depend on its being related to another entity? That is, how many participations <em>at least</em>?</p>
+    <ul>
+      <li><strong>Total</strong> (<em>existence dependency</em>): every entity must take part in at least one relationship instance. A double line. E.g. every employee works for a department.</li>
+      <li><strong>Partial</strong>: some entities may not take part. A single line. E.g. not every employee manages a department.</li>
+    </ul>
+  </div>
+</div>
+<h3>Seeing it in the data: relationship instances</h3>
+<p>The figures below are drawn from COMPANY's data (the rows the SQL boxes on the site use): one entity set on the left, the other on the right; each small diamond in the middle is a relationship instance and connects two entities. Choose a relationship type and answer the two questions on the figure: at most how many lines leave one entity (cardinality)? Is there an entity with no line at all (if so, that side is partial)?</p>
+<div id="instances"></div>
+<h3>The (min, max) notation</h3>
+<p>Cardinality gives the <em>maximum</em>, participation the <em>minimum</em>; together they are the <strong>structural constraints</strong> of the relationship. (min, max) combines both in one notation: a pair (min, max) for each participation of E in R, with 0 ≤ min ≤ max and max ≥ 1. Each entity in E takes part in at least min and at most max instances of R. <strong>min = 0 → partial</strong>, <strong>min ≥ 1 → total</strong>.</p>
+<div id="minmax"></div>
+<div class="callout gotcha">
+  <p><strong>The reading-direction trap.</strong> In the 1:N notation N is the number of entities "on the other side": EMPLOYEE —N— WORKS_FOR —1— DEPARTMENT reads "a department has N employees, an employee is in 1 department". In the (min,max) notation the numbers are the participation of the entity <em>on their own side</em>: EMPLOYEE (1,1) — WORKS_FOR — (1,N) DEPARTMENT. So in the (min,max) diagram of an N:1 relationship the "N" side is <em>swapped</em>. Exams can ask you to translate between the two notations.</p>
+</div>
+<div class="callout example" data-label="Step by step: from a sentence to a constraint">
+  <p>Requirement: "Each department controls several projects; each project is controlled by a single department. There may be departments that control no projects."</p>
+  <ol>
+    <li>How many CONTROLS instances does <strong>one PROJECT</strong> take part in? At least 1 ("each project"), at most 1 ("a single department"): <strong>(1,1)</strong>. Since min = 1, the PROJECT side is <strong>total</strong> (a double line).</li>
+    <li>How many CONTROLS instances does <strong>one DEPARTMENT</strong> take part in? At least 0 ("there may be departments that control none"), at most many ("several"): <strong>(0,N)</strong>. Since min = 0, the DEPARTMENT side is <strong>partial</strong>.</li>
+    <li>The cardinality ratio is read from the two maxima: a department is related to many projects, a project to a single department: DEPARTMENT:PROJECT = <strong>1:N</strong>. In the 1:N notation "1" is written next to DEPARTMENT and "N" next to PROJECT; in (min,max) (0,N) is next to DEPARTMENT and (1,1) next to PROJECT.</li>
+  </ol>
+</div>
+<table class="simple">
+  <thead><tr><th>Relationship</th><th>Cardinality</th><th>Participation</th><th>(min,max)</th></tr></thead>
+  <tbody>
+    <tr><td>EMPLOYEE MANAGES DEPARTMENT</td><td>1:1</td><td>EMPLOYEE partial, DEPARTMENT total</td><td>EMPLOYEE (0,1), DEPARTMENT (1,1)</td></tr>
+    <tr><td>EMPLOYEE WORKS_FOR DEPARTMENT</td><td>N:1</td><td>both total</td><td>EMPLOYEE (1,1), DEPARTMENT (1,N)</td></tr>
+    <tr><td>DEPARTMENT CONTROLS PROJECT</td><td>1:N</td><td>DEPARTMENT partial, PROJECT total</td><td>DEPARTMENT (0,N), PROJECT (1,1)</td></tr>
+    <tr><td>EMPLOYEE WORKS_ON PROJECT</td><td>M:N</td><td>both total</td><td>EMPLOYEE (1,N), PROJECT (1,N)</td></tr>
+    <tr><td>SUPERVISION (supervisor / supervisee)</td><td>1:N</td><td>both partial</td><td>supervisor (0,N), supervisee (0,1)</td></tr>
+    <tr><td>EMPLOYEE DEPENDENTS_OF DEPENDENT</td><td>1:N</td><td>EMPLOYEE partial, DEPENDENT total</td><td>EMPLOYEE (0,N), DEPENDENT (1,1)</td></tr>
+  </tbody>
+</table>
+
+<h3>Attributes of relationships</h3>
+<p>Relationship types can have attributes too: WORKS_ON's <code>Hours</code>, MANAGES's <code>Start_date</code>.</p>
+<ul>
+  <li>The attribute of a <strong>1:1</strong> relationship can be moved to either of the two entities (Start_date → DEPARTMENT as <code>Mgr_start_date</code>; that is how it is in the relational schema too).</li>
+  <li>The attribute of a <strong>1:N</strong> relationship can be moved only to the <strong>N side</strong> (each N-side entity takes part in a single relationship instance).</li>
+  <li>The attribute of an <strong>M:N</strong> relationship cannot be moved to any entity; its value is determined by the <em>combination of the entities</em> (Hours belongs to an employee–project pair). In the relational schema it becomes a separate table: WORKS_ON(Essn, Pno, Hours).</li>
+</ul>
+
+<h2>Weak entity types</h2>
+<ul>
+  <li>An entity type with no key of its own. Its entities are identified by being related to a particular entity of another entity type (the <strong>identifying / owner entity type</strong>).</li>
+  <li>The relationship that makes this link is the <strong>identifying relationship</strong> (a double diamond). The weak entity's participation in it is always <strong>total</strong> (it cannot exist without its owner: <em>existence dependency</em>).</li>
+  <li><strong>Partial key</strong> (<em>discriminator</em>): the attribute(s) that tell apart the weak entities related to the same owner; underlined with a dashed line. DEPENDENT's partial key is <code>Dependent_name</code>: both Wong and Smith have a daughter named Alice, but two dependents of the same employee do not have the same name. What fully identifies a dependent is the owner's key combined with the partial key: (the EMPLOYEE's Ssn, Dependent_name). In the relational schema this becomes DEPENDENT's primary key (Essn, Dependent_name) (Ch 5).</li>
+  <li>Not every existence dependency produces a weak entity: DRIVER_LICENSE is related to PERSON with total participation, but it is not weak because it has its own key (the licence number).</li>
+  <li>A weak entity can sometimes be modelled as a <em>complex (composite, multivalued)</em> attribute instead; if it takes part in independent relationships, it has to be an entity.</li>
+</ul>
+
+<h2>Relationships of higher degree</h2>
+<div id="ternary"></div>
+<ul>
+  <li>A ternary relationship <em>usually does not carry the same information</em> as three binary relationships: even if CAN_SUPPLY(s,p), USES(j,p) and SUPPLIES(s,j) hold, it does not follow that s supplies p to j.</li>
+  <li>A ternary relationship is sometimes shown with a <em>weak entity</em> and three identifying relationships (making SUPPLY an entity type tied to its three owners).</li>
+  <li>A ternary relationship and binary relationships can both be in the schema <em>together</em>: a binary relationship can add a constraint to the ternary one.</li>
+  <li>Cardinality of ternary relationships: writing 1 on one participant means that each combination of the other two is matched with at most one entity of that participant. E.g. if 1 is written on the SUPPLIER side of SUPPLY: for each (project, part) pair there is at most <em>one</em> supplier that supplies that part to that project. The same supplier can still supply many parts to many projects.</li>
+</ul>
+<div class="callout gotcha">
+  <p><strong>Ternary, or three binaries?</strong> When deciding, ask: is the information really a fact made up by the three entities <em>together</em>? "Supplier s supplied part p to project j" is ternary; you cannot get the same information back from the binaries "s can supply p", "j uses p", "s works with j": s can supply p and j uses p, but that does not say j got p from s.</p>
+</div>
+
+
+<h2>Naming and design choices</h2>
+<ul>
+  <li>Entity type and relationship type names are <strong>singular</strong> nouns in UPPER case: EMPLOYEE, WORKS_FOR. Attributes start with a capital letter: Fname. Role names are lower case: supervisor.</li>
+  <li>In the requirements the <em>nouns</em> are candidates for entity types, the <em>verbs</em> for relationship types, and the words describing the nouns for attributes.</li>
+  <li>Design is iterative: an attribute that refers to another entity becomes a relationship; an attribute shared by several entities (e.g. Location repeated in DEPARTMENT and PROJECT) can become an entity of its own; an entity with a single attribute related to only one entity can be turned into an attribute.</li>
+</ul>
+<div class="callout note">
+  <p><strong>Alternative notations.</strong> The book also shows UML class diagrams: entity = class (attributes inside the box), relationship = <em>association</em>, <em>multiplicity</em> (0..1, 1..*, *) instead of (min,max); weak entity = <em>qualified association</em>; relationship attribute = <em>link attribute</em>. The crow's foot notation is also common.</p>
+</div>
+
+<h2>Draw it yourself: a hospital</h2>
+<p>Read the requirements and draw the ER diagram below; <strong>Check</strong> compares your drawing with the solution (entities, keys, kinds of attributes, cardinality, participation).</p>
+<div id="draw-hospital"></div>
+
+<h2>Try it in the studio</h2>
+<p>The schemas on this page can be opened and changed in the ER studio; their mapping to tables is shown there step by step. In the exercises you draw your own diagram from a requirements text and your drawing is automatically compared with the solution.</p>
+<div class="btn-row">
+  <a class="btn" href="er-studio.html#example=company">COMPANY</a>
+  <a class="btn" href="er-studio.html#example=bank">BANK</a>
+  <a class="btn" href="er-studio.html#example=university">UNIVERSITY</a>
+  <a class="btn" href="er-studio.html#example=supply">SUPPLY (ternary relationship)</a>
+  <a class="btn primary" href="er-studio.html#exercise=library">Exercise: Library</a>
+  <a class="btn primary" href="er-studio.html#exercise=hospital">Exercise: Hospital</a>
+</div>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="1">
+  <p>"Each student enrolls in at least one and at most six courses; a course may have no students or many students." What is the correct (min,max) pair for STUDENT —ENROLLS— COURSE?</p>
+  <ol>
+    <li data-why="Correct: each student takes part in 1–6 enrollment instances, each course in 0–N.">STUDENT (1,6), COURSE (0,N)</li>
+    <li data-why="(min,max) gives each entity's own participation; the numbers were written on the other side.">STUDENT (0,N), COURSE (1,6)</li>
+    <li data-why="The upper bound on the student side is 6, not N; (min,max) can express this, the 1:N notation cannot.">STUDENT (1,N), COURSE (0,N)</li>
+    <li data-why="A course may have no students: COURSE's min is 0, i.e. partial.">STUDENT (1,6), COURSE (1,N)</li>
+  </ol>
+  <div class="explain">First think of one student: how many ENROLLS instances does it take part in? At least 1, at most 6 → (1,6), total. Then of one course: at least 0, at most many → (0,N), partial. The cardinality ratio is M:N (both sides more than one).</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>A student can have several phone numbers. How should <code>Phone</code> be drawn in the ER diagram?</p>
+  <ol>
+    <li data-why="A dashed ellipse is for a derived attribute.">A dashed ellipse</li>
+    <li data-why="Correct: an attribute that can have several values for one student is multivalued.">A double ellipse (multivalued)</li>
+    <li data-why="A composite attribute is divided into parts but carries a single value.">A composite attribute connected to its components</li>
+    <li data-why="An underlined ellipse is a key; a phone number can be shared or can change.">An underlined ellipse</li>
+  </ol>
+  <div class="explain">An attribute that can take several values for one entity is <em>multivalued</em> and is shown with a double ellipse. In the relational schema it becomes a separate table (like DEPT_LOCATIONS).</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>"Each project is controlled by exactly one department; a department may control no projects or many projects." What are the (min,max) values for CONTROLS?</p>
+  <ol>
+    <li data-why="The numbers are swapped: this is the mistake of reading the '1:N' notation as (min,max). (min,max) gives how many relationship instances each entity <em>itself</em> takes part in; a department can control many projects, so its max cannot be 1.">DEPARTMENT (1,1), PROJECT (0,N)</li>
+    <li data-why="A min of 1 would mean every department must control at least one project; the text says 'may control no projects', so the min is 0.">DEPARTMENT (1,N), PROJECT (1,1)</li>
+    <li data-why="Correct: a department controls 0..N projects, each project is controlled by exactly one department.">DEPARTMENT (0,N), PROJECT (1,1)</li>
+    <li data-why="This says a department can control at most one project and a project is controlled by many departments; the exact opposite of the text.">DEPARTMENT (0,1), PROJECT (1,N)</li>
+  </ol>
+  <div class="explain">(min,max) gives each entity's own participation. A department controls 0 or more projects: (0,N). Each project exactly once: (1,1). Compare with DEPARTMENT:PROJECT = 1:N in the 1:N notation; notice that the numbers swap places.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Why can WORKS_ON's <code>Hours</code> attribute not be moved to EMPLOYEE or PROJECT?</p>
+  <ol>
+    <li data-why="Correct: in M:N the value belongs not to a single entity but to the (employee, project) pair.">Because WORKS_ON is M:N; Hours belongs to an (employee, project) pair.</li>
+    <li data-why="Hours is not derived; it is a stored value.">Because Hours is a derived attribute.</li>
+    <li data-why="Relationships can have attributes; that is not the problem.">Because relationships cannot have attributes; this is a design mistake.</li>
+    <li data-why="Total participation does not determine where an attribute can be moved.">Because the participation of both sides is total.</li>
+  </ol>
+  <div class="explain">In 1:1 the attribute can be moved to either side, in 1:N to the N side. In M:N an employee works different hours on many projects; a single value belongs to no entity.</div>
+</div>
+<div class="quiz" data-answer="4" data-tables="EMPLOYEE DEPENDENT">
+  <p>Which statement about DEPENDENT is <em>false</em>?</p>
+  <ol>
+    <li data-why="This statement is true (the question asks for the false one): DEPENDENT has no key of its own and is identified through EMPLOYEE.">DEPENDENT is a weak entity type; its owner is EMPLOYEE.</li>
+    <li data-why="This statement is true (the question asks for the false one): a weak entity cannot exist without its owner; its participation in the identifying relationship is always total.">DEPENDENT's participation in DEPENDENTS_OF is total.</li>
+    <li data-why="This statement is true (the question asks for the false one): the name distinguishes only among the dependents of the same employee, so it is a partial key."><code>Dependent_name</code> is a partial key.</li>
+    <li data-why="This is the false one, i.e. the correct answer: two different employees can have dependents with the same name."><code>Dependent_name</code> is DEPENDENT's key, because every dependent has a different name.</li>
+  </ol>
+  <div class="explain">Two different employees can have dependents with the same name (Wong and Smith both have a daughter named "Alice"). The name distinguishes only among the dependents of <em>the same employee</em>. The full identifier (the owner's key + the partial key) = (Essn, Dependent_name).</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>In a hospital every patient has exactly one room; at most 2 patients stay in a room and rooms may be empty. Which are the correct constraints for PATIENT–STAYS_IN–ROOM?</p>
+  <ol>
+    <li data-why="1:N would say a patient has many rooms, but each patient is in a single room. The participations are also reversed: every patient must have a room (total), rooms may be empty (partial).">PATIENT:ROOM = 1:N; PATIENT partial, ROOM total</li>
+    <li data-why="Correct: each patient is in exactly one room (1,1), a room has 0–2 patients (0,2).">PATIENT:ROOM = N:1; PATIENT total, ROOM partial; (min,max): PATIENT (1,1), ROOM (0,2)</li>
+    <li data-why="M:N would mean a patient can stay in several rooms; also 'every patient has a room' is total participation.">PATIENT:ROOM = M:N; both partial</li>
+    <li data-why="It says 'rooms may be empty': ROOM's min is 0, so ROOM is partial. (1,2) would require at least one patient in every room.">PATIENT:ROOM = N:1; both total; (min,max): PATIENT (1,1), ROOM (1,2)</li>
+
+  </ol>
+  <div class="explain">Each patient is in exactly 1 room → on the PATIENT side max 1, min 1 (total). A room has 0–2 patients → ROOM (0,2), partial. The ratio is N:1 (many patients, one room). The (min,max) notation can express more than the cardinality (at most 2).</div>
+</div>
+
+</div></main>
+</body>
+</html>

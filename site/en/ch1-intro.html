@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Databases and DBMS · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 1: databases, the DBMS, characteristics of the database approach, actors, advantages of using a DBMS and when not to use one.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/layout.js"></script>
+</head>
+<body data-page="ch1-intro">
+<main><div class="content">
+
+<h1>Databases and DBMS</h1>
+<p class="lead">What is a database, what does the software that manages it (the DBMS) do, and why is the "database approach" different from the older file-based approach?</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Tell a database, a DBMS and a database system apart; explain the four functions of a DBMS (define, construct, manipulate, share) with an example.</li>
+    <li>Given a problem of the file-based approach, name the DBMS feature that solves it (redundancy → controlled redundancy, …).</li>
+    <li>Given a description of a user, say which actor it is (DBA, casual, naive/parametric, sophisticated, …).</li>
+    <li>Recognize a situation where using a DBMS makes no sense, and say why.</li>
+  </ul>
+</div>
+
+<h2>Basic definitions</h2>
+<table class="simple">
+  <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Data</strong></td><td>Known facts that can be recorded and have meaning: names, telephone numbers, addresses.</td></tr>
+    <tr><td><strong>Database</strong></td><td>A collection of related data. The book's three implicit properties: (1) it represents some aspect of the real world (the <em>miniworld</em> or <em>universe of discourse</em>), (2) it is logically coherent and has meaning (not a random assortment of data), (3) it is designed for a specific purpose and an intended group of users.</td></tr>
+    <tr><td><strong>DBMS</strong> (Database Management System)</td><td>General-purpose software that makes it possible to <em>define</em>, <em>construct</em>, <em>manipulate</em> and <em>share</em> databases.</td></tr>
+    <tr><td><strong>Database system</strong></td><td>The database + the DBMS software (+ the application programs).</td></tr>
+    <tr><td><strong>Meta-data</strong></td><td>The description of the database: tables, columns, types, constraints. Stored in the DBMS <em>catalog</em> (<em>data dictionary</em>).</td></tr>
+  </tbody>
+</table>
+
+<div class="callout key">
+  <p><strong>The four basic functions of a DBMS:</strong> <em>define</em> (specify the data types, structures and constraints), <em>construct</em> (store the data on a storage medium), <em>manipulate</em> (query, update, generate reports), <em>share</em> (let many users and programs access it at the same time). <em>Protection</em> (system and security protection) and <em>maintenance</em> are added to these.</p>
+</div>
+
+<h3>An example: the UNIVERSITY database</h3>
+<p>The book's Ch 1 example is a university: the files STUDENT, COURSE, SECTION, GRADE_REPORT, PREREQUISITE. Each file is a table and each record a row; GRADE_REPORT holds a student's grade in a section, PREREQUISITE a course's prerequisite. Think of the four functions with this example: <strong>define</strong> = saying "STUDENT has the fields Name, Student_number, Class, Major"; <strong>construct</strong> = recording the students one by one; <strong>manipulate</strong> = "list Smith's transcript" or "move Smith to the second year"; <strong>share</strong> = the registrar's office, the departments and the students all using the same data at the same time.</p>
+
+<h3>The database on this site: COMPANY</h3>
+<p>Every SQL box on the site runs on the <strong>COMPANY</strong> database introduced in Ch 5 of the book: a company's employees (EMPLOYEE), departments (DEPARTMENT), department locations (DEPT_LOCATIONS), projects (PROJECT), who works how many hours on which project (WORKS_ON) and the employees' dependents (DEPENDENT). The rows are the ones in Figure 5.6 of the book: 8 employees, 3 departments, 6 projects. Above every box are the names of the tables it uses; click a name to open that table's rows. You can see all the tables in the schema browser of the <a href="lab.html">SQL lab</a>.</p>
+<p>You will learn SQL in Ch 6; for now run the box below only to see the <em>self-describing</em> property. The box reads the <code>COLUMNS</code> table in the DBMS catalog (<code>information_schema</code>) and counts how many columns are defined for each table of COMPANY. So the <em>definition</em> of the tables is also inside the database, as a table that can be queried.</p>
+<pre class="sql run" data-title="The catalog (meta-data) is a table too: the tables of COMPANY and their column counts">
+-- information_schema: the DBMS catalog, itself readable with SQL
+SELECT TABLE_NAME, COUNT(*) AS column_count
+FROM   information_schema.COLUMNS
+WHERE  TABLE_SCHEMA = 'company'
+GROUP BY TABLE_NAME
+ORDER BY TABLE_NAME;
+</pre>
+<p class="small muted">For EMPLOYEE you see 10: Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary, Super_ssn, Dno. This information is stored not in the table itself but in the catalog.</p>
+
+<h2>Characteristics of the database approach</h2>
+<p>In the <em>file processing</em> approach every application defines and manages its own files; the same data is repeated in several places. In the database approach a single repository of data is defined once and everyone accesses it. The book lists four characteristics:</p>
+<ol>
+  <li><strong>Self-describing nature</strong>: the database contains not only the data but also a complete definition of its structure (meta-data, the catalog). The DBMS software can work with any database, because it reads the structure from the catalog.</li>
+  <li><strong>Insulation between programs and data, data abstraction</strong>:
+    <ul>
+      <li><em>Program-data independence</em>: the file structure is not embedded in the programs; when the structure changes (e.g. a column is added) the programs do not have to change.</li>
+      <li><em>Program-operation independence</em>: in object-oriented systems the <em>interface</em> (signature) of an operation is separate from its <em>implementation</em>.</li>
+      <li><em>Data abstraction</em>: users are given a conceptual representation (a <em>data model</em>) instead of storage details.</li>
+    </ul></li>
+  <li><strong>Support of multiple views of the data</strong>: different users can see different subsets of the database, or derived data (<em>views</em>).</li>
+  <li><strong>Sharing of data and multiuser transaction processing</strong>: many users access the data at the same time. The DBMS keeps it consistent with <em>concurrency control</em>. A <em>transaction</em> is applied entirely or not at all (<em>atomicity</em>) and runs as if isolated from the others (<em>isolation</em>).</li>
+</ol>
+
+<div class="callout gotcha">
+  <p>Do not confuse the <strong>problems of file systems</strong> with the <strong>characteristics of a DBMS</strong>. Exams usually ask "the file-based approach has this problem; which feature of a DBMS solves it?": repeated data → controlled redundancy; file structure embedded in programs → program-data independence; a single view → multiple views; conflicts between simultaneous accesses → concurrency control.</p>
+</div>
+
+<h2>Actors: who does what?</h2>
+<div class="two-col">
+  <div>
+    <h3>Actors on the scene</h3>
+    <ul>
+      <li><strong>Database administrator (DBA)</strong>: authorizes access to the database, coordinates and monitors its use, acquires hardware and software resources; responsible for security breaches and poor response time.</li>
+      <li><strong>Database designer</strong>: identifies the data to be stored and chooses appropriate structures; talks to the users and designs <em>views</em> that meet each group's requirements.</li>
+      <li><strong>End users</strong>:
+        <ul>
+          <li><em>Casual</em>: occasionally use a query language, for different information each time (middle- or high-level managers).</li>
+          <li><em>Naive / parametric</em>: use ready-made operations (<em>canned transactions</em>) over and over: bank tellers, reservation clerks.</li>
+          <li><em>Sophisticated</em>: know the facilities of the DBMS well and write their own queries for complex requirements: engineers, scientists, analysts.</li>
+          <li><em>Standalone</em>: keep personal databases with ready-made packages.</li>
+        </ul></li>
+      <li><strong>System analysts / application programmers</strong> (<em>software engineers</em>): analysts work out the specifications of canned transactions from end users' requirements; programmers code, test and document them.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Workers behind the scene</h3>
+    <ul>
+      <li><strong>DBMS system designers and implementers</strong>: design and write the DBMS software itself (the catalog, query processing, concurrency control, recovery, … modules).</li>
+      <li><strong>Tool developers</strong>: develop tools for modelling, design, performance monitoring and so on.</li>
+      <li><strong>Operators and maintenance personnel</strong>: run and maintain the hardware and software environment.</li>
+    </ul>
+    <p class="small muted">The workers behind the scene are not interested in the <em>contents</em> of the database; they provide the DBMS itself and its environment.</p>
+  </div>
+</div>
+
+<h2>Advantages of using a DBMS</h2>
+<ol>
+  <li><strong>Controlling redundancy</strong>: storing the same data in several places wastes space and leads to <em>inconsistency</em>. In a DBMS the repetition is either absent or controlled. (Controlled redundancy: deliberate repetition for performance, e.g. StudentName in GRADE_REPORT; the DBMS keeps it consistent. This idea is called <em>denormalization</em>.)</li>
+  <li><strong>Restricting unauthorized access</strong>: a security and authorization subsystem; the DBA manages accounts and privileges.</li>
+  <li><strong>Providing persistent storage for program objects</strong>: in object-oriented databases complex program objects are stored persistently (the <em>impedance mismatch</em> problem is reduced).</li>
+  <li><strong>Providing storage structures and search techniques for efficient query processing</strong>: indexes, buffering/caching, query processing and optimization.</li>
+  <li><strong>Providing backup and recovery</strong>: bringing the database back to a consistent state after a hardware or software failure.</li>
+  <li><strong>Providing multiple user interfaces</strong>: query languages, programming interfaces, forms, menus, natural-language interfaces.</li>
+  <li><strong>Representing complex relationships among data</strong>.</li>
+  <li><strong>Enforcing integrity constraints</strong>: data types, uniqueness (<em>keys</em>), <em>referential integrity</em>, business rules.</li>
+  <li><strong>Permitting inferencing and actions using rules and triggers</strong>: deductive databases, triggers, stored procedures.</li>
+  <li><strong>Additional benefits</strong>: enforcing standards, shorter application development time, flexibility (programs are little affected when the structure changes), up-to-date information available to everyone at once, economies of scale.</li>
+</ol>
+
+<h2>When not to use a DBMS</h2>
+<p>A DBMS has costs: investment in hardware, software and training; the overhead of generality in defining and processing data; the overhead of the security, concurrency control, recovery and integrity functions. So ordinary files may be better when:</p>
+<ul>
+  <li>The database and the applications are simple, well defined and <em>not expected to change</em>.</li>
+  <li>There are <em>stringent real-time</em> requirements that the DBMS overhead cannot meet.</li>
+  <li>It is an <em>embedded</em> system with limited storage capacity.</li>
+  <li>No multiple-user access to the data is needed.</li>
+</ul>
+<p>Also, some applications are not expressed well in the relational model: complex data models (CAD, geographic information), applications that need special operations.</p>
+
+<h2>A short history</h2>
+<ul>
+  <li><strong>Hierarchical and network systems</strong> (1960s–70s): relationships between records through physical pointers; programs and data intertwined.</li>
+  <li><strong>The relational model</strong> (Codd, 1970): data in tables; physical storage separate from the conceptual representation; high-level query languages (SQL). Commercialized in the 1980s.</li>
+  <li><strong>Object-oriented</strong> and <strong>object-relational</strong> systems (1980s–90s), <strong>the Web and XML</strong>, <strong>NoSQL and big data</strong> (2000s): very large scale, flexible schemas, high availability.</li>
+</ul>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="4">
+  <p>For a library system: (a) defining "BOOK has the fields ISBN, Title, Author", (b) entering 20 000 books into the system, (c) "list the books published after 2020", (d) students and librarians using it at the same time. Which DBMS functions are these, in order?</p>
+  <ol>
+    <li data-why="Construct and define are swapped: giving the definition is define, recording the data is construct.">construct, define, manipulate, share</li>
+    <li data-why="(c) is a query: manipulate. Protection is security and authorization.">define, construct, protection, share</li>
+    <li data-why="(d) is simultaneous, multiuser access: share. Maintenance is adapting the system to requirements that change over time.">define, construct, manipulate, maintenance</li>
+    <li data-why="Correct: defining is define, recording the data construct, querying manipulate, using it together share.">define, construct, manipulate, share</li>
+  </ol>
+  <div class="explain">Define: specify the structure and constraints (meta-data). Construct: store the data on a storage medium. Manipulate: query, update, generate reports. Share: many users and programs accessing it at the same time.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>Every department of a company keeps employee information in its own file; when an employee's address changes, some files are updated and some are not. This is the direct result of which problem?</p>
+  <ol>
+    <li data-why="Authorization is about who can access what, not about conflicting copies.">Unauthorized access</li>
+    <li data-why="Concurrency is about simultaneous accesses. Here the problem is that the same data has several copies.">Lack of concurrency control</li>
+    <li data-why="Correct: the same address is repeated in several files without control; when one is updated and another is not, the copies conflict.">Uncontrolled redundancy, and as a result inconsistency</li>
+
+    <li data-why="Program-data independence is about the file structure being embedded in the programs.">Program-data dependence</li>
+  </ol>
+  <div class="explain">The same data is stored in several places without control (redundancy). When the copies diverge the data becomes inconsistent. A DBMS stores the data once, or uses controlled redundancy.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>A bank teller uses the same ready-made operations (deposit, withdrawal, balance inquiry) every day. What kind of end user is this?</p>
+  <ol>
+    <li data-why="A casual user accesses the database occasionally, for different information each time (e.g. a manager). The teller does the same operations every day.">Casual end user</li>
+    <li data-why="Correct: they use ready-made, preprogrammed operations (canned transactions) over and over.">Naive (parametric) end user</li>
+    <li data-why="A sophisticated user writes their own complex queries (an engineer, an analyst). The teller does not write queries; they use ready-made screens.">Sophisticated end user</li>
+    <li data-why="A standalone user keeps their own personal database with a ready-made package (e.g. a personal finance program). The bank's shared system is not personal.">Standalone user</li>
+  </ol>
+  <div class="explain">Naive/parametric users repeatedly use standard operations that were programmed and tested in advance, called <em>canned transactions</em>.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which of the following best explains the <em>self-describing</em> property of the database approach?</p>
+  <ol>
+    <li data-why="This is the <em>multiple views</em> property: different users see different subsets of the database.">Users can see the data through different views.</li>
+    <li data-why="This is <em>program-data independence</em>. Being self-describing <em>makes it possible</em> (the structure is in the catalog, so it is not embedded in programs), but it is not the definition.">Programs are independent of the file structure.</li>
+    <li data-why="This is the <em>sharing / multiuser transaction processing</em> property, and it needs concurrency control.">Several users can update data at the same time.</li>
+    <li data-why="Correct: besides the data, a complete definition of the structure (meta-data) is stored in the catalog.">The database contains, besides the data, the definition of its structure (as meta-data in the catalog).</li>
+  </ol>
+  <div class="explain">The DBMS catalog stores the definition of every table, column, type and constraint; that is how the DBMS software can work with any database. The <code>information_schema</code> query above reads this catalog.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>In which of these situations does using a DBMS make the <em>least</em> sense?</p>
+  <ol>
+    <li data-why="Correct: an embedded system, limited storage, a single program, unchanging requirements; all the items on the book's 'do not use a DBMS' list.">The embedded control software of a washing machine, with very little memory, used by a single program</li>
+    <li data-why="Simultaneous access, transactions and recovery are exactly what a DBMS provides; a DBMS is a must here.">A bank account system accessed from hundreds of branches at the same time</li>
+    <li data-why="The requirements change often: a high-level query language and program-data independence are exactly what is needed for new reports.">A company information system where new kinds of reports are often requested</li>
+    <li data-why="Related data shared by many users (student–course–grade): the book's own Ch 1 example, a typical DBMS application.">A university system holding student, course and grade information</li>
+  </ol>
+  <div class="explain">Limited storage, a single user, simple and unchanging requirements: the overhead a DBMS brings (generality, security, concurrency, recovery) does not pay off here.</div>
+</div>
+
+</div></main>
+</body>
+</html>

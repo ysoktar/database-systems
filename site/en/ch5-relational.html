@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The relational model and constraints · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 5: relational model concepts, characteristics of relations, domain/key/NULL constraints, superkeys and candidate keys, entity integrity, referential integrity, foreign keys, update operations and constraint violations; all with runnable MySQL examples.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch5-relational.js"></script>
+</head>
+<body data-page="ch5-relational">
+<main><div class="content">
+
+<h1>The relational model and constraints</h1>
+<p class="lead">The relational model sees a database as a collection of <strong>relations</strong>: informally, each one a table of values. This page covers the formal concepts of the model and the <strong>constraints</strong> that keep the data correct.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Show the terms relation, tuple, attribute, domain, degree and cardinality on COMPANY.</li>
+    <li>Tell superkey, key, candidate key and primary key apart; decide whether a set of attributes is a superkey/key.</li>
+    <li>Define entity integrity and referential integrity; show the foreign keys in a schema.</li>
+    <li>Say which constraints an INSERT/DELETE/UPDATE violates and list the DBMS's options (reject, cascade, set null, set default).</li>
+  </ul>
+</div>
+
+<h2>Concepts</h2>
+<table class="simple">
+  <thead><tr><th>Formal term</th><th>Informal (table) equivalent</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Relation</strong></td><td>Table</td><td>r(R) ⊆ dom(A<sub>1</sub>) × dom(A<sub>2</sub>) × … × dom(A<sub>n</sub>): a set of tuples.</td></tr>
+    <tr><td><strong>Tuple</strong></td><td>Row</td><td>An ordered list of n values: t = &lt;v<sub>1</sub>, …, v<sub>n</sub>&gt;; each v<sub>i</sub> ∈ dom(A<sub>i</sub>) or NULL.</td></tr>
+    <tr><td><strong>Attribute</strong></td><td>Column header</td><td>The name of a role played by a domain in the relation.</td></tr>
+    <tr><td><strong>Domain</strong></td><td>The values a column can take</td><td>A set of atomic values: a name, a data type and a format. E.g. <code>Usa_phone_numbers</code>: 10-digit phone numbers.</td></tr>
+    <tr><td><strong>Relation schema</strong> R(A<sub>1</sub>, …, A<sub>n</sub>)</td><td>Table definition</td><td>The relation's name and its list of attributes. <strong>Degree</strong> (arity) = n.</td></tr>
+    <tr><td><strong>Relation state</strong> r(R)</td><td>The table's current contents</td><td>The set of tuples at a particular moment. <strong>Cardinality</strong> = the number of tuples.</td></tr>
+    <tr><td><strong>Relational database schema</strong> S</td><td>All the tables</td><td>S = {R<sub>1</sub>, …, R<sub>m</sub>} and a set of integrity constraints IC.</td></tr>
+  </tbody>
+</table>
+<div class="callout example" data-label="The terms in COMPANY">
+  <p>Look at the DEPARTMENT relation (you can open its rows with the button below):</p>
+  <ul>
+    <li><strong>Relation schema</strong>: DEPARTMENT(Dname, Dnumber, Mgr_ssn, Mgr_start_date). Four attributes: <strong>degree</strong> = 4.</li>
+    <li><strong>Relation state</strong>: today's three rows (Research, Administration, Headquarters): <strong>cardinality</strong> = 3. Adding a department changes the state, not the schema.</li>
+    <li><strong>Tuple</strong>: t = &lt;'Research', 5, '333445555', '1988-05-22'&gt;. t[Dname] = 'Research', t[Dnumber, Mgr_ssn] = &lt;5, '333445555'&gt;.</li>
+    <li><strong>Domain</strong>: dom(Mgr_ssn) = 9-character Ssns, dom(Mgr_start_date) = dates. Mgr_ssn and EMPLOYEE.Ssn come from the same domain; that is the first condition for a foreign key (below).</li>
+    <li><strong>Relational database schema</strong>: COMPANY = {EMPLOYEE, DEPARTMENT, DEPT_LOCATIONS, PROJECT, WORKS_ON, DEPENDENT} and its constraints.</li>
+  </ul>
+</div>
+<div class="company-data" data-tables="DEPARTMENT"></div>
+<p>E.g. <code>STUDENT(Name, Ssn, Home_phone, Address, Office_phone, Age, Gpa)</code> is a schema of degree 7. The attributes can also be written with their types: <code>STUDENT(Name: string, Ssn: string, …, Gpa: real)</code>. t[A<sub>i</sub>] or t.A<sub>i</sub> is the A<sub>i</sub> value of t; t[A<sub>u</sub>, A<sub>w</sub>, …] is a subtuple.</p>
+
+<h3>Characteristics of relations</h3>
+<ol>
+  <li><strong>Tuples have no order.</strong> A relation is a <em>set</em>; the order in which rows are displayed is logically irrelevant (in SQL an order is guaranteed only by <code>ORDER BY</code>).</li>
+  <li><strong>The order of values within a tuple</strong>: matters under the first definition (tuple = an ordered list); does not matter under the alternative definition (tuple = a set of (attribute, value) pairs). The book mostly uses the first definition.</li>
+  <li><strong>Values are atomic</strong> (indivisible): the <em>flat relational model</em>. Composite and multivalued attributes cannot be stored directly; composites are split into their parts, multivalued ones are moved to a separate relation. This assumption is known as <em>first normal form</em> (1NF).</li>
+  <li><strong>NULL</strong>: the value is unknown, not applicable, or exists but has not been entered yet. It has different meanings and causes problems in comparisons (the three-valued logic of Ch 7).</li>
+  <li><strong>Interpretation</strong>: a relation schema can be read as an <em>assertion</em>; each tuple is a <em>fact</em>, an instance for which a <em>predicate</em> is true. Relations represent both entities and relationships.</li>
+</ol>
+<div class="callout gotcha">
+  <p><strong>Table ≠ relation, exactly.</strong> Because a formal relation is a set, <em>the same tuple cannot appear twice</em>. SQL tables, however, can contain duplicate rows if there is no primary key or a query result has no <code>DISTINCT</code> (a multiset / bag). You will meet this again in Ch 6.</p>
+</div>
+
+<h2>Constraints</h2>
+<ul>
+  <li><strong>Inherent model-based</strong> (implicit): come from the model itself. E.g. the same tuple cannot appear twice in a relation.</li>
+  <li><strong>Schema-based</strong> (explicit): expressed in the schema with DDL: domain, key, NULL, entity integrity and referential integrity constraints.</li>
+  <li><strong>Application-based</strong> (semantic, <em>business rules</em>): cannot be expressed directly in the schema; enforced by application programs or with triggers/assertions. E.g. "an employee's salary cannot exceed their supervisor's", "an employee can work at most 56 hours a week".</li>
+</ul>
+<p>Also: <strong>data dependencies</strong> (functional and multivalued dependencies, for normalization in Ch 14–15), <strong>state constraints</strong> (static: must hold in every valid state) and <strong>transition constraints</strong> (dynamic: about state changes; e.g. "the salary can only increase").</p>
+
+<h3>Domain constraint</h3>
+<p>In every tuple the value of each attribute A must be an atomic value from dom(A): types (<code>INT</code>, <code>VARCHAR(15)</code>, <code>DATE</code>…), subranges, enumerated values.</p>
+<pre class="sql run" data-expect-error data-title="Domain violation: a value that does not fit a DECIMAL(3,1) column">
+INSERT INTO WORKS_ON VALUES ('123456789', 3, 1000.0);
+</pre>
+
+<h3>Key constraints</h3>
+<table class="simple">
+  <thead><tr><th>Term</th><th>Definition</th><th>In EMPLOYEE</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Superkey</strong> (SK)</td><td>A subset of attributes such that in no valid state do two distinct tuples have the same values for SK: t<sub>1</sub>[SK] ≠ t<sub>2</sub>[SK]. Every relation has at least one superkey: the set of all its attributes.</td><td>{Ssn}, {Ssn, Lname}, {Ssn, Fname, Bdate}, all the attributes…</td></tr>
+    <tr><td><strong>Key</strong> (minimal superkey)</td><td>(1) is a superkey, (2) is <em>minimal</em>: if any attribute is removed it is no longer a superkey. A key is a time-invariant property of the schema.</td><td>{Ssn}</td></tr>
+    <tr><td><strong>Candidate key</strong></td><td>A relation can have several keys; each one is a candidate key.</td><td>In CAR, {License_number} and {Engine_serial_number}</td></tr>
+    <tr><td><strong>Primary key</strong></td><td>The candidate key <em>chosen</em> to identify tuples; <u>underlined</u> in the schema. Usually the smallest one is chosen.</td><td>Ssn</td></tr>
+    <tr><td><strong>Unique key</strong> (alternate)</td><td>The other candidate keys, not chosen as primary; <code>UNIQUE</code> in SQL.</td><td>Dname in DEPARTMENT (Dnumber is primary)</td></tr>
+  </tbody>
+</table>
+<div class="callout key">
+  <p><strong>Superkey ⊇ key.</strong> Every key is a superkey; a superkey is a key only if it is minimal. Adding an attribute to a superkey always gives a superkey again. {Ssn, Lname} is a superkey but not a key, because when Lname is removed the remaining {Ssn} is still unique.</p>
+</div>
+
+<h3>Try it: a superkey check</h3>
+<p>Choose a table and some columns; the tool looks at <em>today's data</em> to see whether two rows have the same values in the columns you chose. If a duplicate is found, the set is definitely not a superkey. If none is found, that is only a <em>hint</em>: a key is a constraint that holds for all possible states and cannot be proved by looking at the data alone.</p>
+<div id="superkey"></div>
+
+<h3>The NULL constraint and entity integrity</h3>
+<ul>
+  <li><strong>NOT NULL</strong>: an attribute is not allowed to be NULL (e.g. every student must have a name).</li>
+  <li><strong>Entity integrity constraint</strong>: no primary key value can be NULL. Because the PK is used to identify tuples; if two tuples had a NULL PK, they could not be told apart. (<em>No part</em> of a composite PK can be NULL.)</li>
+</ul>
+
+<h3>Referential integrity and foreign keys</h3>
+<p>Consistency between two relations: a tuple in one relation must refer to an <em>existing</em> tuple in another relation.</p>
+<p>A set of attributes FK in R<sub>1</sub> is a <strong>foreign key</strong> referencing the primary key of R<sub>2</sub> if and only if: (1) the attributes of FK have the same domains as those of PK; (2) for every t<sub>1</sub> in R<sub>1</sub>, either there is a t<sub>2</sub> ∈ r(R<sub>2</sub>) with t<sub>1</sub>[FK] = t<sub>2</sub>[PK], or t<sub>1</sub>[FK] is NULL. R<sub>1</sub> is the <em>referencing</em> relation, R<sub>2</sub> the <em>referenced</em> relation.</p>
+<ul>
+  <li>An FK can also refer to the PK of its own relation: <code>EMPLOYEE.Super_ssn → EMPLOYEE.Ssn</code> (a recursive relationship).</li>
+  <li>An FK can be part of the PK: in WORKS_ON(<u>Essn</u>, <u>Pno</u>, Hours) Essn and Pno are both part of the PK and FKs. In that case they cannot be NULL (entity integrity).</li>
+  <li>In a schema diagram an arrow is drawn from an FK to the PK it refers to (Figure 5.7 in the book).</li>
+</ul>
+<div id="schema"></div>
+
+<h2>From the ER schema to the relational schema: COMPANY</h2>
+<p>How does the COMPANY ER diagram of Ch 3 turn into the six tables above? The mapping algorithm in Ch 9 of the book applies one rule to each ER construct. Since the midterm covers Ch 1–7, the algorithm itself is out of scope, but it connects Ch 3 and Ch 5: keys become primary keys, relationships become foreign keys. The result the site produces has the same structure as the book's; only the column names differ (e.g. <code>DEPARTMENT_Number</code> instead of <code>Dno</code>).</p>
+<details class="disclosure">
+  <summary>COMPANY ER → tables, step by step</summary>
+  <div class="disclosure-body" id="company-mapping"></div>
+</details>
+<p class="small">In the <a href="er-studio.html#example=company&amp;section=to-tables">ER studio</a> you can change the diagram and see how the result changes, or turn your own tables back into ER.</p>
+
+<h2>Update operations and constraint violations</h2>
+<p>There are three basic update operations: <strong>Insert</strong>, <strong>Delete</strong>, <strong>Update</strong> (Modify). Each can violate some constraints. The boxes below are exactly the examples in Section 5.3 of the book and run on COMPANY's starting data (click the table names above a box to see their rows). Run them all in order: you will see which constraint the DBMS enforces, and with which message. (<em>Reset database</em> when needed.)</p>
+<div class="callout note">
+  <p><strong>Enough SQL to read the commands in the boxes</strong> (details in Ch 6):</p>
+  <ul>
+    <li><code>INSERT INTO EMPLOYEE VALUES (…)</code> adds a row. The values are written in the order of the table's columns: <code>(Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary, Super_ssn, Dno)</code>. So the fourth value in Insert 1 (<code>NULL</code>) is Ssn, and the <code>4</code> at the end is Dno.</li>
+    <li><code>DELETE FROM T WHERE condition</code> deletes the rows that satisfy the condition.</li>
+    <li><code>UPDATE T SET column = value WHERE condition</code> changes the column in the rows that satisfy the condition.</li>
+  </ul>
+  <p>The error message is written as in the MySQL client: <code>ERROR 1062 (23000): …</code>. The number is MySQL's error number: 1062 key (duplicate), 1048 cannot be NULL, 1452 / 1451 foreign key (inserted row / deleted row), 1264 value out of range.</p>
+</div>
+
+<h3>Insert</h3>
+<p>Can violate all four constraints: domain (the value is not in the domain), key (the PK or UNIQUE value already exists), entity integrity (the PK is NULL), referential integrity (the FK refers to a value that does not exist in the referenced relation). On a violation the default behaviour is to <strong>reject</strong> the operation (and tell the user why).</p>
+<p class="small muted">Because MySQL makes primary key columns NOT NULL automatically, the message of Insert 1 says "non-nullable" (1048); its name in the book is an entity integrity violation.</p>
+<pre class="sql run" data-expect-error data-title="Insert 1 · Entity integrity: Ssn is NULL">
+INSERT INTO EMPLOYEE VALUES ('Cecilia', 'F', 'Kolonsky', NULL, '1960-04-05',
+       '6357 Windy Lane, Katy, TX', 'F', 28000, NULL, 4);
+</pre>
+<pre class="sql run" data-expect-error data-title="Insert 2 · Key constraint: 999887777 already exists (Zelaya)">
+INSERT INTO EMPLOYEE VALUES ('Alicia', 'J', 'Zelaya', '999887777', '1960-04-05',
+       '6357 Windy Lane, Katy, TX', 'F', 28000, '987654321', 4);
+</pre>
+<pre class="sql run" data-expect-error data-title="Insert 3 · Referential integrity: there is no department 7">
+INSERT INTO EMPLOYEE VALUES ('Cecilia', 'F', 'Kolonsky', '677678989', '1960-04-05',
+       '6357 Windswept, Katy, TX', 'F', 28000, '987654321', 7);
+</pre>
+<pre class="sql run" data-title="Insert 4 · Valid: satisfies all the constraints">
+INSERT INTO EMPLOYEE VALUES ('Cecilia', 'F', 'Kolonsky', '677678989', '1960-04-05',
+       '6357 Windy Lane, Katy, TX', 'F', 28000, NULL, 4);
+SELECT Fname, Lname, Ssn, Dno FROM EMPLOYEE WHERE Ssn = '677678989';
+</pre>
+
+<h3>Delete</h3>
+<p>Can violate only <strong>referential integrity</strong>: if other tuples refer to the deleted tuple. The options:</p>
+<ul>
+  <li><strong>Restrict / reject</strong> (<code>NO ACTION</code>, <code>RESTRICT</code>): reject the deletion.</li>
+  <li><strong>Cascade</strong> (<code>ON DELETE CASCADE</code>): delete the referencing tuples too.</li>
+  <li><strong>Set null</strong> (<code>ON DELETE SET NULL</code>) or <strong>set default</strong> (<code>ON DELETE SET DEFAULT</code>): set the referencing FK values to NULL or to the default. Set null cannot be used if the FK is part of the PK (entity integrity). (MySQL's standard storage engine, InnoDB, does not accept <code>SET DEFAULT</code>; it exists in standard SQL and in the book.)</li>
+</ul>
+<pre class="sql run" data-title="Delete 1 · Valid: a WORKS_ON tuple">
+DELETE FROM WORKS_ON WHERE Essn = '999887777' AND Pno = 10;
+</pre>
+<pre class="sql run" data-expect-error data-title="Delete 2 · Referential integrity: rows in WORKS_ON still refer to 999887777">
+DELETE FROM EMPLOYEE WHERE Ssn = '999887777';
+</pre>
+<pre class="sql run" data-expect-error data-title="Delete 3 · Rows in EMPLOYEE, DEPARTMENT, WORKS_ON and DEPENDENT refer to 333445555 (Wong)">
+DELETE FROM EMPLOYEE WHERE Ssn = '333445555';
+</pre>
+
+<h3>Update</h3>
+<p>Changing an attribute that is neither a PK nor an FK only needs the domain and NOT NULL constraints checked. <strong>Changing the PK</strong> is like deleting a tuple and inserting a new one (it affects key, entity integrity and referential integrity). <strong>Changing an FK</strong> can violate referential integrity.</p>
+<pre class="sql run" data-title="Update 1 · Valid: the salary">
+UPDATE EMPLOYEE SET Salary = 28000 WHERE Ssn = '999887777';
+</pre>
+<pre class="sql run" data-title="Update 2 · Valid: the FK, to an existing department">
+UPDATE EMPLOYEE SET Dno = 1 WHERE Ssn = '999887777';
+</pre>
+<pre class="sql run" data-expect-error data-title="Update 3 · Referential integrity: there is no department 7">
+UPDATE EMPLOYEE SET Dno = 7 WHERE Ssn = '999887777';
+</pre>
+<pre class="sql run" data-expect-error data-title="Update 4 · PK change: 987654321 already exists (Wallace) and rows refer to 999887777">
+UPDATE EMPLOYEE SET Ssn = '987654321' WHERE Ssn = '999887777';
+</pre>
+<p class="small muted">The book gives this example as a key violation. But rows in WORKS_ON and EMPLOYEE.Super_ssn also refer to Zelaya's Ssn: changing the PK violates referential integrity at the same time, and the DBMS reports the first violation it meets (in this engine, the foreign key). To see the key constraint alone, do the same thing on a table nothing refers to:</p>
+<pre class="sql run" data-expect-error data-title="Update 5 · The key constraint alone: (5, 'Houston') already exists">
+-- department 5 is in Bellaire, Sugarland and Houston; moving Bellaire to Houston duplicates the key (Dnumber, Dlocation)
+UPDATE DEPT_LOCATIONS SET Dlocation = 'Houston' WHERE Dnumber = 5 AND Dlocation = 'Bellaire';
+</pre>
+
+<h3>Referential triggered actions: seeing CASCADE and SET NULL</h3>
+<p>In the COMPANY schema (Figure 6.2) <code>ON DELETE SET NULL ON UPDATE CASCADE</code> is defined for <code>EMPLOYEE.Super_ssn</code>, and <code>ON DELETE CASCADE ON UPDATE CASCADE</code> for <code>DEPT_LOCATIONS.Dnumber</code>. Let us see their effects. Before running the boxes, predict the result: which rows will change?</p>
+<pre class="sql run" data-title="ON UPDATE CASCADE: changing a department number">
+-- department 4 becomes 6; EMPLOYEE.Dno and DEPT_LOCATIONS.Dnumber follow (ON UPDATE CASCADE).
+-- PROJECT.Dnum has no ON UPDATE action, so first move the projects out of the way:
+UPDATE PROJECT SET Dnum = 5 WHERE Dnum = 4;
+UPDATE DEPARTMENT SET Dnumber = 6 WHERE Dnumber = 4;
+SELECT Lname, Dno FROM EMPLOYEE WHERE Dno = 6;
+SELECT * FROM DEPT_LOCATIONS WHERE Dnumber = 6;
+</pre>
+<pre class="sql run" data-title="ON DELETE SET NULL: employees whose supervisor is deleted">
+-- Borg has no works_on/dependent rows that block him except one WORKS_ON row; remove it, then delete Borg.
+-- Wong and Wallace had Borg as supervisor: their Super_ssn becomes NULL.
+DELETE FROM WORKS_ON WHERE Essn = '888665555';
+UPDATE DEPARTMENT SET Mgr_ssn = '333445555' WHERE Mgr_ssn = '888665555';
+DELETE FROM EMPLOYEE WHERE Ssn = '888665555';
+SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
+</pre>
+
+<div class="callout gotcha">
+  <p><strong>A pattern often asked in exams:</strong> "Which constraints does this operation violate? If it violates any, what can the DBMS do?" Plan of the answer: (1) Is a PK field NULL? → entity integrity. (2) Does the PK/UNIQUE value already exist? → key. (3) Does the FK value exist in the referenced table? (For a deletion: does anything refer to this tuple?) → referential integrity. (4) Does the value fit its type/range? → domain. A deletion can violate only referential integrity; the options are restrict, cascade, set null, set default.</p>
+</div>
+
+<h2>Other concepts</h2>
+<ul>
+  <li><strong>Transaction</strong>: a sequence of operations that read and update the database and must leave it in a <em>valid and consistent</em> state at the end (e.g. a money transfer). Either all of them are applied or none (Ch 20).</li>
+  <li>Some of the constraints (FDs, normalization) are in Ch 14–15, triggers and assertions in Ch 7.</li>
+</ul>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="2" data-tables="WORKS_ON">
+  <p>In COMPANY's starting data, what are the degree and the cardinality of the relation WORKS_ON(Essn, Pno, Hours)?</p>
+  <ol>
+    <li data-why="The other way round: degree is the number of attributes (columns), cardinality the number of tuples (rows).">degree 16, cardinality 3</li>
+    <li data-why="Correct: three attributes, sixteen tuples.">degree 3, cardinality 16</li>
+    <li data-why="2 is the number of attributes of the primary key (Essn, Pno); degree counts all the attributes.">degree 2, cardinality 16</li>
+    <li data-why="8 is the number of employees; but since an employee works on several projects, WORKS_ON has more rows.">degree 3, cardinality 8</li>
+  </ol>
+  <div class="explain">Degree is a property of the schema (how many attributes) and does not change; cardinality is a property of the state (how many tuples) and changes with every INSERT/DELETE.</div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <p>In the relation R(A, B, C, D), {A, B} is a key. Which is <em>definitely</em> true?</p>
+  <ol>
+    <li data-why="{A} is a proper subset of the key. If {A} were a superkey, {A, B} would not be minimal, so it could not be a key.">{A} is a superkey.</li>
+    <li data-why="A relation can have several candidate keys; the primary key is the one <em>chosen</em> among them. {A, B} may not be chosen.">{A, B} must be the primary key.</li>
+    <li data-why="Correct: adding an attribute to a superkey gives a superkey again; since it is still a superkey when C is removed, it is not minimal.">{A, B, C} is a superkey but not a key.</li>
+    <li data-why="We cannot know: {C, D} may be another candidate key. The information given is only about {A, B}.">{C, D} is not a superkey.</li>
+  </ol>
+  <div class="explain">Adding an attribute to a superkey gives a superkey again, but since it is not minimal it is not a key. {A} is a proper subset of the key, so by minimality it cannot be a superkey. {A,B} may be one of several candidate keys. {C,D} may also be another candidate key; we cannot know.</div>
+</div>
+<div class="quiz" data-answer="2" data-tables="WORKS_ON">
+  <p>An attempt is made to insert <code>(NULL, 10, 5.0)</code> into the table WORKS_ON(<u>Essn</u>, <u>Pno</u>, Hours). Which constraint is violated?</p>
+  <ol>
+    <li data-why="An FK can be NULL. But here Essn is also part of the PK.">Only referential integrity</li>
+    <li data-why="Correct: Essn is part of the primary key; no part of the PK can be NULL.">Entity integrity (part of the PK is NULL)</li>
+    <li data-why="The value (NULL, 10) does not match a key value already in the table.">The key constraint</li>
+    <li data-why="An FK on its own can be NULL; but since Essn is also part of the PK, entity integrity forbids it.">None; FKs can be NULL</li>
+  </ol>
+  <div class="explain">Essn is both an FK and part of the PK. If it were only an FK it could be NULL; but no part of the PK can be NULL.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which update operation can violate <em>only</em> referential integrity?</p>
+  <ol>
+    <li data-why="An insert can violate all four constraints: domain, key, entity integrity, referential integrity.">Insert</li>
+    <li data-why="Changing the PK is like deleting and inserting again: it affects key, entity integrity and referential integrity.">An update that changes the PK</li>
+    <li data-why="The new FK value may not fit its type: besides referential integrity it can also violate the domain.">An update that changes an FK</li>
+    <li data-why="Correct: a deletion brings no new value; the only risk is other rows referring to the deleted row.">Delete</li>
+  </ol>
+  <div class="explain">Since a deletion brings no new value, it cannot violate domain, key or entity integrity. The only risk is that other tuples refer to the deleted tuple. An update that changes an FK can violate the domain as well as referential integrity.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Which delete option makes <em>no sense</em> for DEPENDENT.Essn → EMPLOYEE.Ssn?</p>
+  <ol>
+    <li data-why="Correct: Essn is part of DEPENDENT's PK; setting it to NULL would break entity integrity."><code>ON DELETE SET NULL</code></li>
+    <li data-why="Makes sense, in fact the most natural choice: when the owner of a weak entity is deleted, its dependents are deleted too."><code>ON DELETE CASCADE</code></li>
+    <li data-why="Makes sense: rejects deleting an employee who has dependents (the dependents must be deleted first)."><code>ON DELETE RESTRICT</code></li>
+    <li data-why="Makes sense: rejects the deletion like RESTRICT (the difference is only in when the check is made)."><code>ON DELETE NO ACTION</code></li>
+
+  </ol>
+  <div class="explain">Essn is part of DEPENDENT's PK (Essn, Dependent_name); it cannot be set to NULL. When the owner of a weak entity is deleted, the most natural choice for its dependents is CASCADE.</div>
+</div>
+
+</div></main>
+</body>
+</html>

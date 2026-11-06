@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relational algebra (preview) · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 8 preview: relational algebra operations and their SQL equivalents, runnable on MySQL; not on the midterm.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/layout.js"></script>
+</head>
+<body data-page="ch8-algebra">
+<main><div class="content">
+
+<h1>Relational algebra (preview)</h1>
+<p class="lead">Ch 8 is not on the midterm. This page briefly introduces the formal language behind the SQL of Ch 6–7: every algebra operation has an SQL equivalent, and all of them can be run below.</p>
+
+<div class="callout note">
+  <p>Relational algebra is a <em>procedural</em> language of operations on relations: each operation takes one or two relations and returns <strong>a new relation</strong> (closure). The operations work with <em>set</em> semantics: a result has no duplicates. SQL uses multiset semantics.</p>
+</div>
+
+<h2>Unary operations</h2>
+<table class="simple">
+  <thead><tr><th>Operation</th><th>Notation</th><th>SQL equivalent</th></tr></thead>
+  <tbody>
+    <tr><td><strong>SELECT</strong></td><td>σ<sub>Dno=4 AND Salary&gt;25000</sub>(EMPLOYEE)</td><td><code>SELECT * FROM EMPLOYEE WHERE Dno = 4 AND Salary &gt; 25000</code></td></tr>
+    <tr><td><strong>PROJECT</strong></td><td>π<sub>Lname, Salary</sub>(EMPLOYEE)</td><td><code>SELECT DISTINCT Lname, Salary FROM EMPLOYEE</code></td></tr>
+    <tr><td><strong>RENAME</strong></td><td>ρ<sub>S(B1, B2)</sub>(R)</td><td><code>… AS S(B1, B2)</code></td></tr>
+  </tbody>
+</table>
+<p>σ is commutative (σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c2</sub>(σ<sub>c1</sub>(R))); π removing duplicates corresponds to SQL's <code>DISTINCT</code>.</p>
+<pre class="sql run" data-title="π_{Sex, Salary}(EMPLOYEE): set semantics needs DISTINCT">
+SELECT DISTINCT Sex, Salary FROM EMPLOYEE;
+</pre>
+
+<h2>Set operations</h2>
+<p>∪ (UNION), ∩ (INTERSECTION), − (MINUS/DIFFERENCE): the two relations must be <em>type compatible</em> (union compatible). × (CARTESIAN PRODUCT) combines every pair of tuples.</p>
+<pre class="sql run" data-title="Example: the Ssns of employees in department 5 or of their direct supervisors">
+-- DEP5_EMPS ← σ_{Dno=5}(EMPLOYEE); RESULT1 ← π_{Ssn}(DEP5_EMPS); RESULT2 ← π_{Super_ssn}(DEP5_EMPS)
+-- RESULT ← RESULT1 ∪ RESULT2
+SELECT Ssn FROM EMPLOYEE WHERE Dno = 5
+UNION
+SELECT Super_ssn FROM EMPLOYEE WHERE Dno = 5;
+</pre>
+
+<h2>Binary operations: JOIN and DIVISION</h2>
+<table class="simple">
+  <thead><tr><th>Operation</th><th>Notation</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><strong>THETA JOIN</strong></td><td>R ⋈<sub>θ</sub> S</td><td>σ<sub>θ</sub>(R × S)</td></tr>
+    <tr><td><strong>EQUIJOIN</strong></td><td>R ⋈<sub>A=B</sub> S</td><td>equality conditions only</td></tr>
+    <tr><td><strong>NATURAL JOIN</strong></td><td>R * S</td><td>an equijoin on the same-named attributes, the repeated column kept once</td></tr>
+    <tr><td><strong>OUTER JOIN</strong></td><td>⟕ ⟖ ⟗</td><td>unmatched tuples kept, padded with NULLs</td></tr>
+    <tr><td><strong>DIVISION</strong></td><td>R(Z) ÷ S(X)</td><td>the Y = Z − X values that appear in R with <em>every</em> tuple of S</td></tr>
+    <tr><td><strong>AGGREGATE</strong></td><td><sub>Dno</sub>ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE)</td><td>GROUP BY</td></tr>
+  </tbody>
+</table>
+<pre class="sql run" data-title="Division: employees who work on every project Smith works on (÷ in algebra, a double NOT EXISTS in SQL)">
+-- SMITH_PNOS ← π_{Pno}(WORKS_ON ⋈_{Essn=Ssn} σ_{Fname='John' AND Lname='Smith'}(EMPLOYEE))
+-- SSN_PNOS   ← π_{Essn, Pno}(WORKS_ON)
+-- RESULT     ← SSN_PNOS ÷ SMITH_PNOS
+SELECT DISTINCT W.Essn
+FROM   WORKS_ON W
+WHERE  NOT EXISTS (SELECT S.Pno FROM WORKS_ON S WHERE S.Essn = '123456789'
+                   EXCEPT
+                   SELECT X.Pno FROM WORKS_ON X WHERE X.Essn = W.Essn);
+</pre>
+<p>The book's Ch 8 also covers the tuple and domain relational calculus: the same questions written <em>nonprocedurally</em>, with the quantifiers ∃ and ∀. The NOT EXISTS pattern of Ch 7 is how ∀ of the calculus is written in SQL.</p>
+
+</div></main>
+</body>
+</html>
