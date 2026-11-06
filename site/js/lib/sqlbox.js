@@ -138,7 +138,7 @@ let boxCount = 0;
 /**
  * Create a SQL box.
  * opts: code, title, expectError, check (exercise spec {n, expect}), saveKey (localStorage), placeholder,
- *       onResult(result), rows (min textarea rows), resetButton (default true)
+ *       onResult(result), rows (min textarea rows), resetButton (default true), tables (table chips always shown)
  */
 export function createSqlBox(opts = {}) {
   const id = ++boxCount;
@@ -178,7 +178,8 @@ export function createSqlBox(opts = {}) {
   const head = h("div", { class: "sqlbox-head" }, h("div", { class: "sqlbox-title", html: opts.title || "SQL" }), actions);
   const box = h("div", { class: "sqlbox" }, head);
   if (!opts.database || opts.database === "company") {
-    const ctx = tableContext(() => ta.value);
+    // opts.tables: chips that are always shown (e.g. all of COMPANY for an exercise answer that starts empty)
+    const ctx = tableContext(() => (opts.tables ? opts.tables.join(" ") + " " : "") + ta.value, { alwaysShow: !!opts.tables });
     let timer = 0;
     ta.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(ctx.refresh, 300); });
     box.append(ctx);
