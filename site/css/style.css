@@ -528,6 +528,15 @@ section.is-beyond { border-left: 2px dashed var(--beyond); padding-left: 14px; m
 .cv-ta { position: relative; display: block; resize: vertical; color: transparent; caret-color: var(--text); outline: none; overflow-x: auto; overflow-y: hidden; z-index: 1; }
 .cv-ta::selection { background: rgba(194, 65, 12, 0.22); color: transparent; }
 .cv-ta::placeholder { color: var(--muted); }
+.cv-caret-on .cv-ta { caret-color: transparent; }
+.cv-caret { position: absolute; z-index: 2; width: 2.5px; height: calc(var(--cv-fs) * 1.6); background: var(--accent); border-radius: 1px;
+  pointer-events: none; box-shadow: 0 0 0 1px var(--accent-wash); animation: cv-blink 1.06s steps(1, end) 0.5s infinite; }
+@keyframes cv-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cv-caret { animation: none; } }
+.cv-curline { position: absolute; left: 0; right: 0; height: calc(var(--cv-fs) * 1.6); background: rgba(194, 65, 12, 0.055); pointer-events: none; }
+:root[data-theme="dark"] .cv-curline { background: rgba(240, 138, 60, 0.08); }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .cv-curline { background: rgba(240, 138, 60, 0.08); } }
+.cv-ln.cur { color: var(--accent); font-weight: 700; }
 .cv-edit:focus-within { box-shadow: inset 0 0 0 2px var(--focus); }
 .cv-tools { position: absolute; top: 6px; right: 8px; z-index: 2; display: flex; align-items: center; gap: 6px; opacity: 0; transition: opacity .15s; }
 .cv:hover .cv-tools, .cv:focus-within .cv-tools, .cv-tools:focus-within { opacity: 1; }

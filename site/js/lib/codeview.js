@@ -23,6 +23,11 @@ export function codeView(opts = {}) {
     ta.value = value;
     code.append(ta);
   }
+  // a clearly visible caret: a thick, blinking bar in the accent colour, the caret's line softly highlighted and its
+  // line number marked (the textarea's own thin caret is hidden while this one is shown)
+  const curLine = h("div", { class: "cv-curline", "aria-hidden": "true", hidden: true });
+  const caret = h("div", { class: "cv-caret", "aria-hidden": "true", hidden: true });
+  if (ta) { code.prepend(curLine); code.append(caret); }
   const copied = h("span", { class: "cv-copied" });
   const copy = h("button", { type: "button", class: "cv-copy", title: tl("Kodu kopyala", "Copy the code"), "aria-label": tl("Kodu kopyala", "Copy the code"), html: COPY_ICON });
   copy.addEventListener("click", async () => {
@@ -39,12 +44,36 @@ export function codeView(opts = {}) {
   let lineMarks = new Map(); // line number (1-based) -> kind
   let links = null;
 
+  let curLn = 0;
+  function markCurrentLine() {
+    [...gutter.children].forEach((c, i) => c.classList.toggle("cur", i + 1 === curLn));
+  }
+  function updateCaret() {
+    if (!ta || document.activeElement !== ta) { curLine.hidden = caret.hidden = true; el.classList.remove("cv-caret-on"); curLn = 0; markCurrentLine(); return; }
+    if (!charW) measure();
+    const v = ta.value;
+    const at = ta.selectionDirection === "backward" ? ta.selectionStart : ta.selectionEnd;
+    const before = v.slice(0, at).split("\n");
+    const line = before.length - 1, col = before[line].length;
+    const cs = getComputedStyle(ta), lh = lineH();
+    const top = parseFloat(cs.paddingTop) + line * lh;
+    curLine.style.top = caret.style.top = `${top}px`;
+    curLine.hidden = false;
+    caret.style.left = `${parseFloat(cs.paddingLeft) + col * charW - ta.scrollLeft - 1}px`;
+    caret.hidden = ta.selectionStart !== ta.selectionEnd || !charW; // a selection shows itself
+    el.classList.toggle("cv-caret-on", !caret.hidden);
+    caret.style.animation = "none"; void caret.offsetWidth; caret.style.animation = ""; // solid while typing, then blink
+    curLn = line + 1;
+    markCurrentLine();
+  }
+
   function paintGutter() {
     const n = getValue().split("\n").length;
     const want = Math.max(n, editable ? opts.rows || 1 : 1);
     if (gutter.childElementCount !== want || lineMarks.size || gutter.dataset.marked) {
       gutter.replaceChildren(...Array.from({ length: want }, (_, i) => h("span", { class: lineMarks.get(i + 1) ? `cv-ln ${lineMarks.get(i + 1)}` : "cv-ln" }, i + 1)));
       gutter.dataset.marked = lineMarks.size ? "1" : "";
+      markCurrentLine();
     }
   }
   function paintMarks() {
@@ -65,7 +94,7 @@ export function codeView(opts = {}) {
     }
   }
   const lineH = () => parseFloat(getComputedStyle(hl).lineHeight) || 21;
-  function syncScroll() { if (ta) { hl.scrollLeft = marks.scrollLeft = ta.scrollLeft; } }
+  function syncScroll() { if (ta) { hl.scrollLeft = marks.scrollLeft = ta.scrollLeft; updateCaret(); } }
 
   // ---- what belongs to the word at a position
   const setLinks = (l) => { links = l; paintMarks(); };
@@ -117,7 +146,9 @@ export function codeView(opts = {}) {
   if (ta) {
     const onCaret = () => { if (!hovering) setLinks(caretLinks()); };
     for (const evt of ["keyup", "click", "select", "focus"]) ta.addEventListener(evt, onCaret);
-    ta.addEventListener("blur", () => { if (!hovering) setLinks(null); });
+    ta.addEventListener("blur", () => { if (!hovering) setLinks(null); updateCaret(); });
+    ta.addEventListener("focus", updateCaret);
+    document.addEventListener("selectionchange", () => { if (document.activeElement === ta) updateCaret(); });
     ta.addEventListener("scroll", syncScroll);
     ta.addEventListener("input", () => { clearMarks(false); paint(); onCaret(); opts.onInput?.(); });
     ta.addEventListener("keydown", (e) => keys(e));
