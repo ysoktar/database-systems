@@ -229,6 +229,11 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
     <li data-why="8 is the number of employees; but since an employee works on several projects, WORKS_ON has more rows.">degree 3, cardinality 8</li>
   </ol>
   <div class="explain">Degree is a property of the schema (how many attributes) and does not change; cardinality is a property of the state (how many tuples) and changes with every INSERT/DELETE.</div>
+  <pre class="sql run" data-title="Check it">-- cardinality: the number of tuples (rows)
+SELECT COUNT(*) AS cardinality FROM WORKS_ON;
+-- degree: the number of attributes (columns), read from the catalog
+SELECT COUNT(*) AS degree FROM information_schema.COLUMNS
+WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'WORKS_ON';</pre>
 </div>
 
 <div class="quiz" data-answer="3">
@@ -250,6 +255,8 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
     <li data-why="An FK on its own can be NULL; but since Essn is also part of the PK, entity integrity forbids it.">None; FKs can be NULL</li>
   </ol>
   <div class="explain">Essn is both an FK and part of the PK. If it were only an FK it could be NULL; but no part of the PK can be NULL.</div>
+  <pre class="sql run" data-expect-error data-title="Check it">-- Essn is part of the primary key (Essn, Pno), so it cannot be NULL
+INSERT INTO WORKS_ON VALUES (NULL, 10, 5.0);</pre>
 </div>
 <div class="quiz" data-answer="4">
   <p>Which update operation can violate <em>only</em> referential integrity?</p>

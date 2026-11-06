@@ -244,10 +244,19 @@ WHERE  E.Super_ssn = S.Ssn;
   <ol>
     <li data-why="Doğru bir cevap: Ssn, DEPENDENT'taki Essn'ler arasındaysa en az bir bağımlı vardır."><code>SELECT Lname FROM EMPLOYEE WHERE Ssn IN (SELECT Essn FROM DEPENDENT)</code></li>
     <li data-why="Doğru bir cevap: correlated EXISTS, çalışanın en az bir DEPENDENT satırı olup olmadığını sınar."><code>SELECT Lname FROM EMPLOYEE E WHERE EXISTS (SELECT * FROM DEPENDENT D WHERE D.Essn = E.Ssn)</code></li>
-    <li data-why="Doğru cevap bu değil: join her bağımlı için bir satır üretir, DISTINCT olmadığından Wong ve Smith üçer kez görünür. Soru 'çalışanlar' istiyor, tekrarsız."><code>SELECT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
+    <li data-why="Doğru cevap bu: join her bağımlı için ayrı bir satır üretir; DISTINCT olmadığından Smith ve Wong üçer kez, toplam 7 satır gelir. Soru her çalışanın bir kez listelenmesini istiyor."><code>SELECT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
     <li data-why="Doğru bir cevap: join'den gelen tekrarları DISTINCT siler."><code>SELECT DISTINCT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn</code></li>
   </ol>
-  <div class="explain">IN ve EXISTS her çalışanı en fazla bir kez seçer; join ise eşleşen her satır çifti için bir satır üretir. Wong'un üç, Smith'in üç, Wallace'ın bir bağımlısı var: C yedi satır döndürür, diğerleri üç. (Aynı soyadlı iki çalışan olsaydı D de onları birleştirirdi; bunun için <code>SELECT DISTINCT Ssn, Lname</code> daha güvenlidir.)</div>
+  <div class="explain">Join, eşleşen her (çalışan, bağımlı) çifti için ayrı bir satır üretir. Smith'in üç bağımlısı var (Michael, Alice, Elizabeth), bu yüzden C'nin sonucunda <strong>"Smith" üç kez</strong> geçer; Wong'un da üç bağımlısı var (Alice, Theodore, Joy), <strong>"Wong" da üç kez</strong> geçer; Wallace'ın tek bağımlısı (Abner) var, bir kez. C toplam 7 satır döndürür, oysa bağımlısı olan yalnızca 3 çalışan var. Soru "çalışanları" istiyor: her çalışan bir kez listelenmeli. A (IN) ve B (EXISTS) her çalışanı en fazla bir kez seçer, D aynı adların tekrarını DISTINCT ile siler: üçü de Smith, Wong, Wallace (3 satır) döndürür. Aşağıdaki kutuda dört sorguyu yan yana görebilirsiniz; C'de çiftler görünsün diye bağımlının adı da yazdırılıyor. (Not: aynı soyadlı iki farklı çalışan olsaydı D onları da tek satırda birleştirirdi; bunun için <code>SELECT DISTINCT Ssn, Lname</code> daha güvenlidir.)</div>
+  <pre class="sql run" data-title="Kontrol edin">-- A: IN selects each employee at most once: 3 rows
+SELECT Lname FROM EMPLOYEE WHERE Ssn IN (SELECT Essn FROM DEPENDENT);
+-- B: EXISTS, also once per employee: 3 rows
+SELECT Lname FROM EMPLOYEE E WHERE EXISTS (SELECT * FROM DEPENDENT D WHERE D.Essn = E.Ssn);
+-- C: the join gives one row per (employee, dependent) pair: Smith 3 times, Wong 3 times, Wallace once = 7 rows
+--    (the dependent's name is shown here only to make the pairs visible)
+SELECT Lname, Dependent_name FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn ORDER BY Lname;
+-- D: DISTINCT removes the repeated names: 3 rows again
+SELECT DISTINCT Lname FROM EMPLOYEE, DEPENDENT WHERE Ssn = Essn;</pre>
 </div>
 
 <div class="quiz" data-answer="3">
@@ -269,6 +278,10 @@ WHERE  E.Super_ssn = S.Ssn;
     <li data-why="İç sorgu boş olsaydı NOT IN herkes için TRUE olurdu; ama Houston'da iki proje var.">Tüm çalışanlar</li>
   </ol>
   <div class="explain">İç sorguda NULL olmadığı için NOT IN normal çalışır: Dno ∉ {5, 1}. NOT IN'in boş dönmesi yalnızca iç sorgu NULL içerdiğinde olur.</div>
+  <pre class="sql run" data-title="Kontrol edin">-- the inner query alone: {5, 1}, no NULL
+SELECT Dnum FROM PROJECT WHERE Plocation = 'Houston';
+-- so NOT IN keeps the employees of department 4
+SELECT Lname, Dno FROM EMPLOYEE WHERE Dno NOT IN (SELECT Dnum FROM PROJECT WHERE Plocation = 'Houston');</pre>
 </div>
 <div class="quiz" data-answer="4">
   <p>Hangisi correlated bir nested query'dir?</p>
@@ -279,6 +292,10 @@ WHERE  E.Super_ssn = S.Ssn;
     <li data-why="Doğru: iç sorgu dış sorgunun E.Dno'sunu kullanıyor, her çalışan için yeniden hesaplanır."><code>SELECT Lname FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno)</code></li>
   </ol>
   <div class="explain">Ölçüt: iç sorgu dış sorgudaki bir tablonun sütununu kullanıyor mu? D'de iç sorgu <code>E.Dno</code>'yu kullanıyor; her çalışan için kendi departmanının ortalaması yeniden hesaplanır. B ise bağımsızdır: bir kez hesaplanır. (<code>AVG</code> ortalamayı veren aggregate fonksiyondur; <a href="ch7-joins.html#aggregate-fonksiyonlar">sonraki sayfada</a>.)</div>
+  <pre class="sql run" data-title="Kontrol edin">-- B: not correlated: one average for everybody (35125)
+SELECT Lname, Dno, Salary FROM EMPLOYEE WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE);
+-- D: correlated: each employee is compared with the average of their own department
+SELECT Lname, Dno, Salary FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno);</pre>
 </div>
 <div class="quiz" data-answer="1">
   <p>"Bütün projelerde çalışan çalışanlar" için doğru şablon hangisidir?</p>

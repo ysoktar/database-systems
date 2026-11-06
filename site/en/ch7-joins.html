@@ -232,6 +232,12 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
     <li data-why="Correct: COUNT(column) does not count NULLs; in the single row of an employee with no dependents D.Essn is NULL, so the result is 0.">COUNT(D.Essn)</li>
   </ol>
   <div class="explain">An outer join keeps the unmatched row with NULLs. COUNT(*) counts that row (1); COUNT(D.Essn) skips the NULL (0). This is exactly the notebook's exercise 6.</div>
+  <pre class="sql run" data-title="Check it">-- employees with no dependents get one row with NULLs from the LEFT JOIN:
+-- COUNT(*) counts that row (1), COUNT(D.Essn) skips the NULL (0)
+SELECT   E.Lname, COUNT(*) AS count_star, COUNT(D.Essn) AS count_essn
+FROM     EMPLOYEE E LEFT JOIN DEPENDENT D ON E.Ssn = D.Essn
+GROUP BY E.Ssn, E.Lname
+ORDER BY E.Lname;</pre>
 </div>
 
 <div class="quiz" data-answer="2" data-tables="EMPLOYEE DEPENDENT">
@@ -243,6 +249,11 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
     <li data-why="56 = 8 × 7 is the Cartesian product with no join condition (CROSS JOIN). The ON condition matches the rows.">56</li>
   </ol>
   <div class="explain">The 3 employees with dependents produce 7 rows (one per dependent). The 5 employees with no dependents produce one row each with NULLs: 7 + 5 = 12.</div>
+  <pre class="sql run" data-title="Check it">SELECT COUNT(*) FROM EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn;
+-- the rows themselves: one per dependent, and one with NULL for each employee with none
+SELECT   E.Lname, D.Dependent_name
+FROM     EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn
+ORDER BY E.Lname;</pre>
 </div>
 <div class="quiz" data-answer="4">
   <p>Which query is invalid?</p>
@@ -253,6 +264,10 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
     <li data-why="This is the invalid one: WHERE works row by row before the groups are formed and cannot use an aggregate."><code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE COUNT(*) &gt; 2 GROUP BY Dno</code></li>
   </ol>
   <div class="explain">Aggregates cannot be used in WHERE: WHERE is evaluated row by row, before the groups are formed. The right way is <code>HAVING COUNT(*) &gt; 2</code>.</div>
+  <pre class="sql run" data-title="Check it">-- a condition on groups goes in HAVING: the departments with more than 2 employees
+SELECT Dno, COUNT(*) FROM EMPLOYEE GROUP BY Dno HAVING COUNT(*) &gt; 2;
+-- WHERE COUNT(*) &gt; 2 is rejected: WHERE works row by row, before the groups exist
+-- (MySQL: ERROR 1111 (HY000): Invalid use of group function)</pre>
 </div>
 <div class="quiz" data-answer="1" data-tables="WORKS_ON">
   <p>What does <code>SELECT AVG(Hours) FROM WORKS_ON</code> return if WORKS_ON has 16 rows, one of them with a NULL Hours, and the total is 275?</p>
@@ -263,6 +278,12 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
     <li data-why="Averaging a column that contains NULL is not an error.">An error</li>
   </ol>
   <div class="explain">AVG drops NULLs: the average of the 15 non-NULL values. To count the NULL as 0 we would write <code>SUM(Hours)/COUNT(*)</code> or <code>AVG(COALESCE(Hours, 0))</code>.</div>
+  <pre class="sql run" data-title="Check it">SELECT COUNT(*)              AS all_rows,
+       COUNT(Hours)          AS non_null,
+       SUM(Hours)            AS total,
+       AVG(Hours)            AS avg_hours,        -- 275 / 15
+       SUM(Hours) / COUNT(*) AS null_counted_as_0  -- 275 / 16
+FROM   WORKS_ON;</pre>
 </div>
 <div class="quiz" data-answer="3">
   <p>What is the difference between WHERE and HAVING?</p>

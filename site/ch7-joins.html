@@ -232,6 +232,12 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
     <li data-why="Doğru: COUNT(sütun) NULL'ları saymaz; bağımlısı olmayan çalışanın tek satırında D.Essn NULL olduğu için sonuç 0 olur.">COUNT(D.Essn)</li>
   </ol>
   <div class="explain">Outer join eşleşmeyen satırı NULL'larla tutar. COUNT(*) o satırı sayar (1); COUNT(D.Essn) NULL'u atlar (0). Notebook'un 6. alıştırması tam olarak budur.</div>
+  <pre class="sql run" data-title="Kontrol edin">-- employees with no dependents get one row with NULLs from the LEFT JOIN:
+-- COUNT(*) counts that row (1), COUNT(D.Essn) skips the NULL (0)
+SELECT   E.Lname, COUNT(*) AS count_star, COUNT(D.Essn) AS count_essn
+FROM     EMPLOYEE E LEFT JOIN DEPENDENT D ON E.Ssn = D.Essn
+GROUP BY E.Ssn, E.Lname
+ORDER BY E.Lname;</pre>
 </div>
 
 <div class="quiz" data-answer="2" data-tables="EMPLOYEE DEPENDENT">
@@ -243,6 +249,11 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
     <li data-why="56 = 8 × 7, join koşulu olmayan kartezyen çarpımdır (CROSS JOIN). ON koşulu satırları eşleştirir.">56</li>
   </ol>
   <div class="explain">Bağımlısı olan 3 çalışan 7 satır üretir (her bağımlı için bir). Bağımlısı olmayan 5 çalışan NULL'larla birer satır: 7 + 5 = 12.</div>
+  <pre class="sql run" data-title="Kontrol edin">SELECT COUNT(*) FROM EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn;
+-- the rows themselves: one per dependent, and one with NULL for each employee with none
+SELECT   E.Lname, D.Dependent_name
+FROM     EMPLOYEE E LEFT OUTER JOIN DEPENDENT D ON E.Ssn = D.Essn
+ORDER BY E.Lname;</pre>
 </div>
 <div class="quiz" data-answer="4">
   <p>Hangi sorgu geçersizdir?</p>
@@ -253,6 +264,10 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
     <li data-why="Geçersiz olan bu: WHERE gruplar oluşmadan önce satır satır çalışır, aggregate kullanamaz."><code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE COUNT(*) &gt; 2 GROUP BY Dno</code></li>
   </ol>
   <div class="explain">Aggregate'ler WHERE'de kullanılamaz: WHERE gruplar oluşmadan önce, satır satır değerlendirilir. Doğrusu <code>HAVING COUNT(*) &gt; 2</code>.</div>
+  <pre class="sql run" data-title="Kontrol edin">-- a condition on groups goes in HAVING: the departments with more than 2 employees
+SELECT Dno, COUNT(*) FROM EMPLOYEE GROUP BY Dno HAVING COUNT(*) &gt; 2;
+-- WHERE COUNT(*) &gt; 2 is rejected: WHERE works row by row, before the groups exist
+-- (MySQL: ERROR 1111 (HY000): Invalid use of group function)</pre>
 </div>
 <div class="quiz" data-answer="1" data-tables="WORKS_ON">
   <p><code>SELECT AVG(Hours) FROM WORKS_ON</code>, WORKS_ON'da 16 satır, bir tanesinin Hours'u NULL ve toplam 275 ise ne döndürür?</p>
@@ -263,6 +278,12 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
     <li data-why="NULL içeren bir sütunun ortalamasını almak hata değildir.">Hata</li>
   </ol>
   <div class="explain">AVG NULL'ları atar: NULL olmayan 15 değerin ortalaması. NULL'u 0 saymak isteseydik <code>SUM(Hours)/COUNT(*)</code> ya da <code>AVG(COALESCE(Hours, 0))</code> yazmalıydık.</div>
+  <pre class="sql run" data-title="Kontrol edin">SELECT COUNT(*)              AS all_rows,
+       COUNT(Hours)          AS non_null,
+       SUM(Hours)            AS total,
+       AVG(Hours)            AS avg_hours,        -- 275 / 15
+       SUM(Hours) / COUNT(*) AS null_counted_as_0  -- 275 / 16
+FROM   WORKS_ON;</pre>
 </div>
 <div class="quiz" data-answer="3">
   <p>WHERE ile HAVING arasındaki fark nedir?</p>

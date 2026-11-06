@@ -202,6 +202,10 @@ SELECT COUNT(Super_ssn), COUNT(DISTINCT Super_ssn), COUNT(*) FROM EMPLOYEE;
     <p><code>SELECT Dno, AVG(Salary) FROM EMPLOYEE WHERE Sex = 'F' GROUP BY Dno;</code> kaç satır döndürür? (Kadın çalışanlar: Zelaya ve Wallace dept 4, English dept 5.)</p>
     <ol><li data-why="Departman 1'in kadın çalışanı yok: WHERE'den sonra o departmana ait satır kalmaz, grubu oluşmaz.">3</li><li data-why="Doğru: kalan 3 satırın Dno değerleri 4, 4, 5: iki grup.">2</li><li data-why="Dept 4 ve dept 5 ayrı gruplardır; GROUP BY Dno her farklı Dno için bir satır üretir.">1</li><li data-why="WHERE Sex = 'F' satırları süzer; ayrıca GROUP BY her grup için tek satır üretir.">8</li></ol>
     <div class="explain">WHERE'den 3 satır kalır; Dno değerleri 4, 4, 5 → 2 grup. Departman 1'in kadın çalışanı olmadığı için grubu hiç oluşmaz.</div>
+  <pre class="sql run" data-title="Kontrol edin">-- the rows WHERE keeps: Zelaya and Wallace (4), English (5)
+SELECT Lname, Dno, Salary FROM EMPLOYEE WHERE Sex = 'F';
+-- one row per group: departments 4 and 5 (department 1 has no woman, so it has no group)
+SELECT Dno, AVG(Salary) FROM EMPLOYEE WHERE Sex = 'F' GROUP BY Dno;</pre>
   </div>
   <div class="quiz" data-answer="3" data-topic="Rehber">
     <p>Bir departman silindiğinde o departmanın konumlarının (DEPT_LOCATIONS) da silinmesi isteniyor. FK nasıl tanımlanmalı?</p>

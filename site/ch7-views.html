@@ -296,6 +296,8 @@ WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POS
     <li data-why="Doğru: RESTRICT, referans veren bir kısıt varsa silmeyi reddeder.">Reddedilir: EMPLOYEE, PROJECT ve DEPT_LOCATIONS DEPARTMENT'a referans veriyor.</li>
   </ol>
   <div class="explain">RESTRICT, referans veren bir kısıt ya da view varsa silmeyi reddeder. CASCADE olsaydı tablo ve referans veren kısıtlar (FK'lar) silinirdi; referans veren tabloların kendisi silinmez. (MySQL'de foreign key ile referans verilen tablo, RESTRICT yazılsın yazılmasın silinemez; yukarıdaki kutuda gördünüz.)</div>
+  <pre class="sql run" data-expect-error data-title="Kontrol edin">-- MySQL: a table that a foreign key refers to cannot be dropped (RESTRICT or not)
+DROP TABLE DEPARTMENT RESTRICT;</pre>
 
 </div>
 
