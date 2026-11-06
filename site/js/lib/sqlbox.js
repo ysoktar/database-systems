@@ -4,7 +4,8 @@
 //   <pre class="sql">…</pre>                              display only, highlighted
 import { h, $$, highlightSQL, dedent, button } from "./ui.js";
 import { runSQL, reset, onState, state, stateInfo, getDB } from "./db.js";
-import { checkResult, resultHash } from "./sqlcore.js";
+import { checkResult, resultHash, splitSQL } from "./sqlcore.js";
+import { codeView, statementLines } from "./codeview.js";
 import { companyData, tablesIn } from "./companydata.js";
 import { t as tl, EN } from "./i18n.js";
 
@@ -143,33 +144,23 @@ export function createSqlBox(opts = {}) {
   const id = ++boxCount;
   const original = opts.code ?? "";
   const saved = opts.saveKey ? store.get(opts.saveKey) : null;
-  const ta = h("textarea", { spellcheck: "false", autocapitalize: "off", autocomplete: "off", "aria-label": tl(`SQL editörü ${opts.title || id}`, `SQL editor ${opts.title || id}`), placeholder: opts.placeholder || "" });
-  ta.value = saved ?? original;
-  const pre = h("pre", { "aria-hidden": "true" });
-  const editor = h("div", { class: "editor" }, pre, ta);
-  const out = h("div", { class: "sqlbox-out", "aria-live": "polite" });
-
-  const paint = () => {
-    pre.innerHTML = highlightSQL(ta.value) + "\n";
-    ta.style.height = "auto";
-    ta.style.height = Math.max(ta.scrollHeight, (opts.rows || 2) * 21 + 20) + "px";
-  };
-  ta.addEventListener("input", () => { paint(); if (opts.saveKey) store.set(opts.saveKey, ta.value === original ? null : ta.value); });
-  ta.addEventListener("focus", () => getDB().catch(() => {}), { once: true }); // start loading while the user types
-  ta.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
-    else if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      e.preventDefault();
-      const { selectionStart: s, selectionEnd: f } = ta;
-      ta.setRangeText("  ", s, f, "end");
-      ta.dispatchEvent(new Event("input"));
-    }
+  const cv = codeView({
+    value: saved ?? original, editable: true, rows: opts.rows, placeholder: opts.placeholder,
+    label: tl(`SQL editörü ${opts.title || id}`, `SQL editor ${opts.title || id}`),
+    onInput: () => { if (opts.saveKey) store.set(opts.saveKey, cv.getValue() === original ? null : cv.getValue()); },
+    onRun: () => run(),
   });
+  const ta = cv.ta;
+  const editor = cv.el;
+  const paint = cv.paint;
+  const out = h("div", { class: "sqlbox-out", "aria-live": "polite" });
+  ta.addEventListener("focus", () => getDB().catch(() => {}), { once: true }); // start loading while the user types
 
   const runBtn = button(tl("▶ Çalıştır", "▶ Run"), () => run(), { kind: "primary", title: tl("Çalıştır (Ctrl+Enter)", "Run (Ctrl+Enter)") });
   const actions = h("div", { class: "sqlbox-actions" }, runBtn);
+  cv.copyTool.classList.add("in-head");
   if (original || opts.saveKey) {
-    actions.append(button(tl("↺ Koda dön", "↺ Restore code"), () => { ta.value = original; store.set(opts.saveKey, null); paint(); out.replaceChildren(); }, { title: tl("Kutunun ilk hâline dön", "Go back to the box's original code") }));
+    actions.append(button(tl("↺ Koda dön", "↺ Restore code"), () => { cv.setValue(original); store.set(opts.saveKey, null); out.replaceChildren(); }, { title: tl("Kutunun ilk hâline dön", "Go back to the box's original code") }));
   }
   if (opts.resetButton !== false) {
     actions.append(button(tl("Veritabanını sıfırla", "Reset database"), async () => {
@@ -183,6 +174,7 @@ export function createSqlBox(opts = {}) {
       }
     }, { title: tl("COMPANY tablolarını kitaptaki ilk hâline döndür (yaptığınız INSERT/UPDATE/DELETE geri alınır)", "Bring the COMPANY tables back to the book's starting state (your INSERT/UPDATE/DELETE are undone)") }));
   }
+  actions.append(cv.copyTool);
   const head = h("div", { class: "sqlbox-head" }, h("div", { class: "sqlbox-title", html: opts.title || "SQL" }), actions);
   const box = h("div", { class: "sqlbox" }, head);
   if (!opts.database || opts.database === "company") {
@@ -191,17 +183,20 @@ export function createSqlBox(opts = {}) {
     ta.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(ctx.refresh, 300); });
     box.append(ctx);
   }
-  box.append(editor, out);
-  if (opts.foot !== false) box.append(h("div", { class: "sqlbox-foot" }, opts.note ? `${opts.note} ` : "", tl("Düzenleyebilirsiniz · Ctrl+Enter ile çalıştırın · tarayıcınızda çalışan MySQL üzerinde", "Editable · run with Ctrl+Enter · on MySQL running in your browser")));
+  box.append(editor, cv.hint, out);
+  if (opts.foot !== false) box.append(h("div", { class: "sqlbox-foot" }, opts.note ? `${opts.note} ` : "", tl("Düzenleyebilirsiniz · Ctrl+Enter ile çalıştırın · bir kelimenin üstüne gelin ya da tıklayın: neye ait olduğu gösterilir", "Editable · run with Ctrl+Enter · hover over or click a word to see what it belongs to")));
 
   async function run() {
     const text = ta.value;
     if (!text.trim()) { out.replaceChildren(h("div", { class: "res-msg warn" }, tl("Çalıştırılacak SQL yok.", "There is no SQL to run."))); return null; }
     runBtn.disabled = true;
+    cv.clearMarks();
     if (state !== "ready") out.replaceChildren(loadingLine());
+    let t0 = 0;
     let res;
     try {
       if (opts.setup) await runSQL(opts.setup, { database: opts.database }); // prerequisites (e.g. a view defined in an earlier box), output not shown
+      if (state === "ready") t0 = performance.now();
       res = await runSQL(text, { expectError: !!opts.expectError, database: opts.database });
     } catch (e) {
       out.replaceChildren(startError(e));
@@ -211,6 +206,11 @@ export function createSqlBox(opts = {}) {
     if (res.error?.startup) { out.replaceChildren(startError(res.error.message.replace(/^(MySQL başlatılamadı|MySQL could not start): /, ""))); runBtn.disabled = false; return res; }
     out.replaceChildren();
     renderItems(out, res.items);
+    // the statement that failed: its line numbers turn red (or amber when the error is the point of the box)
+    const err = res.items.find((it) => it.kind === "error");
+    if (err?.index) cv.markLines(statementLines(text, splitSQL(text), err.index), err.expected ? "expected" : "error");
+    const n = splitSQL(text).length;
+    out.append(h("div", { class: "res-time" }, [tl(`${n} komut`, `${n} statement${n === 1 ? "" : "s"}`), t0 ? `${Math.max(1, Math.round(performance.now() - t0))} ms` : null].filter(Boolean).join(" · ")));
     if (opts.expectError && !res.error) out.append(h("div", { class: "res-msg warn" }, tl("UYARI: bu kutunun hata vermesi bekleniyordu ama tüm komutlar başarılı oldu.", "WARNING: this box was expected to fail, but every statement succeeded.")));
     if (opts.reference && !opts.check) {
       // expected answer = the model solution run on the same database state
@@ -236,17 +236,7 @@ export function createSqlBox(opts = {}) {
     return res;
   }
 
-  requestAnimationFrame(paint);
-  paint();
-  // boxes created inside hidden containers (solutions, closed <details>) have no height yet: repaint when shown
-  if (typeof ResizeObserver !== "undefined") {
-    let lastW = 0;
-    new ResizeObserver((entries) => {
-      const w = entries[0].contentRect.width;
-      if (w && w !== lastW) { lastW = w; paint(); }
-    }).observe(editor);
-  }
-  return Object.assign(box, { run, setCode: (c) => { ta.value = c; paint(); }, getCode: () => ta.value, textarea: ta, out });
+  return Object.assign(box, { run, setCode: (c) => cv.setValue(c), getCode: () => cv.getValue(), textarea: ta, out });
 }
 
 /** Upgrade every <pre class="sql"> of a subtree: highlighted, and runnable when it also has class "run". */
@@ -266,7 +256,9 @@ export function enhanceSQL(root = document) {
       if (p.id) box.id = p.id;
       p.replaceWith(box);
     } else {
-      p.innerHTML = `<code>${highlightSQL(code)}</code>`;
+      const cv = codeView({ value: code });
+      const view = h("div", { class: "sqlview" }, cv.el, cv.hint);
+      p.replaceWith(view);
     }
   }
 }

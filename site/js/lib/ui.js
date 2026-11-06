@@ -50,7 +50,7 @@ DEFERRABLE INITIALLY DEFERRED IMMEDIATE ASSERTION TRIGGER BEFORE AFTER INSTEAD F
 const LIT = words("NULL TRUE FALSE UNKNOWN");
 const FUNCS = words(`COUNT SUM AVG MIN MAX COALESCE NULLIF UPPER LOWER LENGTH SUBSTRING EXTRACT AGE NOW CURRENT_DATE ROUND STRING_AGG
 ARRAY_AGG TRIM CONCAT POSITION CAST GROUP_CONCAT LOCALTIMESTAMP CURRENT_TIMESTAMP IFNULL`);
-const wordClass = (w) => {
+export const wordClass = (w) => {
   const u = w.toUpperCase();
   return LIT.has(u) ? "tok-lit" : TYPE.has(u) ? "tok-type" : CON.has(u) ? "tok-con" : OP.has(u) ? "tok-op"
     : KW.has(u) ? "tok-kw" : FUNCS.has(u) ? "tok-fn" : null;
