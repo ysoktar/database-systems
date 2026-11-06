@@ -5,28 +5,36 @@ import { t as tl, tx, EN } from "../lib/i18n.js";
 
 // ---- join types on EMPLOYEE (managers only, to keep it small) and DEPARTMENT
 const E = "(SELECT Lname, Ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace', 'Smith', 'Borg'))";
+const DROP = ["eşleşmeyen {n} satır (kırmızı) sonuca girmez", "the {n} unmatched rows (red) do not reach the result"];
+const KEEP = ["eşleşmeyen {n} satır (sarı) sonuçta kalır, karşı tarafı NULL olur", "the {n} unmatched rows (yellow) stay in the result, with NULLs on the other side"];
+// the two inputs, each row marked by whether it has a partner; colours pair an employee with the department he or she manages
+const left = (mark) => ({ sql: `SELECT E.Lname, E.Ssn${mark ? ", EXISTS (SELECT 1 FROM DEPARTMENT AS D WHERE D.Mgr_ssn = E.Ssn) AS matched" : ""} FROM ${E} AS E ORDER BY E.Lname`,
+  group: "Ssn", groupBorders: false, ...(mark ? { flag: "matched", flagStyle: mark === KEEP ? "keep" : "drop", flagNote: mark } : {}), caption: tl("Sol tablo: EMPLOYEE (E)", "Left table: EMPLOYEE (E)") });
+const right = (mark) => ({ sql: `SELECT D.Dname, D.Mgr_ssn${mark ? `, EXISTS (SELECT 1 FROM ${E} AS E WHERE E.Ssn = D.Mgr_ssn) AS matched` : ""} FROM DEPARTMENT AS D ORDER BY D.Dname`,
+  group: "Mgr_ssn", groupBorders: false, ...(mark ? { flag: "matched", flagStyle: mark === KEEP ? "keep" : "drop", flagNote: mark } : {}), caption: tl("Sağ tablo: DEPARTMENT (D)", "Right table: DEPARTMENT (D)") });
+const COLS = "E.Lname, E.Ssn, D.Mgr_ssn, D.Dname";
 $("#joins").append(queryStepper([
-  { label: "INNER JOIN", pad: true,
-    note: tl("Yalnızca eşleşen satır çiftleri. Smith hiçbir departmanı yönetmiyor, sonuçta yok.", "Only matching pairs of rows. Smith manages no department, so he is not in the result."),
-    sql: `SELECT E.Lname, D.Dname FROM ${E} AS E INNER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY E.Lname`,
-    display: "SELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E INNER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;" },
-  { label: "LEFT OUTER JOIN", pad: true,
-    note: tl("Soldaki (EMPLOYEE) <strong>her</strong> satır kalır; eşleşmeyenlerin sağ tarafı NULL ile doldurulur (sarı).", "<strong>Every</strong> row on the left (EMPLOYEE) stays; unmatched rows get NULLs on the right (yellow)."),
-    sql: `SELECT E.Lname, D.Dname FROM ${E} AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY E.Lname`,
-    display: "SELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;" },
-  { label: "RIGHT OUTER JOIN", pad: true,
-    note: tl("Sağdaki (DEPARTMENT) her satır kalır. Üç departmanın yöneticisi de bu dört kişinin içinde olduğu için sonuç iç join ile aynı. Yöneticisi listede olmayan bir departman olsaydı, Lname = NULL ile görünürdü.", "Every row on the right (DEPARTMENT) stays. All three managers are among these four people, so the result equals the inner join. A department whose manager is not in the list would show with Lname = NULL."),
-    sql: `SELECT E.Lname, D.Dname FROM ${E} AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY E.Lname`,
-    display: "SELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;" },
-  { label: "FULL OUTER JOIN", pad: true,
-    note: tl("İki tarafın eşleşmeyen satırları da kalır. Standart SQL'de <code>FULL OUTER JOIN</code> yazılır; MySQL'de bu yoktur, aynı sonuç LEFT ve RIGHT join'in <code>UNION</code>'ıdır (UNION tekrarları, yani iki tarafta da çıkan eşleşmeleri bir kez bırakır). Gösterilen sonuç bu MySQL sürümünün.", "Unmatched rows of both sides stay. Standard SQL writes <code>FULL OUTER JOIN</code>; MySQL has none, and the same result is the <code>UNION</code> of a LEFT and a RIGHT join (UNION keeps the matches found on both sides once). The result shown is from this MySQL version."),
-    sql: `SELECT E.Lname, D.Dname FROM ${E} AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn UNION SELECT E.Lname, D.Dname FROM ${E} AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY Lname`,
-    display: "-- standard SQL\nSELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E FULL OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;\n-- MySQL\nSELECT E.Lname, D.Dname FROM EMPLOYEE AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn\nUNION\nSELECT E.Lname, D.Dname FROM EMPLOYEE AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;" },
-
-  { label: "CROSS JOIN", note: tl("Join koşulu yok: kartezyen çarpım, 4 × 3 = 12 satır.", "No join condition: the Cartesian product, 4 × 3 = 12 rows."),
-    sql: `SELECT E.Lname, D.Dname FROM ${E} AS E CROSS JOIN DEPARTMENT AS D ORDER BY E.Lname, D.Dname`,
-    display: "SELECT E.Lname, D.Dname\nFROM   EMPLOYEE AS E CROSS JOIN DEPARTMENT AS D;" },
-], { intro: tl("Örneği küçük tutmak için yalnızca Wong, Wallace, Smith ve Borg (EMPLOYEE'nin bir alt kümesi) ile DEPARTMENT kullanılıyor; ilişki: <em>E yöneticidir</em> (Ssn = Mgr_ssn).", "To keep the example small only Wong, Wallace, Smith and Borg (a subset of EMPLOYEE) and DEPARTMENT are used; the relationship: <em>E is the manager</em> (Ssn = Mgr_ssn).") }));
+  { label: "INNER JOIN", pad: true, group: "Ssn", groupBorders: false, after: tl("Sonuç: join'in satırları", "Result: the rows of the join"), before: [left(DROP), right(DROP)],
+    note: tl("Yalnızca eşleşen satır çiftleri: E.Ssn = D.Mgr_ssn olan her çift sonuçta bir satır olur (aynı renk = eşleşen çift). Smith hiçbir departmanı yönetmiyor; eşi olmadığı için sonuçta yok.", "Only matching pairs of rows: every pair with E.Ssn = D.Mgr_ssn becomes one row of the result (same colour = a matching pair). Smith manages no department; having no partner, he is not in the result."),
+    sql: `SELECT ${COLS} FROM ${E} AS E INNER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY E.Lname`,
+    display: `SELECT ${COLS}\nFROM   EMPLOYEE AS E INNER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;` },
+  { label: "LEFT OUTER JOIN", pad: true, group: "Ssn", groupBorders: false, after: tl("Sonuç: join'in satırları", "Result: the rows of the join"), before: [left(KEEP), right(DROP)],
+    note: tl("Soldaki (EMPLOYEE) <strong>her</strong> satır kalır. Eşi olmayan Smith de sonuçta; D'nin sütunları onun için NULL ile doldurulur (sarı).", "<strong>Every</strong> row on the left (EMPLOYEE) stays. Smith, who has no partner, is in the result too; D's columns are filled with NULLs for him (yellow)."),
+    sql: `SELECT ${COLS} FROM ${E} AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY E.Lname`,
+    display: `SELECT ${COLS}\nFROM   EMPLOYEE AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;` },
+  { label: "RIGHT OUTER JOIN", pad: true, group: "Ssn", groupBorders: false, after: tl("Sonuç: join'in satırları", "Result: the rows of the join"), before: [left(DROP), right(KEEP)],
+    note: tl("Sağdaki (DEPARTMENT) her satır kalır; soldan yalnızca eşi olanlar gelir, Smith yine yok. Üç departmanın yöneticisi de bu dört kişinin içinde olduğu için sonuç iç join ile aynı. Yöneticisi listede olmayan bir departman olsaydı, E'nin sütunları NULL olarak görünürdü.", "Every row on the right (DEPARTMENT) stays; from the left only those with a partner come, so Smith is missing again. All three managers are among these four people, so the result equals the inner join. A department whose manager is not in the list would show with NULLs in E's columns."),
+    sql: `SELECT ${COLS} FROM ${E} AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY E.Lname`,
+    display: `SELECT ${COLS}\nFROM   EMPLOYEE AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;` },
+  { label: "FULL OUTER JOIN", pad: true, group: "Ssn", groupBorders: false, after: tl("Sonuç: join'in satırları", "Result: the rows of the join"), before: [left(KEEP), right(KEEP)],
+    note: tl("İki tarafın eşleşmeyen satırları da kalır. Standart SQL'de <code>FULL OUTER JOIN</code> yazılır; MySQL'de bu yoktur, aynı sonuç LEFT ve RIGHT join'in <code>UNION</code>'ıdır (UNION, iki tarafta da çıkan eşleşmeleri bir kez bırakır). Gösterilen sonuç bu MySQL sürümünün.", "Unmatched rows of both sides stay. Standard SQL writes <code>FULL OUTER JOIN</code>; MySQL has none, and the same result is the <code>UNION</code> of a LEFT and a RIGHT join (UNION keeps the matches found on both sides once). The result shown is from this MySQL version."),
+    sql: `SELECT ${COLS} FROM ${E} AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn UNION SELECT ${COLS} FROM ${E} AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn ORDER BY Lname`,
+    display: `-- standard SQL\nSELECT ${COLS}\nFROM   EMPLOYEE AS E FULL OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;\n-- MySQL\nSELECT ${COLS} FROM EMPLOYEE AS E LEFT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn\nUNION\nSELECT ${COLS} FROM EMPLOYEE AS E RIGHT OUTER JOIN DEPARTMENT AS D ON E.Ssn = D.Mgr_ssn;` },
+  { label: "CROSS JOIN", after: tl("Sonuç: join'in satırları", "Result: the rows of the join"), before: [left(null), right(null)],
+    note: tl("Join koşulu yok: soldaki her satır sağdaki her satırla eşleşir, kartezyen çarpım: 4 × 3 = 12 satır. Çiftlerin çoğu anlamsızdır (Smith ile Research gibi).", "No join condition: every row on the left is paired with every row on the right, the Cartesian product: 4 × 3 = 12 rows. Most pairs are meaningless (Smith with Research, for instance)."),
+    sql: `SELECT ${COLS} FROM ${E} AS E CROSS JOIN DEPARTMENT AS D ORDER BY E.Lname, D.Dname`,
+    display: `SELECT ${COLS}\nFROM   EMPLOYEE AS E CROSS JOIN DEPARTMENT AS D;` },
+], { intro: tl("Örneği küçük tutmak için yalnızca Wong, Wallace, Smith ve Borg (EMPLOYEE'nin bir alt kümesi) ile DEPARTMENT kullanılıyor; ilişki: <em>E yöneticidir</em> (Ssn = Mgr_ssn). Solda iki girdi tablosu, sağda join'in sonucu; aynı renk, birbiriyle eşleşen satırlar.", "To keep the example small only Wong, Wallace, Smith and Borg (a subset of EMPLOYEE) and DEPARTMENT are used; the relationship: <em>E is the manager</em> (Ssn = Mgr_ssn). On the left the two input tables, on the right the result of the join; the same colour marks rows that match.") }));
 
 // ---- conceptual evaluation order of a grouped query
 const W = "Hours >= 10";
