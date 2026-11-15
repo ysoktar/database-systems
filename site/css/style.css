@@ -839,3 +839,18 @@ table.rel tr[class*="g"] td.idx { background: transparent; }
 /* captions wrap to the width of their table instead of widening the column */
 .stepper-compare .stepper-pane .res-caption, .stepper-compare .stepper-pane-title { width: 0; min-width: 100%; }
 .stepper-arrow { max-width: 7.5em; text-align: center; white-space: normal; }
+
+/* ---------- step lists: before → after ---------- */
+.ba { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; margin-top: 6px; }
+.ba-side { min-width: 0; }
+.ba-label { font-size: 0.74rem; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
+.ba-what { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--accent); }
+.ba-arrow::after { content: "→"; color: var(--accent); font-size: 1.4rem; font-weight: 700; }
+.ba-empty { border: 1px dashed var(--border-strong); border-radius: 8px; padding: 10px 12px; color: var(--muted); font-size: 0.82rem; font-style: italic; }
+.ba .schema-card { margin: 0; max-width: none; }
+.ba-er { margin: 0; font-size: 0.8rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fk-new { color: var(--accent); font-weight: 600; }
+@media (max-width: 700px) {
+  .ba { grid-template-columns: minmax(0, 1fr); }
+  .ba-arrow::after { content: "↓"; }
+}
