@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ER-to-relational mapping · Database Systems</title>
-<meta name="description" content="Elmasri &amp; Navathe Ch 9: the algorithm that maps ER and EER schemas to relational tables; Steps 1–7 (entities, weak entities, 1:1, 1:N, M:N relationships, multivalued attributes, n-ary relationships), Step 8 (options 8A–8D for specializations) and Step 9 (categories); each step with the table before and after.">
+<meta name="description" content="Elmasri &amp; Navathe Ch 9: the algorithm that maps ER and EER schemas to relational tables, with a step-by-step player that highlights each construct in the diagram, a predict mode, design-decision exercises with explanations, and Steps 1–9 (including options 8A–8D and categories), each step with the table before and after.">
 <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../css/style.css">
 <script src="../js/theme-init.js"></script>
@@ -45,18 +45,46 @@
   <li><strong>A merged table (one table).</strong> The two entity types and the relationship are merged into a single table. This approach fits when both participations are total, because then both sides of every row are filled.</li>
   <li><strong>A separate relationship table (three tables).</strong> A third table (a cross-reference) is created that links the primary keys of the two tables. This is the same method used for M:N relationships, and it is the least preferred approach for 1:1.</li>
 </ol>
+<p>You can see with the COMPANY data why the foreign key goes to the side with total participation. The first box queries the design the book chooses: the Mgr_ssn column of DEPARTMENT has no NULLs. The second box works out what each employee's row would hold if the foreign key were put in EMPLOYEE; the value comes out NULL for every employee who is not a manager.</p>
+<pre class="sql run" data-title="Approach 1: the foreign key in DEPARTMENT (Mgr_ssn)">
+SELECT Dnumber, Dname, Mgr_ssn, Mgr_start_date
+FROM   DEPARTMENT;
+</pre>
+<pre class="sql run" data-title="If the foreign key were in EMPLOYEE: how many rows would be NULL?">
+SELECT E.Ssn, E.Fname, D.Dnumber AS Manages_dno
+FROM   EMPLOYEE E LEFT JOIN DEPARTMENT D ON D.Mgr_ssn = E.Ssn;
+
+SELECT COUNT(*) AS employees, COUNT(D.Dnumber) AS filled, COUNT(*) - COUNT(D.Dnumber) AS null_rows
+FROM   EMPLOYEE E LEFT JOIN DEPARTMENT D ON D.Mgr_ssn = E.Ssn;
+</pre>
 <h3>Step 4: Binary 1:N relationship types</h3>
 <p>For each binary 1:N relationship type R, the table S of the entity type on the <strong>N side</strong> of the relationship is identified. The primary key of the other table (T) is added to S as a foreign key; the relationship's simple attributes also go to S. The reason is that every entity on the N side takes part in the relationship at most once: since every employee has a single department, the department number fits in the employee's row. In COMPANY, for WORKS_FOR DEPARTMENT's primary key is added to EMPLOYEE as Dno, for CONTROLS to PROJECT as Dnum, and for the recursive SUPERVISION to EMPLOYEE as Super_ssn. Using a relationship table is also possible but is rarely done.</p>
 <h3>Step 5: Binary M:N relationship types</h3>
 <p>For each binary M:N relationship type R, a new table S is created, a <strong>relationship table</strong>. The primary keys of the participating entity types' tables are added to S as foreign keys, and their combination becomes S's primary key. The relationship's simple attributes are added to S too. An M:N relationship cannot be expressed with a single foreign key, because an employee works on many projects and a project has many employees. In COMPANY WORKS_ON is made this way: the primary keys of EMPLOYEE and PROJECT are added as Essn and Pno, the Hours column is the relationship's attribute, and the primary key is {Essn, Pno}.</p>
+<p>The box below shows with data why an M:N relationship does not fit into either side. The first query lists the employees who work on more than one project, the second the projects with more than one employee. Since neither list is empty, neither a single Pno column in EMPLOYEE nor a single Essn column in PROJECT can hold this information.</p>
+<pre class="sql run" data-title="M:N: several matches on both sides">
+SELECT Essn, COUNT(*) AS projects
+FROM   WORKS_ON GROUP BY Essn HAVING COUNT(*) > 1;
+
+SELECT Pno, COUNT(*) AS employees
+FROM   WORKS_ON GROUP BY Pno HAVING COUNT(*) > 1;
+</pre>
 <h3>Step 6: Multivalued attributes</h3>
 <p>For each multivalued attribute A, a new table R is created. R has a column for A and the primary key K of the table of the entity that A belongs to (as a foreign key). R's primary key is the combination of A and K. If A is composite, its simple components are added. In COMPANY the table DEPT_LOCATIONS(Dnumber, Dlocation) is created for DEPARTMENT's Locations attribute; its primary key is {Dnumber, Dlocation}, because a department has several locations.</p>
+<pre class="sql run" data-title="A multivalued attribute: many rows per department, not one value">
+SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber;
+</pre>
 <h3>Step 7: n-ary (n &gt; 2) relationship types</h3>
 <p>For each n-ary relationship type R, a new table S is created. The primary keys of all the participating entity types are added to S as foreign keys, and the relationship's simple attributes as columns. The primary key is usually the combination of all the foreign keys. However, if a participant's cardinality is 1, that participant's foreign key is not included in the primary key, because a combination of the others already determines that participant. The ternary relationship SUPPLY is mapped below to the table SUPPLY(Sname, Part_no, Proj_name, Quantity).</p>
 
 <h2>Mapping the COMPANY schema</h2>
 <p>Below is the ER diagram of COMPANY (Figure 9.1 in the book), and under it each step of the algorithm. In each step the table the step changes is shown as it was before on the left and as it is after on the right; the columns and foreign keys added at that step are highlighted. The tables the site produces have the same structure as the book's Figure 9.2; only some column names differ (for example the book names WORKS_FOR's foreign key Dno, here it appears as DEPARTMENT_Number).</p>
+<h3>Step-by-step player</h3>
+<p>Each time you press Next in the player, the algorithm maps a single construct. The construct mapped in that step is highlighted in the diagram, and the ones mapped in earlier steps are marked with a faded border. On the right you see the rule applied, the step's explanation and the changed table before and after; below, the schema so far grows. If you turn on predict mode, you guess which table changes before each step; this trains you to apply the rules instead of memorizing them. The numbered buttons at the top show the step number and let you jump to any step.</p>
+<div id="company-player"></div>
+<details class="disclosure"><summary>All steps in one list, and the DDL</summary><div class="disclosure-body">
 <div id="company-map"></div>
+</div></details>
 
 <h2>A ternary relationship: SUPPLY</h2>
 <p>The SUPPLY relationship of the book's Figure 3.17 connects three entities (SUPPLIER, PROJECT, PART) and carries a Quantity attribute. Step 7 creates a SUPPLY table that contains the primary keys of the three entities as foreign keys and makes their combination the primary key.</p>
@@ -93,6 +121,18 @@
     <tr><td><strong>8D</strong>: a single table with several Boolean type columns</td><td>L(k, a1, …, an, the attributes of all subclasses, t1, …, tm). Each ti is a Boolean that says whether the row belongs to Si.</td><td>Can be used for an overlapping specialization too.</td></tr>
   </tbody>
 </table>
+<p>An easy way to compare the options is to look at how much work each of the same questions takes. The table below makes this comparison for the book's EMPLOYEE specialization (SECRETARY, TECHNICIAN, ENGINEER).</p>
+<table class="simple">
+  <thead><tr><th>Question</th><th>8A</th><th>8B</th><th>8C</th><th>8D</th></tr></thead>
+  <tbody>
+    <tr><td>How many tables are created?</td><td>4</td><td>3</td><td>1</td><td>1</td></tr>
+    <tr><td>Is a join needed to read all of a secretary's information?</td><td>Yes, EMPLOYEE with SECRETARY</td><td>No</td><td>No</td><td>No</td></tr>
+    <tr><td>Are there NULLs?</td><td>No</td><td>No</td><td>Yes, in the subclass-specific columns</td><td>Yes, in the subclass-specific columns</td></tr>
+    <tr><td>Can an employee in no subclass (partial) be stored?</td><td>Yes</td><td>No</td><td>Yes, the type column is NULL</td><td>Yes, all flags are FALSE</td></tr>
+    <tr><td>Can an employee be in two subclasses at once (overlapping)?</td><td>Yes</td><td>Only by repeating the common attributes</td><td>No</td><td>Yes</td></tr>
+    <tr><td>How is the query "all employees" written?</td><td>Only EMPLOYEE</td><td>A UNION of the subclass tables</td><td>One table</td><td>One table</td></tr>
+  </tbody>
+</table>
 <p>Click one of the options below; the four examples of the book's Figure 9.5 are shown: Figure 4.4 (the disjoint specialization of EMPLOYEE by Job_type) with 8A and 8C, Figure 4.3b (the total and disjoint generalization of CAR and TRUCK into VEHICLE) with 8B, and Figure 4.5 (the overlapping specialization of PART) with 8D.</p>
 <div id="spec-options"></div>
 
@@ -103,6 +143,10 @@
 <h3>Step 9: Categories (union types)</h3>
 <p>When mapping a category whose superclasses have different keys, the table for the category gets a new key column. This is called a <strong>surrogate key</strong>. In the book's example an OWNER table is created for the OWNER category, and its primary key is the surrogate key Owner_id. The table of each superclass that forms the category (PERSON, BANK, COMPANY) gets an Owner_id foreign key that refers to this key; for those who own no vehicle this column stays NULL. The superclasses of the REGISTERED_VEHICLE category (CAR and TRUCK), on the other hand, share the same key (Vehicle_id), so no surrogate key is needed.</p>
 <div id="category-map"></div>
+
+<h2>You decide</h2>
+<p>In this section you apply the algorithm yourself. Each question shows a small ER fragment and a design decision: where the foreign key goes, what the primary key is, or which Step 8 option fits. When you pick an option, it is explained why it is right or wrong, and the tables the algorithm produces for the fragment are shown. The explanations of the wrong options matter too, because most wrong options are mistakes that are common in real designs.</p>
+<div id="decide"></div>
 
 <h2>Try it yourself</h2>
 <p>Choose an example and a specialization option; the diagram and the mapping steps are updated. If the option you choose does not fit a specialization (for example 8B for a partial specialization), the algorithm falls back to a suitable option and says why in the notes of the result. You can draw the exercise schemas of slides 36–37 (SHIP_TRACKING and the car dealer) in the <a href="er-studio.html">ER studio</a> and map them the same way.</p>
