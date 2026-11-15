@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Functional dependencies and normalization · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 14 (course slides 1–55): guidelines for good design and update anomalies, functional dependencies, keys and prime attributes, 1NF, 2NF, 3NF, BCNF, lossless decomposition (the NJB test); with an interactive tool that finds a relation's normal form and decomposes it step by step.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch14-normalization.js"></script>
+</head>
+<body data-page="ch14-normalization">
+<main><div class="content">
+
+<h1>Functional dependencies and normalization</h1>
+<p class="lead">How can we tell whether a table is well designed? This page first shows the informal guidelines and the anomalies a bad design leads to, then explains functional dependencies and normal forms, which measure these things formally. The tool on the page finds which normal form a relation is in and decomposes it step by step.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Explain with an example which insertion, deletion and update anomalies repeated information in a table leads to.</li>
+    <li>Define a functional dependency; compute the closure of a set of attributes and find the candidate keys and the prime attributes.</li>
+    <li>Decide whether a relation is in 1NF, 2NF, 3NF or BCNF, and point to the dependency that breaks the rule.</li>
+    <li>Decompose a relation into the next normal form and show with the NJB test that the decomposition is lossless.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Scope.</strong> This page covers slides 1–55 of the Ch 14 slides (up to BCNF), which the syllabus assigns to week 9. The rest of the slides (56–60) are about multivalued dependencies and 4NF, and join dependencies and 5NF; the syllabus does not include that part, so it is not covered here.</p>
+</div>
+
+<h2>Informal guidelines for good design</h2>
+<p>Relational database design is grouping attributes so that they form "good" relation schemas. Before the formal concepts, the book gives four informal guidelines.</p>
+<ol>
+  <li><strong>Keep the meaning clear.</strong> Every row of a relation should represent a single entity or a single relationship instance. The attributes of different entities (employees, departments, projects) should not be mixed in the same relation; other entities should be referred to only with foreign keys. If you can explain the schema easily relation by relation, the design is good.</li>
+  <li><strong>Avoid update anomalies.</strong> Storing the same information again in several rows wastes space and leads to insertion, deletion and modification anomalies.</li>
+  <li><strong>Reduce NULL values.</strong> Attributes that would be NULL in most rows can be moved to a separate relation together with the primary key. NULL has several meanings (not applicable, unknown, exists but unavailable), and these meanings can get mixed up.</li>
+  <li><strong>Do not produce spurious tuples.</strong> Relations should be designed so that joining them with a natural join produces no spurious tuples, i.e. so that the join is lossless (non-additive). A decomposition has two important properties: a lossless join (which can never be given up) and preservation of the functional dependencies (which can be given up if necessary).</li>
+</ol>
+<h3>Anomalies</h3>
+<p>The book's relation EMP_PROJ(Ssn, Pnumber, Hours, Ename, Pname, Plocation) stores the information of employees and projects again in every (employee, project) row. This design has three kinds of anomaly:</p>
+<ul>
+  <li><strong>Update (modification) anomaly:</strong> if a project's name changes, it must be changed in the row of everyone who works on that project. If one is forgotten, the data becomes inconsistent.</li>
+  <li><strong>Insertion anomaly:</strong> a project nobody works on yet cannot be inserted, because part of the row's primary key (Ssn) would be empty. In the same way, an employee not yet assigned to a project cannot be inserted.</li>
+  <li><strong>Deletion anomaly:</strong> if the row of the only person who works on a project is deleted, the project's information is lost too.</li>
+</ul>
+<p>The box below builds the table EMP_DEPT(Ename, Ssn, Bdate, Address, Dnumber, Dname, Dmgr_ssn) from COMPANY with a join (Figure 14.4 in the book). The name and manager of the Research department repeat in four rows. Changing the department's name in only one row leads to inconsistency: the same department number appears with two different names.</p>
+<pre class="sql run" data-title="An update anomaly: repeated department information in EMP_DEPT">
+DROP TABLE IF EXISTS demo.EMP_DEPT;   -- so that the box can be run again
+CREATE TABLE demo.EMP_DEPT AS
+  SELECT E.Fname AS Ename, E.Ssn, E.Bdate, E.Address, D.Dnumber, D.Dname, D.Mgr_ssn AS Dmgr_ssn
+  FROM   EMPLOYEE E JOIN DEPARTMENT D ON E.Dno = D.Dnumber;
+-- the department's name is stored once per employee: four times for Research
+SELECT Ename, Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;
+-- renaming it in one row only leaves the data inconsistent
+UPDATE demo.EMP_DEPT SET Dname = 'R&amp;D' WHERE Ssn = '123456789';
+SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- department 5 now has two names
+</pre>
+
+<h2>Functional dependencies</h2>
+<p>Functional dependencies (FDs) are used to measure formally how good a design is. <strong>X → Y</strong> ("X functionally determines Y") means: in any state of the relation, two rows with the same X values must also have the same Y values. Formally, for any rows t1 and t2, if t1[X] = t2[X] then t1[Y] = t2[Y].</p>
+<ul>
+  <li>Ssn → Ename: the Ssn determines an employee's name.</li>
+  <li>Pnumber → {Pname, Plocation}: the project number determines the project's name and location.</li>
+  <li>{Ssn, Pnumber} → Hours: how many hours a week an employee works on a project is determined by the employee and the project together.</li>
+</ul>
+<p>An FD is a property of the schema and must hold in <em>every</em> valid state of the relation. FDs are derived not from the data itself but from the real-world meaning of the attributes. If K is a key of R, then K determines all the attributes of R, because no two distinct rows have the same K value.</p>
+<div class="callout key">
+  <p><strong>FDs cannot be derived from data, but they can be ruled out.</strong> By looking at a state of a relation we can say that an FD <em>may</em> exist, but we cannot prove that it does. What we can say for certain is that if two rows break an FD, that FD does <em>not</em> exist.</p>
+</div>
+<p>In the tool below, choose a table and a dependency X → Y. The tool looks for two rows with the same X values but different Y values. If it finds them, it marks the two rows in red and the FD is ruled out; if it does not, the FD <em>may</em> exist in this state. In the book's Figure 14.7, looking at the state of the TEACH relation, Text → Course may exist, but Teacher → Course, Teacher → Text and Course → Text are ruled out. Try for yourself which FDs may exist in the relation R(A, B, C, D) of Figure 14.8.</p>
+<div id="fd-check"></div>
+
+<h2>Normalization and keys</h2>
+<p><strong>Normalization</strong> is the process of decomposing "bad" relations by splitting their attributes into smaller relations. A <strong>normal form</strong> is a condition, stated with keys and FDs, that shows a relation schema is at a certain level. 2NF, 3NF and BCNF are based on keys and FDs. In practice relations are usually normalized up to 3NF or BCNF. Storing the join of relations in a higher normal form as a base relation for performance is called <strong>denormalization</strong>; the anomalies that come with it are then accepted on purpose.</p>
+<ul>
+  <li><strong>Superkey</strong>: a set of attributes whose values cannot be the same for two rows in any valid state.</li>
+  <li><strong>Key</strong>: a superkey that stops being a superkey if any attribute is removed, i.e. a minimal superkey. If there are several keys, each is a <strong>candidate key</strong>; one is chosen as the primary key, the others become secondary keys.</li>
+  <li><strong>Prime attribute</strong>: an attribute that is a member of some candidate key. <strong>Nonprime attribute</strong>: an attribute that is a member of no candidate key.</li>
+</ul>
+<p>The <strong>closure</strong> X<sup>+</sup> of a set of attributes X is all the attributes that X determines through the FDs. If X<sup>+</sup> contains all the attributes of the relation, X is a superkey. The tool below finds the candidate keys by computing closures in this way.</p>
+
+<h2>First normal form (1NF)</h2>
+<p>1NF disallows composite attributes, multivalued attributes and nested relations, i.e. attributes whose value in a row is not atomic. 1NF is considered part of the definition of a relation, and most relational DBMSs allow only relations in 1NF to be defined.</p>
+<p>In the book's Figure 14.9, the Dlocations attribute of the relation DEPARTMENT(Dname, Dnumber, Dmgr_ssn, Dlocations) is multivalued: the Research department has three locations, Bellaire, Sugarland and Houston. The best way to bring this into 1NF is to move Dlocations to a separate relation together with the primary key: DEPT_LOCATIONS(Dnumber, Dlocation). This is what COMPANY does. The other options (rows that repeat the department's information for each location, or a fixed number of columns such as Dlocation1, Dlocation2, …) produce repetition and NULLs.</p>
+<p>In Figure 14.10, each row of the EMP_PROJ relation contains a nested relation PROJS made of the employee's projects. To bring this into 1NF, the nested relation is moved to a separate relation, taking the primary key with it: EMP_PROJ1(Ssn, Ename) and EMP_PROJ2(Ssn, Pnumber, Hours).</p>
+<pre class="sql run" data-title="1NF: keeping Dlocations in separate rows, not in one column">
+-- not in 1NF: one value holding a set of locations
+SELECT Dnumber, GROUP_CONCAT(Dlocation ORDER BY Dlocation SEPARATOR ', ') AS Dlocations
+FROM   DEPT_LOCATIONS GROUP BY Dnumber;
+-- 1NF: DEPT_LOCATIONS(Dnumber, Dlocation), one atomic value per row
+SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
+</pre>
+
+<h2>Second normal form (2NF)</h2>
+<p>If a dependency X → Y no longer holds when any attribute is removed from X, it is a <strong>full functional dependency</strong>. For example {Ssn, Pnumber} → Hours is full, because neither Ssn → Hours nor Pnumber → Hours holds. {Ssn, Pnumber} → Ename is not full, because Ssn → Ename also holds; this is called a <strong>partial dependency</strong>.</p>
+<div class="callout key">
+  <p><strong>2NF:</strong> a relation schema is in 2NF if every nonprime attribute is <em>fully</em> functionally dependent on the primary key. That is, no nonprime attribute should depend on only <em>part</em> of the key.</p>
+</div>
+<p>EMP_PROJ is not in 2NF: Ename depends only on Ssn, and Pname and Plocation only on Pnumber. 2NF normalization moves each partial dependency into its own relation. In the walkthrough below, in each decomposition step the relation as it was is on the left and the two relations it gives are on the right; the underlined attributes are each relation's key. The result has the same structure as the book's Figure 14.11a: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename) and EP3(Pnumber, Pname, Plocation).</p>
+<div id="nf-emp-proj"></div>
+
+<h2>Third normal form (3NF)</h2>
+<p>A dependency X → Z that can be derived from the dependencies X → Y and Y → Z is called a <strong>transitive dependency</strong>. For example Ssn → Dmgr_ssn is transitive, because Ssn → Dnumber and Dnumber → Dmgr_ssn hold. Ssn → Ename is not transitive, because there is no X with Ssn → X and X → Ename.</p>
+<div class="callout key">
+  <p><strong>3NF:</strong> a relation schema is in 3NF if it is in 2NF and no nonprime attribute is transitively dependent on the primary key. Note: in X → Y → Z, if Y is a candidate key this is not a problem. For example in EMP(Ssn, Emp#, Salary), Ssn → Emp# → Salary is transitive, but since Emp# is a candidate key the relation is in 3NF.</p>
+</div>
+<p>EMP_DEPT is in 2NF (its key has a single attribute, so there can be no partial dependency) but not in 3NF: Dname and Dmgr_ssn depend on the primary key Ssn transitively, through Dnumber. 3NF normalization moves this dependency into a separate relation and gives the result of the book's Figure 14.11b: ED1(Ename, Ssn, Bdate, Address, Dnumber) and ED2(Dnumber, Dname, Dmgr_ssn).</p>
+<div id="nf-emp-dept"></div>
+<p>An informal summary of the three normal forms: in 1NF all the attributes depend on the key; in 2NF all the attributes depend on the <em>whole</em> key; in 3NF all the attributes depend on <em>nothing but</em> the key.</p>
+
+<h2>General definitions for several candidate keys</h2>
+<p>The definitions above consider only the primary key. The general definitions take all the candidate keys into account; every attribute that is a member of some candidate key is prime.</p>
+<ul>
+  <li><strong>General 2NF:</strong> R is in 2NF if every nonprime attribute is fully functionally dependent on <em>every</em> key of R.</li>
+  <li><strong>General 3NF:</strong> for every dependency X → A that holds in R, either (a) X is a superkey of R, or (b) A is a prime attribute of R. Condition (a) catches two kinds of violation: a prime attribute (part of a key) determining a nonprime attribute (a 2NF violation), and a nonprime attribute determining a nonprime attribute (a transitive dependency). Condition (b) covers the dependencies that 3NF allows but BCNF catches.</li>
+</ul>
+<p>The book's relation LOTS(Property_id, County_name, Lot, Area, Price, Tax_rate) has two candidate keys: Property_id and {County_name, Lot}. It has four dependencies: FD1 and FD2 come from the two keys, FD3 is County_name → Tax_rate, FD4 is Area → Price. County_name → Tax_rate breaks 2NF, because County_name is part of a key (County_name, Lot). Area → Price breaks 3NF, because Area is not a superkey and Price is not prime. With the option below you can decompose LOTS first into 2NF (LOTS1 and LOTS2), then into 3NF (LOTS1A, LOTS1B and LOTS2); these are the stages of the book's Figure 14.12.</p>
+<div id="nf-lots"></div>
+
+<h2>Boyce-Codd normal form (BCNF)</h2>
+<div class="callout key">
+  <p><strong>BCNF:</strong> R is in BCNF if, for every dependency X → A that holds in R, X is a superkey of R. This is the definition of 3NF with condition (b) removed; so every BCNF relation is in 3NF, every 3NF relation is in 2NF, every 2NF relation is in 1NF. But there are relations that are in 3NF and not in BCNF.</p>
+</div>
+<p>The book's relation TEACH(Student, Course, Instructor) has two dependencies: {Student, Course} → Instructor and Instructor → Course (each instructor teaches a single course). {Student, Course} is a candidate key. In Instructor → Course, Instructor is not a superkey, but since Course is a prime attribute, condition (b) of 3NF holds: TEACH is in 3NF but not in BCNF.</p>
+<p>A relation not in BCNF is decomposed, giving up the preservation of some dependencies if necessary. There are three possible decompositions of TEACH, and all three lose the dependency {Student, Course} → Instructor:</p>
+<ul>
+  <li>D1: {Student, Instructor} and {Student, Course}</li>
+  <li>D2: {Course, Instructor} and {Course, Student}</li>
+  <li>D3: {Instructor, Course} and {Instructor, Student}</li>
+</ul>
+<p>The preservation of dependencies can be given up, but the lossless join cannot. The <strong>NJB test</strong> tells whether a binary decomposition is lossless: the decomposition D = {R1, R2} is lossless if and only if one of the dependencies (R1 ∩ R2) → (R1 − R2) or (R1 ∩ R2) → (R2 − R1) is in F<sup>+</sup>. That is, the common attributes of the two parts must determine the rest of one of the parts. You can test the three decompositions below: only in D3 does the common attribute Instructor determine Course.</p>
+<div id="njb-teach"></div>
+<p><strong>The general procedure:</strong> if R is not in BCNF and the dependency X → A causes the violation, R is decomposed into two relations: (i) R − A and (ii) X ∪ A. If one of them is not in BCNF, the process is repeated. In TEACH the violation is Instructor → Course, so the decomposition is (TEACH − Course) and (Instructor ∪ Course), i.e. D3. When the dependency Area → County_name is added to LOTS1A, the same procedure gives the result of the book's Figure 14.13a.</p>
+<div id="nf-teach"></div>
+
+<h2>The normalization tool</h2>
+<p>Write a relation schema and its functional dependencies, or choose one of the ready-made examples. The tool computes the closure of each dependency's left side, the candidate keys and the prime attributes; it says in sentences which normal form the relation is in and which dependency breaks the next one. Then it decomposes the relation step by step up to the normal form you choose; in each step the relation as it was is on the left and the relations it gives are on the right, and it says whether the decomposition is lossless according to the NJB test.</p>
+<p class="small muted">Syntax: separate attributes with spaces or commas; write each dependency on its own line as <code>A, B -&gt; C, D</code>. At most 12 attributes can be used.</p>
+<div id="nf-tool"></div>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="3">
+  <p>In the relation EMP_PROJ(Ssn, Pnumber, Hours, Ename, Pname, Plocation), while a project's name is being changed, the row of one of the employees on that project is forgotten. Which anomaly is this?</p>
+  <ol>
+    <li data-why="An insertion anomaly is being unable to insert one piece of information without another (e.g. a project with no employees).">An insertion anomaly</li>
+    <li data-why="A deletion anomaly is losing another piece of information when a row is deleted.">A deletion anomaly</li>
+    <li data-why="Correct: the same information (the project's name) repeats in several rows, so all of them must be changed together; if one is forgotten the data becomes inconsistent.">An update (modification) anomaly</li>
+    <li data-why="Spurious tuples appear in the natural join of a bad decomposition; this is not an update problem.">Generating spurious tuples</li>
+  </ol>
+  <div class="explain">The project's name repeats in the row of every employee on the project. When the name changes, all these rows must be changed; if one is forgotten, the same project appears with two different names. The fix is to move the project information into its own relation (EP3).</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>In the relation R(A, B, C, D), F = {A → B, B → C, C → D}. What is the closure A<sup>+</sup>, and which is the candidate key of R?</p>
+  <ol>
+    <li data-why="The closure contains not only the direct dependencies but all the attributes determined along the chain: A → B → C → D.">A<sup>+</sup> = {A, B}; key {A, B}</li>
+    <li data-why="Correct: the chain A → B, B → C, C → D reaches every attribute from A; A alone is a superkey, and since it has one attribute it is minimal.">A<sup>+</sup> = {A, B, C, D}; key {A}</li>
+    <li data-why="D determines nothing; since D<sup>+</sup> = {D}, D is not a superkey.">A<sup>+</sup> = {A, B, C, D}; key {D}</li>
+    <li data-why="{A, B} is a superkey because it contains A, but it is not minimal: when B is removed, the remaining {A} is still a superkey.">A<sup>+</sup> = {A, B, C, D}; key {A, B}</li>
+  </ol>
+  <div class="explain">Computing the closure: start from A; B is added with A → B, C with B → C, D with C → D. Since A<sup>+</sup> contains all the attributes, A is a superkey; since it has one attribute, it is also minimal, i.e. a candidate key. You can try the tool with this example.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>In the relation R(Ssn, Pnumber, Hours, Ename), F = {Ssn, Pnumber → Hours; Ssn → Ename}. What is the highest normal form R is in?</p>
+  <ol>
+    <li data-why="Correct: the key is {Ssn, Pnumber}; Ename is nonprime and depends on only part of the key (Ssn). This partial dependency breaks 2NF.">1NF</li>
+    <li data-why="For 2NF every nonprime attribute must depend on the whole key; Ename depends only on Ssn.">2NF</li>
+    <li data-why="3NF requires 2NF; R is not even in 2NF.">3NF</li>
+    <li data-why="In BCNF the left side of every dependency must be a superkey; Ssn is not a superkey.">BCNF</li>
+  </ol>
+  <div class="explain">The candidate key is {Ssn, Pnumber}. Ssn → Ename is a partial dependency: the nonprime Ename depends only on the Ssn part of the key. So R is not in 2NF. To bring it into 2NF, (Ssn, Ename) is moved into a separate relation.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which statement is true?</p>
+  <ol>
+    <li data-why="There are relations in 3NF and not in BCNF (e.g. TEACH); BCNF is stronger.">Every 3NF relation is in BCNF.</li>
+    <li data-why="A BCNF decomposition can lose some dependencies (like {Student, Course} → Instructor in TEACH); preserving dependencies is not guaranteed.">A BCNF decomposition always preserves all the functional dependencies.</li>
+    <li data-why="The lossless join can never be given up; what can be given up is the preservation of dependencies.">In a decomposition, the lossless join can be given up to preserve the dependencies.</li>
+    <li data-why="Correct: BCNF is the definition of 3NF with the condition 'A is a prime attribute' removed; so it is stricter.">Every BCNF relation is in 3NF, but the converse is not always true.</li>
+  </ol>
+  <div class="explain">The normal forms get stricter: BCNF ⇒ 3NF ⇒ 2NF ⇒ 1NF. 3NF allows a dependency X → A if A is a prime attribute; BCNF does not. In a decomposition the lossless join is required; the preservation of dependencies can be given up if necessary.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>For TEACH(Student, Course, Instructor), F = {Student, Course → Instructor; Instructor → Course}. Which decomposition is lossless according to the NJB test?</p>
+  <ol>
+    <li data-why="The common attribute is Student, and Student determines neither Instructor nor Course; the join produces spurious tuples.">{Student, Instructor} and {Student, Course}</li>
+    <li data-why="The common attribute is Course, and Course determines neither Instructor nor Student (a course can be taught by several instructors).">{Course, Instructor} and {Course, Student}</li>
+    <li data-why="Correct: the common attribute is Instructor, and Instructor → Course holds; that is, the common part determines the rest of one part.">{Instructor, Course} and {Instructor, Student}</li>
+    <li data-why="The NJB test holds for D3; not all three decompositions are lossy.">None</li>
+  </ol>
+  <div class="explain">The NJB test: R1 ∩ R2 must determine R1 − R2 or R2 − R1. In D3 the common attribute is Instructor, and since Instructor → Course holds, it determines the rest of the part {Instructor, Course}. In D1 the common part is Student, in D2 Course, and neither determines anything.</div>
+</div>
+
+</div></main>
+</body>
+</html>

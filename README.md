@@ -7,7 +7,8 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
 
 - **Bölüm sayfaları.** Ch 1–7: kavramlar, mimari, ER, EER, ilişkisel model ve kısıtlar, temel SQL, NULL ve iç içe sorgular,
   join/gruplama/WITH, assertion/trigger/view/ALTER. Ch 8: ilişkisel cebir (slaytlar 1–67). Ch 9: ER ve EER şemalarını tablolara
-  eşleme (slaytlar 1–38). Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
+  eşleme (slaytlar 1–38). Ch 14: fonksiyonel bağımlılıklar ve normalizasyon, BCNF'e kadar (slaytlar 1–55); bir ilişkinin
+  aday anahtarlarını ve normal formunu bulan, onu NJB testiyle adım adım ayrıştıran bir araçla. Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
   çizilir. Bir konunun müfredatta yalnızca bir kısmı varsa, sayfanın başında kapsadığı slayt aralığı yazar.
 - **Önce ve sonra.** Adım adım gösterimlerde her adımın girdisi solda, sonucu sağda görünür: SQL'in kavramsal değerlendirme
   sırası, join türleri, ilişkisel cebirin her işlemi (atılan satırlar kırmızı, NULL ile kalanlar sarı), ER'den tablolara
@@ -74,6 +75,7 @@ notebook'un parmak izleriyle karşılaştırır.
 | `site/js/lib/companydata.js` | COMPANY'nin Figure 5.6 verisi (kutuların tablo panelleri için) |
 | `site/js/lib/sqlbox.js`, `codeview.js` | düzenlenebilir, çalıştırılabilir SQL kutuları; satır numaralı editör |
 | `site/js/lib/sqllinks.js`, `errhelp.js` | bir kelimeye ait olanı bulma ve açıklama; MySQL biçiminde hatalar ve ad önerileri |
+| `site/js/lib/fd.js` | fonksiyonel bağımlılıklar: kapanış, aday anahtarlar, 2NF/3NF/BCNF testleri, ayrıştırma, NJB, bağımlılıkların korunması |
 | `site/js/lib/stepper.js` | önce → sonra gösterimli adım adım sorgu görünümleri |
 | `site/js/lib/i18n.js`, `site/en/` | Türkçe/İngilizce metinler; her sayfanın İngilizce eşi |
 | `site/js/lib/sqlcore.js` | komut ayırma ve notebook'un kontrolcüsü (DOM'suz; testler de kullanır) |

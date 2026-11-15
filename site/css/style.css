@@ -877,3 +877,25 @@ pre.algebra sub, .stepper-note sub { font-size: 0.72em; }
   color: var(--text); cursor: pointer; white-space: nowrap; }
 .qt-node.leaf { border-color: var(--border-strong); background: var(--surface-2); font-weight: 700; }
 .qt-node[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* ---------- normalization ---------- */
+.nf-rel { font-family: var(--mono); font-size: 0.84rem; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface);
+  margin: 3px 0; overflow-wrap: anywhere; }
+.nf-rel .pk { text-decoration: underline; text-decoration-thickness: 2px; color: var(--pk); font-weight: 700; }
+.nf-rel .nf-prime { text-decoration: underline dotted; text-decoration-thickness: 2px; color: var(--pk); }
+.nf-badge { float: right; font-family: var(--font); font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 8px; }
+.nf-badge.nf1 { background: var(--err-wash); color: var(--critical); }
+.nf-badge.nf2, .nf-badge.nf3 { background: var(--warn-wash); color: #7a4b00; }
+.nf-badge.nf4 { background: var(--ok-wash); color: var(--good-text); }
+:root[data-theme="dark"] .nf-badge.nf2, :root[data-theme="dark"] .nf-badge.nf3 { color: #f0c050; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .nf-badge.nf2, :root:where(:not([data-theme="light"])) .nf-badge.nf3 { color: #f0c050; } }
+.nf-summary p { margin: 6px 0; }
+.nf-result { display: grid; gap: 4px; max-width: 720px; }
+.nf-ok { color: var(--good-text); }
+.nf-bad { color: var(--critical); }
+.nf-form { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; align-items: start; margin: 10px 0; }
+.nf-form label { display: contents; }
+.nf-form input, .nf-form textarea, .nf-form select { font-family: var(--mono); font-size: 0.85rem; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface); color: var(--text); }
+.nf-form textarea { resize: vertical; }
+.nf-picks { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; }
+.nf-pick { font-family: var(--mono); display: inline-flex; gap: 4px; align-items: center; }
