@@ -45,18 +45,46 @@
   <li><strong>Birleştirilmiş tablo (tek tablo).</strong> İki varlık tipi ve ilişki tek bir tabloda birleştirilir. Bu yaklaşım, iki katılım da total olduğunda uygundur; çünkü o zaman her satırın iki tarafı da doludur.</li>
   <li><strong>Ayrı ilişki tablosu (üç tablo).</strong> İki tablonun primary key'lerini birbirine bağlayan üçüncü bir tablo (cross-reference) oluşturulur. Bu, M:N ilişkilerde kullanılan yöntemin aynısıdır ve 1:1 için en az tercih edilen yaklaşımdır.</li>
 </ol>
+<p>Foreign key'i neden total katılan tarafa koyduğumuzu COMPANY verisiyle görebilirsiniz. İlk kutu kitabın seçtiği tasarımı sorgular: DEPARTMENT'taki Mgr_ssn sütununda hiç NULL yoktur. İkinci kutu, foreign key'i EMPLOYEE'ye koysaydık her çalışanın satırında ne duracağını hesaplar; yönetici olmayan her çalışan için değer NULL çıkar.</p>
+<pre class="sql run" data-title="Yaklaşım 1: foreign key DEPARTMENT'ta (Mgr_ssn)">
+SELECT Dnumber, Dname, Mgr_ssn, Mgr_start_date
+FROM   DEPARTMENT;
+</pre>
+<pre class="sql run" data-title="Foreign key EMPLOYEE'de olsaydı: kaç satır NULL kalırdı?">
+SELECT E.Ssn, E.Fname, D.Dnumber AS Manages_dno
+FROM   EMPLOYEE E LEFT JOIN DEPARTMENT D ON D.Mgr_ssn = E.Ssn;
+
+SELECT COUNT(*) AS employees, COUNT(D.Dnumber) AS filled, COUNT(*) - COUNT(D.Dnumber) AS null_rows
+FROM   EMPLOYEE E LEFT JOIN DEPARTMENT D ON D.Mgr_ssn = E.Ssn;
+</pre>
 <h3>Adım 4: İkili 1:N ilişki tipleri</h3>
 <p>Her ikili 1:N ilişki tipi R için, ilişkinin <strong>N tarafındaki</strong> varlık tipine karşılık gelen S tablosu bulunur. Diğer tablonun (T) primary key'i S'ye foreign key olarak eklenir; ilişkinin basit öznitelikleri de S'ye gelir. Bunun nedeni, N tarafındaki her varlığın ilişkiye en fazla bir kez katılmasıdır: her çalışanın tek bir departmanı olduğu için departman numarası çalışanın satırına sığar. COMPANY'de WORKS_FOR için DEPARTMENT'ın primary key'i EMPLOYEE'ye Dno adıyla, CONTROLS için PROJECT'e Dnum adıyla, recursive SUPERVISION için de EMPLOYEE'ye Super_ssn adıyla eklenir. Bir ilişki tablosu kullanmak da mümkündür ama nadiren yapılır.</p>
 <h3>Adım 5: İkili M:N ilişki tipleri</h3>
 <p>Her ikili M:N ilişki tipi R için yeni bir S tablosu, yani bir <strong>ilişki tablosu</strong> oluşturulur. Katılan varlık tiplerinin tablolarının primary key'leri S'ye foreign key olarak eklenir ve bunların birleşimi S'nin primary key'i olur. İlişkinin basit öznitelikleri de S'ye eklenir. M:N ilişkiyi tek bir foreign key ile ifade etmek mümkün değildir, çünkü bir çalışan birçok projede, bir projede de birçok çalışan çalışır. COMPANY'de WORKS_ON böyle oluşur: EMPLOYEE'nin ve PROJECT'in primary key'leri Essn ve Pno adıyla eklenir, Hours sütunu ilişkinin özniteliğidir ve primary key {Essn, Pno}'dur.</p>
+<p>Aşağıdaki kutu, M:N ilişkinin neden iki taraftan birine sığmadığını veriyle gösterir. İlk sorgu birden çok projede çalışan çalışanları, ikincisi birden çok çalışanı olan projeleri listeler. İki liste de boş olmadığına göre ne EMPLOYEE'deki tek bir Pno sütunu ne de PROJECT'teki tek bir Essn sütunu bu bilgiyi tutabilir.</p>
+<pre class="sql run" data-title="M:N: iki tarafta da birden çok eşleşme var">
+SELECT Essn, COUNT(*) AS projects
+FROM   WORKS_ON GROUP BY Essn HAVING COUNT(*) > 1;
+
+SELECT Pno, COUNT(*) AS employees
+FROM   WORKS_ON GROUP BY Pno HAVING COUNT(*) > 1;
+</pre>
 <h3>Adım 6: Çok değerli öznitelikler</h3>
 <p>Her çok değerli öznitelik A için yeni bir R tablosu oluşturulur. R'de A'ya karşılık gelen bir sütun ve A'nın ait olduğu varlığın tablosunun primary key'i K (foreign key olarak) bulunur. R'nin primary key'i A ile K'nın birleşimidir. A bileşikse onun basit bileşenleri eklenir. COMPANY'de DEPARTMENT'ın Locations özniteliği için DEPT_LOCATIONS(Dnumber, Dlocation) tablosu oluşur; primary key {Dnumber, Dlocation}'dur, çünkü bir departmanın birden çok yeri vardır.</p>
+<pre class="sql run" data-title="Çok değerli öznitelik: departman başına bir değil, birçok satır">
+SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber;
+</pre>
 <h3>Adım 7: n-li (n &gt; 2) ilişki tipleri</h3>
 <p>Her n-li ilişki tipi R için yeni bir S tablosu oluşturulur. Katılan bütün varlık tiplerinin primary key'leri S'ye foreign key olarak, ilişkinin basit öznitelikleri de sütun olarak eklenir. Primary key genellikle bütün foreign key'lerin birleşimidir. Ancak bir katılımcının kardinalitesi 1 ise, o katılımcının foreign key'i primary key'e dahil edilmez; çünkü diğerlerinin bir kombinasyonu o katılımcıyı zaten belirler. Üçlü SUPPLY ilişkisi aşağıda SUPPLY(Sname, Part_no, Proj_name, Quantity) tablosuna eşleniyor.</p>
 
 <h2>COMPANY şemasının eşlenmesi</h2>
 <p>Aşağıda solda COMPANY'nin ER diyagramı (kitapta Figure 9.1), altında da algoritmanın her adımı var. Her adımda, adımın değiştirdiği tablonun önceki hâli solda, sonraki hâli sağdadır; o adımda eklenen sütunlar ve foreign key'ler vurgulanmıştır. Sitenin ürettiği tablolar kitaptaki Figure 9.2 ile aynı yapıdadır; yalnızca bazı sütun adları farklıdır (örneğin kitap WORKS_FOR'un foreign key'ine Dno adını verir, burada DEPARTMENT_Number olarak görünür).</p>
+<h3>Adım adım oynatıcı</h3>
+<p>Oynatıcıda Sonraki düğmesine her bastığınızda algoritma tek bir yapıyı eşler. Diyagramda o adımda eşlenen yapı vurgulanır, önceki adımlarda eşlenenler soluk kenarlıkla işaretlenir. Sağda uygulanan kuralı, adımın açıklamasını ve değişen tablonun önceki ve sonraki hâlini görürsünüz; altta da şemanın o ana kadarki hâli büyür. Tahmin modunu açarsanız her adımdan önce hangi tablonun değişeceğini siz tahmin edersiniz; bu, kuralları ezberlemek yerine uygulamayı alıştırır. Üstteki numaralı düğmeler adım numarasını gösterir ve istediğiniz adıma atlamanızı sağlar.</p>
+<div id="company-player"></div>
+<details class="disclosure"><summary>Bütün adımlar tek listede ve DDL</summary><div class="disclosure-body">
 <div id="company-map"></div>
+</div></details>
 
 <h2>Üçlü ilişki: SUPPLY</h2>
 <p>Kitaptaki Figure 3.17'nin SUPPLY ilişkisi üç varlığı (SUPPLIER, PROJECT, PART) birbirine bağlar ve bir Quantity özniteliği taşır. Adım 7, üç varlığın primary key'lerini foreign key olarak içeren ve bunların birleşimini primary key yapan bir SUPPLY tablosu oluşturur.</p>
@@ -93,6 +121,18 @@
     <tr><td><strong>8D</strong>: tek tablo ve birden çok Boolean tip sütunu</td><td>L(k, a1, …, an, bütün alt sınıfların öznitelikleri, t1, …, tm). Her ti, satırın Si'ye ait olup olmadığını söyleyen bir Boolean'dır.</td><td>Overlapping özelleştirmede de kullanılabilir.</td></tr>
   </tbody>
 </table>
+<p>Seçenekleri karşılaştırmanın kolay bir yolu, aynı soruların her biri için ne kadar iş gerektirdiğine bakmaktır. Aşağıdaki tablo, kitaptaki EMPLOYEE özelleştirmesi (SECRETARY, TECHNICIAN, ENGINEER) için bu karşılaştırmayı yapıyor.</p>
+<table class="simple">
+  <thead><tr><th>Soru</th><th>8A</th><th>8B</th><th>8C</th><th>8D</th></tr></thead>
+  <tbody>
+    <tr><td>Kaç tablo oluşur?</td><td>4</td><td>3</td><td>1</td><td>1</td></tr>
+    <tr><td>Bir sekreterin bütün bilgisini okumak için join gerekir mi?</td><td>Evet, EMPLOYEE ile SECRETARY</td><td>Hayır</td><td>Hayır</td><td>Hayır</td></tr>
+    <tr><td>NULL oluşur mu?</td><td>Hayır</td><td>Hayır</td><td>Evet, alt sınıfa özgü sütunlarda</td><td>Evet, alt sınıfa özgü sütunlarda</td></tr>
+    <tr><td>Hiçbir alt sınıfta olmayan bir çalışan (partial) saklanabilir mi?</td><td>Evet</td><td>Hayır</td><td>Evet, tip sütunu NULL olur</td><td>Evet, bütün bayraklar FALSE olur</td></tr>
+    <tr><td>Bir çalışan iki alt sınıfta birden olabilir mi (overlapping)?</td><td>Evet</td><td>Ancak ortak öznitelikler tekrar ederek</td><td>Hayır</td><td>Evet</td></tr>
+    <tr><td>"Bütün çalışanlar" sorgusu nasıl yazılır?</td><td>Yalnızca EMPLOYEE</td><td>Alt sınıf tablolarının UNION'ı</td><td>Tek tablo</td><td>Tek tablo</td></tr>
+  </tbody>
+</table>
 <p>Aşağıdaki seçeneklerden birine tıklayın; kitaptaki Figure 9.5'in dört örneği gösterilir: Figure 4.4 (EMPLOYEE'nin Job_type'a göre disjoint özelleştirmesi) 8A ve 8C ile, Figure 4.3b (VEHICLE'ın total ve disjoint genelleştirmesi CAR ve TRUCK) 8B ile, Figure 4.5 (PART'ın overlapping özelleştirmesi) 8D ile.</p>
 <div id="spec-options"></div>
 
@@ -103,6 +143,10 @@
 <h3>Adım 9: Kategoriler (union types)</h3>
 <p>Üst sınıflarının anahtarları farklı olan bir kategori eşlenirken, kategoriye karşılık gelen tabloya yeni bir anahtar sütunu verilir. Buna <strong>yapay anahtar</strong> (surrogate key) denir. Kitaptaki örnekte OWNER kategorisi için bir OWNER tablosu oluşturulur ve primary key'i yapay anahtar Owner_id olur. Kategoriyi oluşturan her üst sınıfın tablosuna (PERSON, BANK, COMPANY) bu anahtara referans veren bir Owner_id foreign key'i eklenir; bir araç sahibi olmayanlar için bu sütun NULL kalır. REGISTERED_VEHICLE kategorisinin üst sınıfları (CAR ve TRUCK) ise aynı anahtarı (Vehicle_id) paylaştığı için yapay anahtara gerek yoktur.</p>
 <div id="category-map"></div>
+
+<h2>Sen karar ver</h2>
+<p>Bu bölümde algoritmayı siz uyguluyorsunuz. Her soruda küçük bir ER parçası ve bir tasarım kararı var: foreign key'in nereye gideceği, primary key'in ne olacağı ya da hangi Adım 8 seçeneğinin uygun olduğu. Bir seçeneği işaretlediğinizde neden doğru ya da yanlış olduğu açıklanır ve algoritmanın o parça için ürettiği tablolar gösterilir. Yanlış seçeneklerin açıklamaları da önemlidir, çünkü çoğu yanlış seçenek gerçek tasarımlarda sık yapılan bir hatadır.</p>
+<div id="decide"></div>
 
 <h2>Kendiniz deneyin</h2>
 <p>Bir örnek ve özelleştirme seçeneği seçin; diyagram ve eşleme adımları güncellenir. Seçtiğiniz seçenek bir özelleştirme için uygun değilse (örneğin partial bir özelleştirme için 8B), algoritma uygun bir seçeneğe döner ve nedenini sonuçtaki notlarda yazar. Slaytların 36–37'sindeki alıştırma şemalarını (SHIP_TRACKING ve araba satıcısı) <a href="er-studio.html">ER stüdyosunda</a> çizip aynı şekilde eşleyebilirsiniz.</p>
