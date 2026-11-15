@@ -3,70 +3,286 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>İlişkisel cebir (önizleme) · Veritabanı Sistemleri</title>
-<meta name="description" content="Elmasri & Navathe Ch 8 önizlemesi: ilişkisel cebirin işlemleri (σ, π, ρ, ∪, ∩, −, ×, ⋈, ÷) ve her birinin SQL karşılığı. Arasınav kapsamı dışında.">
+<title>İlişkisel cebir · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 8 (ders slaytları 1–67): SELECT, PROJECT, RENAME, küme işlemleri, kartezyen çarpım, JOIN türleri, bölme, sorgu ağaçları, aggregate ve gruplama, recursive closure, outer join ve outer union; her işlemin girdisi ve sonucu yan yana, SQL karşılığıyla.">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
-<script type="module" src="js/layout.js"></script>
+<script type="module" src="js/pages/ch8-algebra.js"></script>
 </head>
 <body data-page="ch8-algebra">
 <main><div class="content">
 
-<h1>İlişkisel cebir (önizleme)</h1>
-<p class="lead">Ch 8 arasınav kapsamında değil. Bu sayfa, Ch 6–7'de öğrendiğiniz SQL'in arkasındaki biçimsel dili kısaca tanıtıyor: her cebir işleminin SQL karşılığı var ve hepsi aşağıda çalıştırılabilir.</p>
+<h1>İlişkisel cebir</h1>
+<p class="lead">İlişkisel cebir, ilişkisel modelin temel işlemler kümesidir: her işlem bir ya da iki ilişki alır ve sonuç olarak yeni bir ilişki üretir. SQL'in arkasındaki biçimsel dil budur. Bu sayfada her işlemin girdisini ve sonucunu COMPANY verisi üzerinde yan yana görebilir, aynı sorgunun SQL karşılığını çalıştırabilirsiniz.</p>
 
-<div class="callout note">
-  <p>İlişkisel cebir, ilişkiler üzerinde tanımlı işlemlerden oluşan <em>procedural</em> bir dildir: her işlem bir ya da iki ilişki alır ve <strong>yeni bir ilişki</strong> döndürür (closure). İşlemler <em>küme</em> semantiğiyle çalışır: sonuçta tekrar yoktur. SQL ise multiset semantiği kullanır.</p>
+<div class="callout goals">
+  <ul>
+    <li>Bir sorguyu σ, π, ρ, küme işlemleri, ⋈ ve ÷ ile hem tek bir ifade olarak hem de ara sonuçlara ad veren bir işlem dizisi olarak yazabilmek.</li>
+    <li>Her işlemin sonucunda kaç satır ve hangi sütunlar olacağını önceden söyleyebilmek; örneğin π'nin tekrarları sildiğini, σ'nın satır sayısını hiçbir zaman artırmadığını bilmek.</li>
+    <li>Theta join, equijoin ve natural join arasındaki farkı açıklayabilmek; "her … için" sorularını bölme işlemiyle çözebilmek.</li>
+    <li>Bir sorgu için sorgu ağacı çizebilmek; aggregate, outer join ve outer union işlemlerini tanımak.</li>
+  </ul>
 </div>
 
-<h2>Tekli işlemler</h2>
+<div class="callout note">
+  <p><strong>Kapsam.</strong> Bu sayfa, müfredatta 8. haftaya yazılan Ch 8 slaytlarının 1–67 aralığını kapsar. Slaytların geri kalanı (68–96) ilişkisel hesap (tuple ve domain relational calculus) ve QBE konularıdır ve final kapsamında değildir.</p>
+</div>
+
+<h2>Genel bakış</h2>
+<p>İlişkisel cebirdeki her işlemin sonucu yine bir ilişkidir. Bu özelliğe <strong>kapalılık</strong> (closure) denir ve işlemleri iç içe yazabilmemizi sağlar: bir işlemin sonucu bir sonrakinin girdisi olur. Bir dizi işlemden oluşan yapıya <strong>ilişkisel cebir ifadesi</strong> denir ve onun sonucu da bir sorgunun cevabı olan bir ilişkidir.</p>
+<p>Cebir <em>prosedüreldir</em>: sonucun nasıl elde edileceğini adım adım söyler. SQL ise <em>bildirimseldir</em>: ne istendiğini söyler, nasıl bulunacağını DBMS'e bırakır. DBMS bir SQL sorgusunu çalıştırmadan önce onu içeride bir cebir ifadesine (bir sorgu ağacına) çevirir. Cebir ilişkileri <em>küme</em> olarak ele alır, bu yüzden bir sonuçta aynı satır iki kez bulunmaz; SQL ise tekrarları ancak <code>DISTINCT</code> yazılırsa siler.</p>
 <table class="simple">
-  <thead><tr><th>İşlem</th><th>Gösterim</th><th>SQL karşılığı</th></tr></thead>
+  <thead><tr><th>Grup</th><th>İşlemler</th></tr></thead>
   <tbody>
-    <tr><td><strong>SELECT</strong> (seçim)</td><td>σ<sub>Dno=4 AND Salary&gt;25000</sub>(EMPLOYEE)</td><td><code>SELECT * FROM EMPLOYEE WHERE Dno = 4 AND Salary &gt; 25000</code></td></tr>
-    <tr><td><strong>PROJECT</strong> (izdüşüm)</td><td>π<sub>Lname, Salary</sub>(EMPLOYEE)</td><td><code>SELECT DISTINCT Lname, Salary FROM EMPLOYEE</code></td></tr>
-    <tr><td><strong>RENAME</strong></td><td>ρ<sub>S(B1, B2)</sub>(R)</td><td><code>… AS S(B1, B2)</code></td></tr>
+    <tr><td>Tekli (unary) işlemler</td><td>SELECT (σ), PROJECT (π), RENAME (ρ)</td></tr>
+    <tr><td>Küme teorisinden gelen işlemler</td><td>UNION (∪), INTERSECTION (∩), DIFFERENCE (−), CARTESIAN PRODUCT (×)</td></tr>
+    <tr><td>İkili (binary) işlemler</td><td>JOIN (⋈ ve türleri), DIVISION (÷)</td></tr>
+    <tr><td>Ek işlemler</td><td>Aggregate fonksiyonları ve gruplama (ℑ), recursive closure, OUTER JOIN, OUTER UNION</td></tr>
   </tbody>
 </table>
-<p>σ yer değiştirebilir (σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c2</sub>(σ<sub>c1</sub>(R))); π'nin tekrarları silmesi SQL'deki <code>DISTINCT</code>'e karşılık gelir.</p>
-<pre class="sql run" data-title="π_{Sex, Salary}(EMPLOYEE): küme semantiği DISTINCT ister">
-SELECT DISTINCT Sex, Salary FROM EMPLOYEE;
-</pre>
+
+<h2>SELECT ve PROJECT</h2>
+<h3>SELECT (σ): satırları süzmek</h3>
+<p><strong>σ<sub>&lt;koşul&gt;</sub>(R)</strong>, R'nin koşulu sağlayan satırlarını seçer, diğerlerini atar. Koşul, R'nin öznitelikleri üzerinde yazılmış bir Boolean ifadedir; örneğin σ<sub>Dno=4</sub>(EMPLOYEE) dördüncü departmanın çalışanlarını, σ<sub>Salary&gt;30000</sub>(EMPLOYEE) maaşı 30000'den fazla olanları verir. SQL'de bu işi <code>WHERE</code> yapar.</p>
+<ul>
+  <li>Sonucun şeması R'ninkiyle aynıdır: sütunlar değişmez, yalnızca satırlar azalır. Sonuçtaki satır sayısı R'deki satır sayısından fazla olamaz.</li>
+  <li>σ değişmelidir (commutative): σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c2</sub>(σ<sub>c1</sub>(R)). Bu yüzden art arda gelen seçimler herhangi bir sırayla uygulanabilir ve hepsi tek bir seçimde birleştirilebilir: σ<sub>c1</sub>(σ<sub>c2</sub>(σ<sub>c3</sub>(R))) = σ<sub>c1 AND c2 AND c3</sub>(R).</li>
+</ul>
+<h3>PROJECT (π): sütunları seçmek</h3>
+<p><strong>π<sub>&lt;öznitelik listesi&gt;</sub>(R)</strong>, R'nin yalnızca listedeki sütunlarını tutar ve diğer sütunları atar. Örneğin π<sub>Lname, Fname, Salary</sub>(EMPLOYEE) her çalışanın adını ve maaşını verir. SQL'de bu işi <code>SELECT</code> listesi yapar.</p>
+<ul>
+  <li>Sonuç bir küme olmak zorunda olduğu için π <strong>tekrar eden satırları siler</strong>. Bu, SQL'de <code>SELECT DISTINCT</code> yazmaya karşılık gelir.</li>
+  <li>Sonuçtaki satır sayısı R'dekinden fazla olamaz. Liste R'nin bir anahtarını içeriyorsa hiçbir satır tekrar etmez ve satır sayısı aynı kalır.</li>
+  <li>π değişmeli değildir. π<sub>liste1</sub>(π<sub>liste2</sub>(R)) ifadesi ancak liste2, liste1'deki bütün öznitelikleri içeriyorsa geçerlidir ve o zaman π<sub>liste1</sub>(R)'ye eşittir.</li>
+</ul>
+<p>Aşağıdaki gösterimde her işlemin girdisi solda, sonucu sağdadır. σ adımlarında solda kırmızı ve üstü çizili olan satırlar koşulu sağlamadığı için atılır. Son π adımında kırmızı satırlar, kendisinden önce gelen bir satırla aynı (Sex, Salary) değerlerini taşıdığı için tekrar olarak silinir.</p>
+<div id="select-project"></div>
+
+<h2>İfadeler ve RENAME</h2>
+<p>Birkaç işlemi art arda uygulamanın iki yolu vardır. Birincisi, işlemleri iç içe yazarak <strong>tek bir ifade</strong> kurmaktır. İkincisi, işlemleri tek tek uygulayıp her ara sonuca bir ad vermektir; ← işareti burada bir atamadır. Örneğin "5 numaralı departmanda çalışanların adı, soyadı ve maaşı" sorusu iki şekilde de yazılabilir:</p>
+<pre class="algebra">π<sub>Fname, Lname, Salary</sub>(σ<sub>Dno=5</sub>(EMPLOYEE))
+
+DEP5_EMPS ← σ<sub>Dno=5</sub>(EMPLOYEE)
+RESULT    ← π<sub>Fname, Lname, Salary</sub>(DEP5_EMPS)</pre>
+<div id="sequence"></div>
+<p><strong>RENAME (ρ)</strong> bir ilişkinin adını, sütunlarının adlarını ya da ikisini birden değiştirir. Bu işlem, aynı ilişkinin iki kopyasını kullanan sorgularda ve sütun adlarının eşleşmesi gereken join'lerde gereklidir. Üç biçimi vardır:</p>
+<ul>
+  <li><strong>ρ<sub>S(B1, …, Bn)</sub>(R)</strong> ilişkinin adını S, sütunlarının adlarını B1, …, Bn yapar.</li>
+  <li><strong>ρ<sub>S</sub>(R)</strong> yalnızca ilişkinin adını değiştirir.</li>
+  <li><strong>ρ<sub>(B1, …, Bn)</sub>(R)</strong> yalnızca sütunların adlarını değiştirir.</li>
+</ul>
+<p>Atama sırasında da yeniden adlandırma yapılabilir: <code>RESULT(F, M, L, S, B, A, SX, SAL, SU, DNO) ← ρ…(DEP5_EMPS)</code> yazıldığında DEP5_EMPS'in on sütunu sırasıyla bu adları alır. SQL'de yeniden adlandırma <code>AS</code> ile yapılır.</p>
 
 <h2>Küme işlemleri</h2>
-<p>∪ (UNION), ∩ (INTERSECTION), − (MINUS/DIFFERENCE): iki ilişki <em>type compatible</em> (union compatible) olmalıdır. × (CARTESIAN PRODUCT) her tuple çiftini birleştirir.</p>
-<pre class="sql run" data-title="Örnek: 5 numaralı departmanda çalışanların ya da onların doğrudan amirlerinin Ssn'leri">
--- DEP5_EMPS ← σ_{Dno=5}(EMPLOYEE); RESULT1 ← π_{Ssn}(DEP5_EMPS); RESULT2 ← π_{Super_ssn}(DEP5_EMPS)
--- RESULT ← RESULT1 ∪ RESULT2
-SELECT Ssn FROM EMPLOYEE WHERE Dno = 5
-UNION
-SELECT Super_ssn FROM EMPLOYEE WHERE Dno = 5;
-</pre>
+<p><strong>UNION</strong> (R ∪ S), R'de, S'de ya da ikisinde birden bulunan bütün satırları içerir ve tekrarları siler. <strong>INTERSECTION</strong> (R ∩ S) yalnızca iki ilişkide de bulunan satırları, <strong>DIFFERENCE</strong> (R − S, MINUS ya da EXCEPT olarak da anılır) R'de olup S'de olmayan satırları içerir.</p>
+<div class="callout key">
+  <p>Bu üç işlemin iki girdisi <strong>tip uyumlu</strong> (type compatible ya da union compatible) olmalıdır: iki ilişkinin sütun sayısı aynı olmalı ve karşılıklı sütunların domain'leri uyumlu olmalıdır. Sonuçtaki sütunlar, alışkanlık gereği birinci girdinin sütun adlarını taşır.</p>
+</div>
+<ul>
+  <li>∪ ve ∩ değişmelidir (R ∪ S = S ∪ R) ve birleşmelidir (R ∪ (S ∪ T) = (R ∪ S) ∪ T); bu yüzden ikiden fazla ilişkiye uygulanabilirler.</li>
+  <li>Fark işlemi değişmeli değildir: genel olarak R − S ≠ S − R.</li>
+</ul>
+<p>Kitaptaki örnek şudur: 5 numaralı departmanda çalışanların ya da 5 numaralı departmanda çalışan birini doğrudan yöneten amirlerin Ssn'leri. RESULT1, departmanın çalışanlarının Ssn'leri; RESULT2 ise onların amirlerinin Ssn'leridir. RESULT2'nin sütunu Super_ssn'den Ssn'ye yeniden adlandırılır ki iki ilişki tip uyumlu olsun.</p>
+<pre class="algebra">DEP5_EMPS   ← σ<sub>Dno=5</sub>(EMPLOYEE)
+RESULT1     ← π<sub>Ssn</sub>(DEP5_EMPS)
+RESULT2(Ssn) ← π<sub>Super_ssn</sub>(DEP5_EMPS)
+RESULT      ← RESULT1 ∪ RESULT2</pre>
+<div id="set-ops"></div>
 
-<h2>İkili işlemler: JOIN ve DIVISION</h2>
-<table class="simple">
-  <thead><tr><th>İşlem</th><th>Gösterim</th><th>Anlamı</th></tr></thead>
-  <tbody>
-    <tr><td><strong>THETA JOIN</strong></td><td>R ⋈<sub>θ</sub> S</td><td>σ<sub>θ</sub>(R × S)</td></tr>
-    <tr><td><strong>EQUIJOIN</strong></td><td>R ⋈<sub>A=B</sub> S</td><td>yalnızca eşitlik koşulu</td></tr>
-    <tr><td><strong>NATURAL JOIN</strong></td><td>R * S</td><td>aynı adlı öznitelikler üzerinde equijoin, tekrar eden sütun bir kez</td></tr>
-    <tr><td><strong>OUTER JOIN</strong></td><td>⟕ ⟖ ⟗</td><td>eşleşmeyenler NULL ile</td></tr>
-    <tr><td><strong>DIVISION</strong></td><td>R(Z) ÷ S(X)</td><td>S'nin <em>her</em> tuple'ıyla R'de birlikte görünen Y = Z − X değerleri</td></tr>
-    <tr><td><strong>AGGREGATE</strong></td><td><sub>Dno</sub>ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE)</td><td>GROUP BY</td></tr>
-  </tbody>
-</table>
-<pre class="sql run" data-title="Division: Smith'in çalıştığı her projede çalışanlar (cebirde ÷, SQL'de çift NOT EXISTS)">
--- SMITH_PNOS ← π_{Pno}(WORKS_ON ⋈_{Essn=Ssn} σ_{Fname='John' AND Lname='Smith'}(EMPLOYEE))
--- SSN_PNOS   ← π_{Essn, Pno}(WORKS_ON)
--- RESULT     ← SSN_PNOS ÷ SMITH_PNOS
+<h2>Kartezyen çarpım ve JOIN</h2>
+<h3>Kartezyen çarpım (×)</h3>
+<p><strong>R × S</strong>, R'nin her satırını S'nin her satırıyla birleştirir. R'nin n, S'nin m sütunu varsa sonucun n + m sütunu olur; R'de n<sub>R</sub>, S'de n<sub>S</sub> satır varsa sonuçta n<sub>R</sub> · n<sub>S</sub> satır vardır. İki girdinin tip uyumlu olması gerekmez. Çarpım tek başına çoğu zaman anlamsızdır, çünkü birbiriyle ilgisi olmayan satırları da eşleştirir; ancak arkasından bir seçim gelirse anlam kazanır. Kitaptaki örnek, kadın çalışanların adlarını ve bağımlılarının adlarını bulur:</p>
+<pre class="algebra">FEMALE_EMPS    ← σ<sub>Sex='F'</sub>(EMPLOYEE)
+EMPNAMES       ← π<sub>Fname, Lname, Ssn</sub>(FEMALE_EMPS)
+EMP_DEPENDENTS ← EMPNAMES × DEPENDENT
+ACTUAL_DEPS    ← σ<sub>Ssn=Essn</sub>(EMP_DEPENDENTS)
+RESULT         ← π<sub>Fname, Lname, Dependent_name</sub>(ACTUAL_DEPS)</pre>
+<div id="product"></div>
+
+<h3>JOIN (⋈)</h3>
+<p>Çarpımın arkasından seçim yapmak o kadar sık gerekir ki bu ikisi tek bir işlemde birleştirilmiştir: <strong>R ⋈<sub>&lt;join koşulu&gt;</sub> S</strong> = σ<sub>&lt;join koşulu&gt;</sub>(R × S). Sonucun sütunları yine R'nin ve S'nin sütunlarıdır, ama yalnızca join koşulunu sağlayan satır çiftleri sonuca girer. Bu yüzden sonuçta genellikle n<sub>R</sub> · n<sub>S</sub>'den çok daha az satır bulunur. Örneğin her departmanın yöneticisini bulmak için her DEPARTMENT satırı, Ssn'i Mgr_ssn'e eşit olan EMPLOYEE satırıyla birleştirilir:</p>
+<pre class="algebra">DEPT_MGR ← DEPARTMENT ⋈<sub>Mgr_ssn=Ssn</sub> EMPLOYEE</pre>
+<ul>
+  <li><strong>Theta join</strong>, join'in genel hâlidir: koşul (θ) iki ilişkinin öznitelikleri üzerinde yazılmış herhangi bir Boolean ifade olabilir, örneğin R.A &lt; S.B AND (R.C = S.D OR R.E &lt; S.F).</li>
+  <li><strong>Equijoin</strong>'de koşulda yalnızca eşitlik karşılaştırmaları kullanılır. Sonuçta her zaman, değerleri her satırda aynı olan bir ya da daha çok sütun çifti bulunur (DEPT_MGR'deki Mgr_ssn ile Ssn gibi). Join'lerin çoğu equijoin'dir.</li>
+  <li><strong>Natural join</strong> (R * S), equijoin'deki bu gereksiz ikinci sütunu atmak için tanımlanmıştır. Koşul yazılmaz: iki ilişkide <em>aynı adı taşıyan</em> her sütun çifti için bir eşitlik koşulu kendiliğinden eklenir ve her çiftten yalnızca bir sütun sonuçta kalır. Sütun adları farklıysa önce ρ ile yeniden adlandırma yapılır. Örneğin DEPARTMENT * DEPT_LOCATIONS, iki ilişkinin ortak sütunu Dnumber üzerinden join yapar.</li>
+</ul>
+<div id="joins-alg"></div>
+<div class="callout key">
+  <p><strong>Tam işlem kümesi.</strong> {σ, π, ∪, −, ρ, ×} kümesi <em>tamdır</em> (complete set): diğer bütün cebir işlemleri bu altısıyla ifade edilebilir. Örneğin R ∩ S = (R ∪ S) − ((R − S) ∪ (S − R)) ve R ⋈<sub>koşul</sub> S = σ<sub>koşul</sub>(R × S). Diğer işlemler yalnızca yazmayı kolaylaştırmak için vardır.</p>
+</div>
+
+<h2>Bölme (DIVISION)</h2>
+<p><strong>R(Z) ÷ S(X)</strong> işleminde X, Z'nin bir alt kümesidir; Y = Z − X, R'nin S'de bulunmayan sütunlarıdır. Sonuç T(Y) ilişkisidir ve bir t değeri, ancak R'de S'nin <em>her</em> satırıyla birlikte bulunuyorsa sonuca girer. Bu yüzden bölme, "her … için" (∀) içeren soruların cebirdeki karşılığıdır.</p>
+<p>Kitaptaki örnek şudur: "John Smith'in çalıştığı <em>bütün</em> projelerde çalışan çalışanların Ssn'leri." Önce Smith'in projeleri bulunur (SMITH_PNOS), sonra her çalışanın projeleri (SSN_PNOS) bunlara bölünür:</p>
+<pre class="algebra">SMITH        ← σ<sub>Fname='John' AND Lname='Smith'</sub>(EMPLOYEE)
+SMITH_PNOS   ← π<sub>Pno</sub>(WORKS_ON ⋈<sub>Essn=Ssn</sub> SMITH)
+SSN_PNOS     ← π<sub>Essn, Pno</sub>(WORKS_ON)
+SSNS(Ssn)    ← SSN_PNOS ÷ SMITH_PNOS</pre>
+<p>Aşağıdaki gösterimde soldaki SSN_PNOS tablosunda her çalışanın satırları aynı renktedir. Smith 1 ve 2 numaralı projelerde çalışıyor; bu iki projenin ikisinde de çalışmayan çalışanların satırları kırmızıdır. Sonuçta yalnızca iki projenin ikisiyle de birlikte bulunan Ssn'ler kalır.</p>
+<div id="division"></div>
+<p>SQL'de bölme işlemi yoktur. Aynı soru, Ch 7'de gördüğümüz çift olumsuzlamayla yazılır: "Smith'in çalışıp bu çalışanın çalışmadığı bir proje <em>yoktur</em>."</p>
+<pre class="sql run" data-title="Bölmenin SQL karşılığı: NOT EXISTS ile">
 SELECT DISTINCT W.Essn
 FROM   WORKS_ON W
 WHERE  NOT EXISTS (SELECT S.Pno FROM WORKS_ON S WHERE S.Essn = '123456789'
                    EXCEPT
                    SELECT X.Pno FROM WORKS_ON X WHERE X.Essn = W.Essn);
 </pre>
-<p>Kitabın Ch 8'i ayrıca tuple ve domain ilişkisel hesabını (relational calculus) anlatır: aynı soruları <em>nonprocedural</em> biçimde, ∃ ve ∀ niceleyicileriyle yazar. Ch 7'deki NOT EXISTS kalıbı, ∀'nın hesaptaki karşılığıdır.</p>
+
+<h2>Sorgu ağacı</h2>
+<p><strong>Sorgu ağacı</strong>, bir cebir ifadesini ağaç biçiminde gösterir. Yapraklar temel ilişkilerdir (EMPLOYEE, PROJECT gibi), iç düğümler ise işlemlerdir (σ, π, ⋈ gibi). Bir düğüm, çocuklarının sonuçları hazır olduğunda çalıştırılır ve kökteki işlemin sonucu sorgunun cevabıdır. DBMS'ler sorguları içeride böyle bir ağaç olarak tutar; ağaç, sorgunun ne kadar iş gerektireceğini ve hangi ara sonuçların oluşacağını görmeyi kolaylaştırır. Cebirsel sorgu iyileştirme (Ch 15), ağacı eşdeğer ama daha ucuz bir ağaca dönüştürmektir.</p>
+<p>Aşağıdaki ağaç kitaptaki Q2 sorgusudur: "Stafford'da bulunan her proje için proje numarası, kontrol eden departmanın numarası ve o departmanın yöneticisinin soyadı, adresi ve doğum tarihi." Bir düğüme tıklarsanız o düğümün ara sonucu altında görünür; aşağıdan yukarıya tıklayarak sorgunun nasıl hesaplandığını izleyebilirsiniz.</p>
+<div id="query-tree"></div>
+
+<h2>Ek işlemler</h2>
+<h3>Aggregate fonksiyonları ve gruplama (ℑ)</h3>
+<p>Temel cebirle ifade edilemeyen bir istek türü, bir değerler topluluğu üzerinde matematiksel özet hesaplamaktır: bütün çalışanların ortalama ya da toplam maaşı, çalışan sayısı gibi. Bunun için <strong>ℑ</strong> (ya da ℱ) işlemi kullanılır. Örneğin ℑ<sub>MAX Salary</sub>(EMPLOYEE) en yüksek maaşı, ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE) çalışan sayısını ve ortalama maaşı verir. COUNT satırları sayar ve tekrarları silmez.</p>
+<p>Gruplama özniteliği ℑ simgesinin <em>soluna</em>, aggregate fonksiyonları sağına yazılır. <sub>Dno</sub>ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE), çalışanları departman numarasına göre gruplar ve her departman için çalışan sayısını ve ortalama maaşı hesaplar. Bu, SQL'deki <code>GROUP BY</code>'ın karşılığıdır. Kitaptaki Figure 8.10'un üç hâli aşağıdadır.</p>
+<div id="aggregate"></div>
+
+<h3>Recursive closure</h3>
+<p>Temel cebirle genel olarak yazılamayan bir başka işlem, recursive bir ilişki üzerindeki <strong>recursive closure</strong>'dır. Örneğin "James Borg'un bütün seviyelerdeki astları" sorusunda Borg'un doğrudan astlarını, onların doğrudan astlarını ve bu şekilde devam eden bütün zinciri bulmak gerekir. Her seviyeyi ayrı ayrı bulup birleşimlerini almak mümkündür, ama seviye sayısı bilinmiyorsa bir döngü olmadan bu sorgu yazılamaz. SQL3 standardı bu iş için recursive sorguları ekledi (Ch 7'deki <code>WITH RECURSIVE</code>). Kitaptaki Figure 8.11 iki seviyeyi böyle bulur:</p>
+<pre class="algebra">BORG_SSN            ← π<sub>Ssn</sub>(σ<sub>Fname='James' AND Lname='Borg'</sub>(EMPLOYEE))
+SUPERVISION(Ssn1, Ssn2) ← π<sub>Ssn, Super_ssn</sub>(EMPLOYEE)
+RESULT1(Ssn)        ← π<sub>Ssn1</sub>(SUPERVISION ⋈<sub>Ssn2=Ssn</sub> BORG_SSN)
+RESULT2(Ssn)        ← π<sub>Ssn1</sub>(SUPERVISION ⋈<sub>Ssn2=Ssn</sub> RESULT1)
+RESULT              ← RESULT2 ∪ RESULT1</pre>
+<div id="recursive"></div>
+
+<h3>Outer join</h3>
+<p>Natural join ve equijoin'de eşi bulunmayan satırlar sonuçtan atılır; join sütunu NULL olan satırlar da atılır. Bu bir bilgi kaybıdır. <strong>Outer join</strong> işlemleri, eşi olsun olmasın bir ilişkinin bütün satırlarını sonuçta tutmak istediğimizde kullanılır.</p>
+<ul>
+  <li><strong>Left outer join</strong> (R ⟕ S), soldaki R'nin her satırını tutar; S'de eşi bulunmayan satırlar için S'nin sütunları NULL ile doldurulur.</li>
+  <li><strong>Right outer join</strong> (R ⟖ S), sağdaki S'nin her satırını aynı şekilde tutar.</li>
+  <li><strong>Full outer join</strong> (R ⟗ S), iki tarafın da eşi olmayan satırlarını tutar ve gerektiği yerde NULL ile doldurur.</li>
+</ul>
+<p>Kitaptaki Figure 8.12, her çalışanı ve yönettiği departmanın adını listeler; departman yönetmeyen çalışanlar da sonuçta, departman adı NULL olarak yer alır:</p>
+<pre class="algebra">TEMP   ← (EMPLOYEE ⟕<sub>Ssn=Mgr_ssn</sub> DEPARTMENT)
+RESULT ← π<sub>Fname, Minit, Lname, Dname</sub>(TEMP)</pre>
+<div id="outer-join"></div>
+
+<h3>Outer union</h3>
+<p><strong>Outer union</strong>, tip uyumlu olmayan iki ilişkinin birleşimini almak için tanımlanmıştır. R(X, Y) ve S(X, Z) ilişkileri yalnızca kısmen uyumludur: X sütunları ortaktır, Y ve Z değildir. Sonuç T(X, Y, Z) ilişkisidir; ortak sütunlar bir kez yer alır, uyumsuz sütunların ikisi de sonuçta tutulur. Satırlar ortak sütunların değerleri aynıysa birleştirilir.</p>
+<p>Kitaptaki örnekte STUDENT(Name, Ssn, Department, Advisor) ile INSTRUCTOR(Name, Ssn, Department, Rank) birleştirilir ve sonuç STUDENT_OR_INSTRUCTOR(Name, Ssn, Department, Advisor, Rank) olur. Hem öğrenci hem öğretim üyesi olan biri için Advisor da Rank da doludur; diğerleri için bu iki sütundan biri NULL'dur. SQL'de outer union yoktur; aşağıdaki kutu aynı sonucu iki outer join'in birleşimiyle üretir.</p>
+<pre class="sql run" data-title="Outer union: STUDENT ve INSTRUCTOR">
+DROP TABLE IF EXISTS demo.STUDENT, demo.INSTRUCTOR;   -- so that the box can be run again
+CREATE TABLE demo.STUDENT    (Name VARCHAR(20), Ssn CHAR(9), Department VARCHAR(15), Advisor VARCHAR(20));
+CREATE TABLE demo.INSTRUCTOR (Name VARCHAR(20), Ssn CHAR(9), Department VARCHAR(15), `Rank` VARCHAR(15));
+INSERT INTO demo.STUDENT    VALUES ('Ali', '111', 'CS', 'Kaya'), ('Ece', '222', 'EE', 'Demir');
+INSERT INTO demo.INSTRUCTOR VALUES ('Kaya', '333', 'CS', 'Professor'), ('Ece', '222', 'EE', 'Assistant');
+-- STUDENT_OR_INSTRUCTOR(Name, Ssn, Department, Advisor, Rank): Ece is both, so her row has both values
+SELECT S.Name, S.Ssn, S.Department, S.Advisor, I.`Rank`
+FROM   demo.STUDENT S LEFT JOIN demo.INSTRUCTOR I ON S.Name = I.Name AND S.Ssn = I.Ssn AND S.Department = I.Department
+UNION
+SELECT I.Name, I.Ssn, I.Department, S.Advisor, I.`Rank`
+FROM   demo.INSTRUCTOR I LEFT JOIN demo.STUDENT S ON S.Name = I.Name AND S.Ssn = I.Ssn AND S.Department = I.Department;
+</pre>
+
+<h2>Örnek sorgular</h2>
+<p>Kitap aynı sorguları önce ara sonuçlara ad veren prosedürel biçimde, sonra tek bir ifade olarak yazar. Aşağıdaki gösterimlerde her ara sonucu, girdileri ve sonucuyla birlikte görebilirsiniz.</p>
+<h3>Q1: Research departmanında çalışanların adı ve adresi</h3>
+<pre class="algebra">RESEARCH_DEPT ← σ<sub>Dname='Research'</sub>(DEPARTMENT)
+RESEARCH_EMPS ← (RESEARCH_DEPT ⋈<sub>Dnumber=Dno</sub> EMPLOYEE)
+RESULT        ← π<sub>Fname, Lname, Address</sub>(RESEARCH_EMPS)
+
+Tek ifade olarak:
+π<sub>Fname, Lname, Address</sub>(σ<sub>Dname='Research'</sub>(DEPARTMENT ⋈<sub>Dnumber=Dno</sub> EMPLOYEE))</pre>
+<div id="q1"></div>
+<h3>Q6: Hiç bağımlısı olmayan çalışanların adları</h3>
+<p>Bu sorgu fark işlemini kullanır: bütün çalışanların Ssn'lerinden bağımlısı olanların Ssn'leri çıkarılır, kalan Ssn'ler EMPLOYEE ile birleştirilip adlar alınır.</p>
+<pre class="algebra">ALL_EMPS          ← π<sub>Ssn</sub>(EMPLOYEE)
+EMPS_WITH_DEPS(Ssn) ← π<sub>Essn</sub>(DEPENDENT)
+EMPS_WITHOUT_DEPS ← (ALL_EMPS − EMPS_WITH_DEPS)
+RESULT            ← π<sub>Lname, Fname</sub>(EMPS_WITHOUT_DEPS * EMPLOYEE)
+
+Tek ifade olarak:
+π<sub>Lname, Fname</sub>((π<sub>Ssn</sub>(EMPLOYEE) − ρ<sub>Ssn</sub>(π<sub>Essn</sub>(DEPENDENT))) * EMPLOYEE)</pre>
+<div id="q6"></div>
+
+<h2>İşlemler tablosu</h2>
+<p>Kitaptaki Table 8.1'in özeti ve her işlemin SQL karşılığı:</p>
+<table class="simple">
+  <thead><tr><th>İşlem</th><th>Amacı</th><th>Gösterim</th><th>SQL karşılığı</th></tr></thead>
+  <tbody>
+    <tr><td>SELECT</td><td>Bir ilişkinin seçim koşulunu sağlayan satırlarını seçer.</td><td>σ<sub>koşul</sub>(R)</td><td><code>WHERE koşul</code></td></tr>
+    <tr><td>PROJECT</td><td>Bir ilişkinin bazı sütunlarını tutar ve tekrarları siler.</td><td>π<sub>liste</sub>(R)</td><td><code>SELECT DISTINCT liste</code></td></tr>
+    <tr><td>THETA JOIN</td><td>İki ilişkinin join koşulunu sağlayan satır çiftlerini birleştirir.</td><td>R ⋈<sub>koşul</sub> S</td><td><code>R JOIN S ON koşul</code></td></tr>
+    <tr><td>EQUIJOIN</td><td>Yalnızca eşitlik karşılaştırmaları kullanan theta join'dir.</td><td>R ⋈<sub>A=B</sub> S</td><td><code>R JOIN S ON R.A = S.B</code></td></tr>
+    <tr><td>NATURAL JOIN</td><td>Aynı adlı sütunlar üzerinde equijoin yapar ve her çiftten bir sütun tutar.</td><td>R * S</td><td><code>R NATURAL JOIN S</code></td></tr>
+    <tr><td>UNION</td><td>İki tip uyumlu ilişkinin bütün satırlarını, tekrarsız olarak verir.</td><td>R ∪ S</td><td><code>UNION</code></td></tr>
+    <tr><td>INTERSECTION</td><td>İki ilişkide de bulunan satırları verir.</td><td>R ∩ S</td><td><code>INTERSECT</code></td></tr>
+    <tr><td>DIFFERENCE</td><td>R'de olup S'de olmayan satırları verir.</td><td>R − S</td><td><code>EXCEPT</code></td></tr>
+    <tr><td>CARTESIAN PRODUCT</td><td>R'nin her satırını S'nin her satırıyla birleştirir.</td><td>R × S</td><td><code>FROM R, S</code> ya da <code>CROSS JOIN</code></td></tr>
+    <tr><td>DIVISION</td><td>R'de S'nin her satırıyla birlikte bulunan Y değerlerini verir.</td><td>R(Z) ÷ S(X)</td><td>SQL'de yok; çift <code>NOT EXISTS</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE">
+  <p>EMPLOYEE'de 8 satır var. π<sub>Sex, Salary</sub>(EMPLOYEE) kaç satır döndürür? (Kadınların maaşları 25000, 43000, 25000; erkeklerin maaşları 30000, 40000, 38000, 55000, 25000.)</p>
+  <ol>
+    <li data-why="8, SQL'de DISTINCT yazmadan alınan sonuç olurdu. Cebir küme semantiği kullandığı için π tekrarları siler.">8</li>
+    <li data-why="Doğru: (F, 25000) iki kez geçtiği için bir satır silinir; geriye 7 farklı (Sex, Salary) çifti kalır.">7</li>
+    <li data-why="6, yalnızca farklı maaşların sayısıdır (Salary'ye göre). Burada çiftler sayılıyor: (F, 25000) ile (M, 25000) farklı satırlardır.">6</li>
+    <li data-why="2, yalnızca Sex'in farklı değerlerinin sayısı olurdu. Liste iki sütun içerdiği için çiftlere bakılır.">2</li>
+  </ol>
+  <div class="explain">π sonucu bir küme olduğu için aynı (Sex, Salary) çifti bir kez yer alır. Kadınlardan (F, 25000) iki kez geçer ve biri silinir: 8 − 1 = 7. Erkeklerden 25000 kazanan Jabbar'ın satırı (M, 25000) olduğu için kadınların (F, 25000) satırından farklıdır.</div>
+  <pre class="sql run" data-title="Kontrol edin">SELECT DISTINCT Sex, Salary FROM EMPLOYEE;</pre>
+</div>
+<div class="quiz" data-answer="3">
+  <p>R'de 4, S'de 3 satır var. R × S ve R ⋈<sub>koşul</sub> S için en fazla kaç satır olabilir?</p>
+  <ol>
+    <li data-why="7, iki ilişkinin satır sayılarının toplamıdır; çarpım ise satırları birbiriyle eşleştirir.">R × S: 7; R ⋈ S: 7</li>
+    <li data-why="Join, çarpımdan sonra yapılan bir seçimdir ve seçim satır sayısını hiçbir zaman artırmaz; bu yüzden join çarpımdan büyük olamaz.">R × S: 12; R ⋈ S: 24</li>
+    <li data-why="Doğru: çarpım her zaman 4 · 3 = 12 satır verir; join, çarpımın koşulu sağlayan kısmı olduğu için en fazla 12 satır verebilir.">R × S: tam 12; R ⋈ S: en fazla 12</li>
+    <li data-why="Join koşulunu bütün satır çiftleri sağlıyorsa sonuç 12 satır olabilir; 3 bir üst sınır değildir.">R × S: 12; R ⋈ S: en fazla 3</li>
+  </ol>
+  <div class="explain">Kartezyen çarpımda her satır her satırla eşleştiği için sonuç her zaman n<sub>R</sub> · n<sub>S</sub> = 12 satırdır. Join ise σ<sub>koşul</sub>(R × S) olduğu için bu 12 satırın bir alt kümesidir; koşulu bütün çiftler sağlarsa 12, hiçbiri sağlamazsa 0 satır olur.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Hangi ifade natural join için <em>doğru değildir</em>?</p>
+  <ol>
+    <li data-why="Bu ifade doğrudur (soru yanlış olanı arıyor): natural join'de koşul yazılmaz, aynı adlı sütunlardan kendiliğinden oluşur.">Join koşulu yazılmaz; aynı adı taşıyan sütun çiftlerinden kendiliğinden oluşur.</li>
+    <li data-why="Bu ifade doğrudur (soru yanlış olanı arıyor): equijoin'deki gereksiz ikinci sütunu atmak natural join'in amacıdır.">Aynı adlı her sütun çiftinden sonuçta yalnızca bir sütun kalır.</li>
+    <li data-why="Bu ifade doğrudur (soru yanlış olanı arıyor): ortak sütun adları yoksa önce ρ ile yeniden adlandırma yapılır.">Sütun adları farklıysa önce RENAME uygulanması gerekir.</li>
+    <li data-why="Yanlış olan bu, yani doğru cevap: natural join bir equijoin türüdür; koşul yalnızca eşitliklerden oluşur.">Join koşulu herhangi bir karşılaştırma (&lt;, &gt;, …) içerebilir.</li>
+  </ol>
+  <div class="explain">Herhangi bir karşılaştırma içerebilen join theta join'dir. Natural join ise aynı adlı sütunlar arasındaki eşitliklerden oluşan bir equijoin'dir ve her eşit sütun çiftinden birini atar.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>"Bütün projelerde çalışan çalışanların Ssn'leri" sorusu için hangi işlem en uygundur?</p>
+  <ol>
+    <li data-why="Doğru: π<sub>Essn, Pno</sub>(WORKS_ON) ÷ π<sub>Pnumber</sub>(PROJECT); bir Essn ancak bütün proje numaralarıyla birlikte bulunuyorsa sonuca girer. (Pnumber'ı Pno olarak yeniden adlandırmak gerekir.)">DIVISION: π<sub>Essn, Pno</sub>(WORKS_ON) ÷ ρ<sub>(Pno)</sub>(π<sub>Pnumber</sub>(PROJECT))</li>
+    <li data-why="Bu join, en az bir projede çalışanları verir (∃), bütün projelerde çalışanları değil (∀).">JOIN: π<sub>Essn</sub>(WORKS_ON ⋈<sub>Pno=Pnumber</sub> PROJECT)</li>
+    <li data-why="Bu, en az bir projede çalışanların Ssn'leridir; 'bütün' koşulunu ifade etmez.">PROJECT: π<sub>Essn</sub>(WORKS_ON)</li>
+    <li data-why="Bu fark, hiçbir projede çalışmayan çalışanları verir.">DIFFERENCE: π<sub>Ssn</sub>(EMPLOYEE) − π<sub>Essn</sub>(WORKS_ON)</li>
+  </ol>
+  <div class="explain">"Bütün … ile" (∀) soruları bölmenin tipik kullanım alanıdır: R(Essn, Pno) ÷ S(Pno), S'deki her Pno ile birlikte bulunan Essn'leri verir. Join ve projeksiyon yalnızca "en az bir" (∃) sorularını cevaplar.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>Aşağıdakilerden hangisi doğrudur?</p>
+  <ol>
+    <li data-why="Fark değişmeli değildir: R − S, R'de olup S'de olmayanları; S − R ise S'de olup R'de olmayanları verir.">R − S = S − R</li>
+    <li data-why="Projeksiyon değişmeli değildir ve iç içe yazılması ancak dıştaki liste içtekinin alt kümesiyse geçerlidir.">π<sub>A</sub>(π<sub>B</sub>(R)) = π<sub>B</sub>(π<sub>A</sub>(R)) her zaman geçerlidir.</li>
+    <li data-why="Doğru: seçim değişmelidir ve art arda gelen seçimler koşulların AND'iyle tek bir seçime dönüşür.">σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c1 AND c2</sub>(R)</li>
+    <li data-why="Tip uyumluluğu ∪, ∩ ve − için gerekir; kartezyen çarpımın girdileri herhangi iki ilişki olabilir.">Kartezyen çarpımın iki girdisi tip uyumlu olmalıdır.</li>
+  </ol>
+  <div class="explain">σ değişmelidir; art arda gelen seçimler herhangi bir sırayla uygulanabilir ve koşulların AND'iyle tek bir seçimde birleştirilebilir. Fark ve projeksiyon değişmeli değildir; tip uyumluluğu yalnızca ∪, ∩ ve − için gerekir.</div>
+</div>
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE DEPARTMENT">
+  <p>EMPLOYEE ⟕<sub>Ssn=Mgr_ssn</sub> DEPARTMENT kaç satır döndürür? (EMPLOYEE'de 8 çalışan var; 3 departmanın her birini farklı bir çalışan yönetiyor.)</p>
+  <ol>
+    <li data-why="3, iç join'in sonucudur: yalnızca departman yöneten çalışanlar. Left outer join soldaki bütün satırları tutar.">3</li>
+    <li data-why="Doğru: soldaki 8 çalışanın hepsi kalır; 3'ü yönettiği departmanla eşleşir, diğer 5'inin departman sütunları NULL olur.">8</li>
+    <li data-why="11, iki ilişkinin satır sayılarının toplamıdır; outer join satırları alt alta eklemez, eşleştirir.">11</li>
+    <li data-why="24, kartezyen çarpımın satır sayısıdır (8 · 3); join koşulu satırları eşleştirir.">24</li>
+  </ol>
+  <div class="explain">Left outer join, soldaki ilişkinin her satırını tutar. Departman yöneten 3 çalışan departmanlarıyla eşleşir; yönetmeyen 5 çalışan da sonuçta yer alır ve DEPARTMENT'ın sütunları onlar için NULL olur. Her çalışan en fazla bir departman yönettiği için satır sayısı 8'dir.</div>
+  <pre class="sql run" data-title="Kontrol edin">SELECT E.Fname, E.Minit, E.Lname, D.Dname
+FROM   EMPLOYEE E LEFT OUTER JOIN DEPARTMENT D ON E.Ssn = D.Mgr_ssn;</pre>
+</div>
 
 </div></main>
 </body>

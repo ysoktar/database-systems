@@ -9,7 +9,8 @@ export const NOTEBOOK_URL = "https://colab.research.google.com/drive/1ArUuenMYSn
 
 /**
  * Site map. `ch` = chapter of Elmasri & Navathe (7th ed.). `scope`: "midterm" (Ch 1–7, on the midterm) or
- * "final" (Ch 8 onward: outside the midterm scope).
+ * "final" (after the midterm: syllabus weeks 8–12). `slides`: the slide range of the course's slide deck that the page
+ * covers (the syllabus limits some chapters, e.g. Ch 8 slides 1–67).
  */
 export const NAV = [
   { part: "Başlangıç", part_en: "Start", items: [
@@ -32,6 +33,9 @@ export const NAV = [
     { id: "ch7-joins", title: "Join, gruplama, WITH", title_en: "Joins, grouping, WITH", desc_en: "Outer joins, aggregates, GROUP BY/HAVING, CASE, WITH RECURSIVE.", ch: "Ch 7.1", desc: "Outer join, aggregate, GROUP BY/HAVING, CASE, WITH RECURSIVE." },
     { id: "ch7-views", title: "Kısıtlar, trigger, view, ALTER", title_en: "Constraints, triggers, views, ALTER", desc_en: "ASSERTION, triggers, views and updatability, schema change.", ch: "Ch 7.2–7.4", desc: "ASSERTION, trigger, view ve güncellenebilirlik, şema değişikliği." },
   ] },
+  { part: "Bölüm V · İlişkisel cebir", part_en: "Part V · Relational algebra", short: "Ch 8", items: [
+    { id: "ch8-algebra", title: "İlişkisel cebir", title_en: "Relational algebra", desc_en: "σ, π, ρ, set operations, joins, division, query trees, aggregates, outer joins.", ch: "Ch 8", slides: "1–67", scope: "final", desc: "σ, π, ρ, küme işlemleri, join'ler, bölme, sorgu ağaçları, aggregate, outer join." },
+  ] },
   { part: "Uygulama", part_en: "Practice", items: [
     { id: "er-studio", title: "ER stüdyosu", title_en: "ER studio", desc_en: "Draw ER/EER, map to tables, turn tables back into ER; design exercises.", desc: "ER/EER çiz, tablolara dönüştür, tablolardan ER'e geri dön; tasarım alıştırmaları." },
     { id: "notebook", title: "Notebook alıştırmaları", title_en: "Notebook exercises", desc_en: "The 10 SQL exercises of the Colab notebook, with the same checker.", desc: "Colab notebook'undaki 10 SQL alıştırması, aynı kontrolcüyle." },
@@ -41,16 +45,13 @@ export const NAV = [
     { id: "exam-midterm", title: "Arasınav çalışma rehberi", title_en: "Midterm study guide", desc_en: "What to know chapter by chapter, worked problems, a practice set.", desc: "Bölüm bölüm bilinmesi gerekenler, çözümlü sorular, deneme seti." },
     { id: "cheatsheet", title: "Özet kâğıdı ve sözlük", title_en: "Cheat sheet and glossary", desc_en: "SQL syntax, ER notation, Turkish–English terms.", desc: "SQL sözdizimi, ER gösterimi, Türkçe–İngilizce terimler." },
   ] },
-  { part: "Sonrası", part_en: "After the midterm", short: "Final", items: [
-    { id: "ch8-algebra", title: "İlişkisel cebir (önizleme)", title_en: "Relational algebra (preview)", desc_en: "Relational algebra and its SQL equivalents; not on the midterm.", ch: "Ch 8", scope: "final", desc: "İlişkisel cebir ve SQL karşılıkları; arasınav kapsamı dışında." },
-  ] },
 ];
 
 const ALL = NAV.flatMap((p) => p.items.map((it) => ({ ...it, title: tx(it, "title"), desc: tx(it, "desc"), part: tx(p, "part"), short: p.short })));
 for (const it of ALL) it.scope ??= it.ch ? "midterm" : "none";
 export const SCOPES = {
   midterm: { label: tl("Arasınavda", "On the midterm"), tip: tl("Arasınav kapsamında: Elmasri & Navathe Ch 1–7.", "Covered by the midterm: Elmasri & Navathe Ch 1–7.") },
-  final: { label: tl("Arasınav kapsamı dışında", "Not on the midterm"), tip: tl("Ch 8 arasınav kapsamında değil (Ch 1–7).", "Ch 8 is not on the midterm (Ch 1–7).") },
+  final: { label: tl("Final kapsamında", "On the final"), tip: tl("Vize sonrası konular (müfredatta 8–12. haftalar); arasınavda yok.", "Topics after the midterm (syllabus weeks 8–12); not on the midterm.") },
 };
 export const pageInfo = (id) => ALL.find((p) => p.id === id);
 export const PAGES = ALL;
@@ -255,6 +256,7 @@ function buildKicker(info) {
   if (info.ch) k.append(h("span", { class: "chip", title: tl("Elmasri & Navathe, 7. baskı", "Elmasri & Navathe, 7th edition") }, tl("Kitap ", "Book ") + info.ch));
   const sc = SCOPES[info.scope];
   if (sc) k.append(h("span", { class: `chip scope ${info.scope === "final" ? "beyond" : "slides"}`, title: sc.tip }, h("span", { class: "dot" }), sc.label));
+  if (info.slides) k.append(h("span", { class: "chip", title: tl("Ders slaytlarında bu sayfanın kapsadığı aralık (müfredattaki gibi)", "The range of the course slides this page covers (as in the syllabus)") }, tl(`Slaytlar ${info.slides}`, `Slides ${info.slides}`)));
   return k;
 }
 
