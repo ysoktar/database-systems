@@ -338,7 +338,8 @@ const DECIDE = [
       const [, ok, why] = d.opts[j];
       if (!initial) { answered[k] = j; if (ok) score++; nextB.disabled = false; head.querySelector(".pl-count").textContent = tl(`Soru ${k + 1} / ${DECIDE.length} · ${score} doğru`, `Question ${k + 1} of ${DECIDE.length} · ${score} correct`); head.querySelectorAll(".pl-dot")[k].classList.add(ok ? "good" : "bad"); }
       const right = d.opts.find((o) => o[1]);
-      fb.replaceChildren(h("div", { class: `res-msg ${ok ? "ok" : "warn"}` }, why), ok ? "" : h("p", { class: "small" }, h("strong", {}, tl("Doğru cevap: ", "Correct answer: ")), right[0], " ", right[2].replace(/^(Doğru|Right)\. /, "")));
+      const resetB = button(tl("↺ Cevabı sıfırla", "↺ Reset answer"), () => { if (d.opts[answered[k]]?.[1]) score--; answered[k] = undefined; show(); }, { title: tl("Bu soruyu yeniden cevaplayın", "Answer this question again") });
+      fb.replaceChildren(h("div", { class: `res-msg ${ok ? "ok" : "warn"}` }, why), h("div", { class: "btn-row", style: { margin: "6px 0" } }, resetB), ok ? "" : h("p", { class: "small" }, h("strong", {}, tl("Doğru cevap: ", "Correct answer: ")), right[0], " ", right[2].replace(/^(Doğru|Right)\. /, "")));
       const res = mapER(model, { spec: d.spec || "8A" });
       // every step of the fragment with its table before and after, whether the answer was right or wrong
       const ol = h("ol", { class: "map-steps" });
