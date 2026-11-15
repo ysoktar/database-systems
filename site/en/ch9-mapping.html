@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ER-to-relational mapping · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 9: the algorithm that maps ER and EER schemas to relational tables; Steps 1–7 (entities, weak entities, 1:1, 1:N, M:N relationships, multivalued attributes, n-ary relationships), Step 8 (options 8A–8D for specializations) and Step 9 (categories); each step with the table before and after.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch9-mapping.js"></script>
+</head>
+<body data-page="ch9-mapping">
+<main><div class="content">
+
+<h1>ER-to-relational mapping</h1>
+<p class="lead">At the end of conceptual design we have an ER or EER diagram, while the DBMS works with tables. The mapping algorithm of Ch 9 turns every construct of the diagram, step by step, into tables, primary keys and foreign keys. On this page you can see the rule of each step, the reason for it and its result on COMPANY.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Map an ER diagram to tables with the nine-step algorithm, and determine each table's primary key and foreign keys correctly.</li>
+    <li>Compare the three approaches for 1:1 relationships (foreign key, merged table, separate relationship table) and say when each one fits.</li>
+    <li>Decide which of the options 8A, 8B, 8C and 8D can be used for a specialization by looking at its constraints (total/partial, disjoint/overlapping).</li>
+    <li>Map a category (union type) with a surrogate key; explain which ER constraints are lost in the mapping.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Scope.</strong> All the Ch 9 slides (1–38), which the syllabus assigns to week 9, are on this page. The ER and EER concepts themselves are explained on the <a href="ch3-er.html">Ch 3</a> and <a href="ch4-eer.html">Ch 4</a> pages; here only their translation into tables is covered.</p>
+</div>
+
+<h2>Goals of the mapping</h2>
+<p>Three goals are kept in mind during mapping. The first is to <strong>preserve all the information</strong>: every attribute of the diagram must appear as a column in a table. The second is to <strong>preserve the constraints as far as possible</strong>: keys become primary keys, relationships become foreign keys. But the relational model cannot express every ER constraint; for example, an upper bound such as "a department can have at most 10 employees", or a complete classification such as "every student is either domestic or foreign", cannot be enforced with tables. The third is to <strong>minimize NULL values</strong>: columns that would stay empty in most rows make the design worse.</p>
+<p>The algorithm here is implemented in most commercial design tools. The site's <a href="er-studio.html">ER studio</a> uses the same algorithm too: you can draw your own diagram and see its translation into tables step by step.</p>
+
+<h2>The mapping algorithm: Steps 1–7</h2>
+<h3>Step 1: Regular (strong) entity types</h3>
+<p>For each regular entity type E, a table R is created and all the simple attributes of E are added to R as columns. Of composite attributes only the simple components are taken; for example Fname, Minit and Lname are added instead of Name. One of E's key attributes is chosen as R's primary key; if the chosen key is composite, all the simple attributes that form it together become the primary key. In COMPANY this step creates the tables EMPLOYEE, DEPARTMENT and PROJECT; their primary keys are Ssn, Dnumber and Pnumber.</p>
+<h3>Step 2: Weak entity types</h3>
+<p>For each weak entity type W whose owner is E, a table R is created and the simple attributes of W are added to R. The primary key of the owner's table is added to R as a <em>foreign key</em>. R's primary key is the combination of the owner's primary key and W's partial key. In COMPANY the DEPENDENT table is made this way: EMPLOYEE's Ssn is added as a foreign key under the name Essn, and the primary key becomes {Essn, Dependent_name}. Since the weak entities become meaningless when their owner is deleted, this foreign key usually has <code>ON DELETE CASCADE</code>.</p>
+<h3>Step 3: Binary 1:1 relationship types</h3>
+<p>For each binary 1:1 relationship type R, the tables S and T that correspond to the participating entity types are identified. There are three approaches:</p>
+<ol>
+  <li><strong>The foreign key approach (two tables).</strong> One of the tables, say S, is chosen and T's primary key is added to S as a foreign key. It is better to choose the entity that <em>totally</em> participates in the relationship as S, because then the foreign key is NULL in no row. In COMPANY DEPARTMENT is chosen for MANAGES, because every department has a manager but not every employee manages a department. So DEPARTMENT gets a Mgr_ssn column; the relationship's attribute Start_date also goes to DEPARTMENT as Mgr_start_date.</li>
+  <li><strong>A merged table (one table).</strong> The two entity types and the relationship are merged into a single table. This approach fits when both participations are total, because then both sides of every row are filled.</li>
+  <li><strong>A separate relationship table (three tables).</strong> A third table (a cross-reference) is created that links the primary keys of the two tables. This is the same method used for M:N relationships, and it is the least preferred approach for 1:1.</li>
+</ol>
+<h3>Step 4: Binary 1:N relationship types</h3>
+<p>For each binary 1:N relationship type R, the table S of the entity type on the <strong>N side</strong> of the relationship is identified. The primary key of the other table (T) is added to S as a foreign key; the relationship's simple attributes also go to S. The reason is that every entity on the N side takes part in the relationship at most once: since every employee has a single department, the department number fits in the employee's row. In COMPANY, for WORKS_FOR DEPARTMENT's primary key is added to EMPLOYEE as Dno, for CONTROLS to PROJECT as Dnum, and for the recursive SUPERVISION to EMPLOYEE as Super_ssn. Using a relationship table is also possible but is rarely done.</p>
+<h3>Step 5: Binary M:N relationship types</h3>
+<p>For each binary M:N relationship type R, a new table S is created, a <strong>relationship table</strong>. The primary keys of the participating entity types' tables are added to S as foreign keys, and their combination becomes S's primary key. The relationship's simple attributes are added to S too. An M:N relationship cannot be expressed with a single foreign key, because an employee works on many projects and a project has many employees. In COMPANY WORKS_ON is made this way: the primary keys of EMPLOYEE and PROJECT are added as Essn and Pno, the Hours column is the relationship's attribute, and the primary key is {Essn, Pno}.</p>
+<h3>Step 6: Multivalued attributes</h3>
+<p>For each multivalued attribute A, a new table R is created. R has a column for A and the primary key K of the table of the entity that A belongs to (as a foreign key). R's primary key is the combination of A and K. If A is composite, its simple components are added. In COMPANY the table DEPT_LOCATIONS(Dnumber, Dlocation) is created for DEPARTMENT's Locations attribute; its primary key is {Dnumber, Dlocation}, because a department has several locations.</p>
+<h3>Step 7: n-ary (n &gt; 2) relationship types</h3>
+<p>For each n-ary relationship type R, a new table S is created. The primary keys of all the participating entity types are added to S as foreign keys, and the relationship's simple attributes as columns. The primary key is usually the combination of all the foreign keys. However, if a participant's cardinality is 1, that participant's foreign key is not included in the primary key, because a combination of the others already determines that participant. The ternary relationship SUPPLY is mapped below to the table SUPPLY(Sname, Part_no, Proj_name, Quantity).</p>
+
+<h2>Mapping the COMPANY schema</h2>
+<p>Below is the ER diagram of COMPANY (Figure 9.1 in the book), and under it each step of the algorithm. In each step the table the step changes is shown as it was before on the left and as it is after on the right; the columns and foreign keys added at that step are highlighted. The tables the site produces have the same structure as the book's Figure 9.2; only some column names differ (for example the book names WORKS_FOR's foreign key Dno, here it appears as DEPARTMENT_Number).</p>
+<div id="company-map"></div>
+
+<h2>A ternary relationship: SUPPLY</h2>
+<p>The SUPPLY relationship of the book's Figure 3.17 connects three entities (SUPPLIER, PROJECT, PART) and carries a Quantity attribute. Step 7 creates a SUPPLY table that contains the primary keys of the three entities as foreign keys and makes their combination the primary key.</p>
+<div id="supply-map"></div>
+
+<h2>Comparing the ER and relational models</h2>
+<p>The book's Table 9.1 summarizes the relational counterparts of ER constructs:</p>
+<table class="simple">
+  <thead><tr><th>In the ER model</th><th>In the relational model</th></tr></thead>
+  <tbody>
+    <tr><td>Entity type</td><td>Entity table</td></tr>
+    <tr><td>1:1 or 1:N relationship type</td><td>A foreign key (or a relationship table)</td></tr>
+    <tr><td>M:N relationship type</td><td>A relationship table and two foreign keys</td></tr>
+    <tr><td>n-ary relationship type</td><td>A relationship table and n foreign keys</td></tr>
+    <tr><td>Simple attribute</td><td>Column</td></tr>
+    <tr><td>Composite attribute</td><td>Columns for the simple components</td></tr>
+    <tr><td>Multivalued attribute</td><td>A separate table and a foreign key</td></tr>
+    <tr><td>Value set</td><td>Domain</td></tr>
+    <tr><td>Key attribute</td><td>Primary (or secondary) key</td></tr>
+  </tbody>
+</table>
+<div class="callout gotcha">
+  <p><strong>Information lost in the mapping.</strong> Tables cannot carry everything an ER diagram says. The total participation of the "1" side of a 1:N relationship (every department must have at least one employee) cannot be enforced with a foreign key. An upper bound such as (1,10), derived attributes and a specialization being disjoint also do not show directly in the tables; they need CHECK, triggers or application code.</p>
+</div>
+
+<h2>Mapping EER constructs: Step 8</h2>
+<p>Each specialization or generalization with superclass C (attributes {k, a1, …, an}, primary key k) and subclasses {S1, …, Sm} is turned into tables with one of four options:</p>
+<table class="simple">
+  <thead><tr><th>Option</th><th>Tables</th><th>When can it be used?</th></tr></thead>
+  <tbody>
+    <tr><td><strong>8A</strong>: separate tables for the superclass and the subclasses</td><td>L(k, a1, …, an) for the superclass; Li(k, attributes of Si) for each subclass. Each Li's k is a foreign key to L.</td><td>Always: total or partial, disjoint or overlapping.</td></tr>
+    <tr><td><strong>8B</strong>: subclass tables only</td><td>Li(k, a1, …, an, attributes of Si) for each subclass; no table for the superclass.</td><td>Only for a <em>total</em> specialization, because there is no table for an entity that is in no subclass. If it is overlapping, an entity repeats in several tables.</td></tr>
+    <tr><td><strong>8C</strong>: a single table with one type column</td><td>L(k, a1, …, an, the attributes of all subclasses, t). The column t (the type or discriminating attribute) says which subclass a row belongs to.</td><td>Only for a <em>disjoint</em> specialization, because t can take a single value. With many subclass-specific attributes there are many NULLs.</td></tr>
+    <tr><td><strong>8D</strong>: a single table with several Boolean type columns</td><td>L(k, a1, …, an, the attributes of all subclasses, t1, …, tm). Each ti is a Boolean that says whether the row belongs to Si.</td><td>Can be used for an overlapping specialization too.</td></tr>
+  </tbody>
+</table>
+<p>Click one of the options below; the four examples of the book's Figure 9.5 are shown: Figure 4.4 (the disjoint specialization of EMPLOYEE by Job_type) with 8A and 8C, Figure 4.3b (the total and disjoint generalization of CAR and TRUCK into VEHICLE) with 8B, and Figure 4.5 (the overlapping specialization of PART) with 8D.</p>
+<div id="spec-options"></div>
+
+<h2>Shared subclasses and categories (Step 9)</h2>
+<h3>Shared subclasses</h3>
+<p>A <strong>shared subclass</strong> such as STUDENT_ASSISTANT is a subclass of several classes (multiple inheritance). All these classes must have the same key; if their keys differed, the subclass would be modelled as a category. The options of Step 8 can be applied to a shared subclass too. In the simplified UNIVERSITY schema below, STUDENT_ASSISTANT is a subclass of both EMPLOYEE and STUDENT; with 8A its table's primary key becomes a foreign key to both superclasses.</p>
+<div id="lattice-map"></div>
+<h3>Step 9: Categories (union types)</h3>
+<p>When mapping a category whose superclasses have different keys, the table for the category gets a new key column. This is called a <strong>surrogate key</strong>. In the book's example an OWNER table is created for the OWNER category, and its primary key is the surrogate key Owner_id. The table of each superclass that forms the category (PERSON, BANK, COMPANY) gets an Owner_id foreign key that refers to this key; for those who own no vehicle this column stays NULL. The superclasses of the REGISTERED_VEHICLE category (CAR and TRUCK), on the other hand, share the same key (Vehicle_id), so no surrogate key is needed.</p>
+<div id="category-map"></div>
+
+<h2>Try it yourself</h2>
+<p>Choose an example and a specialization option; the diagram and the mapping steps are updated. If the option you choose does not fit a specialization (for example 8B for a partial specialization), the algorithm falls back to a suitable option and says why in the notes of the result. You can draw the exercise schemas of slides 36–37 (SHIP_TRACKING and the car dealer) in the <a href="er-studio.html">ER studio</a> and map them the same way.</p>
+<div id="explorer"></div>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="2">
+  <p>How is the relationship EMPLOYEE —(N)— WORKS_FOR —(1)— DEPARTMENT mapped?</p>
+  <ol>
+    <li data-why="The foreign key cannot go on the 1 side: a department has many employees, and they do not fit in a single column.">EMPLOYEE's Ssn is added to DEPARTMENT as a foreign key.</li>
+    <li data-why="Correct: each employee on the N side takes part in the relationship at most once, so the department number fits in the employee's row.">DEPARTMENT's Dnumber is added to EMPLOYEE as a foreign key.</li>
+    <li data-why="A separate relationship table is needed for M:N relationships; for 1:N it is possible but unnecessary and rarely used.">A separate table called WORKS_FOR must be created.</li>
+    <li data-why="Merging the two tables is an option only for 1:1 relationships; in 1:N the department information would repeat for every employee.">EMPLOYEE and DEPARTMENT are merged into a single table.</li>
+  </ol>
+  <div class="explain">Step 4: in a 1:N relationship the foreign key goes into the table on the N side. Since every employee has a single department, the Dno column carries one value in each row of EMPLOYEE. Put the other way round, a department's many employees would not fit in a single column.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>What is the primary key of the table for the weak entity DEPENDENT (partial key Dependent_name, owner EMPLOYEE)?</p>
+  <ol>
+    <li data-why="The partial key alone is not unique: two different employees can have dependents with the same name.">{Dependent_name}</li>
+    <li data-why="Essn alone is not unique: an employee can have several dependents.">{Essn}</li>
+    <li data-why="Correct: the combination of the owner's primary key and the partial key.">{Essn, Dependent_name}</li>
+    <li data-why="A weak entity has no key of its own; the algorithm does not add an artificial key, it uses the owner's key.">A new artificial key, Dependent_id</li>
+  </ol>
+  <div class="explain">Step 2: the primary key of a weak entity's table is the combination of the owner's primary key (Essn, added as a foreign key) and the weak entity's partial key (Dependent_name).</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>The relationship STUDENT —(M)— ENROLLS —(N)— COURSE has a Grade attribute. Where does Grade go?</p>
+  <ol>
+    <li data-why="Correct: an M:N relationship is mapped to its own table, and the relationship's attributes go into that table.">Into the table ENROLLS(Student_id, Course_id, Grade); primary key {Student_id, Course_id}</li>
+    <li data-why="A student has many courses and a separate grade for each; a single Grade column is not enough.">Into the STUDENT table</li>
+    <li data-why="A course has many students, each with a separate grade; a single Grade column is not enough.">Into the COURSE table</li>
+    <li data-why="Grade is a single-valued relationship attribute; a separate table is needed for multivalued attributes (Step 6).">Into a separate table called GRADE</li>
+  </ol>
+  <div class="explain">Step 5: for an M:N relationship a relationship table is created with the two foreign keys (and a primary key made of their combination); the relationship's attributes go here too. Since Grade belongs to a (student, course) pair, it fits in neither the student's nor the course's row.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>The specialization PERSON → {STUDENT, STAFF} is <em>overlapping</em> and <em>partial</em>. Which option can be used?</p>
+  <ol>
+    <li data-why="8B can be used only for a total specialization: there would be no table for people in no subclass.">Only 8B</li>
+    <li data-why="8C uses a single type column, and a person could not be both a student and staff; it does not fit overlapping.">Only 8C</li>
+    <li data-why="8B cannot be used for a partial specialization, and 8C cannot be used for an overlapping one.">8B or 8C</li>
+    <li data-why="Correct: 8A always works; the Boolean type columns of 8D allow a person to be in two subclasses at once.">8A or 8D</li>
+  </ol>
+  <div class="explain">8A can be used for any specialization. 8B does not fit because it is partial (people with no subclass would be lost). 8C does not fit because it is overlapping (a single type column cannot show two subclasses). In 8D each subclass has its own Boolean column, so overlapping can be expressed too.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>In the category OWNER = PERSON ∪ BANK ∪ COMPANY the three superclasses have different keys (Ssn, Bname, Cname). What is done in the mapping?</p>
+  <ol>
+    <li data-why="The combination of three different keys cannot be the primary key: only one of them would be filled in each row, and no part of a primary key can be NULL.">The primary key of the OWNER table becomes {Ssn, Bname, Cname}.</li>
+    <li data-why="Correct: the category gets a new surrogate key, and each superclass table refers to it with a foreign key.">OWNER gets a surrogate key (Owner_id); an Owner_id foreign key is added to the PERSON, BANK and COMPANY tables.</li>
+    <li data-why="The link between the category and its superclasses would be lost; Step 9 creates a separate table for the category.">No table is created for OWNER.</li>
+    <li data-why="Since the superclasses have different keys, none of them can identify all the owners.">OWNER's primary key becomes PERSON's Ssn.</li>
+  </ol>
+  <div class="explain">Step 9: if the superclasses have different keys, the category table gets a surrogate key. Each superclass table gets a foreign key that refers to this key; in rows that do not belong to the category this column is NULL.</div>
+</div>
+
+</div></main>
+</body>
+</html>

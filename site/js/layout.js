@@ -36,6 +36,9 @@ export const NAV = [
   { part: "Bölüm V · İlişkisel cebir", part_en: "Part V · Relational algebra", short: "Ch 8", items: [
     { id: "ch8-algebra", title: "İlişkisel cebir", title_en: "Relational algebra", desc_en: "σ, π, ρ, set operations, joins, division, query trees, aggregates, outer joins.", ch: "Ch 8", slides: "1–67", scope: "final", desc: "σ, π, ρ, küme işlemleri, join'ler, bölme, sorgu ağaçları, aggregate, outer join." },
   ] },
+  { part: "Bölüm VI · Veritabanı tasarımı", part_en: "Part VI · Database design", short: "Ch 9, 14", items: [
+    { id: "ch9-mapping", title: "ER'den tablolara eşleme", title_en: "ER-to-relational mapping", desc_en: "The mapping algorithm: Steps 1–7 for ER, 8A–8D for specializations, 9 for categories.", ch: "Ch 9", slides: "1–38", scope: "final", desc: "Eşleme algoritması: ER için Adım 1–7, özelleştirme için 8A–8D, kategoriler için Adım 9." },
+  ] },
   { part: "Uygulama", part_en: "Practice", items: [
     { id: "er-studio", title: "ER stüdyosu", title_en: "ER studio", desc_en: "Draw ER/EER, map to tables, turn tables back into ER; design exercises.", desc: "ER/EER çiz, tablolara dönüştür, tablolardan ER'e geri dön; tasarım alıştırmaları." },
     { id: "notebook", title: "Notebook alıştırmaları", title_en: "Notebook exercises", desc_en: "The 10 SQL exercises of the Colab notebook, with the same checker.", desc: "Colab notebook'undaki 10 SQL alıştırması, aynı kontrolcüyle." },
