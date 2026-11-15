@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fonksiyonel bağımlılık ve normalizasyon · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 14 (ders slaytları 1–55): iyi tasarım kuralları ve güncelleme anomalileri, fonksiyonel bağımlılıklar, anahtarlar ve asal öznitelikler, 1NF, 2NF, 3NF, BCNF, kayıpsız ayrıştırma (NJB testi); bir ilişkinin normal formunu bulan ve onu adım adım ayrıştıran etkileşimli bir araçla.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch14-normalization.js"></script>
+</head>
+<body data-page="ch14-normalization">
+<main><div class="content">
+
+<h1>Fonksiyonel bağımlılık ve normalizasyon</h1>
+<p class="lead">Bir tablonun iyi tasarlanıp tasarlanmadığını nasıl anlarız? Bu sayfa önce gayriresmî kuralları ve kötü bir tasarımın yol açtığı anomalileri gösterir, sonra bunları biçimsel olarak ölçmeye yarayan fonksiyonel bağımlılıkları ve normal formları anlatır. Sayfadaki araç, bir ilişkinin hangi normal formda olduğunu bulur ve onu adım adım ayrıştırır.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Bir tabloda tekrar eden bilginin hangi ekleme, silme ve güncelleme anomalilerine yol açtığını örnekle açıklayabilmek.</li>
+    <li>Fonksiyonel bağımlılığı tanımlayabilmek; bir öznitelik kümesinin kapanışını hesaplayıp aday anahtarları ve asal öznitelikleri bulabilmek.</li>
+    <li>Bir ilişkinin 1NF, 2NF, 3NF ya da BCNF'te olup olmadığına karar verebilmek ve kuralı bozan bağımlılığı gösterebilmek.</li>
+    <li>Bir ilişkiyi bir sonraki normal forma ayrıştırabilmek ve ayrıştırmanın kayıpsız olduğunu NJB testiyle gösterebilmek.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Kapsam.</strong> Bu sayfa, müfredatta 9. haftaya yazılan Ch 14 slaytlarının 1–55 aralığını kapsar (BCNF'e kadar). Slaytların geri kalanı (56–60) çok değerli bağımlılıklar ve 4NF ile join bağımlılıkları ve 5NF konularıdır; müfredat bu kısmı içermediği için burada anlatılmıyor.</p>
+</div>
+
+<h2>İyi tasarım için gayriresmî kurallar</h2>
+<p>İlişkisel veritabanı tasarımı, öznitelikleri "iyi" ilişki şemaları oluşturacak biçimde gruplamaktır. Kitap, biçimsel kavramlardan önce dört gayriresmî kural verir.</p>
+<ol>
+  <li><strong>Anlamı açık tutun.</strong> Bir ilişkinin her satırı tek bir varlığı ya da tek bir ilişki örneğini temsil etmelidir. Farklı varlıkların (çalışanlar, departmanlar, projeler) öznitelikleri aynı ilişkide karıştırılmamalıdır; başka varlıklara yalnızca foreign key ile referans verilmelidir. Şemayı ilişki ilişki kolayca açıklayabiliyorsanız tasarım iyidir.</li>
+  <li><strong>Güncelleme anomalilerinden kaçının.</strong> Aynı bilgiyi birden çok satırda tekrar saklamak hem yer israfıdır hem de ekleme, silme ve değiştirme anomalilerine yol açar.</li>
+  <li><strong>NULL değerleri azaltın.</strong> Çoğu satırda NULL kalacak öznitelikler, primary key ile birlikte ayrı bir ilişkiye taşınabilir. NULL'un birden çok anlamı vardır (uygulanamaz, bilinmiyor, var ama elde değil) ve bu anlamlar karışabilir.</li>
+  <li><strong>Sahte satırlar üretmeyin.</strong> İlişkiler, natural join ile birleştirildiklerinde sahte (spurious) satırlar oluşmayacak, yani join kayıpsız (lossless, non-additive) olacak biçimde tasarlanmalıdır. Bir ayrıştırmanın iki önemli özelliği vardır: kayıpsız join (bundan asla vazgeçilemez) ve fonksiyonel bağımlılıkların korunması (gerekirse vazgeçilebilir).</li>
+</ol>
+<h3>Anomaliler</h3>
+<p>Kitaptaki EMP_PROJ(Ssn, Pnumber, Hours, Ename, Pname, Plocation) ilişkisi, çalışanların ve projelerin bilgilerini her (çalışan, proje) satırında tekrar saklar. Bu tasarımda üç tür anomali vardır:</p>
+<ul>
+  <li><strong>Güncelleme (değiştirme) anomalisi:</strong> bir projenin adı değişirse, o projede çalışan herkesin satırında değiştirilmesi gerekir. Biri unutulursa veri tutarsız olur.</li>
+  <li><strong>Ekleme anomalisi:</strong> henüz kimsenin çalışmadığı bir proje eklenemez, çünkü satırın primary key'inin bir parçası (Ssn) boş kalırdı. Aynı şekilde, henüz bir projeye atanmamış bir çalışan da eklenemez.</li>
+  <li><strong>Silme anomalisi:</strong> bir projede çalışan tek kişinin satırı silinirse, projenin bilgisi de kaybolur.</li>
+</ul>
+<p>Aşağıdaki kutu, COMPANY'den EMP_DEPT(Ename, Ssn, Bdate, Address, Dnumber, Dname, Dmgr_ssn) tablosunu bir join ile oluşturur (kitaptaki Figure 14.4). Research departmanının adı ve yöneticisi dört satırda tekrar ediyor. Departmanın adını yalnızca bir satırda değiştirmek tutarsızlığa yol açar: aynı departman numarası iki farklı adla görünür.</p>
+<pre class="sql run" data-title="Güncelleme anomalisi: EMP_DEPT'te tekrar eden departman bilgisi">
+DROP TABLE IF EXISTS demo.EMP_DEPT;   -- so that the box can be run again
+CREATE TABLE demo.EMP_DEPT AS
+  SELECT E.Fname AS Ename, E.Ssn, E.Bdate, E.Address, D.Dnumber, D.Dname, D.Mgr_ssn AS Dmgr_ssn
+  FROM   EMPLOYEE E JOIN DEPARTMENT D ON E.Dno = D.Dnumber;
+-- the department's name is stored once per employee: four times for Research
+SELECT Ename, Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;
+-- renaming it in one row only leaves the data inconsistent
+UPDATE demo.EMP_DEPT SET Dname = 'R&amp;D' WHERE Ssn = '123456789';
+SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- department 5 now has two names
+</pre>
+
+<h2>Fonksiyonel bağımlılıklar</h2>
+<p>Fonksiyonel bağımlılıklar (FD), bir tasarımın ne kadar iyi olduğunu biçimsel olarak ölçmeye yarar. <strong>X → Y</strong> ("X, Y'yi fonksiyonel olarak belirler") şu anlama gelir: ilişkinin herhangi bir durumunda, X değerleri aynı olan iki satırın Y değerleri de aynı olmak zorundadır. Biçimsel olarak, her t1 ve t2 satırı için t1[X] = t2[X] ise t1[Y] = t2[Y]'dir.</p>
+<ul>
+  <li>Ssn → Ename: Ssn bir çalışanın adını belirler.</li>
+  <li>Pnumber → {Pname, Plocation}: proje numarası projenin adını ve yerini belirler.</li>
+  <li>{Ssn, Pnumber} → Hours: bir çalışanın bir projede haftada kaç saat çalıştığını, çalışan ve proje birlikte belirler.</li>
+</ul>
+<p>Bir FD, şemanın bir özelliğidir ve ilişkinin <em>her</em> geçerli durumunda sağlanmalıdır. FD'ler verinin kendisinden değil, özniteliklerin gerçek dünyadaki anlamından çıkarılır. K, R'nin bir anahtarıysa K, R'nin bütün özniteliklerini belirler, çünkü K değeri aynı olan iki farklı satır yoktur.</p>
+<div class="callout key">
+  <p><strong>Veriden FD çıkarılamaz, ancak FD'ler elenebilir.</strong> Bir ilişkinin bir durumuna bakarak bir FD'nin <em>olabileceğini</em> söyleyebiliriz, ama var olduğunu kanıtlayamayız. Kesin olarak söyleyebileceğimiz şey, bir FD'yi bozan iki satır varsa o FD'nin <em>olmadığıdır</em>.</p>
+</div>
+<p>Aşağıdaki araçta bir tablo ve bir X → Y bağımlılığı seçin. Araç, X değerleri aynı ama Y değerleri farklı iki satır arar. Bulursa bu iki satırı kırmızıyla işaretler ve FD elenir; bulamazsa FD bu duruma göre <em>olabilir</em>. Kitaptaki Figure 14.7'de TEACH ilişkisinin durumuna bakarak Text → Course olabilir, ama Teacher → Course, Teacher → Text ve Course → Text elenir. Figure 14.8'deki R(A, B, C, D) ilişkisinde hangi FD'lerin olabileceğini kendiniz deneyin.</p>
+<div id="fd-check"></div>
+
+<h2>Normalizasyon ve anahtarlar</h2>
+<p><strong>Normalizasyon</strong>, "kötü" ilişkileri özniteliklerini daha küçük ilişkilere bölerek ayrıştırma işlemidir. <strong>Normal form</strong>, bir ilişki şemasının belirli bir düzeyde olduğunu anahtarları ve FD'leri kullanarak gösteren bir koşuldur. 2NF, 3NF ve BCNF anahtarlara ve FD'lere dayanır. Uygulamada genellikle 3NF ya da BCNF'e kadar normalize edilir. Daha yüksek normal formdaki ilişkilerin join'ini performans için temel ilişki olarak saklamaya <strong>denormalizasyon</strong> denir; bu durumda ortaya çıkan anomaliler bilinçli olarak kabul edilir.</p>
+<ul>
+  <li><strong>Süper anahtar</strong>: hiçbir geçerli durumda iki satırın değerlerinin aynı olamayacağı öznitelik kümesi.</li>
+  <li><strong>Anahtar</strong>: herhangi bir özniteliği çıkarıldığında süper anahtar olmaktan çıkan, yani minimal olan süper anahtar. Birden çok anahtar varsa her biri bir <strong>aday anahtardır</strong>; biri primary key seçilir, diğerleri ikincil anahtar olur.</li>
+  <li><strong>Asal (prime) öznitelik</strong>: herhangi bir aday anahtarın üyesi olan öznitelik. <strong>Asal olmayan (nonprime) öznitelik</strong>: hiçbir aday anahtarın üyesi olmayan öznitelik.</li>
+</ul>
+<p>Bir öznitelik kümesi X'in <strong>kapanışı</strong> X<sup>+</sup>, X'in FD'ler aracılığıyla belirlediği bütün özniteliklerdir. X<sup>+</sup> ilişkinin bütün özniteliklerini içeriyorsa X bir süper anahtardır. Aşağıdaki araç kapanışları bu şekilde hesaplayarak aday anahtarları bulur.</p>
+
+<h2>Birinci normal form (1NF)</h2>
+<p>1NF; bileşik öznitelikleri, çok değerli öznitelikleri ve iç içe ilişkileri, yani bir satırdaki değeri atomik olmayan öznitelikleri yasaklar. 1NF, ilişki tanımının bir parçası sayılır ve ilişkisel DBMS'lerin çoğu yalnızca 1NF'teki ilişkilerin tanımlanmasına izin verir.</p>
+<p>Kitaptaki Figure 14.9'da DEPARTMENT(Dname, Dnumber, Dmgr_ssn, Dlocations) ilişkisinin Dlocations özniteliği çok değerlidir: Research departmanının Bellaire, Sugarland ve Houston olmak üzere üç yeri vardır. Bunu 1NF'e getirmenin en iyi yolu, Dlocations'ı primary key ile birlikte ayrı bir ilişkiye taşımaktır: DEPT_LOCATIONS(Dnumber, Dlocation). COMPANY'de yapılan da budur. Diğer seçenekler (her yer için departman bilgisini tekrar eden satırlar ya da Dlocation1, Dlocation2, … gibi sabit sayıda sütun) tekrar ve NULL üretir.</p>
+<p>Figure 14.10'da EMP_PROJ ilişkisinin her satırı, çalışanın projelerinden oluşan iç içe bir PROJS ilişkisi içerir. Bunu 1NF'e getirmek için iç içe ilişki, primary key'i yanına alınarak ayrı bir ilişkiye taşınır: EMP_PROJ1(Ssn, Ename) ve EMP_PROJ2(Ssn, Pnumber, Hours).</p>
+<pre class="sql run" data-title="1NF: Dlocations'ı tek bir sütunda değil, ayrı satırlarda tutmak">
+-- not in 1NF: one value holding a set of locations
+SELECT Dnumber, GROUP_CONCAT(Dlocation ORDER BY Dlocation SEPARATOR ', ') AS Dlocations
+FROM   DEPT_LOCATIONS GROUP BY Dnumber;
+-- 1NF: DEPT_LOCATIONS(Dnumber, Dlocation), one atomic value per row
+SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
+</pre>
+
+<h2>İkinci normal form (2NF)</h2>
+<p>X → Y bağımlılığında X'ten herhangi bir öznitelik çıkarıldığında bağımlılık artık sağlanmıyorsa bu bir <strong>tam fonksiyonel bağımlılıktır</strong>. Örneğin {Ssn, Pnumber} → Hours tamdır, çünkü ne Ssn → Hours ne de Pnumber → Hours sağlanır. {Ssn, Pnumber} → Ename ise tam değildir, çünkü Ssn → Ename de sağlanır; buna <strong>kısmi bağımlılık</strong> denir.</p>
+<div class="callout key">
+  <p><strong>2NF:</strong> bir ilişki şemasındaki asal olmayan her öznitelik primary key'e <em>tam</em> fonksiyonel bağımlıysa şema 2NF'tedir. Yani asal olmayan hiçbir öznitelik anahtarın yalnızca bir <em>parçasına</em> bağlı olmamalıdır.</p>
+</div>
+<p>EMP_PROJ 2NF'te değildir: Ename yalnızca Ssn'e, Pname ve Plocation yalnızca Pnumber'a bağlıdır. 2NF normalizasyonu, her kısmi bağımlılığı kendi ilişkisine taşır. Aşağıdaki gösterimde her ayrıştırma adımında ilişkinin önceki hâli solda, ondan çıkan iki ilişki sağdadır; altı çizili öznitelikler her ilişkinin anahtarıdır. Sonuç kitaptaki Figure 14.11a ile aynıdır: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename) ve EP3(Pnumber, Pname, Plocation).</p>
+<div id="nf-emp-proj"></div>
+
+<h2>Üçüncü normal form (3NF)</h2>
+<p>X → Y ve Y → Z bağımlılıklarından türetilebilen X → Z bağımlılığına <strong>geçişli (transitive) bağımlılık</strong> denir. Örneğin Ssn → Dmgr_ssn geçişlidir, çünkü Ssn → Dnumber ve Dnumber → Dmgr_ssn sağlanır. Ssn → Ename ise geçişli değildir, çünkü Ssn → X ve X → Ename olan bir X yoktur.</p>
+<div class="callout key">
+  <p><strong>3NF:</strong> bir ilişki şeması 2NF'teyse ve asal olmayan hiçbir öznitelik primary key'e geçişli olarak bağlı değilse 3NF'tedir. Not: X → Y → Z'de Y bir aday anahtarsa bu bir sorun değildir. Örneğin EMP(Ssn, Emp#, Salary)'de Ssn → Emp# → Salary geçişlidir, ama Emp# bir aday anahtar olduğu için ilişki 3NF'tedir.</p>
+</div>
+<p>EMP_DEPT 2NF'tedir (anahtarı tek öznitelikli olduğu için kısmi bağımlılık olamaz) ama 3NF'te değildir: Dname ve Dmgr_ssn, primary key Ssn'e Dnumber üzerinden geçişli olarak bağlıdır. 3NF normalizasyonu bu bağımlılığı ayrı bir ilişkiye taşır ve kitaptaki Figure 14.11b'nin sonucunu verir: ED1(Ename, Ssn, Bdate, Address, Dnumber) ve ED2(Dnumber, Dname, Dmgr_ssn).</p>
+<div id="nf-emp-dept"></div>
+<p>Üç normal formun gayriresmî özeti şöyledir: 1NF'te bütün öznitelikler anahtara bağlıdır; 2NF'te bütün öznitelikler anahtarın <em>tamamına</em> bağlıdır; 3NF'te bütün öznitelikler anahtar <em>dışında hiçbir şeye</em> bağlı değildir.</p>
+
+<h2>Birden çok aday anahtar için genel tanımlar</h2>
+<p>Yukarıdaki tanımlar yalnızca primary key'i dikkate alır. Genel tanımlar bütün aday anahtarları hesaba katar; herhangi bir aday anahtarın üyesi olan her öznitelik asaldır.</p>
+<ul>
+  <li><strong>Genel 2NF:</strong> asal olmayan her öznitelik R'nin <em>her</em> anahtarına tam fonksiyonel bağımlıysa R 2NF'tedir.</li>
+  <li><strong>Genel 3NF:</strong> R'de sağlanan her X → A bağımlılığı için ya (a) X, R'nin bir süper anahtarıdır, ya da (b) A, R'nin asal bir özniteliğidir. Koşul (a), iki tür ihlali yakalar: asal bir özniteliğin (anahtarın bir parçasının) asal olmayan bir özniteliği belirlemesi (2NF ihlali) ve asal olmayan bir özniteliğin asal olmayan bir özniteliği belirlemesi (geçişli bağımlılık). Koşul (b) ise 3NF'in izin verdiği, ama BCNF'in yakaladığı bağımlılıklardır.</li>
+</ul>
+<p>Kitaptaki LOTS(Property_id, County_name, Lot, Area, Price, Tax_rate) ilişkisinin iki aday anahtarı vardır: Property_id ve {County_name, Lot}. Dört bağımlılığı vardır: FD1 ve FD2 iki anahtardan gelir, FD3 County_name → Tax_rate, FD4 Area → Price. County_name → Tax_rate 2NF'i bozar, çünkü County_name bir anahtarın (County_name, Lot) parçasıdır. Area → Price ise 3NF'i bozar, çünkü Area bir süper anahtar değildir ve Price asal değildir. Aşağıdaki seçenekle LOTS'u önce 2NF'e (LOTS1 ve LOTS2), sonra 3NF'e (LOTS1A, LOTS1B ve LOTS2) ayrıştırabilirsiniz; bu, kitaptaki Figure 14.12'nin aşamalarıdır.</p>
+<div id="nf-lots"></div>
+
+<h2>Boyce-Codd normal formu (BCNF)</h2>
+<div class="callout key">
+  <p><strong>BCNF:</strong> R'de sağlanan her X → A bağımlılığında X, R'nin bir süper anahtarıysa R BCNF'tedir. Bu, 3NF'in tanımından (b) koşulunun çıkarılmış hâlidir; bu yüzden her BCNF ilişkisi 3NF'tedir, her 3NF ilişkisi 2NF'tedir, her 2NF ilişkisi 1NF'tedir. Ama 3NF'te olup BCNF'te olmayan ilişkiler vardır.</p>
+</div>
+<p>Kitaptaki TEACH(Student, Course, Instructor) ilişkisinde iki bağımlılık vardır: {Student, Course} → Instructor ve Instructor → Course (her öğretim üyesi tek bir ders verir). {Student, Course} bir aday anahtardır. Instructor → Course'da Instructor bir süper anahtar değildir, ama Course asal bir öznitelik olduğu için 3NF'in (b) koşulu sağlanır: TEACH 3NF'tedir ama BCNF'te değildir.</p>
+<p>BCNF'te olmayan bir ilişki, gerekirse bazı bağımlılıkların korunmasından vazgeçilerek ayrıştırılır. TEACH için üç olası ayrıştırma vardır ve üçü de {Student, Course} → Instructor bağımlılığını kaybeder:</p>
+<ul>
+  <li>D1: {Student, Instructor} ve {Student, Course}</li>
+  <li>D2: {Course, Instructor} ve {Course, Student}</li>
+  <li>D3: {Instructor, Course} ve {Instructor, Student}</li>
+</ul>
+<p>Bağımlılıkların korunmasından vazgeçilebilir, ama kayıpsız join'den vazgeçilemez. Bir ikili ayrıştırmanın kayıpsız olup olmadığını <strong>NJB testi</strong> söyler: D = {R1, R2} ayrıştırması, ancak ve ancak (R1 ∩ R2) → (R1 − R2) ya da (R1 ∩ R2) → (R2 − R1) bağımlılıklarından biri F<sup>+</sup>'ta ise kayıpsızdır. Yani iki parçanın ortak öznitelikleri, parçalardan birinin geri kalanını belirlemelidir. Aşağıda üç ayrıştırmayı test edebilirsiniz: yalnızca D3'te ortak öznitelik Instructor, Course'u belirler.</p>
+<div id="njb-teach"></div>
+<p><strong>Genel yöntem:</strong> R, BCNF'te değilse ve X → A bağımlılığı bu ihlale yol açıyorsa, R iki ilişkiye ayrıştırılır: (i) R − A ve (ii) X ∪ A. Bunlardan biri BCNF'te değilse işlem tekrarlanır. TEACH'te ihlal Instructor → Course olduğu için ayrıştırma (TEACH − Course) ve (Instructor ∪ Course), yani D3'tür. LOTS1A'ya Area → County_name bağımlılığı eklendiğinde de aynı yöntem kitaptaki Figure 14.13a'nın sonucunu verir.</p>
+<div id="nf-teach"></div>
+
+<h2>Normalizasyon aracı</h2>
+<p>Bir ilişki şeması ve fonksiyonel bağımlılıklarını yazın ya da hazır örneklerden birini seçin. Araç her bağımlılığın sol tarafının kapanışını, aday anahtarları ve asal öznitelikleri hesaplar; ilişkinin hangi normal formda olduğunu ve bir sonrakini hangi bağımlılığın bozduğunu cümleyle açıklar. Sonra seçtiğiniz normal forma kadar adım adım ayrıştırır; her adımda ilişkinin önceki hâli solda, ondan çıkan ilişkiler sağdadır ve ayrıştırmanın NJB testine göre kayıpsız olup olmadığı yazar.</p>
+<p class="small muted">Yazım: öznitelikleri boşluk ya da virgülle ayırın; her bağımlılığı ayrı bir satıra <code>A, B -&gt; C, D</code> biçiminde yazın. En fazla 12 öznitelik kullanılabilir.</p>
+<div id="nf-tool"></div>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3">
+  <p>EMP_PROJ(Ssn, Pnumber, Hours, Ename, Pname, Plocation) ilişkisinde bir projenin adı değiştirilirken, o projede çalışan çalışanlardan birinin satırı unutuluyor. Bu hangi anomalidir?</p>
+  <ol>
+    <li data-why="Ekleme anomalisi, bir bilgiyi başka bir bilgi olmadan ekleyememektir (ör. çalışanı olmayan bir proje).">Ekleme anomalisi</li>
+    <li data-why="Silme anomalisi, bir satırı silerken başka bir bilginin de kaybolmasıdır.">Silme anomalisi</li>
+    <li data-why="Doğru: aynı bilgi (projenin adı) birden çok satırda tekrar edildiği için hepsini birden değiştirmek gerekir; biri unutulursa veri tutarsız olur.">Güncelleme (değiştirme) anomalisi</li>
+    <li data-why="Sahte satırlar, kötü bir ayrıştırmanın natural join'inde ortaya çıkar; bu bir güncelleme sorunu değildir.">Sahte satır üretimi</li>
+  </ol>
+  <div class="explain">Projenin adı, projede çalışan her çalışanın satırında tekrar ediyor. Ad değiştiğinde bütün bu satırların değiştirilmesi gerekir; biri unutulursa aynı proje iki farklı adla görünür. Çözüm, proje bilgisini kendi ilişkisine (EP3) taşımaktır.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>R(A, B, C, D) ilişkisinde F = {A → B, B → C, C → D}. A'nın kapanışı A<sup>+</sup> nedir ve R'nin aday anahtarı hangisidir?</p>
+  <ol>
+    <li data-why="Kapanış yalnızca doğrudan bağımlılıkları değil, zincirleme olarak belirlenen bütün öznitelikleri içerir: A → B → C → D.">A<sup>+</sup> = {A, B}; anahtar {A, B}</li>
+    <li data-why="Doğru: A → B, B → C, C → D zinciri A'dan bütün özniteliklere ulaşır; A tek başına süper anahtardır ve tek öznitelikli olduğu için minimaldir.">A<sup>+</sup> = {A, B, C, D}; anahtar {A}</li>
+    <li data-why="D hiçbir şeyi belirlemez; D<sup>+</sup> = {D} olduğu için D süper anahtar değildir.">A<sup>+</sup> = {A, B, C, D}; anahtar {D}</li>
+    <li data-why="{A, B}, A'yı içerdiği için bir süper anahtardır ama minimal değildir: B çıkarılınca kalan {A} hâlâ süper anahtardır.">A<sup>+</sup> = {A, B, C, D}; anahtar {A, B}</li>
+  </ol>
+  <div class="explain">Kapanış hesabı: A'dan başlanır; A → B ile B, B → C ile C, C → D ile D eklenir. A<sup>+</sup> bütün öznitelikleri içerdiği için A bir süper anahtardır; tek öznitelikli olduğu için de minimaldir, yani aday anahtardır. Aracı bu örnekle deneyebilirsiniz.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>R(Ssn, Pnumber, Hours, Ename) ilişkisinde F = {Ssn, Pnumber → Hours; Ssn → Ename}. R en yüksek hangi normal formdadır?</p>
+  <ol>
+    <li data-why="Doğru: anahtar {Ssn, Pnumber}; Ename asal değildir ve anahtarın yalnızca bir parçasına (Ssn) bağlıdır. Bu kısmi bağımlılık 2NF'i bozar.">1NF</li>
+    <li data-why="2NF için asal olmayan her öznitelik anahtarın tamamına bağlı olmalıdır; Ename yalnızca Ssn'e bağlı.">2NF</li>
+    <li data-why="3NF, 2NF'i gerektirir; R 2NF'te bile değildir.">3NF</li>
+    <li data-why="BCNF'te her bağımlılığın sol tarafı süper anahtar olmalıdır; Ssn süper anahtar değildir.">BCNF</li>
+  </ol>
+  <div class="explain">Aday anahtar {Ssn, Pnumber}'dır. Ssn → Ename bir kısmi bağımlılıktır: asal olmayan Ename, anahtarın yalnızca Ssn parçasına bağlıdır. Bu yüzden R 2NF'te değildir. 2NF'e getirmek için (Ssn, Ename) ayrı bir ilişkiye taşınır.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Hangi ifade doğrudur?</p>
+  <ol>
+    <li data-why="3NF'te olup BCNF'te olmayan ilişkiler vardır (ör. TEACH); BCNF daha güçlüdür.">Her 3NF ilişkisi BCNF'tedir.</li>
+    <li data-why="BCNF'e ayrıştırma bazı bağımlılıkları kaybedebilir (TEACH'teki {Student, Course} → Instructor gibi); bağımlılıkların korunması garanti değildir.">BCNF ayrıştırması her zaman bütün fonksiyonel bağımlılıkları korur.</li>
+    <li data-why="Kayıpsız join'den asla vazgeçilemez; vazgeçilebilecek olan bağımlılıkların korunmasıdır.">Bir ayrıştırmada kayıpsız join'den, bağımlılıkları korumak için vazgeçilebilir.</li>
+    <li data-why="Doğru: BCNF, 3NF'in tanımından 'A asal bir özniteliktir' koşulunun çıkarılmış hâlidir; bu yüzden daha katıdır.">Her BCNF ilişkisi 3NF'tedir, ama tersi her zaman doğru değildir.</li>
+  </ol>
+  <div class="explain">Normal formlar giderek katılaşır: BCNF ⇒ 3NF ⇒ 2NF ⇒ 1NF. 3NF bir X → A bağımlılığına, A asal bir öznitelikse izin verir; BCNF vermez. Bir ayrıştırmada kayıpsız join şarttır; bağımlılıkların korunmasından ise gerekirse vazgeçilir.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>TEACH(Student, Course, Instructor) için F = {Student, Course → Instructor; Instructor → Course}. Hangi ayrıştırma NJB testine göre kayıpsızdır?</p>
+  <ol>
+    <li data-why="Ortak öznitelik Student'tır ve Student ne Instructor'ı ne de Course'u belirler; join sahte satırlar üretir.">{Student, Instructor} ve {Student, Course}</li>
+    <li data-why="Ortak öznitelik Course'tur ve Course ne Instructor'ı ne de Student'ı belirler (bir dersi birden çok öğretim üyesi verebilir).">{Course, Instructor} ve {Course, Student}</li>
+    <li data-why="Doğru: ortak öznitelik Instructor'dır ve Instructor → Course sağlanır; yani ortak kısım bir parçanın geri kalanını belirler.">{Instructor, Course} ve {Instructor, Student}</li>
+    <li data-why="NJB testi D3'te sağlanır; üç ayrıştırmanın hepsi kayıplı değildir.">Hiçbiri</li>
+  </ol>
+  <div class="explain">NJB testi: R1 ∩ R2, R1 − R2'yi ya da R2 − R1'i belirlemelidir. D3'te ortak öznitelik Instructor'dır ve Instructor → Course sağlandığı için {Instructor, Course} parçasının geri kalanını belirler. D1'de ortak kısım Student, D2'de Course'tur ve ikisi de bir şey belirlemez.</div>
+</div>
+
+</div></main>
+</body>
+</html>
