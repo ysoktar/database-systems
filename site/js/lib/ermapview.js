@@ -7,7 +7,7 @@ import { renderItems, createSqlBox } from "./sqlbox.js";
 import { t as tl, EN } from "./i18n.js";
 
 /** One table as a schema card: PK underlined, FKs in blue with their target. */
-export function tableCard(t, { highlight = [] } = {}) {
+export function tableCard(t, { highlight = [], newFKs = [] } = {}) {
   const fkCols = new Map();
   for (const f of t.fks) f.cols.forEach((c, i) => fkCols.set(c, `${f.ref}.${f.refCols[i]}`));
   const uniq = new Set(t.uniques.flat());
@@ -17,7 +17,7 @@ export function tableCard(t, { highlight = [] } = {}) {
     const cls = [t.pk.includes(c.name) ? "pk" : "", fkCols.has(c.name) ? "fk" : ""].join(" ").trim();
     cols.append(h("span", { class: cls || null, style: highlight.includes(c.name) ? { background: "var(--accent-wash)", borderRadius: "3px", padding: "0 2px" } : null, title: [fkCols.has(c.name) ? `→ ${fkCols.get(c.name)}` : "", uniq.has(c.name) ? "UNIQUE" : "", c.type].filter(Boolean).join(" · ") }, c.name));
   });
-  const fkLines = t.fks.map((f) => h("div", { class: "small muted" }, `FK (${f.cols.join(", ")}) → ${f.ref}(${f.refCols.join(", ")})${f.onDelete ? ` ON DELETE ${f.onDelete}` : ""}`));
+  const fkLines = t.fks.map((f) => h("div", { class: newFKs.includes(`${f.cols.join(",")}>${f.ref}`) ? "small fk-new" : "small muted" }, `FK (${f.cols.join(", ")}) → ${f.ref}(${(f.refCols || []).join(", ")})${f.onDelete ? ` ON DELETE ${f.onDelete}` : ""}`));
   const uq = t.uniques.map((u) => h("div", { class: "small muted" }, `UNIQUE (${u.join(", ")})`));
   return h("div", { class: "schema-card" }, h("h4", {}, t.name), cols, ...uq, ...fkLines);
 }
@@ -37,9 +37,15 @@ export function renderMapping(host, model, { spec = "8A", showSteps = true, show
     for (const s of res.steps) {
       const li = h("li", {}, h("div", { class: "step-title" }, s.title), h("div", { html: s.html }));
       if (s.snapshot) {
-        const fresh = s.added.length === s.snapshot.cols.length;
-        li.append(tableCard(s.snapshot, { highlight: fresh ? [] : s.added }));
-        if (!fresh && s.added.length) li.append(h("div", { class: "small muted" }, tl(`Bu adımda eklenen sütunlar vurgulandı: ${s.added.join(", ")}.`, `Columns added at this step are highlighted: ${s.added.join(", ")}.`)));
+        // before -> after: the table as it was before this step (or none: a new table) and as it is after it
+        const what = !s.previous ? tl("yeni tablo", "new table") : [s.added.length ? tl(`yeni sütunlar: ${s.added.join(", ")}`, `new columns: ${s.added.join(", ")}`) : null,
+          s.addedFKs.length ? tl(`yeni foreign key: ${s.addedFKs.map((k) => k.replace(">", " → ")).join("; ")}`, `new foreign key: ${s.addedFKs.map((k) => k.replace(">", " → ")).join("; ")}`) : null].filter(Boolean).join(" · ");
+        li.append(h("div", { class: "ba" },
+          h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")),
+            s.previous ? tableCard(s.previous) : h("div", { class: "ba-empty" }, tl(`${s.snapshot.name} henüz yok: bu adımda oluşturuluyor`, `${s.snapshot.name} does not exist yet: this step creates it`))),
+          h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+          h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After"), what ? h("span", { class: "ba-what" }, ` · ${what}`) : null),
+            tableCard(s.snapshot, { highlight: s.previous ? s.added : s.snapshot.cols.map((c) => c.name), newFKs: s.addedFKs }))));
       }
       ol.append(li);
     }

@@ -4,7 +4,7 @@ import { createEditor, b64decode } from "../lib/ereditor.js";
 import { ER_EXAMPLES, exampleById } from "../lib/er-examples.js";
 import { ER_EXERCISES, solutionModel } from "../lib/er-exercises.js";
 import { solutionDetails, renderCheck, loadInto } from "../lib/er-inline.js";
-import { renderMapping } from "../lib/ermapview.js";
+import { renderMapping, tableCard } from "../lib/ermapview.js";
 import { toDDL, mapER } from "../lib/ermap.js";
 import { reverseER, catalogSQL, catalogFromRows } from "../lib/erreverse.js";
 import { toDSL, emptyModel } from "../lib/ermodel.js";
@@ -115,7 +115,8 @@ async function reverse() {
   const [qCols, qCons] = catalogSQL(schema);
   const cols = (await runSQL(qCols)).last?.rows || [];
   const cons = (await runSQL(qCons)).last?.rows || [];
-  const { model, steps, notes } = reverseER(catalogFromRows(cols, cons));
+  const catalog = catalogFromRows(cols, cons);
+  const { model, steps, notes } = reverseER(catalog);
   // a column-level REFERENCES is accepted by MySQL but creates no foreign key
   const inline = ddlBox.value.split("\n").filter((l) => /\bREFERENCES\b/i.test(l) && !/FOREIGN\s+KEY/i.test(l) && !/^\s*(ON|--)/i.test(l));
   if (inline.length) notes.unshift(tl(`MySQL, sütun tanımının içine yazılan <code>REFERENCES</code>'ı kabul eder ama <strong>yok sayar</strong>: foreign key oluşmaz. ${inline.length} satırda böyle bir tanım var (ör. <code>${inline[0].trim().replace(/</g, "&lt;")}</code>). Foreign key için tablo kısıtı yazın: <code>FOREIGN KEY (sütun) REFERENCES T(sütun)</code>.`, `MySQL accepts a <code>REFERENCES</code> written inside a column definition but <strong>ignores</strong> it: no foreign key is created. ${inline.length} line(s) have such a definition (e.g. <code>${inline[0].trim().replace(/</g, "&lt;")}</code>). For a foreign key write a table constraint: <code>FOREIGN KEY (column) REFERENCES T(column)</code>.`));
@@ -127,7 +128,17 @@ async function reverse() {
   dslPre.innerHTML = `<code>${highlightSQL(toDSL(model))}</code>`;
   revOut.replaceChildren(
     h("h3", {}, tl("Çıkarım adımları", "Derivation steps")),
-    h("ol", { class: "map-steps" }, ...steps.map((s) => h("li", { html: s.html }))),
+    h("ol", { class: "map-steps" }, ...steps.map((s) => {
+      // before -> after: the table, and the piece of the ER diagram it became
+      const table = catalog.find((t) => t.name === s.table);
+      const piece = s.er ? toDSL({ entities: [], relationships: [], specializations: [], categories: [], ...s.er }) : "";
+      const pre = h("pre", { class: "sql ba-er" });
+      pre.innerHTML = `<code>${highlightSQL(piece)}</code>`;
+      return h("li", {}, h("div", { html: s.html }), table && piece ? h("div", { class: "ba" },
+        h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce: tablo", "Before: the table")), tableCard({ uniques: [], fks: [], ...table })),
+        h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+        h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra: ER'deki karşılığı", "After: what it is in ER")), pre)) : null);
+    })),
     h("div", { class: "callout gotcha", html: `<div class="callout-label"><span>${tl("Geri kazanılamayan bilgi", "What cannot be recovered")}</span></div><ul>${notes.map((n) => `<li>${n}</li>`).join("")}</ul>` }),
     fig,
     h("div", { class: "btn-row" }, button(tl("Editöre aktar", "Load into the editor"), () => {

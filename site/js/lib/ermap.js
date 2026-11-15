@@ -37,16 +37,20 @@ export function mapER(model, options = {}) {
   const where = new Map(); // entity name → { table, pk: [cols], keyNames: [attribute names] } or { none: true }
 
   // each step keeps a copy of its table as it is after the step, and which columns the step added
-  const lastSeen = new Map();
+  const lastSeen = new Map(); // table name -> its snapshot after the last step that touched it
   const log = (step, title, html, table) => {
-    let snapshot = null, added = [];
+    let snapshot = null, added = [], previous = null, addedFKs = [];
     if (table) {
       snapshot = JSON.parse(JSON.stringify(table));
-      const before = lastSeen.get(table.name) || [];
-      added = table.cols.map((c) => c.name).filter((c) => !before.includes(c));
-      lastSeen.set(table.name, table.cols.map((c) => c.name));
+      previous = lastSeen.get(table.name) || null;
+      const beforeCols = previous ? previous.cols.map((c) => c.name) : [];
+      added = table.cols.map((c) => c.name).filter((c) => !beforeCols.includes(c));
+      const fkKey = (f) => `${f.cols.join(",")}>${f.ref}`;
+      const beforeFKs = new Set((previous?.fks || []).map(fkKey));
+      addedFKs = table.fks.map(fkKey).filter((k) => !beforeFKs.has(k));
+      lastSeen.set(table.name, snapshot);
     }
-    steps.push({ step, title, html, table: table?.name, snapshot, added });
+    steps.push({ step, title, html, table: table?.name, snapshot, added, previous, addedFKs });
   };
   const newTable = (name, origin) => {
     let n = U(name);
