@@ -119,9 +119,16 @@ const RULE = {
     "Step 5: an M:N relationship always becomes a new table. Both sides' primary keys are added as foreign keys and together they form the primary key."),
   "6": tl("Adım 6: Çok değerli öznitelik bir hücreye sığmaz (1NF), bu yüzden kendi tablosunu alır: sahibin anahtarı ve değerin kendisi, ikisi birlikte primary key.",
     "Step 6: a multivalued attribute does not fit in one cell (1NF), so it gets its own table: the owner's key and the value itself, together the primary key."),
-  "7": tl("Adım 7: n-li ilişki yeni bir tablo olur ve bütün katılımcıların primary key'lerini taşır.", "Step 7: an n-ary relationship becomes a new table carrying the primary keys of all participants."),
+  "7": tl("Adım 7: n-li ilişki yeni bir tablo olur ve bütün katılımcıların primary key'lerini taşır. Primary key genellikle bu foreign key'lerin hepsidir; kardinalitesi 1 olan bir katılımcı varsa onun anahtarı primary key'e girmez.", "Step 7: an n-ary relationship becomes a new table carrying the primary keys of all participants. The primary key is usually all of these foreign keys; a participant with cardinality 1 is left out of it."),
+  "8A": tl("Adım 8A: Üst sınıfın tablosu kalır ve her alt sınıf için ayrı bir tablo açılır. Alt sınıf tablosu üst sınıfın primary key'ini (aynı zamanda foreign key olarak) ve kendi özniteliklerini taşır. Her durumda kullanılabilir.", "Step 8A: the superclass keeps its table and each subclass gets its own. A subclass table carries the superclass's primary key (also as a foreign key) and its own attributes. It works in every case."),
+  "8B": tl("Adım 8B: Üst sınıf için tablo açılmaz; her alt sınıf tablosu üst sınıfın bütün özniteliklerini de taşır. Yalnızca total özelleştirmede doğrudur, overlapping ise ortak öznitelikler tekrar eder.", "Step 8B: the superclass gets no table; each subclass table also carries all of the superclass's attributes. It is only correct for a total specialization, and with overlap the common attributes repeat."),
+  "8C": tl("Adım 8C: Üst sınıf ve bütün alt sınıflar tek bir tabloda toplanır; tek bir tip sütunu satırın hangi alt sınıfa ait olduğunu söyler. Yalnızca disjoint özelleştirmede kullanılır ve alt sınıfa özgü sütunlarda NULL üretir.", "Step 8C: the superclass and all subclasses go into one table; a single type column says which subclass a row belongs to. It is only for disjoint specializations and produces NULLs in the subclass-specific columns."),
+  "8D": tl("Adım 8D: Tek tablo ve her alt sınıf için bir Boolean bayrak sütunu. Bir satırda birden çok bayrak TRUE olabildiği için overlapping özelleştirmede de kullanılır.", "Step 8D: one table and a Boolean flag column per subclass. Several flags can be TRUE in one row, so it also works for overlapping specializations."),
+  "9": tl("Adım 9: Kategori (union type) için bir tablo açılır. Üst sınıfların anahtarları farklıysa kategoriye yapay bir anahtar (surrogate key) verilir ve her üst sınıfın tablosuna bu anahtarı gösteren bir foreign key eklenir; anahtarlar aynıysa o anahtar kullanılır.", "Step 9: a category (union type) gets a table. If the superclasses have different keys, the category gets a surrogate key and each superclass table gets a foreign key to it; if the keys are the same, that key is used."),
 };
-const constructOf = (s) => (s.title.split(" · ")[1] || "").replace(/\s*\(.*$/, "");
+const ruleOf = (s) => RULE[s.step === "8" ? (s.title.match(/8[ABCD]/) || ["8A"])[0] : s.step] || "";
+const changedTables = (s) => (s.tables || []).filter((t) => !t.previous || t.added.length || t.addedFKs.length);
+const constructOf = (s) => (s.title.split(" · ")[1] || "").replace(/\s*\([^)]*\)$/, "");
 
 /** Mark the nodes of an ER figure that belong to the construct of a step; the rest is dimmed. */
 function focusFigure(fig, model, s, doneNames) {
@@ -136,6 +143,19 @@ function focusFigure(fig, model, s, doneNames) {
     ids.add(`R:${name}`); ownAttrs(`R:${name}`);
     r?.ends.forEach((e) => ids.add(`E:${e.entity.toUpperCase()}`));
   }
+  if (s.step === "8") {
+    const sp = constructOf(s).match(/^(\S+) → \{(.*)\}$/);
+    if (sp) {
+      const sup = sp[1].toUpperCase(), subs = sp[2].split(/,\s*/).map((x) => x.toUpperCase());
+      for (const e of [sup, ...subs]) { ids.add(`E:${e}`); ownAttrs(`E:${e}`); }
+      model.specializations.forEach((x, n) => { if (x.super.toUpperCase() === sup && x.subs.map((y) => y.toUpperCase()).join() === subs.join()) ids.add(`S:${n}`); });
+    }
+  }
+  if (s.step === "9") {
+    const [cat, rhs] = constructOf(s).split(" = ");
+    ids.add(`E:${cat.toUpperCase()}`); ids.add(`U:${cat.toUpperCase()}`); ownAttrs(`E:${cat.toUpperCase()}`);
+    (rhs || "").split(" ∪ ").forEach((e) => ids.add(`E:${e.trim().toUpperCase()}`));
+  }
   if (s.step === "6") { const [owner, attr] = constructOf(s).split("."); ids.add(`E:${owner.toUpperCase()}`); svg.querySelectorAll(`g[data-id^="A:E:${owner.toUpperCase()}/"]`).forEach((g) => { if (g.textContent === attr) ids.add(g.dataset.id); }); }
   fig.classList.add("focus");
   svg.querySelectorAll("g[data-id]").forEach((g) => {
@@ -145,63 +165,117 @@ function focusFigure(fig, model, s, doneNames) {
   });
 }
 
-function stepPlayer(host, exId) {
+/** Draw a diagram with larger shapes and labels (scale k) and spread it out so the bigger shapes do not overlap:
+ * entities and relationships move apart by `major`, attributes move away from their owner by k. */
+function bigDiagram(spec, k = 1.5, major = 1.1) {
+  const byId = new Map(spec.nodes.map((n) => [n.id, { ...n }]));
+  const out = new Map();
+  const place = (n) => {
+    if (out.has(n.id)) return out.get(n.id);
+    let p;
+    if (n.type === "attr" && n.of && byId.has(n.of)) {
+      const o = byId.get(n.of), po = place(o);
+      p = { ...n, x: po.x + (n.x - o.x) * k, y: po.y + (n.y - o.y) * k };
+    } else p = { ...n, x: n.x * major, y: n.y * major };
+    out.set(n.id, p);
+    return p;
+  };
+  spec.nodes.forEach(place);
+  const nodes = spec.nodes.map((n) => out.get(n.id));
+  const links = spec.links.map((l) => (l.via ? { ...l, via: l.via.map(([x, y]) => [x * major, y * major]) } : l));
+  return { ...spec, nodes, links, width: spec.width * major, height: spec.height * major, scale: k };
+}
+
+/** Hovering over a diagram enlarges it over the page; clicking opens it full screen (Esc or a second click closes). */
+function zoomable(fig, host) {
+  fig.classList.add("zoomable");
+  fig.title = tl("Büyütmek için üzerine gelin, tam ekran için tıklayın", "Hover to enlarge, click for full screen");
+  let timer = null;
+  const canHover = window.matchMedia("(hover: hover) and (min-width: 900px)").matches;
+  if (canHover) {
+    host.addEventListener("mouseenter", () => { timer = setTimeout(() => host.classList.add("zoomed"), 250); });
+    host.addEventListener("mouseleave", () => { clearTimeout(timer); host.classList.remove("zoomed"); });
+  }
+  const close = () => { fig.classList.remove("fs"); document.removeEventListener("keydown", onKey); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  fig.addEventListener("click", () => {
+    host.classList.remove("zoomed");
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
+    if (fig.classList.contains("fs")) { close(); return; }
+    if (fig.requestFullscreen) fig.requestFullscreen().catch(() => { fig.classList.add("fs"); document.addEventListener("keydown", onKey); });
+    else { fig.classList.add("fs"); document.addEventListener("keydown", onKey); }
+  });
+}
+
+const PLAYER_EXAMPLES = [
+  ["company", tl("COMPANY: Adım 1–6", "COMPANY: Steps 1–6")],
+  ["supply", tl("SUPPLY: Adım 7 (üçlü ilişki)", "SUPPLY: Step 7 (ternary relationship)")],
+  ["employee-eer", tl("EMPLOYEE özelleştirmeleri: Adım 8", "EMPLOYEE specializations: Step 8")],
+  ["part-eer", tl("PART (overlapping): Adım 8", "PART (overlapping): Step 8")],
+  ["university-eer", tl("UNIVERSITY, paylaşılan alt sınıf: Adım 6 ve 8", "UNIVERSITY, shared subclass: Steps 6 and 8")],
+  ["vehicle-eer", tl("Araç sahipleri, kategoriler: Adım 5 ve 9", "Vehicle owners, categories: Steps 5 and 9")],
+];
+function stepPlayer(host, exId = "company", spec = "8A", predictInit = false) {
   const ex = exampleById(exId);
   const { model } = parseER(ex.dsl);
-  const res = mapER(model, { spec: "8A" });
+  const res = mapER(model, { spec });
   const steps = res.steps.filter((s) => s.snapshot);
+  const exSel = h("select", { "aria-label": tl("Örnek", "Example"), onchange: () => stepPlayer(host, exSel.value, specSel.value, predict) }, ...PLAYER_EXAMPLES.map(([id, label]) => h("option", { value: id, selected: id === exId }, label)));
+  const specSel = h("select", { "aria-label": tl("Adım 8 seçeneği", "Step 8 option"), onchange: () => stepPlayer(host, exSel.value, specSel.value, predict) }, ...["8A", "8B", "8C", "8D"].map((o) => h("option", { value: o, selected: o === spec }, o)));
+  const hasSpec = model.specializations.length > 0;
   const pos = { ...autoLayout(model), ...(ex.layout || {}) };
-  let i = -1, predict = false, asked = -1;
+  let i = -1, predict = predictInit, asked = -1;
   const dots = h("div", { class: "pl-dots" }, ...steps.map((s, k) => h("button", { type: "button", class: `pl-dot s${s.step}`, title: s.title, "aria-label": s.title, onclick: () => go(k, true) }, s.step)));
   const counter = h("span", { class: "pl-count" });
   const prev = button(tl("◀ Önceki", "◀ Previous"), () => go(i - 1, true));
   const next = button(tl("Sonraki ▶", "Next ▶"), () => go(i + 1), { kind: "primary" });
   const reset = button(tl("Baştan", "Start over"), () => go(-1, true));
-  const predictBox = h("input", { type: "checkbox", onchange: (e) => { predict = e.target.checked; } });
+  const predictBox = h("input", { type: "checkbox", checked: predict, onchange: (e) => { predict = e.target.checked; } });
   const figHost = h("div", { class: "pl-fig" });
   const side = h("div", { class: "pl-side" });
   const schema = h("div", { class: "pl-schema" });
-  host.append(h("div", { class: "player" },
+  host.replaceChildren(h("div", { class: "player" },
+    h("div", { class: "pl-bar" }, h("label", { class: "small sim-field" }, tl("Örnek: ", "Example: "), exSel), hasSpec ? h("label", { class: "small sim-field" }, tl("Adım 8 seçeneği: ", "Step 8 option: "), specSel) : null),
     h("div", { class: "pl-bar" }, prev, next, reset, counter, h("label", { class: "small pl-predict" }, predictBox, tl(" Tahmin modu: önce siz tahmin edin", " Predict mode: guess first"))),
     dots, h("div", { class: "pl-grid" }, figHost, side), schema));
 
   const renderFig = (k) => {
-    const fig = erFigure(toDiagram(model, pos, {}), tl("Vurgulu yapı bu adımda eşleniyor; soluk kenarlıklı olanlar önceki adımlarda eşlendi.", "The highlighted construct is mapped in this step; the ones with a faded border were mapped in earlier steps."));
+    const fig = erFigure(bigDiagram(toDiagram(model, pos, {})), tl("Vurgulu yapı bu adımda eşleniyor; soluk kenarlıklı olanlar önceki adımlarda eşlendi. Büyütmek için üzerine gelin, tam ekran için tıklayın.", "The highlighted construct is mapped in this step; the ones with a faded border were mapped in earlier steps. Hover to enlarge, click for full screen."));
     figHost.replaceChildren(fig);
+    zoomable(fig, figHost);
     if (k < 0) return;
     const done = new Set();
-    for (const s of steps.slice(0, k)) {
-      const n = constructOf(s).toUpperCase();
-      done.add(`E:${n}`); done.add(`R:${n}`);
-    }
+    for (const s of steps.slice(0, k)) for (const n of constructOf(s).toUpperCase().match(/[A-Z_][A-Z0-9_]*/g) || []) { done.add(`E:${n}`); done.add(`R:${n}`); done.add(`U:${n}`); }
     focusFigure(fig, model, steps[k], done);
   };
   const tablesAfter = (k) => {
     const m = new Map();
-    for (const s of steps.slice(0, k + 1)) m.set(s.snapshot.name, s.snapshot);
+    for (const s of steps.slice(0, k + 1)) for (const t of s.tables || [s]) m.set(t.snapshot.name, t.snapshot);
     return [...m.values()];
   };
   const renderSchema = (k, mark = true) => {
     const ts = tablesAfter(k), cur = mark ? steps[k] : null;
     schema.replaceChildren(h("div", { class: "ba-label" }, k < 0 ? tl("Şema henüz boş", "The schema is still empty") : tl(`Şu ana kadarki şema: ${ts.length} tablo`, `The schema so far: ${ts.length} tables`)),
       h("div", { class: "schema-grid" }, ...ts.map((t) => {
-        const c = tableCard(t, t.name === cur?.snapshot.name ? { highlight: cur.previous ? cur.added : t.cols.map((x) => x.name), newFKs: cur.addedFKs } : {});
-        if (t.name === cur?.snapshot.name) c.classList.add("current");
+        const ch = cur ? changedTables(cur).find((x) => x.name === t.name) : null;
+        const c = tableCard(t, ch ? { highlight: ch.previous ? ch.added : t.cols.map((x) => x.name), newFKs: ch.addedFKs } : {});
+        if (ch) c.classList.add("current");
         return c;
       })));
   };
   const reveal = (k, verdict) => {
     const s = steps[k];
-    const what = s.previous ? tl(`${s.snapshot.name} tablosu değişiyor.`, `The table ${s.snapshot.name} changes.`) : tl(`Yeni bir tablo oluşuyor: ${s.snapshot.name}.`, `A new table is created: ${s.snapshot.name}.`);
+    const ch = changedTables(s), made = ch.filter((t) => !t.previous).map((t) => t.name), changed = ch.filter((t) => t.previous).map((t) => t.name);
+    const what = [made.length ? tl(`Yeni tablo: ${made.join(", ")}.`, `New table${made.length > 1 ? "s" : ""}: ${made.join(", ")}.`) : "", changed.length ? tl(`Değişen tablo: ${changed.join(", ")}.`, `Changed table${changed.length > 1 ? "s" : ""}: ${changed.join(", ")}.`) : ""].filter(Boolean).join(" ");
     side.replaceChildren(
       h("div", { class: "step-title" }, s.title),
       verdict || "",
-      h("p", { class: "pl-rule" }, RULE[s.step] || ""),
+      h("p", { class: "pl-rule" }, ruleOf(s)),
       h("p", { class: "small", html: s.html }),
-      h("div", { class: "ba" },
-        h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), s.previous ? tableCard(s.previous) : h("div", { class: "ba-empty" }, tl("Tablo henüz yok", "No table yet"))),
+      ...changedTables(s).map((t) => h("div", { class: "ba" },
+        h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), t.previous ? tableCard(t.previous) : h("div", { class: "ba-empty" }, tl(`${t.name} henüz yok`, `${t.name} does not exist yet`))),
         h("div", { class: "ba-arrow", "aria-hidden": "true" }),
-        h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), tableCard(s.snapshot, { highlight: s.previous ? s.added : s.snapshot.cols.map((c) => c.name), newFKs: s.addedFKs }))),
+        h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), tableCard(t.snapshot, { highlight: t.previous ? t.added : t.snapshot.cols.map((c) => c.name), newFKs: t.addedFKs })))),
       h("p", { class: "small muted" }, what));
     renderSchema(k);
   };
@@ -227,8 +301,8 @@ function stepPlayer(host, exId) {
     prev.disabled = k < 0; next.disabled = k >= steps.length - 1;
     renderFig(k);
     if (k < 0) {
-      side.replaceChildren(h("p", {}, tl("Solda COMPANY'nin ER diyagramı var. Sonraki düğmesine her bastığınızda algoritma bir yapıyı eşler: diyagramda o yapı vurgulanır, burada uygulanan kural ve tablonun önceki ve sonraki hâli görünür, altta da şemanın o ana kadarki hâli büyür.",
-        "On the left is the COMPANY ER diagram. Each time you press Next the algorithm maps one construct: it is highlighted in the diagram, the rule applied and the table before and after appear here, and the schema so far grows below.")),
+      side.replaceChildren(h("p", {}, tl("Solda seçtiğiniz örneğin ER diyagramı var. Adım 7, 8 ve 9'u görmek için üstteki listeden SUPPLY, EER ve kategori örneklerini seçebilirsiniz; Adım 8 için 8A–8D seçeneklerinden birini de seçin. Sonraki düğmesine her bastığınızda algoritma bir yapıyı eşler: diyagramda o yapı vurgulanır, burada uygulanan kural ve tablonun önceki ve sonraki hâli görünür, altta da şemanın o ana kadarki hâli büyür.",
+        "On the left is the ER diagram of the chosen example. To see Steps 7, 8 and 9, pick the SUPPLY, EER and category examples from the list above; for Step 8 also pick one of the options 8A–8D. Each time you press Next the algorithm maps one construct: it is highlighted in the diagram, the rule applied and the table before and after appear here, and the schema so far grows below.")),
         h("p", { class: "small muted" }, tl("Tahmin modunu açarsanız her adımdan önce hangi tablonun değişeceğini siz tahmin edersiniz.", "If you turn on predict mode you guess which table changes before each step.")));
       renderSchema(-1);
       return;
@@ -237,7 +311,7 @@ function stepPlayer(host, exId) {
   }
   go(-1, true);
 }
-stepPlayer($("#company-player"), "company");
+stepPlayer($("#company-player"));
 
 // ---------------------------------------------------------------- you decide: one ER fragment at a time
 // Each scenario: a small diagram, a design question, options with the reason each is right or wrong, and after the
@@ -329,7 +403,9 @@ const DECIDE = [
     prevB.disabled = k === 0; nextB.disabled = answered[k] == null;
     head.replaceChildren(prevB, nextB, h("span", { class: "pl-count" }, tl(`Soru ${k + 1} / ${DECIDE.length} · ${score} doğru`, `Question ${k + 1} of ${DECIDE.length} · ${score} correct`)),
       h("div", { class: "pl-dots", style: { margin: 0 } }, ...DECIDE.map((_, j) => h("span", { class: "pl-dot" + (j === k ? " on" : "") + (answered[j] == null ? "" : DECIDE[j].opts[answered[j]][1] ? " good" : " bad") }, String(j + 1)))));
-    const fig = erFigure(toDiagram(model, autoLayout(model), {}), "", { small: true });
+    const fig = erFigure(bigDiagram(toDiagram(model, autoLayout(model), {}), 1.35, 1.2), "", { small: true });
+    const figBox = h("div", { class: "pl-fig" }, fig);
+    zoomable(fig, figBox);
     const fb = h("div");
     const result = h("div");
     const opts = h("div", { class: "quiz-options" });
@@ -355,7 +431,7 @@ const DECIDE = [
         h("div", { class: "ba-label" }, tl(`Sonuç: ${res.tables.length} tablo`, `Result: ${res.tables.length} tables`)), h("div", { class: "schema-grid" }, ...res.tables.map((t) => tableCard(t))));
     };
     d.opts.forEach(([label], j) => opts.append(h("button", { type: "button", onclick: () => pick(j) }, h("span", { class: "opt-letter" }, "ABC"[j] + ") "), label)));
-    card.replaceChildren(h("div", { class: "decide-grid" }, fig, h("div", {}, h("p", { class: "decide-q" }, d.q), opts, fb)), result);
+    card.replaceChildren(h("div", { class: "decide-grid" }, figBox, h("div", {}, h("p", { class: "decide-q" }, d.q), opts, fb)), result);
     if (answered[k] != null) pick(answered[k], true);
   };
   const finish = () => {

@@ -38,19 +38,22 @@ export function mapER(model, options = {}) {
 
   // each step keeps a copy of its table as it is after the step, and which columns the step added
   const lastSeen = new Map(); // table name -> its snapshot after the last step that touched it
+  // `table` may be one table or a list (a step that creates or changes several tables); the first is the main one
   const log = (step, title, html, table) => {
-    let snapshot = null, added = [], previous = null, addedFKs = [];
-    if (table) {
-      snapshot = JSON.parse(JSON.stringify(table));
-      previous = lastSeen.get(table.name) || null;
+    const list = (Array.isArray(table) ? table : [table]).filter(Boolean);
+    const fkKey = (f) => `${f.cols.join(",")}>${f.ref}`;
+    const tables = list.map((t) => {
+      const snapshot = JSON.parse(JSON.stringify(t));
+      const previous = lastSeen.get(t.name) || null;
       const beforeCols = previous ? previous.cols.map((c) => c.name) : [];
-      added = table.cols.map((c) => c.name).filter((c) => !beforeCols.includes(c));
-      const fkKey = (f) => `${f.cols.join(",")}>${f.ref}`;
+      const added = t.cols.map((c) => c.name).filter((c) => !beforeCols.includes(c));
       const beforeFKs = new Set((previous?.fks || []).map(fkKey));
-      addedFKs = table.fks.map(fkKey).filter((k) => !beforeFKs.has(k));
-      lastSeen.set(table.name, snapshot);
-    }
-    steps.push({ step, title, html, table: table?.name, snapshot, added, previous, addedFKs });
+      const addedFKs = t.fks.map(fkKey).filter((k) => !beforeFKs.has(k));
+      lastSeen.set(t.name, snapshot);
+      return { name: t.name, snapshot, previous, added, addedFKs };
+    });
+    const m = tables[0] || { snapshot: null, previous: null, added: [], addedFKs: [] };
+    steps.push({ step, title, html, table: m.name, snapshot: m.snapshot, added: m.added, previous: m.previous, addedFKs: m.addedFKs, tables });
   };
   const newTable = (name, origin) => {
     let n = U(name);
@@ -196,7 +199,7 @@ export function mapER(model, options = {}) {
         const se = entity.get(U(s));
         if (where.has(U(s))) { // shared subclass: second superclass
           const w = where.get(U(s));
-          if (!w.none) addFKToExisting(w.table, sp.super, w.pk);
+          if (!w.none) { addFKToExisting(w.table, sp.super, w.pk); made.push(w.table); }
           continue;
         }
         const t = newTable(s, { kind: "subclass", name: s, of: sp.super });
@@ -207,7 +210,7 @@ export function mapER(model, options = {}) {
         where.set(U(s), { table: t, pk });
         made.push(t);
       }
-      log("8", `${tl("Adım", "Step")} 8A · ${label}`, tl(`Üst sınıfın tablosu kalır; her alt sınıf için ayrı bir tablo: üst sınıfın primary key'i (<code>${supW?.pk?.join(", ") || "?"}</code>) + alt sınıfın yerel öznitelikleri. Alt sınıfın PK'sı aynı zamanda üst sınıfa foreign key'dir. Her özelleştirmede çalışır (total/partial, disjoint/overlapping).`, `The superclass keeps its table; each subclass gets its own table: the superclass's primary key (<code>${supW?.pk?.join(", ") || "?"}</code>) + the subclass's local attributes. The subclass's PK is also a foreign key to the superclass. Works for every specialization (total/partial, disjoint/overlapping).`), made[0]);
+      log("8", `${tl("Adım", "Step")} 8A · ${label}`, tl(`Üst sınıfın tablosu kalır; her alt sınıf için ayrı bir tablo: üst sınıfın primary key'i (<code>${supW?.pk?.join(", ") || "?"}</code>) + alt sınıfın yerel öznitelikleri. Alt sınıfın PK'sı aynı zamanda üst sınıfa foreign key'dir. Her özelleştirmede çalışır (total/partial, disjoint/overlapping).`, `The superclass keeps its table; each subclass gets its own table: the superclass's primary key (<code>${supW?.pk?.join(", ") || "?"}</code>) + the subclass's local attributes. The subclass's PK is also a foreign key to the superclass. Works for every specialization (total/partial, disjoint/overlapping).`), made);
     } else if (o === "8B") {
       const made = [];
       for (const s of sp.subs) {
@@ -221,7 +224,7 @@ export function mapER(model, options = {}) {
         where.set(U(s), { table: t, pk: t.pk });
         made.push(t);
       }
-      log("8", `${tl("Adım", "Step")} 8B · ${label}`, tl(`Üst sınıf için tablo yok; her alt sınıf tablosu üst sınıfın <em>bütün</em> özniteliklerini içerir. Yalnızca total özelleştirmede doğrudur (her varlık bir alt sınıfta olmalı). Disjoint değilse bir varlık birden çok tabloda tekrar eder. Üst sınıfa referans veren ilişkiler foreign key ile ifade edilemez.`, `No table for the superclass; each subclass table holds <em>all</em> the superclass's attributes. Correct only for a total specialization (every entity must be in a subclass). If it is not disjoint an entity repeats in several tables. Relationships that refer to the superclass cannot be expressed with a foreign key.`), made[0]);
+      log("8", `${tl("Adım", "Step")} 8B · ${label}`, tl(`Üst sınıf için tablo yok; her alt sınıf tablosu üst sınıfın <em>bütün</em> özniteliklerini içerir. Yalnızca total özelleştirmede doğrudur (her varlık bir alt sınıfta olmalı). Disjoint değilse bir varlık birden çok tabloda tekrar eder. Üst sınıfa referans veren ilişkiler foreign key ile ifade edilemez.`, `No table for the superclass; each subclass table holds <em>all</em> the superclass's attributes. Correct only for a total specialization (every entity must be in a subclass). If it is not disjoint an entity repeats in several tables. Relationships that refer to the superclass cannot be expressed with a foreign key.`), made);
     } else {
       // 8C / 8D: one relation for the superclass and all subclasses
       const t = supW.table;
@@ -259,7 +262,7 @@ export function mapER(model, options = {}) {
       t.pk = w0.pk.map((col) => addCol(t, col, { type: w0.table.cols.find((x) => x.name === col)?.type, notNull: true }));
       addSimpleAttrs(t, ce?.attrs || [], []);
       if (c.total) for (const [, w] of supWs) w.table.fks.push({ cols: [...w.pk], ref: t.name, refCols: [...t.pk], onDelete: "CASCADE", why: `${w.table.name} ⊆ ${c.name} (total category)` });
-      log("9", `${tl("Adım", "Step")} 9 · ${c.name} = ${c.supers.join(" ∪ ")}`, tl(`Üst sınıfların anahtarı aynı (<code>${t.pk.join(", ")}</code>): yapay anahtara gerek yok; kategori tablosu bu anahtarı kullanır.${c.total ? " Kategori total olduğu için her üst sınıf satırı kategoride de bulunmalı: üst sınıfların PK'sı kategoriye foreign key." : " Kategori partial; üyelik bir kısıtla değil uygulama ya da trigger ile izlenir."}`, `The superclasses share their key (<code>${t.pk.join(", ")}</code>): no artificial key is needed; the category table uses this key.${c.total ? " The category is total, so every superclass row must be in the category too: the superclasses' PK is a foreign key to the category." : " The category is partial; membership is tracked by the application or a trigger, not by a constraint."}`), t);
+      log("9", `${tl("Adım", "Step")} 9 · ${c.name} = ${c.supers.join(" ∪ ")}`, tl(`Üst sınıfların anahtarı aynı (<code>${t.pk.join(", ")}</code>): yapay anahtara gerek yok; kategori tablosu bu anahtarı kullanır.${c.total ? " Kategori total olduğu için her üst sınıf satırı kategoride de bulunmalı: üst sınıfların PK'sı kategoriye foreign key." : " Kategori partial; üyelik bir kısıtla değil uygulama ya da trigger ile izlenir."}`, `The superclasses share their key (<code>${t.pk.join(", ")}</code>): no artificial key is needed; the category table uses this key.${c.total ? " The category is total, so every superclass row must be in the category too: the superclasses' PK is a foreign key to the category." : " The category is partial; membership is tracked by the application or a trigger, not by a constraint."}`), c.total ? [t, ...supWs.map(([, w]) => w.table)] : t);
     } else {
       const sk = addCol(t, `${U(c.name)}_id`, { type: "INT", notNull: true });
       t.pk = [sk];
@@ -269,7 +272,7 @@ export function mapER(model, options = {}) {
         w.table.fks.push({ cols: [col], ref: t.name, refCols: [sk], onDelete: null, why: `${w.table.name} ∈ ${c.name}` });
         w.table.uniques.push([col]);
       }
-      log("9", `${tl("Adım", "Step")} 9 · ${c.name} = ${c.supers.join(" ∪ ")}`, tl(`Üst sınıfların anahtarları farklı: kategoriye bir <strong>yapay anahtar</strong> (surrogate key) <code>${sk}</code> verilir ve her üst sınıf tablosuna bu anahtara referans veren bir foreign key eklenir (kategoriye ait olmayanlar için NULL).`, `The superclasses have different keys: the category gets an <strong>artificial key</strong> (surrogate key) <code>${sk}</code>, and each superclass table gets a foreign key to it (NULL for those not in the category).`), t);
+      log("9", `${tl("Adım", "Step")} 9 · ${c.name} = ${c.supers.join(" ∪ ")}`, tl(`Üst sınıfların anahtarları farklı: kategoriye bir <strong>yapay anahtar</strong> (surrogate key) <code>${sk}</code> verilir ve her üst sınıf tablosuna bu anahtara referans veren bir foreign key eklenir (kategoriye ait olmayanlar için NULL).`, `The superclasses have different keys: the category gets an <strong>artificial key</strong> (surrogate key) <code>${sk}</code>, and each superclass table gets a foreign key to it (NULL for those not in the category).`), [t, ...supWs.map(([, w]) => w.table)]);
     }
     where.set(U(c.name), { table: t, pk: t.pk });
   }

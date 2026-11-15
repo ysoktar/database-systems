@@ -12,13 +12,15 @@ const el = (tag, attrs = {}, text) => {
   if (text != null) e.textContent = text;
   return e;
 };
-const textW = (s) => [...String(s)].length * 6.9;
+// K scales shapes and labels together (spec.scale), so a diagram can be drawn with larger, more readable text
+let K = 1;
+const textW = (s) => [...String(s)].length * 6.9 * K;
 
 function size(n) {
-  if (n.type === "entity") return { w: Math.max(84, textW(n.label) + 26), h: 36 };
-  if (n.type === "rel") return { w: Math.max(80, textW(n.label) + 44), h: 46 };
-  if (n.type === "attr") return { w: Math.max(46, textW(n.label) + 22), h: 28 };
-  return { w: 26, h: 26 };
+  if (n.type === "entity") return { w: Math.max(84 * K, textW(n.label) + 26 * K), h: 36 * K };
+  if (n.type === "rel") return { w: Math.max(80 * K, textW(n.label) + 44 * K), h: 46 * K };
+  if (n.type === "attr") return { w: Math.max(46 * K, textW(n.label) + 22 * K), h: 28 * K };
+  return { w: 26 * K, h: 26 * K };
 }
 
 /** Point where the segment from the centre of node n towards (tx, ty) leaves n's shape. */
@@ -35,6 +37,7 @@ function boundary(n, tx, ty) {
 }
 
 export function drawER(spec) {
+  K = spec.scale || 1;
   // the view box covers the requested canvas and every shape (a node close to an edge is never clipped)
   let x0 = 0, y0 = 0, x1 = spec.width, y1 = spec.height;
   for (const n of spec.nodes) {
@@ -42,7 +45,7 @@ export function drawER(spec) {
     x0 = Math.min(x0, n.x - w / 2 - 4); y0 = Math.min(y0, n.y - h / 2 - 4);
     x1 = Math.max(x1, n.x + w / 2 + 4); y1 = Math.max(y1, n.y + h / 2 + 4);
   }
-  const svg = el("svg", { viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, role: "img", "aria-label": spec.title || "ER diagram" });
+  const svg = el("svg", { style: K !== 1 ? `--er-k:${K}` : null, viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, role: "img", "aria-label": spec.title || "ER diagram" });
   if (spec.title) svg.append(el("title", {}, spec.title));
   const byId = new Map(spec.nodes.map((n) => [n.id, n]));
   const gLinks = el("g"), gNodes = el("g"), gLabels = el("g");
@@ -109,13 +112,13 @@ export function drawER(spec) {
       g.append(el("ellipse", { cx: n.x, cy: n.y, rx: w / 2, ry: h / 2 }));
       if (n.multi) g.append(el("ellipse", { class: "inner", cx: n.x, cy: n.y, rx: w / 2 - 4, ry: h / 2 - 4 }));
     } else {
-      g.append(el("circle", { cx: n.x, cy: n.y, r: 13 }));
+      g.append(el("circle", { cx: n.x, cy: n.y, r: 13 * K }));
     }
     g.append(el("text", { x: n.x, y: n.y + 0.5 }, n.label));
     if (n.key || n.pkey) {
       // SVG text-decoration is unreliable across browsers: draw the (dashed) underline as a line
       const half = textW(n.label) / 2 - 1;
-      g.append(el("line", { x1: n.x - half, x2: n.x + half, y1: n.y + 8, y2: n.y + 8, style: `stroke:var(--text);stroke-width:1.1${n.pkey ? ";stroke-dasharray:3 2" : ""}` }));
+      g.append(el("line", { x1: n.x - half, x2: n.x + half, y1: n.y + 8 * K, y2: n.y + 8 * K, style: `stroke:var(--text);stroke-width:1.1${n.pkey ? ";stroke-dasharray:3 2" : ""}` }));
     }
     gNodes.append(g);
   }

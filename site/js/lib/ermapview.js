@@ -36,16 +36,17 @@ export function renderMapping(host, model, { spec = "8A", showSteps = true, show
     const ol = h("ol", { class: "map-steps" });
     for (const s of res.steps) {
       const li = h("li", {}, h("div", { class: "step-title" }, s.title), h("div", { html: s.html }));
-      if (s.snapshot) {
-        // before -> after: the table as it was before this step (or none: a new table) and as it is after it
-        const what = !s.previous ? tl("yeni tablo", "new table") : [s.added.length ? tl(`yeni sütunlar: ${s.added.join(", ")}`, `new columns: ${s.added.join(", ")}`) : null,
-          s.addedFKs.length ? tl(`yeni foreign key: ${s.addedFKs.map((k) => k.replace(">", " → ")).join("; ")}`, `new foreign key: ${s.addedFKs.map((k) => k.replace(">", " → ")).join("; ")}`) : null].filter(Boolean).join(" · ");
+      // before -> after for every table the step creates or changes (a new table has no "before")
+      const touched = (s.tables || (s.snapshot ? [s] : [])).map((t) => ({ name: t.snapshot.name, ...t })).filter((t) => !t.previous || t.added.length || t.addedFKs.length);
+      for (const t of touched) {
+        const what = !t.previous ? tl("yeni tablo", "new table") : [t.added.length ? tl(`yeni sütunlar: ${t.added.join(", ")}`, `new columns: ${t.added.join(", ")}`) : null,
+          t.addedFKs.length ? tl(`yeni foreign key: ${t.addedFKs.map((k) => k.replace(">", " → ")).join("; ")}`, `new foreign key: ${t.addedFKs.map((k) => k.replace(">", " → ")).join("; ")}`) : null].filter(Boolean).join(" · ");
         li.append(h("div", { class: "ba" },
           h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")),
-            s.previous ? tableCard(s.previous) : h("div", { class: "ba-empty" }, tl(`${s.snapshot.name} henüz yok: bu adımda oluşturuluyor`, `${s.snapshot.name} does not exist yet: this step creates it`))),
+            t.previous ? tableCard(t.previous) : h("div", { class: "ba-empty" }, tl(`${t.name} henüz yok: bu adımda oluşturuluyor`, `${t.name} does not exist yet: this step creates it`))),
           h("div", { class: "ba-arrow", "aria-hidden": "true" }),
           h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After"), what ? h("span", { class: "ba-what" }, ` · ${what}`) : null),
-            tableCard(s.snapshot, { highlight: s.previous ? s.added : s.snapshot.cols.map((c) => c.name), newFKs: s.addedFKs }))));
+            tableCard(t.snapshot, { highlight: t.previous ? t.added : t.snapshot.cols.map((c) => c.name), newFKs: t.addedFKs }))));
       }
       ol.append(li);
     }
