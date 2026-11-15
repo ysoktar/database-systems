@@ -854,3 +854,26 @@ table.rel tr[class*="g"] td.idx { background: transparent; }
   .ba { grid-template-columns: minmax(0, 1fr); }
   .ba-arrow::after { content: "↓"; }
 }
+/* ---------- relational algebra ---------- */
+pre.algebra { font-family: var(--mono); font-size: 0.86rem; line-height: 1.7; white-space: pre-wrap; }
+pre.algebra sub, .stepper-note sub { font-size: 0.72em; }
+/* query tree: a top-down tree drawn with nested lists; each node is a button */
+.qtree { overflow-x: auto; padding: 6px 0 10px; }
+.qtree ul { display: flex; justify-content: center; padding: 18px 0 0; margin: 0; position: relative; list-style: none; }
+.qtree > ul { padding-top: 0; }
+.qtree li { position: relative; padding: 18px 6px 0; display: flex; flex-direction: column; align-items: center; }
+.qtree > ul > li { padding-top: 0; }
+/* the connectors: a horizontal line over the children, a vertical line into each child and under each parent */
+.qtree li::before, .qtree li::after { content: ""; position: absolute; top: 0; height: 18px; border-top: 2px solid var(--border-strong); width: 50%; }
+.qtree li::before { right: 50%; }
+.qtree li::after { left: 50%; border-left: 2px solid var(--border-strong); }
+.qtree li:only-child::before, .qtree li:only-child::after { width: 0; border-top: 0; }
+.qtree li:only-child::after { left: 50%; }
+.qtree li:first-child::before, .qtree li:last-child::after { border-top: 0; }
+.qtree li:last-child::before { border-right: 2px solid var(--border-strong); }
+.qtree > ul > li::before, .qtree > ul > li::after { display: none; }
+.qtree ul ul::before { content: ""; position: absolute; top: 0; left: 50%; height: 18px; border-left: 2px solid var(--border-strong); }
+.qt-node { font-family: var(--mono); font-size: 0.8rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent-wash);
+  color: var(--text); cursor: pointer; white-space: nowrap; }
+.qt-node.leaf { border-color: var(--border-strong); background: var(--surface-2); font-weight: 700; }
+.qt-node[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }

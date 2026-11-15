@@ -3,70 +3,286 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relational algebra (preview) · Database Systems</title>
-<meta name="description" content="Elmasri &amp; Navathe Ch 8 preview: relational algebra operations and their SQL equivalents, runnable on MySQL; not on the midterm.">
+<title>Relational algebra · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 8 (course slides 1–67): SELECT, PROJECT, RENAME, set operations, Cartesian product, kinds of JOIN, division, query trees, aggregates and grouping, recursive closure, outer join and outer union; the input and result of every operation side by side, with its SQL equivalent.">
 <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../css/style.css">
 <script src="../js/theme-init.js"></script>
-<script type="module" src="../js/layout.js"></script>
+<script type="module" src="../js/pages/ch8-algebra.js"></script>
 </head>
 <body data-page="ch8-algebra">
 <main><div class="content">
 
-<h1>Relational algebra (preview)</h1>
-<p class="lead">Ch 8 is not on the midterm. This page briefly introduces the formal language behind the SQL of Ch 6–7: every algebra operation has an SQL equivalent, and all of them can be run below.</p>
+<h1>Relational algebra</h1>
+<p class="lead">Relational algebra is the basic set of operations of the relational model: each operation takes one or two relations and produces a new relation as its result. It is the formal language behind SQL. On this page you can see the input and the result of every operation side by side on the COMPANY data, and run the SQL equivalent of the same query.</p>
 
-<div class="callout note">
-  <p>Relational algebra is a <em>procedural</em> language of operations on relations: each operation takes one or two relations and returns <strong>a new relation</strong> (closure). The operations work with <em>set</em> semantics: a result has no duplicates. SQL uses multiset semantics.</p>
+<div class="callout goals">
+  <ul>
+    <li>Write a query with σ, π, ρ, set operations, ⋈ and ÷, both as a single expression and as a sequence of operations that names its intermediate results.</li>
+    <li>Predict how many rows and which columns the result of each operation will have; for example, know that π removes duplicates and that σ never increases the number of rows.</li>
+    <li>Explain the difference between theta join, equijoin and natural join; answer "for every …" questions with the division operation.</li>
+    <li>Draw a query tree for a query; recognize the aggregate, outer join and outer union operations.</li>
+  </ul>
 </div>
 
-<h2>Unary operations</h2>
+<div class="callout note">
+  <p><strong>Scope.</strong> This page covers slides 1–67 of the Ch 8 slides, which the syllabus assigns to week 8. The rest of the slides (68–96) are about relational calculus (tuple and domain relational calculus) and QBE, which are not on the final.</p>
+</div>
+
+<h2>Overview</h2>
+<p>The result of every operation of relational algebra is again a relation. This property is called <strong>closure</strong>, and it lets us nest operations: the result of one operation becomes the input of the next. A sequence of operations forms a <strong>relational algebra expression</strong>, and its result is also a relation, the answer to a query.</p>
+<p>The algebra is <em>procedural</em>: it says step by step how the result is obtained. SQL is <em>declarative</em>: it says what is wanted and leaves how to find it to the DBMS. Before running an SQL query, the DBMS internally translates it into an algebra expression (a query tree). The algebra treats relations as <em>sets</em>, so the same row never appears twice in a result; SQL removes duplicates only when <code>DISTINCT</code> is written.</p>
 <table class="simple">
-  <thead><tr><th>Operation</th><th>Notation</th><th>SQL equivalent</th></tr></thead>
+  <thead><tr><th>Group</th><th>Operations</th></tr></thead>
   <tbody>
-    <tr><td><strong>SELECT</strong></td><td>σ<sub>Dno=4 AND Salary&gt;25000</sub>(EMPLOYEE)</td><td><code>SELECT * FROM EMPLOYEE WHERE Dno = 4 AND Salary &gt; 25000</code></td></tr>
-    <tr><td><strong>PROJECT</strong></td><td>π<sub>Lname, Salary</sub>(EMPLOYEE)</td><td><code>SELECT DISTINCT Lname, Salary FROM EMPLOYEE</code></td></tr>
-    <tr><td><strong>RENAME</strong></td><td>ρ<sub>S(B1, B2)</sub>(R)</td><td><code>… AS S(B1, B2)</code></td></tr>
+    <tr><td>Unary operations</td><td>SELECT (σ), PROJECT (π), RENAME (ρ)</td></tr>
+    <tr><td>Operations from set theory</td><td>UNION (∪), INTERSECTION (∩), DIFFERENCE (−), CARTESIAN PRODUCT (×)</td></tr>
+    <tr><td>Binary operations</td><td>JOIN (⋈ and its variants), DIVISION (÷)</td></tr>
+    <tr><td>Additional operations</td><td>Aggregate functions and grouping (ℑ), recursive closure, OUTER JOIN, OUTER UNION</td></tr>
   </tbody>
 </table>
-<p>σ is commutative (σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c2</sub>(σ<sub>c1</sub>(R))); π removing duplicates corresponds to SQL's <code>DISTINCT</code>.</p>
-<pre class="sql run" data-title="π_{Sex, Salary}(EMPLOYEE): set semantics needs DISTINCT">
-SELECT DISTINCT Sex, Salary FROM EMPLOYEE;
-</pre>
+
+<h2>SELECT and PROJECT</h2>
+<h3>SELECT (σ): filtering rows</h3>
+<p><strong>σ<sub>&lt;condition&gt;</sub>(R)</strong> selects the rows of R that satisfy the condition and discards the others. The condition is a Boolean expression on the attributes of R; for example σ<sub>Dno=4</sub>(EMPLOYEE) gives the employees of department 4, and σ<sub>Salary&gt;30000</sub>(EMPLOYEE) those who earn more than 30000. In SQL this is the job of <code>WHERE</code>.</p>
+<ul>
+  <li>The schema of the result is the same as that of R: the columns do not change, only the rows decrease. The number of rows in the result cannot exceed the number of rows in R.</li>
+  <li>σ is commutative: σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c2</sub>(σ<sub>c1</sub>(R)). So successive selections can be applied in any order, and they can all be combined into one selection: σ<sub>c1</sub>(σ<sub>c2</sub>(σ<sub>c3</sub>(R))) = σ<sub>c1 AND c2 AND c3</sub>(R).</li>
+</ul>
+<h3>PROJECT (π): choosing columns</h3>
+<p><strong>π<sub>&lt;attribute list&gt;</sub>(R)</strong> keeps only the columns of R that are in the list and discards the others. For example π<sub>Lname, Fname, Salary</sub>(EMPLOYEE) gives the name and salary of every employee. In SQL this is the job of the <code>SELECT</code> list.</p>
+<ul>
+  <li>Since the result must be a set, π <strong>removes duplicate rows</strong>. This corresponds to writing <code>SELECT DISTINCT</code> in SQL.</li>
+  <li>The number of rows in the result cannot exceed that of R. If the list contains a key of R, no row repeats and the number of rows stays the same.</li>
+  <li>π is not commutative. The expression π<sub>list1</sub>(π<sub>list2</sub>(R)) is valid only if list2 contains all the attributes of list1, and then it equals π<sub>list1</sub>(R).</li>
+</ul>
+<p>In the walkthrough below, the input of each operation is on the left and its result on the right. In the σ steps, the rows in red and struck through on the left are dropped because they do not satisfy the condition. In the last π step, the red row is removed as a duplicate, because it carries the same (Sex, Salary) values as a row before it.</p>
+<div id="select-project"></div>
+
+<h2>Expressions and RENAME</h2>
+<p>There are two ways to apply several operations one after the other. The first is to build <strong>a single expression</strong> by nesting the operations. The second is to apply the operations one at a time and give each intermediate result a name; the ← sign is an assignment here. For example, the question "the first name, last name and salary of the employees in department 5" can be written either way:</p>
+<pre class="algebra">π<sub>Fname, Lname, Salary</sub>(σ<sub>Dno=5</sub>(EMPLOYEE))
+
+DEP5_EMPS ← σ<sub>Dno=5</sub>(EMPLOYEE)
+RESULT    ← π<sub>Fname, Lname, Salary</sub>(DEP5_EMPS)</pre>
+<div id="sequence"></div>
+<p><strong>RENAME (ρ)</strong> changes the name of a relation, the names of its columns, or both. It is needed in queries that use two copies of the same relation and in joins where column names must match. It has three forms:</p>
+<ul>
+  <li><strong>ρ<sub>S(B1, …, Bn)</sub>(R)</strong> renames the relation to S and its columns to B1, …, Bn.</li>
+  <li><strong>ρ<sub>S</sub>(R)</strong> renames only the relation.</li>
+  <li><strong>ρ<sub>(B1, …, Bn)</sub>(R)</strong> renames only the columns.</li>
+</ul>
+<p>Renaming can also happen during an assignment: writing <code>RESULT(F, M, L, S, B, A, SX, SAL, SU, DNO) ← ρ…(DEP5_EMPS)</code> gives the ten columns of DEP5_EMPS these names, in order. In SQL renaming is done with <code>AS</code>.</p>
 
 <h2>Set operations</h2>
-<p>∪ (UNION), ∩ (INTERSECTION), − (MINUS/DIFFERENCE): the two relations must be <em>type compatible</em> (union compatible). × (CARTESIAN PRODUCT) combines every pair of tuples.</p>
-<pre class="sql run" data-title="Example: the Ssns of employees in department 5 or of their direct supervisors">
--- DEP5_EMPS ← σ_{Dno=5}(EMPLOYEE); RESULT1 ← π_{Ssn}(DEP5_EMPS); RESULT2 ← π_{Super_ssn}(DEP5_EMPS)
--- RESULT ← RESULT1 ∪ RESULT2
-SELECT Ssn FROM EMPLOYEE WHERE Dno = 5
-UNION
-SELECT Super_ssn FROM EMPLOYEE WHERE Dno = 5;
-</pre>
+<p><strong>UNION</strong> (R ∪ S) contains all the rows that are in R, in S or in both, and removes duplicates. <strong>INTERSECTION</strong> (R ∩ S) contains only the rows that are in both relations, and <strong>DIFFERENCE</strong> (R − S, also called MINUS or EXCEPT) the rows that are in R but not in S.</p>
+<div class="callout key">
+  <p>The two inputs of these three operations must be <strong>type compatible</strong> (union compatible): the two relations must have the same number of columns, and corresponding columns must have compatible domains. By convention the columns of the result carry the column names of the first input.</p>
+</div>
+<ul>
+  <li>∪ and ∩ are commutative (R ∪ S = S ∪ R) and associative (R ∪ (S ∪ T) = (R ∪ S) ∪ T); so they can be applied to more than two relations.</li>
+  <li>Difference is not commutative: in general R − S ≠ S − R.</li>
+</ul>
+<p>The book's example: the Ssns of the employees who work in department 5 or who directly supervise an employee who works in department 5. RESULT1 holds the Ssns of the department's employees; RESULT2 the Ssns of their supervisors. RESULT2's column is renamed from Super_ssn to Ssn so that the two relations are type compatible.</p>
+<pre class="algebra">DEP5_EMPS   ← σ<sub>Dno=5</sub>(EMPLOYEE)
+RESULT1     ← π<sub>Ssn</sub>(DEP5_EMPS)
+RESULT2(Ssn) ← π<sub>Super_ssn</sub>(DEP5_EMPS)
+RESULT      ← RESULT1 ∪ RESULT2</pre>
+<div id="set-ops"></div>
 
-<h2>Binary operations: JOIN and DIVISION</h2>
-<table class="simple">
-  <thead><tr><th>Operation</th><th>Notation</th><th>Meaning</th></tr></thead>
-  <tbody>
-    <tr><td><strong>THETA JOIN</strong></td><td>R ⋈<sub>θ</sub> S</td><td>σ<sub>θ</sub>(R × S)</td></tr>
-    <tr><td><strong>EQUIJOIN</strong></td><td>R ⋈<sub>A=B</sub> S</td><td>equality conditions only</td></tr>
-    <tr><td><strong>NATURAL JOIN</strong></td><td>R * S</td><td>an equijoin on the same-named attributes, the repeated column kept once</td></tr>
-    <tr><td><strong>OUTER JOIN</strong></td><td>⟕ ⟖ ⟗</td><td>unmatched tuples kept, padded with NULLs</td></tr>
-    <tr><td><strong>DIVISION</strong></td><td>R(Z) ÷ S(X)</td><td>the Y = Z − X values that appear in R with <em>every</em> tuple of S</td></tr>
-    <tr><td><strong>AGGREGATE</strong></td><td><sub>Dno</sub>ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE)</td><td>GROUP BY</td></tr>
-  </tbody>
-</table>
-<pre class="sql run" data-title="Division: employees who work on every project Smith works on (÷ in algebra, a double NOT EXISTS in SQL)">
--- SMITH_PNOS ← π_{Pno}(WORKS_ON ⋈_{Essn=Ssn} σ_{Fname='John' AND Lname='Smith'}(EMPLOYEE))
--- SSN_PNOS   ← π_{Essn, Pno}(WORKS_ON)
--- RESULT     ← SSN_PNOS ÷ SMITH_PNOS
+<h2>Cartesian product and JOIN</h2>
+<h3>Cartesian product (×)</h3>
+<p><strong>R × S</strong> combines every row of R with every row of S. If R has n columns and S has m, the result has n + m columns; if R has n<sub>R</sub> rows and S has n<sub>S</sub>, the result has n<sub>R</sub> · n<sub>S</sub> rows. The two inputs do not have to be type compatible. On its own the product is usually meaningless, because it also pairs rows that have nothing to do with each other; it becomes meaningful when a selection follows it. The book's example finds the names of the female employees and of their dependents:</p>
+<pre class="algebra">FEMALE_EMPS    ← σ<sub>Sex='F'</sub>(EMPLOYEE)
+EMPNAMES       ← π<sub>Fname, Lname, Ssn</sub>(FEMALE_EMPS)
+EMP_DEPENDENTS ← EMPNAMES × DEPENDENT
+ACTUAL_DEPS    ← σ<sub>Ssn=Essn</sub>(EMP_DEPENDENTS)
+RESULT         ← π<sub>Fname, Lname, Dependent_name</sub>(ACTUAL_DEPS)</pre>
+<div id="product"></div>
+
+<h3>JOIN (⋈)</h3>
+<p>A selection after a product is needed so often that the two are combined into one operation: <strong>R ⋈<sub>&lt;join condition&gt;</sub> S</strong> = σ<sub>&lt;join condition&gt;</sub>(R × S). The columns of the result are again the columns of R and of S, but only the pairs of rows that satisfy the join condition reach the result. So the result usually has far fewer than n<sub>R</sub> · n<sub>S</sub> rows. For example, to find the manager of each department, every DEPARTMENT row is combined with the EMPLOYEE row whose Ssn equals its Mgr_ssn:</p>
+<pre class="algebra">DEPT_MGR ← DEPARTMENT ⋈<sub>Mgr_ssn=Ssn</sub> EMPLOYEE</pre>
+<ul>
+  <li><strong>Theta join</strong> is the general form of join: the condition (θ) can be any Boolean expression on the attributes of the two relations, for example R.A &lt; S.B AND (R.C = S.D OR R.E &lt; S.F).</li>
+  <li><strong>Equijoin</strong> uses only equality comparisons in its condition. Its result always has one or more pairs of columns whose values are the same in every row (like Mgr_ssn and Ssn in DEPT_MGR). Most joins are equijoins.</li>
+  <li><strong>Natural join</strong> (R * S) was defined to drop this superfluous second column of an equijoin. No condition is written: an equality condition is added automatically for each pair of columns that <em>have the same name</em> in the two relations, and only one column of each pair remains in the result. If the column names differ, ρ is applied first. For example DEPARTMENT * DEPT_LOCATIONS joins on Dnumber, the common column of the two relations.</li>
+</ul>
+<div id="joins-alg"></div>
+<div class="callout key">
+  <p><strong>A complete set of operations.</strong> The set {σ, π, ∪, −, ρ, ×} is <em>complete</em>: every other algebra operation can be expressed with these six. For example R ∩ S = (R ∪ S) − ((R − S) ∪ (S − R)) and R ⋈<sub>condition</sub> S = σ<sub>condition</sub>(R × S). The other operations exist only to make writing easier.</p>
+</div>
+
+<h2>DIVISION</h2>
+<p>In <strong>R(Z) ÷ S(X)</strong>, X is a subset of Z; Y = Z − X are the columns of R that are not in S. The result is a relation T(Y), and a value t reaches the result only if it occurs in R together with <em>every</em> row of S. That is why division is the algebra's counterpart of questions with "for every …" (∀).</p>
+<p>The book's example: "the Ssns of the employees who work on <em>all</em> the projects that John Smith works on." First Smith's projects are found (SMITH_PNOS), then each employee's projects (SSN_PNOS) are divided by them:</p>
+<pre class="algebra">SMITH        ← σ<sub>Fname='John' AND Lname='Smith'</sub>(EMPLOYEE)
+SMITH_PNOS   ← π<sub>Pno</sub>(WORKS_ON ⋈<sub>Essn=Ssn</sub> SMITH)
+SSN_PNOS     ← π<sub>Essn, Pno</sub>(WORKS_ON)
+SSNS(Ssn)    ← SSN_PNOS ÷ SMITH_PNOS</pre>
+<p>In the walkthrough below, the rows of each employee in SSN_PNOS on the left share a colour. Smith works on projects 1 and 2; the rows of employees who do not work on both of these projects are red. Only the Ssns that occur with both projects remain in the result.</p>
+<div id="division"></div>
+<p>SQL has no division operation. The same question is written with the double negation we saw in Ch 7: "there is <em>no</em> project that Smith works on and this employee does not."</p>
+<pre class="sql run" data-title="The SQL equivalent of division: with NOT EXISTS">
 SELECT DISTINCT W.Essn
 FROM   WORKS_ON W
 WHERE  NOT EXISTS (SELECT S.Pno FROM WORKS_ON S WHERE S.Essn = '123456789'
                    EXCEPT
                    SELECT X.Pno FROM WORKS_ON X WHERE X.Essn = W.Essn);
 </pre>
-<p>The book's Ch 8 also covers the tuple and domain relational calculus: the same questions written <em>nonprocedurally</em>, with the quantifiers ∃ and ∀. The NOT EXISTS pattern of Ch 7 is how ∀ of the calculus is written in SQL.</p>
+
+<h2>Query trees</h2>
+<p>A <strong>query tree</strong> shows an algebra expression as a tree. The leaves are base relations (such as EMPLOYEE and PROJECT), and the inner nodes are operations (such as σ, π and ⋈). A node is executed once the results of its children are ready, and the result of the operation at the root is the answer to the query. DBMSs keep queries internally as such a tree; it makes it easy to see how much work a query needs and which intermediate results are produced. Algebraic query optimization (Ch 15) turns the tree into an equivalent but cheaper tree.</p>
+<p>The tree below is the book's query Q2: "For every project located in Stafford, the project number, the number of the controlling department, and the last name, address and birth date of that department's manager." Click a node and its intermediate result appears below; clicking from the bottom up, you can follow how the query is computed.</p>
+<div id="query-tree"></div>
+
+<h2>Additional operations</h2>
+<h3>Aggregate functions and grouping (ℑ)</h3>
+<p>One kind of request that cannot be expressed in the basic algebra is a mathematical summary over a collection of values: the average or total salary of all employees, the number of employees, and so on. The <strong>ℑ</strong> (or ℱ) operation is used for this. For example ℑ<sub>MAX Salary</sub>(EMPLOYEE) gives the highest salary, and ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE) the number of employees and the average salary. COUNT counts rows and does not remove duplicates.</p>
+<p>The grouping attribute is written to the <em>left</em> of the ℑ symbol, the aggregate functions to its right. <sub>Dno</sub>ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE) groups the employees by department number and computes the number of employees and the average salary for each department. This is the counterpart of <code>GROUP BY</code> in SQL. Forms of the book's Figure 8.10 are below.</p>
+<div id="aggregate"></div>
+
+<h3>Recursive closure</h3>
+<p>Another operation that in general cannot be written in the basic algebra is <strong>recursive closure</strong> on a recursive relationship. For example, the question "the supervisees of James Borg at all levels" needs Borg's direct supervisees, their direct supervisees, and so on along the whole chain. It is possible to find each level separately and take their union, but if the number of levels is unknown, this query cannot be written without a loop. The SQL3 standard added recursive queries for this (<code>WITH RECURSIVE</code> in Ch 7). The book's Figure 8.11 finds two levels like this:</p>
+<pre class="algebra">BORG_SSN            ← π<sub>Ssn</sub>(σ<sub>Fname='James' AND Lname='Borg'</sub>(EMPLOYEE))
+SUPERVISION(Ssn1, Ssn2) ← π<sub>Ssn, Super_ssn</sub>(EMPLOYEE)
+RESULT1(Ssn)        ← π<sub>Ssn1</sub>(SUPERVISION ⋈<sub>Ssn2=Ssn</sub> BORG_SSN)
+RESULT2(Ssn)        ← π<sub>Ssn1</sub>(SUPERVISION ⋈<sub>Ssn2=Ssn</sub> RESULT1)
+RESULT              ← RESULT2 ∪ RESULT1</pre>
+<div id="recursive"></div>
+
+<h3>Outer join</h3>
+<p>In natural join and equijoin, rows without a matching partner are dropped from the result; rows whose join column is NULL are dropped too. This is a loss of information. The <strong>outer join</strong> operations are used when we want to keep all the rows of a relation in the result, whether or not they have a partner.</p>
+<ul>
+  <li><strong>Left outer join</strong> (R ⟕ S) keeps every row of the left relation R; for rows with no partner in S, the columns of S are filled with NULL.</li>
+  <li><strong>Right outer join</strong> (R ⟖ S) keeps every row of the right relation S in the same way.</li>
+  <li><strong>Full outer join</strong> (R ⟗ S) keeps the unmatched rows of both sides, filling with NULL where needed.</li>
+</ul>
+<p>The book's Figure 8.12 lists every employee with the name of the department they manage; employees who manage no department are in the result too, with NULL as the department name:</p>
+<pre class="algebra">TEMP   ← (EMPLOYEE ⟕<sub>Ssn=Mgr_ssn</sub> DEPARTMENT)
+RESULT ← π<sub>Fname, Minit, Lname, Dname</sub>(TEMP)</pre>
+<div id="outer-join"></div>
+
+<h3>Outer union</h3>
+<p><strong>Outer union</strong> was defined to take the union of two relations that are not type compatible. The relations R(X, Y) and S(X, Z) are only partially compatible: the X columns are shared, Y and Z are not. The result is a relation T(X, Y, Z); the shared columns appear once, and both sets of incompatible columns are kept. Rows are merged when the values of their shared columns are the same.</p>
+<p>In the book's example STUDENT(Name, Ssn, Department, Advisor) and INSTRUCTOR(Name, Ssn, Department, Rank) are combined, and the result is STUDENT_OR_INSTRUCTOR(Name, Ssn, Department, Advisor, Rank). For someone who is both a student and an instructor both Advisor and Rank have values; for the others one of these two columns is NULL. SQL has no outer union; the box below produces the same result with the union of two outer joins.</p>
+<pre class="sql run" data-title="Outer union: STUDENT and INSTRUCTOR">
+DROP TABLE IF EXISTS demo.STUDENT, demo.INSTRUCTOR;   -- so that the box can be run again
+CREATE TABLE demo.STUDENT    (Name VARCHAR(20), Ssn CHAR(9), Department VARCHAR(15), Advisor VARCHAR(20));
+CREATE TABLE demo.INSTRUCTOR (Name VARCHAR(20), Ssn CHAR(9), Department VARCHAR(15), `Rank` VARCHAR(15));
+INSERT INTO demo.STUDENT    VALUES ('Ali', '111', 'CS', 'Kaya'), ('Ece', '222', 'EE', 'Demir');
+INSERT INTO demo.INSTRUCTOR VALUES ('Kaya', '333', 'CS', 'Professor'), ('Ece', '222', 'EE', 'Assistant');
+-- STUDENT_OR_INSTRUCTOR(Name, Ssn, Department, Advisor, Rank): Ece is both, so her row has both values
+SELECT S.Name, S.Ssn, S.Department, S.Advisor, I.`Rank`
+FROM   demo.STUDENT S LEFT JOIN demo.INSTRUCTOR I ON S.Name = I.Name AND S.Ssn = I.Ssn AND S.Department = I.Department
+UNION
+SELECT I.Name, I.Ssn, I.Department, S.Advisor, I.`Rank`
+FROM   demo.INSTRUCTOR I LEFT JOIN demo.STUDENT S ON S.Name = I.Name AND S.Ssn = I.Ssn AND S.Department = I.Department;
+</pre>
+
+<h2>Example queries</h2>
+<p>The book writes the same queries first in a procedural form that names the intermediate results, then as a single expression. In the walkthroughs below you can see each intermediate result together with its inputs and its result.</p>
+<h3>Q1: the name and address of the employees in the Research department</h3>
+<pre class="algebra">RESEARCH_DEPT ← σ<sub>Dname='Research'</sub>(DEPARTMENT)
+RESEARCH_EMPS ← (RESEARCH_DEPT ⋈<sub>Dnumber=Dno</sub> EMPLOYEE)
+RESULT        ← π<sub>Fname, Lname, Address</sub>(RESEARCH_EMPS)
+
+As a single expression:
+π<sub>Fname, Lname, Address</sub>(σ<sub>Dname='Research'</sub>(DEPARTMENT ⋈<sub>Dnumber=Dno</sub> EMPLOYEE))</pre>
+<div id="q1"></div>
+<h3>Q6: the names of the employees who have no dependents</h3>
+<p>This query uses the difference operation: the Ssns of employees with dependents are removed from the Ssns of all employees, and the remaining Ssns are joined with EMPLOYEE to get the names.</p>
+<pre class="algebra">ALL_EMPS          ← π<sub>Ssn</sub>(EMPLOYEE)
+EMPS_WITH_DEPS(Ssn) ← π<sub>Essn</sub>(DEPENDENT)
+EMPS_WITHOUT_DEPS ← (ALL_EMPS − EMPS_WITH_DEPS)
+RESULT            ← π<sub>Lname, Fname</sub>(EMPS_WITHOUT_DEPS * EMPLOYEE)
+
+As a single expression:
+π<sub>Lname, Fname</sub>((π<sub>Ssn</sub>(EMPLOYEE) − ρ<sub>Ssn</sub>(π<sub>Essn</sub>(DEPENDENT))) * EMPLOYEE)</pre>
+<div id="q6"></div>
+
+<h2>The table of operations</h2>
+<p>A summary of the book's Table 8.1 and the SQL equivalent of each operation:</p>
+<table class="simple">
+  <thead><tr><th>Operation</th><th>Purpose</th><th>Notation</th><th>SQL equivalent</th></tr></thead>
+  <tbody>
+    <tr><td>SELECT</td><td>Selects the rows of a relation that satisfy a selection condition.</td><td>σ<sub>condition</sub>(R)</td><td><code>WHERE condition</code></td></tr>
+    <tr><td>PROJECT</td><td>Keeps some columns of a relation and removes duplicates.</td><td>π<sub>list</sub>(R)</td><td><code>SELECT DISTINCT list</code></td></tr>
+    <tr><td>THETA JOIN</td><td>Combines the pairs of rows of two relations that satisfy a join condition.</td><td>R ⋈<sub>condition</sub> S</td><td><code>R JOIN S ON condition</code></td></tr>
+    <tr><td>EQUIJOIN</td><td>A theta join that uses only equality comparisons.</td><td>R ⋈<sub>A=B</sub> S</td><td><code>R JOIN S ON R.A = S.B</code></td></tr>
+    <tr><td>NATURAL JOIN</td><td>An equijoin on the same-named columns that keeps one column of each pair.</td><td>R * S</td><td><code>R NATURAL JOIN S</code></td></tr>
+    <tr><td>UNION</td><td>All the rows of two type-compatible relations, without duplicates.</td><td>R ∪ S</td><td><code>UNION</code></td></tr>
+    <tr><td>INTERSECTION</td><td>The rows found in both relations.</td><td>R ∩ S</td><td><code>INTERSECT</code></td></tr>
+    <tr><td>DIFFERENCE</td><td>The rows in R but not in S.</td><td>R − S</td><td><code>EXCEPT</code></td></tr>
+    <tr><td>CARTESIAN PRODUCT</td><td>Combines every row of R with every row of S.</td><td>R × S</td><td><code>FROM R, S</code> or <code>CROSS JOIN</code></td></tr>
+    <tr><td>DIVISION</td><td>The Y values that occur in R together with every row of S.</td><td>R(Z) ÷ S(X)</td><td>None in SQL; a double <code>NOT EXISTS</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE">
+  <p>EMPLOYEE has 8 rows. How many rows does π<sub>Sex, Salary</sub>(EMPLOYEE) return? (The women's salaries are 25000, 43000, 25000; the men's are 30000, 40000, 38000, 55000, 25000.)</p>
+  <ol>
+    <li data-why="8 would be the result in SQL without DISTINCT. Since the algebra uses set semantics, π removes duplicates.">8</li>
+    <li data-why="Correct: (F, 25000) appears twice, so one row is removed; 7 distinct (Sex, Salary) pairs remain.">7</li>
+    <li data-why="6 is only the number of distinct salaries (by Salary). Here pairs are counted: (F, 25000) and (M, 25000) are different rows.">6</li>
+    <li data-why="2 would be only the number of distinct values of Sex. The list has two columns, so pairs are compared.">2</li>
+  </ol>
+  <div class="explain">Since the result of π is a set, the same (Sex, Salary) pair appears once. Among the women (F, 25000) appears twice and one is removed: 8 − 1 = 7. Jabbar, a man who earns 25000, has the row (M, 25000), which differs from the women's (F, 25000).</div>
+  <pre class="sql run" data-title="Check it">SELECT DISTINCT Sex, Salary FROM EMPLOYEE;</pre>
+</div>
+<div class="quiz" data-answer="3">
+  <p>R has 4 rows and S has 3. At most how many rows can R × S and R ⋈<sub>condition</sub> S have?</p>
+  <ol>
+    <li data-why="7 is the sum of the two relations' row counts; a product pairs rows with each other.">R × S: 7; R ⋈ S: 7</li>
+    <li data-why="A join is a selection after a product, and a selection never increases the number of rows; so a join cannot be larger than the product.">R × S: 12; R ⋈ S: 24</li>
+    <li data-why="Correct: the product always gives 4 · 3 = 12 rows; since the join is the part of the product that satisfies the condition, it can give at most 12 rows.">R × S: exactly 12; R ⋈ S: at most 12</li>
+    <li data-why="If every pair of rows satisfies the join condition, the result can have 12 rows; 3 is not an upper bound.">R × S: 12; R ⋈ S: at most 3</li>
+  </ol>
+  <div class="explain">In a Cartesian product every row is paired with every row, so the result always has n<sub>R</sub> · n<sub>S</sub> = 12 rows. A join is σ<sub>condition</sub>(R × S), so it is a subset of these 12 rows: 12 if every pair satisfies the condition, 0 if none does.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which statement is <em>not true</em> of natural join?</p>
+  <ol>
+    <li data-why="This statement is true (the question asks for the false one): in a natural join no condition is written; it is formed from the same-named columns.">No join condition is written; it is formed automatically from the pairs of columns with the same name.</li>
+    <li data-why="This statement is true (the question asks for the false one): dropping the superfluous second column of an equijoin is the purpose of natural join.">Only one column of each pair of same-named columns remains in the result.</li>
+    <li data-why="This statement is true (the question asks for the false one): if there are no common column names, ρ is applied first.">If the column names differ, RENAME must be applied first.</li>
+    <li data-why="This is the false one, i.e. the correct answer: a natural join is a kind of equijoin; its condition consists only of equalities.">The join condition can contain any comparison (&lt;, &gt;, …).</li>
+  </ol>
+  <div class="explain">A join that can contain any comparison is a theta join. A natural join is an equijoin made of equalities between same-named columns, and it drops one column of each equal pair.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Which operation is most suitable for "the Ssns of the employees who work on all the projects"?</p>
+  <ol>
+    <li data-why="Correct: π<sub>Essn, Pno</sub>(WORKS_ON) ÷ π<sub>Pnumber</sub>(PROJECT); an Essn reaches the result only if it occurs with every project number. (Pnumber needs to be renamed to Pno.)">DIVISION: π<sub>Essn, Pno</sub>(WORKS_ON) ÷ ρ<sub>(Pno)</sub>(π<sub>Pnumber</sub>(PROJECT))</li>
+    <li data-why="This join gives those who work on at least one project (∃), not those who work on all projects (∀).">JOIN: π<sub>Essn</sub>(WORKS_ON ⋈<sub>Pno=Pnumber</sub> PROJECT)</li>
+    <li data-why="These are the Ssns of those who work on at least one project; it does not express 'all'.">PROJECT: π<sub>Essn</sub>(WORKS_ON)</li>
+    <li data-why="This difference gives the employees who work on no project.">DIFFERENCE: π<sub>Ssn</sub>(EMPLOYEE) − π<sub>Essn</sub>(WORKS_ON)</li>
+  </ol>
+  <div class="explain">"With all …" (∀) questions are the typical use of division: R(Essn, Pno) ÷ S(Pno) gives the Essns that occur with every Pno in S. Joins and projections answer only "at least one" (∃) questions.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>Which of the following is true?</p>
+  <ol>
+    <li data-why="Difference is not commutative: R − S gives those in R but not in S; S − R those in S but not in R.">R − S = S − R</li>
+    <li data-why="Projection is not commutative, and nesting it is valid only if the outer list is a subset of the inner one.">π<sub>A</sub>(π<sub>B</sub>(R)) = π<sub>B</sub>(π<sub>A</sub>(R)) always holds.</li>
+    <li data-why="Correct: selection is commutative, and successive selections turn into one selection with the AND of the conditions.">σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c1 AND c2</sub>(R)</li>
+    <li data-why="Type compatibility is needed for ∪, ∩ and −; the inputs of a Cartesian product can be any two relations.">The two inputs of a Cartesian product must be type compatible.</li>
+  </ol>
+  <div class="explain">σ is commutative; successive selections can be applied in any order and combined into one selection with the AND of the conditions. Difference and projection are not commutative; type compatibility is needed only for ∪, ∩ and −.</div>
+</div>
+<div class="quiz" data-answer="2" data-tables="EMPLOYEE DEPARTMENT">
+  <p>How many rows does EMPLOYEE ⟕<sub>Ssn=Mgr_ssn</sub> DEPARTMENT return? (EMPLOYEE has 8 employees; each of the 3 departments is managed by a different employee.)</p>
+  <ol>
+    <li data-why="3 is the result of the inner join: only the employees who manage a department. A left outer join keeps all the rows on the left.">3</li>
+    <li data-why="Correct: all 8 employees on the left stay; 3 are matched with the department they manage, the other 5 get NULL in the department columns.">8</li>
+    <li data-why="11 is the sum of the two relations' row counts; an outer join pairs rows, it does not append them.">11</li>
+    <li data-why="24 is the row count of the Cartesian product (8 · 3); the join condition pairs rows.">24</li>
+  </ol>
+  <div class="explain">A left outer join keeps every row of the left relation. The 3 employees who manage a department are matched with it; the 5 who do not are in the result too, with NULL in DEPARTMENT's columns. Since each employee manages at most one department, the result has 8 rows.</div>
+  <pre class="sql run" data-title="Check it">SELECT E.Fname, E.Minit, E.Lname, D.Dname
+FROM   EMPLOYEE E LEFT OUTER JOIN DEPARTMENT D ON E.Ssn = D.Mgr_ssn;</pre>
+</div>
 
 </div></main>
 </body>
