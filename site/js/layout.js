@@ -9,7 +9,7 @@ export const NOTEBOOK_URL = "https://colab.research.google.com/drive/1ArUuenMYSn
 
 /**
  * Site map. `ch` = chapter of Elmasri & Navathe (7th ed.). `scope`: "midterm" (Ch 1–7, on the midterm) or
- * "final" (after the midterm: syllabus weeks 8–12). `slides`: the slide range of the course's slide deck that the page
+ * "none" (no scope label). `slides`: the slide range of the course's slide deck that the page
  * covers (the syllabus limits some chapters, e.g. Ch 8 slides 1–67).
  */
 export const NAV = [
@@ -34,10 +34,10 @@ export const NAV = [
     { id: "ch7-views", title: "Kısıtlar, trigger, view, ALTER", title_en: "Constraints, triggers, views, ALTER", desc_en: "ASSERTION, triggers, views and updatability, schema change.", ch: "Ch 7.2–7.4", desc: "ASSERTION, trigger, view ve güncellenebilirlik, şema değişikliği." },
   ] },
   { part: "Bölüm V · İlişkisel cebir", part_en: "Part V · Relational algebra", short: "Ch 8", items: [
-    { id: "ch8-algebra", title: "İlişkisel cebir", title_en: "Relational algebra", desc_en: "σ, π, ρ, set operations, joins, division, query trees, aggregates, outer joins.", ch: "Ch 8", slides: "1–67", scope: "final", desc: "σ, π, ρ, küme işlemleri, join'ler, bölme, sorgu ağaçları, aggregate, outer join." },
+    { id: "ch8-algebra", title: "İlişkisel cebir", title_en: "Relational algebra", desc_en: "σ, π, ρ, set operations, joins, division, query trees, aggregates, outer joins.", ch: "Ch 8", slides: "1–67", scope: "none", desc: "σ, π, ρ, küme işlemleri, join'ler, bölme, sorgu ağaçları, aggregate, outer join." },
   ] },
   { part: "Bölüm VI · Veritabanı tasarımı", part_en: "Part VI · Database design", short: "Ch 9, 14", items: [
-    { id: "ch9-mapping", title: "ER'den tablolara eşleme", title_en: "ER-to-relational mapping", desc_en: "The mapping algorithm: Steps 1–7 for ER, 8A–8D for specializations, 9 for categories.", ch: "Ch 9", slides: "1–38", scope: "final", desc: "Eşleme algoritması: ER için Adım 1–7, özelleştirme için 8A–8D, kategoriler için Adım 9." },
+    { id: "ch9-mapping", title: "ER'den tablolara eşleme", title_en: "ER-to-relational mapping", desc_en: "The mapping algorithm: Steps 1–7 for ER, 8A–8D for specializations, 9 for categories.", ch: "Ch 9", slides: "1–38", scope: "none", desc: "Eşleme algoritması: ER için Adım 1–7, özelleştirme için 8A–8D, kategoriler için Adım 9." },
   ] },
   { part: "Uygulama", part_en: "Practice", items: [
     { id: "er-studio", title: "ER stüdyosu", title_en: "ER studio", desc_en: "Draw ER/EER, map to tables, turn tables back into ER; design exercises.", desc: "ER/EER çiz, tablolara dönüştür, tablolardan ER'e geri dön; tasarım alıştırmaları." },
@@ -54,7 +54,6 @@ const ALL = NAV.flatMap((p) => p.items.map((it) => ({ ...it, title: tx(it, "titl
 for (const it of ALL) it.scope ??= it.ch ? "midterm" : "none";
 export const SCOPES = {
   midterm: { label: tl("Arasınavda", "On the midterm"), tip: tl("Arasınav kapsamında: Elmasri & Navathe Ch 1–7.", "Covered by the midterm: Elmasri & Navathe Ch 1–7.") },
-  final: { label: tl("Final kapsamında", "On the final"), tip: tl("Vize sonrası konular (müfredatta 8–12. haftalar); arasınavda yok.", "Topics after the midterm (syllabus weeks 8–12); not on the midterm.") },
 };
 export const pageInfo = (id) => ALL.find((p) => p.id === id);
 export const PAGES = ALL;
@@ -130,9 +129,7 @@ function buildSidebar(current) {
     const sec = h("div", { class: "nav-part" }, h("div", { class: "nav-part-title" }, h("span", {}, tx(part, "part")), part.short ? h("span", {}, part.short) : null));
     const ol = h("ol");
     for (const it of part.items) {
-      const sc = ALL.find((x) => x.id === it.id).scope;
-      const tag = sc === "final" ? h("span", { class: "nav-scope beyond", title: SCOPES.final.tip }, "final") : null;
-      const a = h("a", { href: href(it.id) }, h("span", {}, tx(it, "title"), tag), it.ch ? h("span", { class: "nav-book" }, it.ch) : null);
+      const a = h("a", { href: href(it.id) }, h("span", {}, tx(it, "title")), it.ch ? h("span", { class: "nav-book" }, it.ch) : null);
       if (it.id === current) a.setAttribute("aria-current", "page");
       ol.append(h("li", {}, a));
     }
@@ -258,7 +255,7 @@ function buildKicker(info) {
   const k = h("div", { class: "kicker" }, h("span", {}, info.part));
   if (info.ch) k.append(h("span", { class: "chip", title: tl("Elmasri & Navathe, 7. baskı", "Elmasri & Navathe, 7th edition") }, tl("Kitap ", "Book ") + info.ch));
   const sc = SCOPES[info.scope];
-  if (sc) k.append(h("span", { class: `chip scope ${info.scope === "final" ? "beyond" : "slides"}`, title: sc.tip }, h("span", { class: "dot" }), sc.label));
+  if (sc) k.append(h("span", { class: "chip scope slides", title: sc.tip }, h("span", { class: "dot" }), sc.label));
   if (info.slides) k.append(h("span", { class: "chip", title: tl("Ders slaytlarında bu sayfanın kapsadığı aralık (müfredattaki gibi)", "The range of the course slides this page covers (as in the syllabus)") }, tl(`Slaytlar ${info.slides}`, `Slides ${info.slides}`)));
   return k;
 }

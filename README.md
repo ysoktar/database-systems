@@ -1,27 +1,41 @@
-# Veritabanı Sistemleri: arasınav çalışma sitesi
+# Veritabanı Sistemleri: çalışma sitesi
 
 BIL372/BIL071 Veritabanı Sistemleri (TOBB ETÜ, 2026–2027 Güz) için etkileşimli bir çalışma sitesi. Site, R. Elmasri & S. B. Navathe'nin
-*Fundamentals of Database Systems* (7. baskı) kitabının arasınav kapsamındaki 1–7. bölümlerini ve ders notebook'unu
-(`notebook/Ch6_7_SQL_Exercises.ipynb`, *Exercises — Chapters 6 and 7*) izler.
+*Fundamentals of Database Systems* (7. baskı) kitabını, dersin slaytlarını ve müfredatını, ve ders notebook'unu
+(`notebook/Ch6_7_SQL_Exercises.ipynb`, *Exercises — Chapters 6 and 7*) izler. Bütün sayfalar Türkçe ve İngilizcedir; başlıktaki
+dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
 
-- **Bölüm sayfaları** (Ch 1–7): kavramlar, mimari, ER, EER, ilişkisel model ve kısıtlar, temel SQL, NULL ve iç içe sorgular,
-  join/gruplama/WITH, assertion/trigger/view/ALTER. Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları
-  kitaptaki gösterimle çizilir. Her sayfanın sonunda sınama soruları var.
+- **Bölüm sayfaları.** Ch 1–7: kavramlar, mimari, ER, EER, ilişkisel model ve kısıtlar, temel SQL, NULL ve iç içe sorgular,
+  join/gruplama/WITH, assertion/trigger/view/ALTER. Ch 8: ilişkisel cebir (slaytlar 1–67). Ch 9: ER ve EER şemalarını tablolara
+  eşleme (slaytlar 1–38). Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
+  çizilir. Bir konunun müfredatta yalnızca bir kısmı varsa, sayfanın başında kapsadığı slayt aralığı yazar.
+- **Önce ve sonra.** Adım adım gösterimlerde her adımın girdisi solda, sonucu sağda görünür: SQL'in kavramsal değerlendirme
+  sırası, join türleri, ilişkisel cebirin her işlemi (atılan satırlar kırmızı, NULL ile kalanlar sarı), ER'den tablolara
+  eşlemenin her adımı (tablonun önceki ve sonraki hâli) ve tablolardan ER'e geri dönüş.
 - **Notebook alıştırmaları**: notebook'taki 10 SQL alıştırması, notebook'takiyle aynı kontrolcüyle (aynı hash'ler; Python
   kontrolcüsü `site/js/lib/sqlcore.js`'e taşındı). İpuçları, doğrulanmış çözümler ve alternatifler.
-- **Arasınav rehberi**: bölüm bölüm bilinmesi gerekenler, çözümlü ER/kısıt/anahtar problemleri, otomatik kontrol edilen 8 SQL
-  problemi, sık yapılan hatalar ve bütün sayfaların sorularından oluşan bir deneme seti.
+- **Çalışma rehberi (Ch 1–7)**: bölüm bölüm bilinmesi gerekenler, çözümlü ER/kısıt/anahtar problemleri, otomatik kontrol
+  edilen 8 SQL problemi, sık yapılan hatalar ve bütün sayfaların sorularından oluşan bir deneme seti.
 - **ER stüdyosu**: ER/EER diyagramlarını sürükle-bırak ya da metinle çizme (iki görünüm eşitlenir; geri alma, otomatik
   yerleşim, 1/N ↔ (min,max) gösterimi, SVG/PNG ve paylaşım bağlantısı); diyagramı Ch 9 algoritmasıyla (adım 1–9,
   özelleştirme seçenekleri 8A–8D) adım adım tablolara dönüştürüp MySQL'de oluşturma; kendi `CREATE TABLE`'larınızı ER
   diyagramına geri çevirme (reverse engineering); 8 örnek şema ve otomatik kontrol edilen 4 ER tasarım alıştırması.
-- **Araçlar**: SQL laboratuvarı (serbest konsol ve canlı şema tarayıcı), özet kâğıdı ve sözlük, Ch 8 önizlemesi.
+- **Araçlar**: SQL laboratuvarı (serbest konsol ve canlı şema tarayıcı), özet kâğıdı ve sözlük.
+
+### SQL kutuları
+
+Kutular satır numaralı bir editördür. Bir kelimenin üstüne gelmek ya da tıklamak ona ait olanı vurgular ve kodun altında
+tek cümleyle açıklar: bir clause'un tamamı ve değerlendirme sırasındaki adımı, bir alt sorgu ve correlated olup olmadığı, bir
+takma ad ve tablosu, bir sütunun tipi ve anahtar rolü, foreign key boyunca bir join koşulu. `= NULL` ve iki tabloda birden
+bulunan sütun adları için uyarı verir. Hatalar MySQL'in yazdığı gibi gösterilir (`ERROR 1054 (42S22): Unknown column …`),
+yanlış yazılmış bir ad için en yakın COMPANY adı önerilir ve hatalı satır kırmızıyla işaretlenir. Sınama sorularının
+çoğunda, cevaptan sonra açılan bir "Kontrol edin" kutusu sorudaki sorguları çalıştırır.
 
 Her SQL kutusu tarayıcıda çalışan bir MySQL'e bağlıdır: MySQL ile uyumlu
 [go-mysql-server](https://github.com/dolthub/go-mysql-server)'ın WebAssembly derlemesi (`engine/`). Sunucu yoktur; site
 statiktir ve hiçbir veri tarayıcıdan çıkmaz. COMPANY şeması ve verisi (Figure 6.1/6.2 ve Figure 5.6) notebook'un yardımcı
 hücresinden alındı ve MySQL'e uyarlandı (`site/js/lib/company.js`). Her kutunun üstünde kullandığı tabloların adları vardır;
-bir ada tıklamak o tablonun satırlarını açar. Sınama sorularında her seçeneğin neden doğru ya da yanlış olduğu yazar.
+bir ada tıklamak o tablonun satırlarını açar. MySQL motoru (≈ 87 MB) içeriğinin özetiyle tarayıcının önbelleğinde tutulur; site yeniden yayınlandığında motor değişmediyse tekrar indirilmez. Sınama sorularında her seçeneğin neden doğru ya da yanlış olduğu yazar.
 
 ### MySQL motoru
 
@@ -51,13 +65,17 @@ notebook'un parmak izleriyle karşılaştırır.
 
 | Yol | İçerik |
 |---|---|
-| `site/*.html` | her sayfa bir dosya |
+| `site/*.html` | her sayfa bir dosya (Türkçe); `site/en/*.html` İngilizce eşleri |
+| `site/js/pages/` | sayfaya özgü betikler (adım adım gösterimler, sorgu ağacı, eşleme örnekleri) |
 | `site/js/layout.js` | menü, başlık, kutular, sınama soruları; site haritası (`NAV`) |
 | `engine/` | MySQL motoru: Go giriş noktası (`main.go`) ve derleme betiği |
 | `site/js/lib/mysql.js` | motoru başlatma, `ALL`/`ANY` çevirisi |
 | `site/js/lib/db.js` | sayfa başına bir MySQL, COMPANY kurulumu, komut çalıştırma |
 | `site/js/lib/companydata.js` | COMPANY'nin Figure 5.6 verisi (kutuların tablo panelleri için) |
-| `site/js/lib/sqlbox.js` | düzenlenebilir, çalıştırılabilir SQL kutuları |
+| `site/js/lib/sqlbox.js`, `codeview.js` | düzenlenebilir, çalıştırılabilir SQL kutuları; satır numaralı editör |
+| `site/js/lib/sqllinks.js`, `errhelp.js` | bir kelimeye ait olanı bulma ve açıklama; MySQL biçiminde hatalar ve ad önerileri |
+| `site/js/lib/stepper.js` | önce → sonra gösterimli adım adım sorgu görünümleri |
+| `site/js/lib/i18n.js`, `site/en/` | Türkçe/İngilizce metinler; her sayfanın İngilizce eşi |
 | `site/js/lib/sqlcore.js` | komut ayırma ve notebook'un kontrolcüsü (DOM'suz; testler de kullanır) |
 | `site/js/lib/erd.js` | ER/EER diyagramları (SVG) |
 | `site/js/lib/ermodel.js` | ER modeli ve metin dili (ayrıştırma, doğrulama, geri yazma) |
