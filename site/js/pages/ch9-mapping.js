@@ -340,7 +340,18 @@ const DECIDE = [
       const right = d.opts.find((o) => o[1]);
       fb.replaceChildren(h("div", { class: `res-msg ${ok ? "ok" : "warn"}` }, why), ok ? "" : h("p", { class: "small" }, h("strong", {}, tl("Doğru cevap: ", "Correct answer: ")), right[0], " ", right[2].replace(/^(Doğru|Right)\. /, "")));
       const res = mapER(model, { spec: d.spec || "8A" });
-      result.replaceChildren(h("div", { class: "ba-label" }, tl("Algoritmanın ürettiği tablolar", "The tables the algorithm produces")), h("div", { class: "schema-grid" }, ...res.tables.map((t) => tableCard(t))));
+      // every step of the fragment with its table before and after, whether the answer was right or wrong
+      const ol = h("ol", { class: "map-steps" });
+      for (const st of res.steps.filter((x) => x.snapshot)) {
+        ol.append(h("li", {}, h("div", { class: "step-title" }, st.title), h("div", { class: "small", html: st.html }),
+          h("div", { class: "ba" },
+            h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), st.previous ? tableCard(st.previous) : h("div", { class: "ba-empty" }, tl(`${st.snapshot.name} henüz yok: bu adımda oluşturuluyor`, `${st.snapshot.name} does not exist yet: this step creates it`))),
+            h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+            h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), tableCard(st.snapshot, { highlight: st.previous ? st.added : st.snapshot.cols.map((c) => c.name), newFKs: st.addedFKs })))));
+      }
+      result.replaceChildren(h("div", { class: "ba-label" }, ok ? tl("Algoritma bu parçayı adım adım böyle eşler: her adımda tablonun önceki ve sonraki hâli", "This is how the algorithm maps the fragment step by step: each table before and after")
+        : tl("Doğru eşleme adım adım: her adımda tablonun önceki ve sonraki hâli. Seçtiğiniz tasarımla karşılaştırın.", "The correct mapping step by step: each table before and after. Compare it with the design you chose.")), ol,
+        h("div", { class: "ba-label" }, tl(`Sonuç: ${res.tables.length} tablo`, `Result: ${res.tables.length} tables`)), h("div", { class: "schema-grid" }, ...res.tables.map((t) => tableCard(t))));
     };
     d.opts.forEach(([label], j) => opts.append(h("button", { type: "button", onclick: () => pick(j) }, h("span", { class: "opt-letter" }, "ABC"[j] + ") "), label)));
     card.replaceChildren(h("div", { class: "decide-grid" }, fig, h("div", {}, h("p", { class: "decide-q" }, d.q), opts, fb)), result);
