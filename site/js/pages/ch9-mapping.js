@@ -237,10 +237,10 @@ function stepPlayer(host, exId = "company", spec = "8A", predictInit = false) {
   host.replaceChildren(h("div", { class: "player" },
     h("div", { class: "pl-bar" }, h("label", { class: "small sim-field" }, tl("Örnek: ", "Example: "), exSel), hasSpec ? h("label", { class: "small sim-field" }, tl("Adım 8 seçeneği: ", "Step 8 option: "), specSel) : null),
     h("div", { class: "pl-bar" }, prev, next, reset, counter, h("label", { class: "small pl-predict" }, predictBox, tl(" Tahmin modu: önce siz tahmin edin", " Predict mode: guess first"))),
-    dots, h("div", { class: "pl-grid" }, figHost, side), schema));
+    dots, h("div", { class: "pl-grid side" }, figHost, side), schema));
 
   const renderFig = (k) => {
-    const fig = erFigure(bigDiagram(toDiagram(model, pos, {})), tl("Vurgulu yapı bu adımda eşleniyor; soluk kenarlıklı olanlar önceki adımlarda eşlendi. Büyütmek için üzerine gelin, tam ekran için tıklayın.", "The highlighted construct is mapped in this step; the ones with a faded border were mapped in earlier steps. Hover to enlarge, click for full screen."));
+    const fig = erFigure(bigDiagram(toDiagram(model, pos, {}), 1.75, 1.15), tl("Vurgulu yapı bu adımda eşleniyor; soluk kenarlıklı olanlar önceki adımlarda eşlendi. Büyütmek için üzerine gelin, tam ekran için tıklayın.", "The highlighted construct is mapped in this step; the ones with a faded border were mapped in earlier steps. Hover to enlarge, click for full screen."));
     figHost.replaceChildren(fig);
     zoomable(fig, figHost);
     if (k < 0) return;
