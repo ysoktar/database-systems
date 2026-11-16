@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Final exam study guide · Database Systems</title>
+<meta name="description" content="A final exam study guide covering all topics (Elmasri &amp; Navathe Ch 1–9, 11, 14, 16, 17, 20): a scope map, a study plan, the approach to question types, an end-to-end worked problem from requirements to transactions, and a practice set mixing all chapters.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/layout.js"></script>
+</head>
+<body data-page="exam-final">
+<main><div class="content">
+
+<h1>Final exam study guide</h1>
+<p class="lead">The final covers all the topics of the course: the midterm topics (Ch 1–7) and those after it (Ch 8, 9, 11, 14, 16, 17, 20). This page ties the two halves together: it shows where each topic is explained, an order in which to study, and how the topics come together in a single problem. For detailed lists and problems it links to the <a href="exam-midterm.html">midterm guide (Ch 1–7)</a> and the <a href="study-guide.html">Ch 8–20 guide</a>.</p>
+
+<div class="callout key">
+  <p>In the final, topics often come together in one scenario: drawing an ER diagram from a requirements text and mapping it to tables, checking the normal form of the tables, writing queries in SQL and relational algebra, deciding which index fits, and discussing the correctness of concurrent operations. The <a href="#end-to-end">end-to-end problem</a> below is exactly such a question.</p>
+</div>
+
+<h2>Scope map</h2>
+<table class="simple">
+  <thead><tr><th>Topic</th><th>Chapters</th><th>Pages</th><th>Guide</th></tr></thead>
+  <tbody>
+    <tr><td>Basic concepts and architecture</td><td>Ch 1–2</td><td><a href="ch1-intro.html">Databases and DBMSs</a>, <a href="ch2-architecture.html">Architecture</a></td><td><a href="exam-midterm.html">Ch 1–7</a></td></tr>
+    <tr><td>Conceptual modelling</td><td>Ch 3–4</td><td><a href="ch3-er.html">The ER model</a>, <a href="ch4-eer.html">The EER model</a>, <a href="er-studio.html">ER studio</a></td><td><a href="exam-midterm.html">Ch 1–7</a></td></tr>
+    <tr><td>The relational model and constraints</td><td>Ch 5</td><td><a href="ch5-relational.html">The relational model</a></td><td><a href="exam-midterm.html">Ch 1–7</a></td></tr>
+    <tr><td>SQL</td><td>Ch 6–7</td><td><a href="ch6-sql.html">Basic SQL</a>, <a href="ch7-nested.html">NULLs and nesting</a>, <a href="ch7-joins.html">Joins and grouping</a>, <a href="ch7-views.html">Triggers and views</a>, <a href="notebook.html">Notebook</a></td><td><a href="exam-midterm.html">Ch 1–7</a></td></tr>
+    <tr><td>Relational algebra</td><td>Ch 8</td><td><a href="ch8-algebra.html">Relational algebra</a></td><td><a href="study-guide.html">Ch 8–20</a></td></tr>
+    <tr><td>Design: mapping and normalization</td><td>Ch 9, 14</td><td><a href="ch9-mapping.html">ER-to-relational mapping</a>, <a href="ch14-normalization.html">Normalization</a></td><td><a href="study-guide.html">Ch 8–20</a></td></tr>
+    <tr><td>Storage and indexing</td><td>Ch 16–17</td><td><a href="ch16-files.html">Disk storage and files</a>, <a href="ch17-indexing.html">Indexing structures</a></td><td><a href="study-guide.html">Ch 8–20</a></td></tr>
+    <tr><td>Programming and transactions</td><td>Ch 11, 20</td><td><a href="ch11-php.html">PHP</a>, <a href="ch20-transactions.html">Transaction processing</a></td><td><a href="study-guide.html">Ch 8–20</a></td></tr>
+  </tbody>
+</table>
+
+<h2>Study plan</h2>
+<p>The topics build on one another, so the order below is recommended. At each step first read the page, then use its player or SQL boxes yourself, and finally solve the page's quizzes.</p>
+<ol>
+  <li><strong>Concepts (Ch 1–2):</strong> definitions, the three-schema architecture, data independence. To prepare for short-answer questions, answer the concept questions of the midterm guide.</li>
+  <li><strong>ER and EER (Ch 3–4):</strong> practise drawing diagrams from requirements with at least two exercises in the <a href="er-studio.html">ER studio</a>.</li>
+  <li><strong>Mapping (Ch 9):</strong> right after that, turn the diagrams you drew into tables. The <a href="ch9-mapping.html">step-by-step player</a> shows Steps 1–9 on one schema.</li>
+  <li><strong>The relational model and constraints (Ch 5):</strong> keys and which operation violates which constraint.</li>
+  <li><strong>Normalization (Ch 14):</strong> finding keys, normal forms and decomposition. It is good to study it after mapping, because a good mapping usually already produces 3NF tables.</li>
+  <li><strong>SQL (Ch 6–7) and relational algebra (Ch 8):</strong> write the same questions in both languages. Check the notebook exercises with the site's MySQL, then write the algebra for the same queries.</li>
+  <li><strong>PHP (Ch 11):</strong> reading code, string types, the fetchRow loop and placeholders.</li>
+  <li><strong>Files and indexes (Ch 16–17):</strong> solve block and index cost computations and B+-tree insertion on paper and check them with the players.</li>
+  <li><strong>Transactions (Ch 20):</strong> concurrency problems, ACID, recoverability and serializability of schedules.</li>
+  <li><strong>Mixed review:</strong> solve the <a href="#end-to-end">end-to-end problem</a> and the <a href="#practice">mixed practice set</a>; go back to the topics you got wrong.</li>
+</ol>
+
+<h2>Approach to question types</h2>
+<p>The step-by-step method for each question type is explained in detail in the two guides. The table below shows where each type is.</p>
+<table class="simple">
+  <thead><tr><th>Question type</th><th>Where?</th></tr></thead>
+  <tbody>
+    <tr><td>Drawing ER/EER from requirements</td><td><a href="exam-midterm.html#approach">Midterm guide: question types</a></td></tr>
+    <tr><td>Which constraint an operation violates</td><td><a href="exam-midterm.html#approach">Midterm guide: question types</a></td></tr>
+    <tr><td>Finding keys (from requirements)</td><td><a href="exam-midterm.html#approach">Midterm guide: question types</a></td></tr>
+    <tr><td>Writing SQL</td><td><a href="exam-midterm.html#approach">Midterm guide: question types</a></td></tr>
+    <tr><td>Writing a query in relational algebra</td><td><a href="study-guide.html#approach">Ch 8–20 guide: question types</a></td></tr>
+    <tr><td>Mapping an ER/EER schema to tables</td><td><a href="study-guide.html#approach">Ch 8–20 guide: question types</a></td></tr>
+    <tr><td>Finding keys and normal forms, decomposing (from FDs)</td><td><a href="study-guide.html#approach">Ch 8–20 guide: question types</a></td></tr>
+    <tr><td>Computing block and index costs</td><td><a href="study-guide.html#approach">Ch 8–20 guide: question types</a></td></tr>
+    <tr><td>Inserting into a B+-tree</td><td><a href="study-guide.html#approach">Ch 8–20 guide: question types</a></td></tr>
+    <tr><td>Classifying a schedule</td><td><a href="study-guide.html#approach">Ch 8–20 guide: question types</a></td></tr>
+    <tr><td>Reading PHP code</td><td><a href="study-guide.html#approach">Ch 8–20 guide: question types</a></td></tr>
+  </tbody>
+</table>
+
+<h2 id="end-to-end">End-to-end worked problem: a library</h2>
+<div class="callout example" data-label="Requirements">
+  <ul>
+    <li>The library's <strong>members</strong> are kept with a member number (unique), a name and one or more phones.</li>
+    <li>Every <strong>book</strong> has a unique ISBN, a title and a publisher.</li>
+    <li>A book can have several <strong>copies</strong>. Copies are numbered within the book (1, 2, …): the same copy number is used in different books. Every copy has a shelf code.</li>
+    <li>A copy is <strong>loaned</strong> to at most one member at a time; a member can borrow many copies. A due date is kept with the loan.</li>
+  </ul>
+</div>
+
+<h3>(a) The ER diagram (Ch 3)</h3>
+<p>Determine the entities, relationships, constraints and keys.</p>
+<div class="hint" data-label="Show the answer">
+  <ul>
+    <li>MEMBER(<u>Mid</u>, Name, {Phones}): Phones is multivalued.</li>
+    <li>BOOK(<u>Isbn</u>, Title, Publisher).</li>
+    <li>BOOK_COPY is a weak entity: the copy number is unique only within the book. Partial key Copy_no, owner BOOK; identifying relationship HAS_COPY (BOOK 1, BOOK_COPY N, the BOOK_COPY side total). Shelf is an attribute.</li>
+    <li>LOAN: a relationship between MEMBER (1) and BOOK_COPY (N); Due_date is the relationship's attribute. A copy may not be on loan and a member may have no loan: both sides are partial.</li>
+  </ul>
+  <p>You can draw this diagram in the <a href="er-studio.html">ER studio</a> and see the next step there automatically too.</p>
+</div>
+
+<h3>(b) Mapping to tables (Ch 9)</h3>
+<div class="hint" data-label="Show the answer">
+  <ul>
+    <li>Step 1: MEMBER(<u>Mid</u>, Name), BOOK(<u>Isbn</u>, Title, Publisher).</li>
+    <li>Step 2: BOOK_COPY(<u>Isbn, Copy_no</u>, Shelf): Isbn is a foreign key to BOOK, and when the owner is deleted the copies must go too (ON DELETE CASCADE).</li>
+    <li>Step 4: LOAN is 1:N, so the foreign key goes to the N side, BOOK_COPY, and the relationship's attribute comes with it: BOOK_COPY(<u>Isbn, Copy_no</u>, Shelf, Mid, Due_date); Mid is a foreign key to MEMBER and is NULL for copies not on loan.</li>
+    <li>Step 6: MEMBER_PHONES(<u>Mid, Phone</u>).</li>
+  </ul>
+  <p>The box below creates these tables with sample data; the next boxes use these tables.</p>
+</div>
+<pre class="sql run" id="final-lib" data-title="The library tables (the result of the mapping) and sample data">
+DROP TABLE IF EXISTS demo.BOOK_COPY;
+DROP TABLE IF EXISTS demo.BOOK;
+DROP TABLE IF EXISTS demo.MEMBER;
+CREATE TABLE demo.MEMBER (Mid INT PRIMARY KEY, Name VARCHAR(20) NOT NULL);
+CREATE TABLE demo.BOOK (Isbn CHAR(4) PRIMARY KEY, Title VARCHAR(30), Publisher VARCHAR(20));
+CREATE TABLE demo.BOOK_COPY (
+  Isbn     CHAR(4),
+  Copy_no  INT,
+  Shelf    VARCHAR(5),
+  Mid      INT,
+  Due_date DATE,
+  PRIMARY KEY (Isbn, Copy_no),
+  FOREIGN KEY (Isbn) REFERENCES demo.BOOK (Isbn) ON DELETE CASCADE,
+  FOREIGN KEY (Mid) REFERENCES demo.MEMBER (Mid));
+INSERT INTO demo.MEMBER VALUES (1, 'Ayse'), (2, 'Mehmet'), (3, 'Elif');
+INSERT INTO demo.BOOK VALUES ('B001', 'Database Systems', 'Pearson'), ('B002', 'Operating Systems', 'Wiley'), ('B003', 'Algorithms', 'MIT Press');
+INSERT INTO demo.BOOK_COPY VALUES ('B001', 1, 'A1', 1, '2026-12-01'), ('B001', 2, 'A1', 2, '2026-12-03'),
+  ('B002', 1, 'B2', 1, '2026-12-05'), ('B003', 1, 'C3', NULL, NULL), ('B003', 2, 'C3', 1, '2026-12-10');
+SELECT * FROM demo.BOOK_COPY;
+</pre>
+
+<h3>(c) A constraint violation (Ch 5)</h3>
+<p>Which constraint does <code>INSERT INTO BOOK_COPY VALUES ('B009', 1, 'Z9', NULL, NULL);</code> violate?</p>
+<div class="hint" data-label="Show the answer">
+  <p>BOOK has no book with ISBN 'B009': the Isbn foreign key is not found in the referenced table, so <strong>referential integrity</strong> is violated and the DBMS rejects the insertion. The primary key (B009, 1) is not NULL and is unique, so the entity and key constraints hold; Mid being NULL is also valid, because a foreign key may be NULL. The box below shows this error (MySQL error code 1452).</p>
+</div>
+<pre class="sql run" data-setup="final-lib" data-expect-error data-title="A referential integrity violation: a copy of a book that does not exist">
+INSERT INTO demo.BOOK_COPY VALUES ('B009', 1, 'Z9', NULL, NULL);
+</pre>
+
+<h3>(d) SQL (Ch 6–7)</h3>
+<p>(1) Write the names and loan counts of the members who borrowed at least two copies. (2) Write the titles of the books all of whose copies are on loan.</p>
+<div class="hint" data-label="Show the answer">
+  <p>(1) "A count per member" means GROUP BY, and "at least two" is a group condition, so HAVING. (2) "All copies on loan" means "no copy that is not on loan": NOT EXISTS.</p>
+</div>
+<pre class="sql run" data-setup="final-lib" data-title="Loan counts and books with all copies on loan">
+SELECT   M.Name, COUNT(*) AS Loans
+FROM     demo.MEMBER M JOIN demo.BOOK_COPY C ON C.Mid = M.Mid
+GROUP BY M.Mid, M.Name
+HAVING   COUNT(*) >= 2;
+
+SELECT B.Title
+FROM   demo.BOOK B
+WHERE  NOT EXISTS (SELECT * FROM demo.BOOK_COPY C
+                   WHERE C.Isbn = B.Isbn AND C.Mid IS NULL);
+</pre>
+
+<h3>(e) Relational algebra (Ch 8)</h3>
+<p>Write in relational algebra the titles of the books Ayşe borrowed, and the loan count of every member.</p>
+<div class="hint" data-label="Show the answer">
+  <pre class="algebra">AYSE ← σ<sub>Name='Ayse'</sub>(MEMBER)
+AYSE_ISBNS ← π<sub>Isbn</sub>(BOOK_COPY ⋈<sub>BOOK_COPY.Mid=MEMBER.Mid</sub> AYSE)
+RESULT ← π<sub>Title</sub>(AYSE_ISBNS * BOOK)
+
+COUNTS ← <sub>Mid</sub>ℑ<sub>COUNT Copy_no</sub>(σ<sub>Mid IS NOT NULL</sub>(BOOK_COPY))</pre>
+  <p>Ayşe's books are Database Systems, Operating Systems and Algorithms. The attribute to the left of the grouping operation (Mid) forms the groups; the function to its right gives the value computed for each group.</p>
+</div>
+
+<h3>(f) Normalization (Ch 14)</h3>
+<p>A developer uses a single table without mapping: LOAN_INFO(Mid, Isbn, Copy_no, Name, Title, Due_date). FDs: Mid → Name; Isbn → Title; {Isbn, Copy_no} → Mid, Due_date. Find the key, the normal form and the decomposition into BCNF.</p>
+<div class="hint" data-label="Show the answer">
+  <p><strong>Key:</strong> Isbn and Copy_no are on no right side. {Isbn, Copy_no}⁺: Isbn → Title adds Title, {Isbn, Copy_no} → Mid, Due_date adds Mid and Due_date, Mid → Name adds Name; all the attributes. The candidate key is {Isbn, Copy_no}.</p>
+  <p><strong>Normal form:</strong> Isbn → Title is a partial dependency (Isbn is part of the key, Title is not prime): the relation is in 1NF. Mid → Name is transitive ({Isbn, Copy_no} → Mid → Name).</p>
+  <p><strong>Decomposition:</strong> first {Isbn, Title} is split off (2NF), then {Mid, Name} (3NF); what remains is {Isbn, Copy_no, Mid, Due_date}. All three are in BCNF, the decomposition is lossless and every dependency is preserved. The result is the same tables as the mapping in (b): part of BOOK, MEMBER and BOOK_COPY. A good ER design and a correct mapping produce normalized tables.</p>
+</div>
+
+<h3>(g) Choosing an index and its cost (Ch 16–17)</h3>
+<p>The BOOK_COPY table has 120,000 rows, the row size is 100 bytes and the block size 4096 bytes. The file is sorted on {Isbn, Copy_no}. The query "the copies borrowed by a member" runs very often. Which index do you recommend, and how many blocks does a dense secondary index on Mid (V = 4 bytes, P = 6 bytes) read, single-level and multilevel?</p>
+<div class="hint" data-label="Show the answer">
+  <p>The file is sorted on {Isbn, Copy_no}, so no primary or clustering index can be built on Mid; a <strong>secondary index</strong> on Mid (in practice a B+-tree) is needed. The query is an equality search, so a hash index could work too, but a B+-tree also supports range queries.</p>
+  <p>Computation: bfr = ⌊4096 / 100⌋ = 40, b = ⌈120,000 / 40⌉ = 3000 blocks. An index entry is 10 bytes, fo = ⌊4096 / 10⌋ = 409. The 120,000 entries of the dense index take ⌈120,000 / 409⌉ = 294 blocks; a single-level search reads ⌈log₂ 294⌉ + 1 = 9 + 1 = 10 blocks. In the multilevel version the levels are 294 → 1 blocks: t = 2, a search reads 3 blocks (Mid is not unique, so each further matching copy reads at most one more block). Without an index the whole file, 3000 blocks, would be scanned.</p>
+</div>
+
+<h3>(h) Transactions (Ch 20)</h3>
+<p>Two librarians try to lend the same copy to different members at the same time. Each reads the copy's Mid, sees that it is NULL, and writes their own member: r1(C); r2(C); w1(C); w2(C); c1; c2. What happens? Is the schedule serializable?</p>
+<div class="hint" data-label="Show the answer">
+  <p>This is a <strong>lost update</strong>: both librarians saw the copy as free, T2's write overwrote T1's, and the copy lent to the first member is lost from the system. r1(C) and w2(C) give T1 → T2, r2(C) and w1(C) give T2 → T1: the graph has a cycle, so the schedule is not serializable. The schedule is recoverable (nobody reads an uncommitted value), but it is not correct. The DBMS prevents this with concurrency control (the locking protocols of Ch 21) and a suitable isolation level. You can try the schedule in the <a href="ch20-transactions.html">schedule analyzer</a>.</p>
+</div>
+
+<h2>The most common mistakes of the whole term</h2>
+<ul>
+  <li><strong>Solving an "every" question in SQL with a join.</strong> "Every" needs division or a double NOT EXISTS; the same rule holds in algebra.</li>
+  <li><strong>Writing = NULL.</strong> A comparison with NULL gives UNKNOWN; IS NULL is used.</li>
+  <li><strong>Confusing WHERE and HAVING.</strong> A condition with an aggregate is written after grouping, in HAVING.</li>
+  <li><strong>Taking the primary key of a weak entity to be only its partial key.</strong> The owner's key together with the partial key is the primary key; this is asked both in ER and in mapping.</li>
+  <li><strong>Putting the foreign key on the 1 side of 1:N, or mapping M:N with a single foreign key.</strong></li>
+  <li><strong>Deciding prime attributes without finding all candidate keys.</strong></li>
+  <li><strong>Rounding bfr up and the number of blocks down.</strong> It is the other way round.</li>
+  <li><strong>Confusing serializable with serial; counting two reads as a conflict.</strong></li>
+</ul>
+<p>Detailed lists by chapter are in the <a href="exam-midterm.html#mistakes">midterm guide</a> and the <a href="study-guide.html#mistakes">Ch 8–20 guide</a>.</p>
+
+<h2 id="practice">Mixed practice set</h2>
+<p>The questions come from all chapters in mixed order, as in the final. For sets separated by chapter see the <a href="exam-midterm.html#practice">midterm guide's practice set</a> and the <a href="study-guide.html#practice">Ch 8–20 guide's practice set</a>.</p>
+<div class="quiz" data-answer="2">
+  <p>(Ch 2) When a new column is added to a table and the application programs that do not use it need no change, which independence is achieved?</p>
+  <ol>
+    <li data-why="Physical independence means changes in the internal schema (file structure, indexes) do not affect the conceptual schema.">Physical data independence</li>
+    <li data-why="Right: the conceptual schema changed (a new column), but the external schemas and programs were not affected.">Logical data independence</li>
+    <li data-why="Program-data independence is a general principle; what is asked here is the level in the three-schema architecture.">Program-operation independence</li>
+    <li data-why="This is not a kind of independence.">View independence</li>
+  </ol>
+  <div class="explain">A change in the conceptual schema not affecting the external schemas is logical data independence. Adding an index or reorganizing a file is an example of physical independence; this second kind also relates to the indexes of Ch 17.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>(Ch 3 and 9) How does an attribute of an M:N relationship (for example Hours in WORKS_ON) end up in the tables?</p>
+  <ol>
+    <li data-why="A column in EMPLOYEE holds one value per employee; an employee has different hours on each project.">As a column of the EMPLOYEE table</li>
+    <li data-why="The same problem holds for the other side.">As a column of the PROJECT table</li>
+    <li data-why="Right: Hours belongs to an (employee, project) pair, so it lives in the relationship table WORKS_ON(Essn, Pno, Hours).">In the new table created for the relationship</li>
+    <li data-why="Relationship attributes are not lost; the mapping puts every attribute in a table.">In no table, because relationship attributes are not stored</li>
+  </ol>
+  <div class="explain">An M:N relationship always becomes a new table and its attributes are added to that table. Ch 3 explains that such an attribute can be moved to an entity only for 1:1 and 1:N relationships; the mapping follows the same rule.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>(Ch 5) A project is to be deleted from PROJECT, but WORKS_ON has rows referring to it. What happens if the foreign key is defined with ON DELETE CASCADE?</p>
+  <ol>
+    <li data-why="Right: CASCADE also deletes the WORKS_ON rows that refer to the deleted project.">The project and the WORKS_ON rows referring to it are deleted.</li>
+    <li data-why="Rejecting (RESTRICT / NO ACTION) is the default behaviour; with CASCADE the deletion propagates.">The deletion is rejected.</li>
+    <li data-why="SET NULL is a separate option; besides, Pno is part of WORKS_ON's primary key and cannot be NULL.">The Pno values in WORKS_ON are set to NULL.</li>
+    <li data-why="With a foreign key constraint the referring rows are not left orphaned.">Only the project is deleted; WORKS_ON does not change.</li>
+  </ol>
+  <div class="explain">ON DELETE CASCADE propagates the deletion to the referring rows. This is also why CASCADE is used on the foreign key of weak entities in Ch 9: when the owner is deleted, the weak entities become meaningless.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>(Ch 7) What does <code>SELECT COUNT(Super_ssn) FROM EMPLOYEE;</code> return when COMPANY has 8 employees and one has a NULL Super_ssn?</p>
+  <ol>
+    <li data-why="COUNT(*) counts rows; COUNT(column) counts non-NULL values.">8</li>
+    <li data-why="COUNT skips NULLs but does not give an error.">An error</li>
+    <li data-why="Only one value is NULL; the others are counted.">1</li>
+    <li data-why="Right: COUNT(column) does not count NULL values: 8 − 1 = 7.">7</li>
+  </ol>
+  <div class="explain">Aggregate functions skip NULLs; only COUNT(*) counts all rows. The same rule holds for ℑ COUNT in relational algebra.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>(Ch 8) What is the difference between σ<sub>Dno=5</sub>(EMPLOYEE) and π<sub>Dno</sub>(EMPLOYEE)?</p>
+  <ol>
+    <li data-why="σ selects rows, not columns; π selects columns.">σ selects columns, π rows.</li>
+    <li data-why="Right: σ returns the rows satisfying the condition with all columns; π returns only the Dno column, removing duplicates.">σ returns the rows with Dno 5 with all columns; π returns only the Dno column without duplicates.</li>
+    <li data-why="π removes duplicates in algebra (set semantics); SELECT in SQL does not.">Both keep duplicates.</li>
+    <li data-why="Their results differ: one selects rows, the other columns.">Both give the same result.</li>
+  </ol>
+  <div class="explain">σ is a horizontal partition (rows), π a vertical one (columns). In SQL σ corresponds to WHERE and π to SELECT DISTINCT.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>(Ch 14) R(A, B, C) and F = {AB → C, C → A}. Which normal form is R in?</p>
+  <ol>
+    <li data-why="The candidate keys are AB and BC; A and C are prime, so there is no partial or transitive dependency.">1NF</li>
+    <li data-why="R goes beyond 2NF: the 3NF condition holds too.">Only 2NF</li>
+    <li data-why="Right: in C → A, C is not a superkey but A is prime; this satisfies 3NF and breaks BCNF.">3NF but not BCNF</li>
+    <li data-why="The left side of C → A, C, is not a superkey; BCNF fails.">BCNF</li>
+  </ol>
+  <div class="explain">AB⁺ = {A, B, C} and BC⁺ = {B, C, A}: the candidate keys are AB and BC; every attribute is prime. The left side of C → A is not a superkey, but the right side is prime, so 3NF holds; BCNF does not. The book's TEACH relation has the same structure.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>(Ch 16) For which search is a sorted file better than an unordered (heap) file?</p>
+  <ol>
+    <li data-why="Right: an equality or range search on the ordering field reads log₂ b blocks with binary search.">A range search on the ordering field</li>
+    <li data-why="On a field other than the ordering field a sorted file is also searched linearly.">An equality search on a field other than the ordering field</li>
+    <li data-why="Insertion is expensive in a sorted file because the order must be kept; it is cheap in a heap file.">Inserting a new record</li>
+    <li data-why="Reading the whole file needs b blocks in both files.">Reading all records in no particular order</li>
+  </ol>
+  <div class="explain">A sorted file wins for searches on the ordering field; insertion and deletion are expensive because records must be shifted. Indexes (Ch 17) resolve this trade-off with an additional structure.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>(Ch 17) Why does a search in a B+-tree always end in a leaf?</p>
+  <ol>
+    <li data-why="Being balanced keeps all leaves at the same depth, but that is not the reason.">Because the tree is balanced</li>
+    <li data-why="Internal nodes also hold search values, but only to show the way.">Because internal nodes hold no values</li>
+    <li data-why="The leaves are linked, but that makes range scans easier; it is not why search ends in a leaf.">Because the leaves are linked</li>
+    <li data-why="Right: data pointers are only in the leaves; a value in an internal node shows only the direction, not where the record is.">Because data pointers are only in the leaves</li>
+  </ol>
+  <div class="explain">The internal nodes of a B+-tree only route; the pointer to the record is in the leaf. In a B-tree the search can stop at an internal node if the value is found there.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>(Ch 20) The system crashed after a transaction committed. Which ACID property, and which mechanism, ensures its changes are not lost?</p>
+  <ol>
+    <li data-why="Isolation means concurrent transactions do not affect each other; it is not about crashes.">Isolation; locks</li>
+    <li data-why="Right: durability; since the commit record was force-written to the log, the changes can be redone from the log.">Durability; force-writing the log to disk before commit</li>
+    <li data-why="Atomicity is undoing an unfinished transaction; protecting a committed one is durability.">Atomicity; ROLLBACK</li>
+    <li data-why="Consistency is about constraints; it does not protect changes after a crash.">Consistency; CHECK constraints</li>
+  </ol>
+  <div class="explain">The log buffer is force-written to disk before the commit point. If the system crashes, the changes of transactions with a commit record are redone from the log; those without one are undone.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>(Ch 11) A PHP program adds the last name typed by the user to SQL as <code>"... WHERE Lname = '" . $_POST['ln'] . "'"</code>. What is the biggest problem?</p>
+  <ol>
+    <li data-why="The period is a valid concatenation operator in PHP.">The period operator does not work in PHP.</li>
+    <li data-why="$_POST is a valid variable holding form values.">$_POST cannot be accessed from SQL.</li>
+    <li data-why="Right: by typing a quote mark the user can change the structure of the query (SQL injection); placeholders should be used.">The user input can change the structure of the query (SQL injection).</li>
+    <li data-why="The result can be read with fetchRow; that is not the problem.">The result cannot be read with fetchRow.</li>
+  </ol>
+  <div class="explain">In a query built by string concatenation, a quote mark typed by the user can close the value and add new conditions. With placeholders the value is used only as a value. You can compare the two cases in the placeholder lab of Ch 11.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>(Ch 4 and 9) A specialization is total and disjoint, the subclasses have many specific attributes, and the superclass has no other relationship. Which mapping option produces no NULLs and lets all the information of an object be read from one table?</p>
+  <ol>
+    <li data-why="8A produces no NULLs, but all the information of an object needs a join of the superclass and subclass tables.">8A</li>
+    <li data-why="8C is a single table but produces NULLs in the subclass-specific columns.">8C</li>
+    <li data-why="8D is also a single table and produces NULLs in the subclass-specific columns.">8D</li>
+    <li data-why="Right: total means every object is in a subclass, disjoint means in only one; each subclass table also carries the superclass's attributes.">8B</li>
+  </ol>
+  <div class="explain">8B creates no table for the superclass. Being total ensures no object is lost, being disjoint that nothing repeats. If the superclass had relationships, 8B would not fit, because there would be no superclass table to connect them to.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>(Ch 6 and 17) What do DBMSs usually do when a column is declared UNIQUE in <code>CREATE TABLE</code>?</p>
+  <ol>
+    <li data-why="Right: to check uniqueness quickly, they automatically build an index (usually a B+-tree) on the column.">They automatically build an index on the column to check uniqueness.</li>
+    <li data-why="A UNIQUE column may be NULL (a primary key cannot), and the table need not be sorted on it.">They physically sort the table on this column.</li>
+    <li data-why="Scanning the whole table on every insertion would be too slow; that is why an index is used.">They scan the whole table on every insertion.</li>
+    <li data-why="UNIQUE is a constraint; the DBMS enforces it.">Nothing; UNIQUE is only a comment.</li>
+  </ol>
+  <div class="explain">Enforcing a key constraint requires finding quickly whether the new value already exists; so indexes are built for primary key and UNIQUE columns. You can see these indexes of COMPANY in the SHOW INDEX box of Ch 17.</div>
+</div>
+
+</div></main>
+</body>
+</html>
