@@ -193,8 +193,18 @@ function zoomable(fig, host) {
   let timer = null;
   const canHover = window.matchMedia("(hover: hover) and (min-width: 900px)").matches;
   if (canHover) {
-    host.addEventListener("mouseenter", () => { timer = setTimeout(() => host.classList.add("zoomed"), 250); });
-    host.addEventListener("mouseleave", () => { clearTimeout(timer); host.classList.remove("zoomed"); });
+    // the hover area is always the diagram's small (unzoomed) box: the enlarged picture spills over the page, but
+    // leaving the small box shrinks it again (the transform does not change the host's own box)
+    const inside = (e) => { const r = host.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
+    const unzoom = () => { clearTimeout(timer); timer = null; host.classList.remove("zoomed"); document.removeEventListener("mousemove", track); };
+    const track = (e) => { if (!inside(e)) unzoom(); };
+    // mousemove rather than mouseenter: after shrinking, the pointer may never have "left" the host, so re-entering
+    // the small box must start the zoom again
+    host.addEventListener("mousemove", (e) => {
+      if (host.classList.contains("zoomed") || timer || !inside(e)) return;
+      timer = setTimeout(() => { timer = null; host.classList.add("zoomed"); }, 250);
+      document.addEventListener("mousemove", track);
+    });
   }
   const close = () => { fig.classList.remove("fs"); document.removeEventListener("keydown", onKey); };
   const onKey = (e) => { if (e.key === "Escape") close(); };
