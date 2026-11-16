@@ -226,3 +226,57 @@ const TREE = {
   $("#query-tree").append(h("div", { class: "qtree" }, h("ul", {}, node(TREE, 0))),
     h("p", { class: "small muted" }, tl("Yapraklar temel ilişkilerdir (açık renk); iç düğümler işlemlerdir. Bir düğümün sonucu, çocuklarının sonuçlarından hesaplanır.", "The leaves are base relations (light); the inner nodes are operations. A node's result is computed from the results of its children.")), out);
 }
+
+// ---------------------------------------------------------------- you decide (relational algebra)
+// Each worked solution runs the SQL equivalent of every algebra step and shows the result before and after.
+import { decidePlayer, sqlSteps } from "../lib/decide.js";
+{
+  const host = $("#alg-decide");
+  if (host) decidePlayer(host, [
+    { q: tl("Departman 5'te çalışan ve maaşı 30 000'den yüksek çalışanların adları ve soyadları için hangi ifade doğru?", "Which expression gives the first and last names of employees in department 5 earning more than 30,000?"),
+      opts: [["π Fname, Lname (σ Dno=5 AND Salary>30000 (EMPLOYEE))", true, tl("Doğru. Önce σ koşulu sağlayan satırları seçer, sonra π istenen sütunları bırakır.", "Right. σ first selects the rows satisfying the condition, then π keeps the wanted columns.")],
+        ["σ Dno=5 AND Salary>30000 (π Fname, Lname (EMPLOYEE))", false, tl("π önce uygulanınca Dno ve Salary sütunları atılır; σ artık onlara bakamaz. σ'nın koşulundaki öznitelikler girdide bulunmalıdır.", "Applying π first drops Dno and Salary; σ can no longer look at them. The attributes of σ's condition must be in its input.")],
+        ["π Fname, Lname (EMPLOYEE) − σ Dno=5 (EMPLOYEE)", false, tl("Fark iki tarafın union uyumlu olmasını ister; ayrıca bu ifade departman 5'te çalışmayanları bulmaya çalışır, istenenin tersini.", "Difference needs union-compatible sides; besides, this tries to find those not in department 5, the opposite of what is asked.")]],
+      detail: () => sqlSteps([
+        { label: tl("1. σ: koşulu sağlayan satırlar", "1. σ: the rows satisfying the condition"), expr: "TEMP ← σ Dno=5 AND Salary>30000 (EMPLOYEE)", input: "SELECT Fname, Lname, Salary, Dno FROM EMPLOYEE", sql: "SELECT Fname, Lname, Salary, Dno FROM EMPLOYEE WHERE Dno = 5 AND Salary > 30000" },
+        { label: tl("2. π: istenen sütunlar", "2. π: the wanted columns"), expr: "RESULT ← π Fname, Lname (TEMP)", sql: "SELECT DISTINCT Fname, Lname FROM EMPLOYEE WHERE Dno = 5 AND Salary > 30000" }]) },
+    { q: tl("Hiç bağımlısı olmayan çalışanların adlarını bulmak için hangi işlem gerekir?", "Which operation is needed to find the names of employees with no dependents?"),
+      opts: [[tl("Fark (−)", "Difference (−)"), true, tl("Doğru. Bütün çalışanların Ssn'lerinden bağımlısı olanların Ssn'leri çıkarılır.", "Right. The Ssns of employees with dependents are removed from the Ssns of all employees.")],
+        [tl("Natural join (*)", "Natural join (*)"), false, tl("Join yalnızca eşleşen satırları, yani bağımlısı olanları bulur.", "A join finds only the matching rows, that is, those with dependents.")],
+        [tl("Bölme (÷)", "Division (÷)"), false, tl("Bölme 'her … ile eşleşen' soruları içindir; burada 'hiç eşleşmeyen' isteniyor.", "Division is for 'matches every …' questions; here 'matches none' is asked.")]],
+      detail: () => sqlSteps([
+        { label: tl("1. Bütün çalışanlar", "1. All employees"), expr: "ALL_EMPS ← π Ssn (EMPLOYEE)", input: "SELECT Ssn, Fname, Lname FROM EMPLOYEE", sql: "SELECT Ssn FROM EMPLOYEE" },
+        { label: tl("2. Bağımlısı olanlar", "2. Those with dependents"), expr: "EMPS_WITH_DEPS(Ssn) ← π Essn (DEPENDENT)", input: "SELECT Essn, Dependent_name FROM DEPENDENT", sql: "SELECT DISTINCT Essn AS Ssn FROM DEPENDENT" },
+        { label: tl("3. Fark: bağımlısı olmayanlar", "3. Difference: those without dependents"), expr: "EMPS_WITHOUT ← ALL_EMPS − EMPS_WITH_DEPS", input: "SELECT Ssn FROM EMPLOYEE", sql: "SELECT Ssn FROM EMPLOYEE WHERE Ssn NOT IN (SELECT Essn FROM DEPENDENT)" },
+        { label: tl("4. Adları almak için EMPLOYEE ile join", "4. Join with EMPLOYEE to get the names"), expr: "RESULT ← π Lname, Fname (EMPS_WITHOUT * EMPLOYEE)", sql: "SELECT Lname, Fname FROM EMPLOYEE WHERE Ssn NOT IN (SELECT Essn FROM DEPENDENT)" }]) },
+    { q: tl("John Smith'in çalıştığı projelerin hepsinde çalışan çalışanlar için hangi işlem anahtardır?", "Which operation is the key to finding the employees who work on all the projects John Smith works on?"),
+      opts: [[tl("Birleşim (∪)", "Union (∪)"), false, tl("Birleşim kümeleri toplar; 'hepsi' koşulunu ifade etmez.", "Union adds sets together; it does not express 'all'.")],
+        [tl("Bölme (÷)", "Division (÷)"), true, tl("Doğru. (Essn, Pno) çiftleri Smith'in projelerine bölünür: bölüm, Smith'in her projesiyle eşleşen Essn'lerdir.", "Right. The (Essn, Pno) pairs are divided by Smith's projects: the quotient is the Essns matching every one of Smith's projects.")],
+        [tl("Equijoin", "Equijoin"), false, tl("Join 'en az bir ortak proje' verir; Smith'in yalnızca bir projesinde çalışanlar da gelir.", "A join gives 'at least one common project'; those on only one of Smith's projects come too.")]],
+      detail: () => sqlSteps([
+        { label: tl("1. Smith'in projeleri", "1. Smith's projects"), expr: "SMITH_PNOS ← π Pno (WORKS_ON ⋈ Essn=Ssn σ Fname='John' AND Lname='Smith' (EMPLOYEE))", input: "SELECT Essn, Pno FROM WORKS_ON WHERE Essn = '123456789'", sql: "SELECT DISTINCT W.Pno FROM WORKS_ON W JOIN EMPLOYEE E ON W.Essn = E.Ssn WHERE E.Fname = 'John' AND E.Lname = 'Smith'" },
+        { label: tl("2. Bütün (çalışan, proje) çiftleri", "2. All (employee, project) pairs"), expr: "SSN_PNOS ← π Essn, Pno (WORKS_ON)", input: "SELECT * FROM WORKS_ON ORDER BY Essn, Pno", sql: "SELECT Essn, Pno FROM WORKS_ON ORDER BY Essn, Pno" },
+        { label: tl("3. Bölme: Smith'in her projesiyle eşleşenler", "3. Division: those matching each of Smith's projects"), expr: "SSNS(Ssn) ← SSN_PNOS ÷ SMITH_PNOS", sql: "SELECT DISTINCT A.Essn AS Ssn FROM WORKS_ON A WHERE NOT EXISTS (SELECT * FROM WORKS_ON S JOIN EMPLOYEE E ON S.Essn = E.Ssn WHERE E.Fname = 'John' AND E.Lname = 'Smith' AND NOT EXISTS (SELECT * FROM WORKS_ON B WHERE B.Essn = A.Essn AND B.Pno = S.Pno))" },
+        { label: tl("4. Adlar", "4. The names"), expr: "RESULT ← π Lname, Fname (SSNS * EMPLOYEE)", sql: "SELECT Lname, Fname FROM EMPLOYEE X WHERE NOT EXISTS (SELECT * FROM WORKS_ON S JOIN EMPLOYEE E ON S.Essn = E.Ssn WHERE E.Fname = 'John' AND E.Lname = 'Smith' AND NOT EXISTS (SELECT * FROM WORKS_ON B WHERE B.Essn = X.Ssn AND B.Pno = S.Pno))" }]) },
+    { q: tl("EMPLOYEE * DEPARTMENT (natural join) yeniden adlandırma yapmadan yazılırsa ne olur?", "What happens if EMPLOYEE * DEPARTMENT (natural join) is written without renaming?"),
+      opts: [[tl("Her çalışan kendi departmanıyla eşleşir (8 satır)", "Each employee matches their department (8 rows)"), false, tl("Natural join aynı adlı öznitelikler üzerinde eşler. EMPLOYEE'de Dno, DEPARTMENT'ta Dnumber var; ortak ad yok.", "A natural join matches on attributes with the same name. EMPLOYEE has Dno, DEPARTMENT has Dnumber; there is no common name.")],
+        [tl("Ortak öznitelik olmadığı için kartezyen çarpım olur (8 × 3 = 24 satır)", "With no common attribute it becomes a Cartesian product (8 × 3 = 24 rows)"), true, tl("Doğru. Aynı adlı öznitelik yoksa natural join koşulsuz kalır ve kartezyen çarpıma dönüşür. Kitap bu yüzden önce ρ ile DEPARTMENT'ın Dnumber'ını Dno yapar.", "Right. With no same-named attribute the natural join has no condition and becomes a Cartesian product. That is why the book first renames DEPARTMENT's Dnumber to Dno with ρ.")],
+        [tl("Hata verir", "It gives an error"), false, tl("Ortak öznitelik olmaması bir hata değildir; sonuç kartezyen çarpımdır.", "Having no common attribute is not an error; the result is a Cartesian product.")]],
+      detail: () => sqlSteps([
+        { label: tl("1. Yeniden adlandırmadan: kartezyen çarpım", "1. Without renaming: a Cartesian product"), expr: "EMPLOYEE * DEPARTMENT", input: "SELECT Dnumber, Dname FROM DEPARTMENT", sql: "SELECT COUNT(*) AS rows_ FROM EMPLOYEE NATURAL JOIN DEPARTMENT" },
+        { label: tl("2. ρ ile Dnumber → Dno: gerçek eşleşme", "2. Renaming Dnumber → Dno with ρ: the real match"), expr: "DEPT(Dname, Dno, Mgr_ssn, Mgr_start_date) ← ρ (DEPARTMENT)\nRESULT ← EMPLOYEE * DEPT", sql: "SELECT E.Fname, E.Dno, D.Dname FROM EMPLOYEE E NATURAL JOIN (SELECT Dname, Dnumber AS Dno FROM DEPARTMENT) D" }]) },
+    { q: tl("Her departman için çalışan sayısı ve ortalama maaş hangi ifadeyle bulunur?", "Which expression gives the number of employees and the average salary for each department?"),
+      opts: [["Dno ℑ COUNT Ssn, AVERAGE Salary (EMPLOYEE)", true, tl("Doğru. ℑ'nin solundaki Dno grupları oluşturur, sağındaki fonksiyonlar her grup için hesaplanır.", "Right. Dno to the left of ℑ forms the groups; the functions to its right are computed for each group.")],
+        ["π Dno, COUNT(Ssn) (EMPLOYEE)", false, tl("π aggregate hesaplamaz; yalnızca sütun seçer.", "π computes no aggregates; it only selects columns.")],
+        ["ℑ COUNT Ssn, AVERAGE Salary (EMPLOYEE)", false, tl("Gruplama özniteliği olmadan bütün tablo tek bir grup olur ve yalnızca bir satır çıkar.", "Without a grouping attribute the whole table is one group and only one row comes out.")]],
+      detail: () => sqlSteps([
+        { label: tl("Gruplama: her Dno bir grup", "Grouping: each Dno is a group"), expr: "R(Dno, No_of_employees, Average_sal) ← Dno ℑ COUNT Ssn, AVERAGE Salary (EMPLOYEE)", input: "SELECT Dno, Ssn, Salary FROM EMPLOYEE ORDER BY Dno", sql: "SELECT Dno, COUNT(Ssn) AS No_of_employees, AVG(Salary) AS Average_sal FROM EMPLOYEE GROUP BY Dno" }]) },
+    { q: tl("Her çalışanı ve (varsa) yönettiği departmanın adını listelemek için hangi işlem gerekir?", "Which operation lists every employee and the name of the department they manage, if any?"),
+      opts: [[tl("Natural join", "Natural join"), false, tl("Inner join yalnızca bir departman yöneten çalışanları bırakır; diğerleri kaybolur.", "An inner join keeps only the employees who manage a department; the others disappear.")],
+        [tl("Left outer join (⟕)", "Left outer join (⟕)"), true, tl("Doğru. Sol taraftaki her çalışan kalır; eşleşmeyenlerin departman sütunları NULL olur.", "Right. Every employee on the left stays; the department columns of those without a match are NULL.")],
+        [tl("Bölme", "Division"), false, tl("Bölme 'her' soruları içindir.", "Division is for 'every' questions.")]],
+      detail: () => sqlSteps([
+        { label: tl("Inner join: yalnızca yöneticiler", "Inner join: only the managers"), expr: "EMPLOYEE ⋈ Ssn=Mgr_ssn DEPARTMENT", input: "SELECT Ssn, Fname, Lname FROM EMPLOYEE", sql: "SELECT E.Fname, E.Lname, D.Dname FROM EMPLOYEE E JOIN DEPARTMENT D ON E.Ssn = D.Mgr_ssn" },
+        { label: tl("Left outer join: herkes, eşleşmeyenlerde NULL", "Left outer join: everyone, NULL where there is no match"), expr: "EMPLOYEE ⟕ Ssn=Mgr_ssn DEPARTMENT", input: "SELECT Ssn, Fname, Lname FROM EMPLOYEE", sql: "SELECT E.Fname, E.Lname, D.Dname FROM EMPLOYEE E LEFT JOIN DEPARTMENT D ON E.Ssn = D.Mgr_ssn" }]) },
+  ]);
+}

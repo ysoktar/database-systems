@@ -311,3 +311,46 @@ function drawTree(root, { bplus, hl = new Set(), split = new Set(), path = [], n
   host.append(h("div", { class: "player" }, h("div", { class: "pl-bar" }, field("Sex = ", sexSel), h("span", { class: "small" }, "AND"), field("Dno = ", dnoSel)), out));
   run();
 }
+
+// ---------------------------------------------------------------- you decide (indexes and B+-trees)
+import { decidePlayer, calcSteps } from "../lib/decide.js";
+{
+  const host = $("#index-decide");
+  const bpStep = (vals, add, p = 3, pleaf = 2) => {
+    nodeId = 0;
+    let root = null;
+    for (const v of vals) root = insert(cloneTree(root), v, { p, pleaf, bplus: true }).root;
+    const before = cloneTree(root), r = insert(cloneTree(root), add, { p, pleaf, bplus: true });
+    return h("div", {}, h("ol", { class: "small bt-log" }, ...r.log.map((l) => h("li", {}, l))),
+      h("div", { class: "ba ba-stack" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), drawTree(before, { bplus: true })), h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+        h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), drawTree(r.root, { bplus: true, hl: r.touched, split: r.split, newKey: add }))));
+  };
+  if (host) decidePlayer(host, [
+    { q: tl("EMPLOYEE dosyası Dno'ya göre sıralı ve Dno bir anahtar değil. Dno üzerine kurulan indeks hangi türdendir?", "The EMPLOYEE file is sorted on Dno, which is not a key. What type is the index built on Dno?"),
+      opts: [[tl("Birincil indeks", "Primary index"), false, tl("Birincil indeks, dosyanın sıralı olduğu alan bir anahtar olduğunda kullanılır.", "A primary index is used when the field the file is sorted on is a key.")],
+        [tl("Kümeleme indeksi", "Clustering index"), true, tl("Doğru. Dosya anahtar olmayan bir alana göre sıralı; her farklı Dno için bir giriş, o değerin ilk bloğunu gösterir.", "Right. The file is sorted on a non-key field; one entry per distinct Dno points to that value's first block.")],
+        [tl("Yoğun ikincil indeks", "Dense secondary index"), false, tl("İkincil indeks, dosyanın sıralı olmadığı bir alan üzerine kurulur.", "A secondary index is built on a field the file is not sorted on.")]],
+      detail: () => calcSteps([[tl("Karar tablosu", "Decision table"), tl("Dosya bu alana göre sıralı mı? Evet. Alan anahtar mı? Hayır. → Kümeleme indeksi (Table 17.1). Sayfadaki indeks türleri şeklinde 'Kümeleme (Dno)' sekmesinde aynı dosyayı görebilirsiniz.", "Is the file sorted on this field? Yes. Is the field a key? No. → Clustering index (Table 17.1). You can see the same file under the 'Clustering (Dno)' tab of the index types figure.")]]) },
+    { q: tl("r = 30 000 kayıt, bfr = 10. Dosya anahtara göre sıralı. Birincil indekste kaç giriş vardır?", "r = 30,000 records, bfr = 10. The file is sorted on the key. How many entries does the primary index have?"),
+      opts: [["30 000", false, tl("Her kayıt için bir giriş yoğun ikincil indekstir; birincil indeks seyrektir.", "One entry per record is a dense secondary index; a primary index is sparse.")],
+        ["3000", true, tl("Doğru. Her veri bloğu için bir giriş (blok çapası): b = ⌈30 000 / 10⌉ = 3000.", "Right. One entry per data block (the block anchor): b = ⌈30,000 / 10⌉ = 3000.")],
+        ["10", false, tl("10 bfr'dir, yani bir bloğa sığan kayıt sayısı.", "10 is bfr, the number of records per block.")]],
+      detail: () => calcSteps([[tl("1. Veri blokları", "1. Data blocks"), tl("b = ⌈30 000 / 10⌉ = 3000.", "b = ⌈30,000 / 10⌉ = 3000.")], [tl("2. Seyrek indeks", "2. Sparse index"), tl("Birincil indekste her blok için bir giriş vardır: 3000 giriş.", "A primary index has one entry per block: 3000 entries.")]]) },
+    { q: tl("B = 1024 byte, anahtar V = 9 byte, işaretçi P = 7 byte. İndeksin fan-out'u nedir?", "B = 1024 bytes, key V = 9 bytes, pointer P = 7 bytes. What is the fan-out of the index?"),
+      opts: [["64", true, tl("Doğru. fo = ⌊1024 / (9 + 7)⌋ = ⌊1024 / 16⌋ = 64.", "Right. fo = ⌊1024 / (9 + 7)⌋ = ⌊1024 / 16⌋ = 64.")], ["113", false, tl("113 yalnızca anahtarı sayar (1024 / 9); her girişte bir işaretçi de vardır.", "113 counts only the key (1024 / 9); every entry also has a pointer.")], ["146", false, tl("146 yalnızca işaretçiyi sayar (1024 / 7).", "146 counts only the pointer (1024 / 7).")]],
+      detail: () => calcSteps([[tl("Giriş boyutu", "Entry size"), "V + P = 9 + 7 = 16 byte."], ["fo", "⌊1024 / 16⌋ = 64."]]) },
+    { q: tl("Yoğun bir ikincil indeksin birinci seviyesi 1000 blok, fo = 100. Çok seviyeli indeksle arama kaç blok okur?", "The first level of a dense secondary index is 1000 blocks and fo = 100. How many blocks does a search with the multilevel index read?"),
+      opts: [["11", false, tl("11, tek seviyeli indeksle ikili aramadır (⌈log₂ 1000⌉ + 1).", "11 is binary search on the single-level index (⌈log₂ 1000⌉ + 1).")], ["4", true, tl("Doğru. Seviyeler 1000 → 10 → 1 blok: t = 3, arama t + 1 = 4 blok.", "Right. The levels are 1000 → 10 → 1 blocks: t = 3, the search reads t + 1 = 4 blocks.")], ["3", false, tl("Üç seviyenin her birinden bir blok okunur, ama kaydın kendisi için bir blok daha gerekir.", "One block is read from each of the three levels, but one more block is needed for the record.")]],
+      detail: () => calcSteps([[tl("Seviye 1", "Level 1"), tl("1000 blok.", "1000 blocks.")], [tl("Seviye 2", "Level 2"), "⌈1000 / 100⌉ = 10."], [tl("Seviye 3", "Level 3"), tl("⌈10 / 100⌉ = 1: en üst seviye tek blok.", "⌈10 / 100⌉ = 1: the top level is a single block.")], [tl("Arama", "Search"), tl("Her seviyeden bir blok + veri bloğu = 3 + 1 = 4.", "One block per level + the data block = 3 + 1 = 4.")]]) },
+    { q: tl("p = 3, p_leaf = 2 olan bir B+-ağacında tek yaprak [10, 20] var. 15 eklenince ne olur?", "A B+-tree with p = 3 and p_leaf = 2 has a single leaf [10, 20]. What happens when 15 is inserted?"),
+      opts: [[tl("Yapraklar [10, 15] ve [20]; köke 15 kopyalanır", "Leaves [10, 15] and [20]; 15 is copied to the root"), true, tl("Doğru. [10, 15, 20] taşar; ilk ⌈3/2⌉ = 2 değer solda kalır, soldaki son değer 15 yeni köke kopyalanır.", "Right. [10, 15, 20] overflows; the first ⌈3/2⌉ = 2 values stay left and the last left value, 15, is copied to a new root.")],
+        [tl("Yapraklar [10] ve [15, 20]; köke 10", "Leaves [10] and [15, 20]; 10 to the root"), false, tl("Solda kalan değer sayısı ⌈(p_leaf + 1)/2⌉ = 2'dir, 1 değil.", "The number of values staying left is ⌈(p_leaf + 1)/2⌉ = 2, not 1.")],
+        [tl("Yapraklar [10] ve [20]; 15 köke taşınır", "Leaves [10] and [20]; 15 moves to the root"), false, tl("Bu B-ağacının bölünmesidir; B+-ağacında yapraktaki değer ebeveyne kopyalanır ve yaprakta da kalır.", "That is a B-tree split; in a B+-tree a leaf value is copied to the parent and also stays in the leaf.")]],
+      detail: () => bpStep([10, 20], 15) },
+    { q: tl("Aynı ağaçta (kök [15], yapraklar [10, 15] ve [20]) 25 eklenir. Sonuç nedir?", "In the same tree (root [15], leaves [10, 15] and [20]) 25 is inserted. What is the result?"),
+      opts: [[tl("Sağ yaprak [20, 25] olur; bölünme olmaz", "The right leaf becomes [20, 25]; no split"), true, tl("Doğru. 25 > 15 olduğu için sağ yaprağa gider; yaprakta p_leaf = 2 değerlik yer olduğu için bölünme gerekmez.", "Right. 25 > 15, so it goes to the right leaf; the leaf has room for p_leaf = 2 values, so no split is needed.")],
+        [tl("Sağ yaprak bölünür ve köke 20 eklenir", "The right leaf splits and 20 is added to the root"), false, tl("Yaprakta yalnızca 20 vardı; 25 ile iki değer olur ve p_leaf = 2'ye sığar.", "The leaf held only 20; with 25 it has two values, which fit in p_leaf = 2.")],
+        [tl("Kök bölünür", "The root splits"), false, tl("Kök ancak bir alt düğüm bölünüp değer yukarı gönderildiğinde değişir.", "The root changes only when a child splits and sends a value up.")]],
+      detail: () => bpStep([10, 20, 15], 25) },
+  ]);
+}

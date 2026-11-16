@@ -125,6 +125,10 @@ INSERT INTO demo.EMP_IDX VALUES ('999999999', 'Ann', 'Smith', 5);
 </ul>
 <p>The design decisions about indexing are: whether to index an attribute (yes if it is a key or a query uses it); which attribute or attributes to index on (single or multiple); whether to set up a clustered index (there can be only one per table); whether to use a hash index instead of a tree index (hash indexes do not support range queries); whether to use dynamic hashing (it suits very volatile files).</p>
 
+<h2>You decide</h2>
+<p>In these questions you decide the index type, the index cost and B+-tree insertion. After each answer the explanations of the options and a worked solution appear; for the B+-tree questions the tree before and after the insertion is drawn. Use "Reset answer" to try a question again.</p>
+<div id="index-decide"></div>
+
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="2">
   <p>The data file is sorted on Ssn and Ssn is a key. What type is the index built on Ssn, and how many entries does it have?</p>
