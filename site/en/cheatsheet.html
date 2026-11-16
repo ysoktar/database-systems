@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cheat sheet and glossary · Database Systems</title>
-<meta name="description" content="A one-page summary: SQL syntax and order of evaluation, query patterns, NULL rules, ER/EER notation, constraints and an English–Turkish glossary of database terms.">
+<meta name="description" content="A one-page summary: SQL syntax and order of evaluation, query patterns, NULL rules, ER/EER notation, constraints, relational algebra, normal forms, file and index formulas, transactions and an English–Turkish glossary of database terms.">
 <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../css/style.css">
 <script src="../js/theme-init.js"></script>
@@ -193,34 +193,134 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
   </tbody>
 </table>
 
+<h2>Relational algebra</h2>
+<table class="simple">
+  <thead><tr><th>Operation</th><th>Notation</th><th>SQL equivalent</th></tr></thead>
+  <tbody>
+    <tr><td>Selection (rows)</td><td>σ<sub>condition</sub>(R)</td><td>WHERE</td></tr>
+    <tr><td>Projection (columns, no duplicates)</td><td>π<sub>A, B</sub>(R)</td><td>SELECT DISTINCT A, B</td></tr>
+    <tr><td>Rename</td><td>ρ<sub>S(B1, B2)</sub>(R)</td><td>AS</td></tr>
+    <tr><td>Union, intersection, difference (union compatible)</td><td>R ∪ S, R ∩ S, R − S</td><td>UNION, INTERSECT, EXCEPT</td></tr>
+    <tr><td>Cartesian product</td><td>R × S</td><td>FROM R, S (no condition)</td></tr>
+    <tr><td>θ-join, equijoin, natural join</td><td>R ⋈<sub>condition</sub> S, R * S</td><td>JOIN … ON, NATURAL JOIN</td></tr>
+    <tr><td>Division ("every" questions)</td><td>R ÷ S</td><td>double NOT EXISTS</td></tr>
+    <tr><td>Grouping and aggregates</td><td><sub>G</sub>ℑ<sub>F A</sub>(R)</td><td>GROUP BY G, F(A)</td></tr>
+    <tr><td>Outer join</td><td>⟕ ⟖ ⟗</td><td>LEFT / RIGHT / FULL OUTER JOIN</td></tr>
+  </tbody>
+</table>
+<p>The complete set: {σ, π, ∪, ρ, −, ×}; the other operations can be written with them. "All" → ÷, "no … " → −.</p>
+
+<h2>Design: mapping and normal forms</h2>
+<table class="simple">
+  <thead><tr><th>ER construct</th><th>Mapping to tables (Ch 9)</th></tr></thead>
+  <tbody>
+    <tr><td>Regular entity</td><td>its own table; simple attributes, parts of composites; PK = the key</td></tr>
+    <tr><td>Weak entity</td><td>its own table + the owner's PK (FK, ON DELETE CASCADE); PK = owner's PK + partial key</td></tr>
+    <tr><td>1:1</td><td>FK on the side with total participation (or merge, or a relationship table)</td></tr>
+    <tr><td>1:N</td><td>FK on the N side; relationship attributes go there too</td></tr>
+    <tr><td>M:N, n-ary relationship</td><td>new table; PK = the participants' FKs</td></tr>
+    <tr><td>Multivalued attribute</td><td>new table; PK = owner's PK + the value</td></tr>
+    <tr><td>Specialization</td><td>8A always; 8B only total; 8C only disjoint; 8D also overlapping</td></tr>
+    <tr><td>Category</td><td>a surrogate key if the keys differ</td></tr>
+  </tbody>
+</table>
+<table class="simple">
+  <thead><tr><th>Normal form</th><th>Condition (Ch 14)</th><th>Violation</th></tr></thead>
+  <tbody>
+    <tr><td>1NF</td><td>atomic values, no repeating groups</td><td>a multivalued column</td></tr>
+    <tr><td>2NF</td><td>every nonprime attribute depends on the whole of every key</td><td>partial dependency: part of a key → nonprime</td></tr>
+    <tr><td>3NF</td><td>for every X → A, X is a superkey or A is prime</td><td>transitive dependency: key → X → nonprime</td></tr>
+    <tr><td>BCNF</td><td>for every X → A, X is a superkey</td><td>a dependency whose left side is not a superkey and right side is prime</td></tr>
+  </tbody>
+</table>
+<p>If X⁺ contains every attribute, X is a superkey. Decomposition: for a violation X → A, split off X ∪ A and remove A from the old relation. NJB: lossless if (R1 ∩ R2) → (R1 − R2) or (R1 ∩ R2) → (R2 − R1).</p>
+
+<h2>Files and indexes</h2>
+<table class="simple">
+  <thead><tr><th>Quantity</th><th>Formula</th></tr></thead>
+  <tbody>
+    <tr><td>Blocking factor (unspanned)</td><td>bfr = ⌊B / R⌋</td></tr>
+    <tr><td>Number of blocks</td><td>b = ⌈r / bfr⌉</td></tr>
+    <tr><td>Search: heap (average) / binary on a sorted file / hash</td><td>b/2 &nbsp;|&nbsp; ⌈log₂ b⌉ &nbsp;|&nbsp; 1 (without overflow)</td></tr>
+    <tr><td>Index fan-out</td><td>fo = bfrᵢ = ⌊B / (V + P)⌋</td></tr>
+    <tr><td>Number of entries: primary (sparse) / dense secondary</td><td>b &nbsp;|&nbsp; r</td></tr>
+    <tr><td>Search with a single-level index</td><td>⌈log₂ bᵢ⌉ + 1</td></tr>
+    <tr><td>Search with a multilevel index</td><td>t + 1, t = ⌈log<sub>fo</sub> r₁⌉</td></tr>
+    <tr><td>B+-tree order: internal node / leaf</td><td>(p − 1)·V + p·P ≤ B &nbsp;|&nbsp; p<sub>leaf</sub>·(V + P<sub>r</sub>) + P ≤ B</td></tr>
+  </tbody>
+</table>
+<p>B+-tree insertion: if a leaf overflows, the first ⌈(p<sub>leaf</sub> + 1)/2⌉ values stay left and the last left value is <strong>copied</strong> to the parent; if an internal node overflows, its middle value is <strong>moved</strong> to the parent. Search: pointer i if K ≤ Kᵢ; a search always ends in a leaf.</p>
+
+<h2>Transactions and PHP</h2>
+<table class="simple">
+  <thead><tr><th>Concept</th><th>Summary (Ch 20)</th></tr></thead>
+  <tbody>
+    <tr><td>ACID</td><td>atomicity and durability: recovery; isolation: concurrency control; consistency: the programmer and the constraints</td></tr>
+    <tr><td>Conflict</td><td>different transactions, the same item, at least one write</td></tr>
+    <tr><td>Serializable</td><td>no cycle in the precedence graph; a topological sort = an equivalent serial order</td></tr>
+    <tr><td>Recoverable ⊃ cascadeless ⊃ strict</td><td>the reader commits after the writer · only committed values are read · no access before the writer ends</td></tr>
+    <tr><td>Isolation levels</td><td>READ UNCOMMITTED (dirty read) · READ COMMITTED (nonrepeatable read) · REPEATABLE READ (phantom) · SERIALIZABLE (none)</td></tr>
+  </tbody>
+</table>
+<p><strong>PHP (Ch 11):</strong> <code>'…$x…'</code> is literal, <code>"…$x…"</code> interpolates the variable, <code>.</code> concatenates; <code>$_POST['name']</code> is the form value; <code>DB::connect</code>, <code>$d-&gt;query(sql, array(…))</code> with placeholders (<code>?</code>), <code>while ($r = $q-&gt;fetchRow())</code>, <code>$d-&gt;getAll(sql)</code>.</p>
+
 <h2>Glossary</h2>
 <p class="small muted">The Turkish terms are the ones used in the Turkish version of this site and in Turkish course material.</p>
 <table class="simple" id="glossary">
   <thead><tr><th>English</th><th>Turkish</th><th>Short definition</th></tr></thead>
   <tbody>
+    <tr><td>ACID</td><td>ACID</td><td>atomicity, consistency, isolation, durability: the desirable properties of transactions</td></tr>
     <tr><td>attribute</td><td>öznitelik</td><td>a property of an entity or a relationship; a column in a table</td></tr>
+    <tr><td>B+-tree</td><td>B+-ağacı</td><td>a balanced search tree with data pointers only in the leaves, which are linked</td></tr>
+    <tr><td>BCNF (Boyce-Codd normal form)</td><td>Boyce-Codd normal formu</td><td>for every X → A, X is a superkey</td></tr>
+    <tr><td>blocking factor</td><td>bloklama faktörü (bfr)</td><td>the number of records that fit in a block</td></tr>
+    <tr><td>buffer</td><td>tampon</td><td>a main-memory area holding a copy of a disk block</td></tr>
     <tr><td>candidate key</td><td>aday anahtar</td><td>each of the minimal superkeys of a relation</td></tr>
     <tr><td>cardinality ratio</td><td>kardinalite oranı</td><td>the maximum number of relationship instances an entity can take part in: 1:1, 1:N, M:N</td></tr>
-    <tr><td>category (union type)</td><td>kategori</td><td>a subclass that is a subset of the union of different superclasses</td></tr>
+    <tr><td>cascadeless schedule</td><td>cascadeless çizelge</td><td>a schedule in which only committed values are read</td></tr>
     <tr><td>catalog</td><td>katalog</td><td>where the meta-data is stored (data dictionary)</td></tr>
+    <tr><td>category (union type)</td><td>kategori</td><td>a subclass that is a subset of the union of different superclasses</td></tr>
+    <tr><td>closure (X⁺)</td><td>kapanış</td><td>all the attributes X determines through the FDs</td></tr>
+    <tr><td>clustering index</td><td>kümeleme indeksi</td><td>an index on the non-key field the file is sorted on</td></tr>
+    <tr><td>conflict serializable</td><td>çakışma serileştirilebilir</td><td>conflict equivalent to some serial schedule</td></tr>
     <tr><td>correlated nested query</td><td>ilintili iç içe sorgu</td><td>an inner query that refers to a column of the outer query</td></tr>
+    <tr><td>dense / sparse index</td><td>yoğun / seyrek indeks</td><td>an index with an entry for every value / for only some values</td></tr>
     <tr><td>derived attribute</td><td>türetilmiş öznitelik</td><td>an attribute computed from other data</td></tr>
+    <tr><td>division</td><td>bölme</td><td>the algebra operation (÷) that answers "every" questions</td></tr>
     <tr><td>domain</td><td>alan / değer kümesi</td><td>the atomic values an attribute can take</td></tr>
     <tr><td>entity integrity</td><td>varlık bütünlüğü</td><td>a PK cannot be NULL</td></tr>
     <tr><td>foreign key</td><td>yabancı anahtar</td><td>attributes that refer to the PK of another (or the same) relation</td></tr>
+    <tr><td>functional dependency</td><td>fonksiyonel bağımlılık</td><td>X → Y: two rows with the same X values have the same Y values</td></tr>
     <tr><td>generalization / specialization</td><td>genelleştirme / özelleştirme</td><td>deriving a superclass from subclasses / dividing a superclass into subclasses</td></tr>
+    <tr><td>hashing</td><td>hashing (karma)</td><td>computing the block address from the key with a hash function</td></tr>
     <tr><td>identifying relationship</td><td>tanımlayıcı ilişki</td><td>the relationship that ties a weak entity to its owner</td></tr>
     <tr><td>inheritance</td><td>kalıtım</td><td>a subclass taking on the attributes and relationships of its superclass</td></tr>
     <tr><td>instance / state / extension</td><td>örnek / durum</td><td>the data at a particular moment</td></tr>
+    <tr><td>isolation level</td><td>izolasyon seviyesi</td><td>how much a transaction is exposed to the effects of others</td></tr>
+    <tr><td>lossless (non-additive) join</td><td>kayıpsız birleştirme</td><td>joining the decomposed parts produces no spurious tuples</td></tr>
+    <tr><td>multilevel index</td><td>çok seviyeli indeks</td><td>an index on the index; each level shrinks by the fan-out</td></tr>
     <tr><td>multivalued attribute</td><td>çok değerli öznitelik</td><td>an attribute that can take several values for one entity</td></tr>
-    <tr><td>participation constraint</td><td>katılım kısıtı</td><td>total (mandatory) or partial (optional) participation</td></tr>
+    <tr><td>natural join</td><td>doğal birleştirme</td><td>an equijoin on attributes with the same name, dropping the repeated column</td></tr>
+    <tr><td>normal form</td><td>normal form</td><td>a condition showing how far a schema is from redundancy and anomalies</td></tr>
+    <tr><td>partial / transitive dependency</td><td>kısmi / geçişli bağımlılık</td><td>a dependency on part of a key / on a non-key attribute</td></tr>
     <tr><td>partial key (discriminator)</td><td>kısmi anahtar</td><td>the attribute that distinguishes weak entities with the same owner</td></tr>
+    <tr><td>participation constraint</td><td>katılım kısıtı</td><td>total (mandatory) or partial (optional) participation</td></tr>
+    <tr><td>placeholder</td><td>yer tutucu</td><td>a ? written in SQL text in place of a value</td></tr>
+    <tr><td>precedence graph</td><td>öncelik grafı</td><td>a directed graph between transactions built from conflicts</td></tr>
+    <tr><td>primary index</td><td>birincil indeks</td><td>a sparse index on the key field the file is sorted on</td></tr>
     <tr><td>primary key</td><td>birincil anahtar</td><td>the candidate key chosen to identify tuples</td></tr>
+    <tr><td>prime attribute</td><td>asal öznitelik</td><td>an attribute that is a member of some candidate key</td></tr>
+    <tr><td>RAID</td><td>RAID</td><td>using several disks with striping and redundancy for speed and reliability</td></tr>
+    <tr><td>recoverable schedule</td><td>kurtarılabilir çizelge</td><td>a schedule in which no committed transaction ever needs to be rolled back</td></tr>
     <tr><td>referential integrity</td><td>referans bütünlüğü</td><td>an FK value equals an existing PK or is NULL</td></tr>
     <tr><td>relation / tuple</td><td>ilişki / demet (satır)</td><td>a set of tuples / a row</td></tr>
+    <tr><td>relational algebra</td><td>ilişkisel cebir</td><td>operations on relations whose results are relations</td></tr>
     <tr><td>relationship type</td><td>ilişki tipi</td><td>an association among entity types</td></tr>
+    <tr><td>schedule (history)</td><td>çizelge</td><td>the order of execution of the operations of several transactions</td></tr>
     <tr><td>schema / intension</td><td>şema</td><td>the description of the database</td></tr>
+    <tr><td>secondary index</td><td>ikincil indeks</td><td>an index on a field the file is not sorted on</td></tr>
     <tr><td>superkey</td><td>süper anahtar</td><td>a set of attributes whose values are different for every tuple</td></tr>
+    <tr><td>system log</td><td>sistem logu</td><td>an append-only file recording the operations of transactions</td></tr>
     <tr><td>three-valued logic</td><td>üç değerli mantık</td><td>TRUE, FALSE, UNKNOWN</td></tr>
     <tr><td>transaction</td><td>hareket (işlem)</td><td>a sequence of operations applied entirely or not at all</td></tr>
     <tr><td>trigger</td><td>tetikleyici</td><td>an event-condition-action (ECA) rule</td></tr>
