@@ -2,7 +2,7 @@
 // finds keys and the highest normal form, says which FD breaks the next one, and decomposes step by step
 // (each step: the relation before → the two relations after, with the NJB test).
 import "../layout.js";
-import { $, h } from "../lib/ui.js";
+import { $, h, button } from "../lib/ui.js";
 import { relationTable } from "../lib/sqlbox.js";
 import { parseFDs, parseAttrs, closure, analyze, decompose, njb, checkOnRows, lostFDs, fmt, fmtFD } from "../lib/fd.js";
 import { t as tl } from "../lib/i18n.js";
@@ -188,4 +188,315 @@ preset("teach", "nf-teach");
       h("label", { class: "small" }, tl("Hedef", "Target"), targetSel)),
     out));
   load("emp_proj");
+}
+
+// ---------------------------------------------------------------- the FD diagram (the book's style)
+// The attributes in a row of boxes; each FD is a line under the row: a drop from every left-side attribute and an
+// arrow up to every right-side attribute. The highlighted FD is drawn in the accent colour, a violating one in red.
+const SVGNS = "http://www.w3.org/2000/svg";
+const sv = (tag, attrs = {}, text) => { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v); if (text != null) e.textContent = text; return e; };
+function fdDiagram(name, R, F, { hl = null, bad = false, keys = null } = {}) {
+  const key = (keys || analyze(R, F).keys)[0] || [];
+  const fds = F.filter((f) => f.lhs.every((a) => R.includes(a))).map((f) => ({ ...f, rhs: f.rhs.filter((a) => R.includes(a)) })).filter((f) => f.rhs.length);
+  const cw = (t) => Math.max(54, t.length * 8.4 + 18);
+  let x = 10;
+  const box = new Map();
+  for (const a of R) { const w = cw(a); box.set(a, { x, w, cx: x + w / 2 }); x += w + 6; }
+  const W = x + 4, top = 26, bh = 30, gap = 16;
+  const H = top + bh + gap * (fds.length + 1) + 4;
+  const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: "fd-svg", role: "img", "aria-label": `${name}: ${fds.map(fmtFD).join("; ")}` });
+  const defs = sv("defs");
+  for (const [id, col] of [["fd-ar", "var(--text-2)"], ["fd-ar-hl", "var(--accent)"], ["fd-ar-bad", "var(--critical)"]]) {
+    const m = sv("marker", { id, viewBox: "0 0 10 10", refX: 5, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" });
+    m.append(sv("path", { d: "M0,0 L10,5 L0,10 z", style: `fill:${col}` })); defs.append(m);
+  }
+  svg.append(defs, sv("text", { x: 10, y: 16, class: "fd-name" }, name));
+  for (const a of R) {
+    const b = box.get(a);
+    svg.append(sv("rect", { x: b.x, y: top, width: b.w, height: bh, rx: 3, class: "fd-box" + (key.includes(a) ? " key" : "") }));
+    const t = sv("text", { x: b.cx, y: top + bh / 2 + 1, class: "fd-attr" + (key.includes(a) ? " key" : "") }, a);
+    svg.append(t);
+  }
+  fds.forEach((f, i) => {
+    const isHl = hl && fmtFD(hl) === fmtFD(f) || (hl && hl.lhs.join() === f.lhs.join() && hl.rhs.every((a) => f.rhs.includes(a)));
+    const cls = isHl ? (bad ? "bad" : "hl") : "";
+    const y = top + bh + gap * (i + 1);
+    const xs = [...f.lhs, ...f.rhs].map((a) => box.get(a).cx);
+    const g = sv("g", { class: "fd-line " + cls });
+    g.append(sv("line", { x1: Math.min(...xs), x2: Math.max(...xs), y1: y, y2: y }));
+    for (const a of f.lhs) g.append(sv("line", { x1: box.get(a).cx - 4, x2: box.get(a).cx - 4, y1: top + bh, y2: y }));
+    for (const a of f.rhs) g.append(sv("line", { x1: box.get(a).cx + 4, x2: box.get(a).cx + 4, y1: y, y2: top + bh + 3, "marker-end": `url(#${isHl ? (bad ? "fd-ar-bad" : "fd-ar-hl") : "fd-ar"})` }));
+    g.append(sv("title", {}, fmtFD(f)));
+    svg.append(g);
+  });
+  return h("div", { class: "fd-diagram" }, svg);
+}
+
+/** X⁺ step by step: each round, the FD that fires and the set before and after it. */
+function closureTrace(X, F) {
+  const c = [...X], rounds = [];
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const f of F) if (f.lhs.every((a) => c.includes(a)) && f.rhs.some((a) => !c.includes(a))) {
+      const before = [...c];
+      f.rhs.forEach((a) => { if (!c.includes(a)) c.push(a); });
+      rounds.push({ fd: f, before, after: [...c], added: c.filter((a) => !before.includes(a)) });
+      grew = true;
+    }
+  }
+  return { result: c, rounds };
+}
+const setChips = (all, added = []) => h("span", { class: "set-chips" }, "{", ...all.flatMap((a, i) => [i ? ", " : "", h("span", { class: added.includes(a) ? "new" : null }, a)]), "}");
+
+// ---------------------------------------------------------------- closure, step by step
+{
+  const host = $("#closure-steps");
+  if (host) {
+    const pre = h("select", { "aria-label": tl("Örnek", "Example") }, ...Object.entries(PRESETS).map(([id, p]) => h("option", { value: id }, `${p.name} · ${p.src}`)));
+    const xIn = h("input", { type: "text", size: 18, "aria-label": "X" });
+    const out = h("div");
+    const run = () => {
+      const p = PRESETS[pre.value], R = parseAttrs(p.attrs), F = parseFDs(p.fds), X = parseAttrs(xIn.value).filter((a) => R.includes(a));
+      if (!X.length) { out.replaceChildren(h("p", { class: "small muted" }, tl("X için şemadaki özniteliklerden en az birini yazın.", "Write at least one attribute of the schema for X."))); return; }
+      const tr = closureTrace(X, F);
+      const sk = R.every((a) => tr.result.includes(a));
+      out.replaceChildren(fdDiagram(p.name, R, F),
+        h("ol", { class: "map-steps" },
+          h("li", {}, h("div", { class: "step-title" }, tl("Başlangıç", "Start")), h("div", {}, tl("X⁺ önce X'in kendisidir: ", "X⁺ starts as X itself: "), setChips(X, X))),
+          ...tr.rounds.map((r, i) => h("li", {}, h("div", { class: "step-title" }, tl(`Adım ${i + 1}: ${fmtFD(r.fd)}`, `Step ${i + 1}: ${fmtFD(r.fd)}`)),
+            h("div", { class: "small" }, tl(`Sol taraf ${fmt(r.fd.lhs)} kümede olduğu için sağ taraftaki ${r.added.join(", ")} eklenir.`, `The left side ${fmt(r.fd.lhs)} is in the set, so ${r.added.join(", ")} from the right side is added.`)),
+            h("div", { class: "ba" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), setChips(r.before)), h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+              h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), setChips(r.after, r.added)))))),
+        h("p", { class: sk ? "nf-ok" : "nf-bad" }, (tr.rounds.length ? tl("Hiçbir bağımlılık yeni öznitelik eklemiyor, hesap bitti. ", "No dependency adds anything new, so the computation stops. ") : tl("Hiçbir bağımlılığın sol tarafı kümede değil. ", "No dependency's left side is in the set. "))
+          + (sk ? tl(`${fmt(X)}⁺ bütün öznitelikleri içerdiği için ${fmt(X)} bir süper anahtardır.`, `${fmt(X)}⁺ contains every attribute, so ${fmt(X)} is a superkey.`)
+            : tl(`${fmt(X)}⁺ şu öznitelikleri içermiyor: ${R.filter((a) => !tr.result.includes(a)).join(", ")}. Bu yüzden ${fmt(X)} bir süper anahtar değildir.`, `${fmt(X)}⁺ is missing ${R.filter((a) => !tr.result.includes(a)).join(", ")}, so ${fmt(X)} is not a superkey.`))));
+    };
+    const load = () => { const p = PRESETS[pre.value]; xIn.value = parseFDs(p.fds)[0].lhs.join(", "); run(); };
+    pre.addEventListener("change", load); xIn.addEventListener("input", run);
+    host.append(h("div", { class: "player" }, h("div", { class: "pl-bar" }, h("label", { class: "small sim-field" }, tl("Örnek: ", "Example: "), pre), h("label", { class: "small sim-field" }, "X = ", xIn)), out));
+    load();
+  }
+}
+
+// ---------------------------------------------------------------- anomalies, live
+{
+  const host = $("#anomaly-lab");
+  if (host) {
+    const COLS = ["Ename", "Ssn", "Dnumber", "Dname", "Dmgr_ssn"];
+    const START = [["Smith", "123456789", 5, "Research", "333445555"], ["Wong", "333445555", 5, "Research", "333445555"], ["Zelaya", "999887777", 4, "Administration", "987654321"],
+      ["Wallace", "987654321", 4, "Administration", "987654321"], ["Narayan", "666884444", 5, "Research", "333445555"], ["English", "453453453", 5, "Research", "333445555"],
+      ["Jabbar", "987987987", 4, "Administration", "987654321"], ["Borg", "888665555", 1, "Headquarters", "888665555"]];
+    const table = (rows, mark = {}) => h("div", { class: "table-wrap" }, h("table", { class: "simple anomaly" },
+      h("thead", {}, h("tr", {}, ...COLS.map((c, i) => h("th", {}, i === 1 ? h("u", {}, c) : c)))),
+      h("tbody", {}, ...rows.map((r, i) => h("tr", { class: mark.rows?.[i] || null }, ...r.map((v, j) => h("td", { class: mark.cells?.[`${i},${j}`] || null }, v == null ? "NULL" : String(v))))))));
+    const ACTIONS = [
+      { label: tl("Research'ün adını yalnızca Smith'in satırında 'R&D' yap", "Rename Research to 'R&D' in Smith's row only"), kind: tl("Güncelleme anomalisi", "Update anomaly"),
+        run: (rows) => { const after = rows.map((r) => [...r]); after[0][3] = "R&D"; return { after, markBefore: { rows: Object.fromEntries(rows.map((r, i) => [i, r[2] === 5 ? "hl-row" : null])) }, markAfter: { cells: { "0,3": "cell-bad", "1,3": "cell-warn", "4,3": "cell-warn", "5,3": "cell-warn" } },
+          text: tl("Departman 5'in adı dört satırda tekrar ediyor. Yalnızca birini değiştirince aynı departman numarası iki farklı adla görünür; veri tutarsız hâle gelir. Doğrusu dört satırın hepsini değiştirmektir, bu da tekrar eden verinin bedelidir.", "Department 5's name repeats in four rows. Changing only one makes the same department number appear with two names; the data becomes inconsistent. The correct way is to change all four rows, which is the price of repeated data.") }; } },
+      { label: tl("Henüz çalışanı olmayan 6 numaralı Marketing departmanını ekle", "Insert department 6, Marketing, which has no employees yet"), kind: tl("Ekleme anomalisi", "Insert anomaly"),
+        run: (rows) => { const after = [...rows.map((r) => [...r]), [null, null, 6, "Marketing", null]]; return { after, markAfter: { rows: { [rows.length]: "drop" }, cells: { [`${rows.length},1`]: "cell-bad" } },
+          text: tl("Departmanın bilgisi ancak bir çalışan satırıyla birlikte saklanabiliyor. Çalışanı olmayan bir departman için Ename ve Ssn NULL kalır; Ssn primary key olduğu için bu satır entity integrity kuralını bozar ve reddedilir.", "Department data can only be stored together with an employee row. For a department with no employees Ename and Ssn are NULL; since Ssn is the primary key, the row breaks entity integrity and is rejected.") }; } },
+      { label: tl("Borg'un satırını sil (Headquarters'ın tek çalışanı)", "Delete Borg's row (the only employee of Headquarters)"), kind: tl("Silme anomalisi", "Delete anomaly"),
+        run: (rows) => { const after = rows.filter((r) => r[1] !== "888665555").map((r) => [...r]); return { after, markBefore: { rows: { 7: "drop" } },
+          text: tl("Borg silindiğinde Headquarters departmanının adı ve yöneticisi de tablodan kaybolur, çünkü bu bilgi yalnızca onun satırında duruyordu. Departman hâlâ var ama artık hiçbir yerde kayıtlı değil.", "When Borg is deleted, the name and manager of Headquarters disappear too, because that information lived only in his row. The department still exists but is no longer recorded anywhere.") }; } },
+    ];
+    const out = h("div");
+    const fix = h("div");
+    const show = (i) => {
+      [...seg.children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+      const a = ACTIONS[i], r = a.run(START);
+      out.replaceChildren(h("p", {}, h("strong", {}, a.kind, ". "), a.text),
+        h("div", { class: "ba ba-stack" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), table(START, r.markBefore)), h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+          h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), table(r.after, r.markAfter))));
+      fix.replaceChildren(h("p", { class: "small" }, tl("Çözüm, EMP_DEPT'i 3NF'e ayrıştırmaktır: EMPLOYEE(Ename, Ssn, Dnumber) ve DEPARTMENT(Dnumber, Dname, Dmgr_ssn). Departmanın adı artık tek bir satırda durur, çalışanı olmayan departman eklenebilir ve son çalışanı silinen departman kaybolmaz.",
+        "The fix is to decompose EMP_DEPT into 3NF: EMPLOYEE(Ename, Ssn, Dnumber) and DEPARTMENT(Dnumber, Dname, Dmgr_ssn). The department's name then lives in one row, a department without employees can be inserted, and a department does not vanish when its last employee is deleted.")));
+    };
+    const seg = h("div", { class: "stepper-steps", role: "group" }, ...ACTIONS.map((a, i) => h("button", { type: "button", onclick: () => show(i) }, a.kind)));
+    host.append(h("div", { class: "player" }, seg, h("p", { class: "small muted" }, ...ACTIONS.map((a, i) => [i ? " · " : "", h("strong", {}, a.kind), ": ", a.label])), out, fix));
+    show(0);
+  }
+}
+
+// ---------------------------------------------------------------- normalization, step by step (player)
+function nfSteps(p, target) {
+  const R = parseAttrs(p.attrs), F = parseFDs(p.fds);
+  const a = analyze(R, F);
+  const steps = [];
+  const k0 = a.keys[0];
+  steps.push({ kind: "keys", R, name: p.name, trace: closureTrace(k0, F), a });
+  const d = decompose(R, F, target);
+  const names = new Map([[R.join(","), p.name]]);
+  let counter = 0;
+  let current = [[p.name, R]];
+  for (const s of d.steps) {
+    const from = names.get(s.from.join(",")) || p.name;
+    const nm1 = `${p.name}${++counter}`;
+    names.set(s.into[0].join(","), nm1); names.set(s.into[1].join(","), from);
+    const before = current;
+    current = current.flatMap(([n, r]) => (r.join(",") === s.from.join(",") ? [[nm1, s.into[0]], [from, s.into[1]]] : [[n, r]]));
+    steps.push({ kind: "split", s, from, nm1, before, after: current, F });
+  }
+  steps.push({ kind: "done", result: current, F, lost: lostFDs(F, d.result), target, R, name: p.name, a });
+  return { R, F, steps };
+}
+{
+  const host = $("#nf-player");
+  if (host) {
+    const KIND = { partial: tl("kısmi bağımlılık: 2NF ihlali", "partial dependency: a 2NF violation"), transitive: tl("geçişli bağımlılık: 3NF ihlali", "transitive dependency: a 3NF violation"), prime: tl("sol tarafı süper anahtar değil: BCNF ihlali", "left side is not a superkey: a BCNF violation") };
+    const render = (pid = "emp_proj", target = PRESETS.emp_proj.target, predictInit = false) => {
+      const p = PRESETS[pid];
+      const { F, steps } = nfSteps(p, target);
+      let i = 0, predict = predictInit, asked = -1;
+      const exSel = h("select", { onchange: () => render(exSel.value, PRESETS[exSel.value].target, predict) }, ...Object.entries(PRESETS).map(([id, q]) => h("option", { value: id, selected: id === pid }, `${q.name} · ${q.src}`)));
+      const tgSel = h("select", { onchange: () => render(pid, tgSel.value, predict) }, ...["2NF", "3NF", "BCNF"].map((t) => h("option", { value: t, selected: t === target }, t)));
+      const counter = h("span", { class: "pl-count" });
+      const prev = button(tl("◀ Önceki", "◀ Previous"), () => go(i - 1, true));
+      const next = button(tl("Sonraki ▶", "Next ▶"), () => go(i + 1), { kind: "primary" });
+      const predictBox = h("input", { type: "checkbox", checked: predict, onchange: (e) => { predict = e.target.checked; } });
+      const dots = h("div", { class: "pl-dots" }, ...steps.map((s, k) => h("button", { type: "button", class: "pl-dot", onclick: () => go(k, true) }, s.kind === "keys" ? tl("Anahtar", "Key") : s.kind === "done" ? tl("Sonuç", "Result") : String(k))));
+      const body = h("div");
+      host.replaceChildren(h("div", { class: "player" },
+        h("div", { class: "pl-bar" }, h("label", { class: "small sim-field" }, tl("Örnek: ", "Example: "), exSel), h("label", { class: "small sim-field" }, tl("Hedef: ", "Target: "), tgSel)),
+        h("div", { class: "pl-bar" }, prev, next, counter, h("label", { class: "small pl-predict" }, predictBox, tl(" Tahmin modu: ihlal eden bağımlılığı önce siz bulun", " Predict mode: find the violating dependency first"))),
+        dots, body));
+      const rels = (list, hlName, s) => h("div", { class: "nf-stack" }, ...list.map(([n, r]) => fdDiagram(n, r, F, n === hlName && s ? { hl: s.by, bad: true } : {})));
+      const reveal = (k, verdict) => {
+        const st = steps[k];
+        if (st.kind === "keys") {
+          body.replaceChildren(h("div", { class: "step-title" }, tl("1. Aday anahtarı bul", "1. Find the candidate key")),
+            h("p", { class: "pl-rule" }, tl("Normal formlar anahtarlara dayandığı için önce aday anahtar bulunur. Bir küme X'in kapanışı X⁺ bütün öznitelikleri içeriyorsa X bir süper anahtardır; minimal olan süper anahtar aday anahtardır.", "Normal forms are defined in terms of keys, so the candidate key comes first. If the closure X⁺ of a set X contains every attribute, X is a superkey; a minimal superkey is a candidate key.")),
+            fdDiagram(st.name, st.R, F, { keys: st.a.keys }),
+            h("ol", { class: "map-steps" }, ...st.trace.rounds.map((r) => h("li", {}, h("div", { class: "small" }, h("strong", {}, fmtFD(r.fd)), tl(` ile ${r.added.join(", ")} eklenir.`, ` adds ${r.added.join(", ")}.`)),
+              h("div", { class: "ba" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), setChips(r.before)), h("div", { class: "ba-arrow", "aria-hidden": "true" }), h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), setChips(r.after, r.added)))))),
+            h("p", {}, tl(`${fmt(st.a.keys[0])}⁺ bütün öznitelikleri içeriyor ve hiçbir alt kümesi içermiyor, bu yüzden ${fmt(st.a.keys[0])} bir aday anahtardır.`, `${fmt(st.a.keys[0])}⁺ contains every attribute and none of its subsets does, so ${fmt(st.a.keys[0])} is a candidate key.`)
+              + (st.a.keys.length > 1 ? tl(` Diğer aday anahtar${st.a.keys.length > 2 ? "lar" : ""}: ${st.a.keys.slice(1).map(fmt).join(", ")}.`, ` Other candidate key${st.a.keys.length > 2 ? "s" : ""}: ${st.a.keys.slice(1).map(fmt).join(", ")}.`) : "")
+              + tl(` İlişki şu an ${NF_NAME[st.a.nf]}'de.`, ` The relation is currently in ${NF_NAME[st.a.nf]}.`)));
+        } else if (st.kind === "split") {
+          const s = st.s, j = s.njb;
+          body.replaceChildren(h("div", { class: "step-title" }, tl(`${k + 1}. ${st.from} ilişkisini ${fmtFD(s.by)} ile ayrıştır`, `${k + 1}. Decompose ${st.from} by ${fmtFD(s.by)}`)), verdict || "",
+            h("p", { class: "pl-rule" }, tl(`${fmtFD(s.by)} bir ${KIND[s.by.kind]}. Kural: X → A ihlal ediyorsa, X ile belirlediği öznitelikler yeni bir ilişkiye alınır (X ∪ A) ve eski ilişkiden A çıkarılır (R − A). X iki parçada da kaldığı için join kayıpsızdır.`,
+              `${fmtFD(s.by)} is a ${KIND[s.by.kind]}. Rule: if X → A violates the form, X and what it determines go into a new relation (X ∪ A) and A is removed from the old one (R − A). X stays in both parts, so the join is lossless.`)),
+            h("div", { class: "ba ba-stack" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce: ihlal eden bağımlılık kırmızı", "Before: the violating dependency in red")), rels(st.before, st.from, s)),
+              h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+              h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl(`Sonra: ${st.nm1} = X ∪ A, ${st.from} = R − A`, `After: ${st.nm1} = X ∪ A, ${st.from} = R − A`)), rels(st.after))),
+            h("p", { class: `small ${j.ok ? "nf-ok" : "nf-bad"}` }, j.ok ? tl(`NJB testi: ortak öznitelik ${fmt(j.common)}, ${fmt(j.determines)} kısmını belirliyor; ayrıştırma kayıpsız.`, `NJB test: the common attribute ${fmt(j.common)} determines ${fmt(j.determines)}; the decomposition is lossless.`) : tl("NJB testi başarısız.", "The NJB test fails.")));
+        } else {
+          body.replaceChildren(h("div", { class: "step-title" }, tl(`Sonuç: ${st.result.length} ilişki, hepsi en az ${st.target}`, `Result: ${st.result.length} relations, all at least in ${st.target}`)),
+            h("div", { class: "nf-result" }, ...st.result.map(([n, r]) => relationLine(n, r, F))), rels(st.result),
+            h("p", { class: "small" }, st.result.length === 1 ? tl(`${st.name} zaten ${st.target}'te; ayrıştırmaya gerek yok.`, `${st.name} is already in ${st.target}; no decomposition is needed.`)
+              : st.lost.length ? tl(`Korunmayan bağımlılık: ${st.lost.map(fmtFD).join("; ")}. BCNF'e ayrıştırma bazen bir bağımlılığı feda eder; kayıpsız join ise her zaman korunur.`, `Dependency not preserved: ${st.lost.map(fmtFD).join("; ")}. Decomposing into BCNF sometimes sacrifices a dependency; the lossless join is always kept.`)
+              : tl("Bütün bağımlılıklar korunuyor ve her ayrıştırma kayıpsız.", "Every dependency is preserved and every decomposition is lossless.")));
+        }
+      };
+      const ask = (k) => {
+        const st = steps[k];
+        const r = st.before.find(([n]) => n === st.from)[1];
+        const opts = analyze(r, F).fds;
+        body.replaceChildren(h("div", { class: "step-title" }, tl(`${st.from} henüz ${target}'te değil. Hangi bağımlılık ihlal ediyor?`, `${st.from} is not in ${target} yet. Which dependency violates it?`)),
+          fdDiagram(st.from, r, F),
+          h("div", { class: "quiz-options" }, ...opts.map((f) => h("button", { type: "button", onclick: () => {
+            const ok = f.lhs.join() === st.s.by.lhs.join();
+            reveal(k, h("div", { class: `res-msg ${ok ? "ok" : "warn"}` }, ok ? tl("Doğru: ilk ele alınan ihlal bu.", "Right: this is the violation handled first.") : tl(`Seçtiğiniz ${fmtFD(f)} ${isSkOf(f.lhs, r) ? tl("sol tarafı bir süper anahtar olduğu için ihlal değildir.", "is not a violation, because its left side is a superkey.") : tl(`de sorunlu olabilir, ama algoritma önce ${fmtFD(st.s.by)} ile başlar (önce 2NF, sonra 3NF ihlalleri).`, `may also be a problem, but the algorithm starts with ${fmtFD(st.s.by)} (2NF violations first, then 3NF).`)}`, `You chose ${fmtFD(f)}: ${isSkOf(f.lhs, r) ? "its left side is a superkey, so it is not a violation." : `it may also be a problem, but the algorithm starts with ${fmtFD(st.s.by)} (2NF violations first, then 3NF).`}`)));
+          } }, fmtFD(f)))));
+      };
+      const isSkOf = (X, r) => r.every((a) => closure(X, F).includes(a));
+      function go(k, jump = false) {
+        i = Math.max(0, Math.min(steps.length - 1, k));
+        counter.textContent = tl(`Adım ${i + 1} / ${steps.length}`, `Step ${i + 1} of ${steps.length}`);
+        [...dots.children].forEach((d, j) => { d.classList.toggle("on", j === i); d.classList.toggle("past", j < i); });
+        prev.disabled = i === 0; next.disabled = i === steps.length - 1;
+        if (predict && !jump && steps[i].kind === "split" && asked < i) { asked = i; ask(i); } else reveal(i);
+      }
+      go(0, true);
+    };
+    render();
+  }
+}
+
+// ---------------------------------------------------------------- you decide (normal forms), with a reset per question
+// After each answer: why each option is right or wrong, the FD diagram, and the decomposition step by step (before/after).
+const ND = [
+  { p: "emp_proj", q: tl("EMP_PROJ(Ssn, Pnumber, Hours, Ename, Pname, Plocation) en yüksek hangi normal formda?", "What is the highest normal form of EMP_PROJ(Ssn, Pnumber, Hours, Ename, Pname, Plocation)?"),
+    opts: [["1NF", true, tl("Doğru. Anahtar {Ssn, Pnumber}; Ssn → Ename ve Pnumber → Pname, Plocation anahtarın bir parçasına bağlı kısmi bağımlılıklardır, bu yüzden 2NF sağlanmaz.", "Right. The key is {Ssn, Pnumber}; Ssn → Ename and Pnumber → Pname, Plocation depend on part of the key, which are partial dependencies, so 2NF fails.")],
+      ["2NF", false, tl("2NF için asal olmayan her özniteliğin anahtarın tamamına bağlı olması gerekir. Ename yalnızca Ssn'e, yani anahtarın bir parçasına bağlı.", "2NF needs every nonprime attribute to depend on the whole key. Ename depends only on Ssn, a part of the key.")],
+      ["3NF", false, tl("3NF, 2NF'i de gerektirir; ilişki 2NF'te bile değil.", "3NF requires 2NF as well, and the relation is not even in 2NF.")]] },
+  { p: "emp_dept", q: tl("EMP_DEPT(Ename, Ssn, Bdate, Address, Dnumber, Dname, Dmgr_ssn) en yüksek hangi normal formda?", "What is the highest normal form of EMP_DEPT(Ename, Ssn, Bdate, Address, Dnumber, Dname, Dmgr_ssn)?"),
+    opts: [["1NF", false, tl("Anahtar tek öznitelikli (Ssn) olduğu için kısmi bağımlılık olamaz; ilişki en az 2NF'tedir.", "The key has a single attribute (Ssn), so there can be no partial dependency; the relation is at least in 2NF.")],
+      ["2NF", true, tl("Doğru. Ssn → Dnumber → Dname, Dmgr_ssn geçişli bir bağımlılıktır: Dnumber süper anahtar değil ve Dname asal değil. Bu yüzden 3NF sağlanmaz.", "Right. Ssn → Dnumber → Dname, Dmgr_ssn is a transitive dependency: Dnumber is not a superkey and Dname is not prime, so 3NF fails.")],
+      ["BCNF", false, tl("Dnumber → Dname bağımlılığının sol tarafı süper anahtar değil; bu hem 3NF'i hem BCNF'i bozar.", "The left side of Dnumber → Dname is not a superkey; that breaks both 3NF and BCNF.")]] },
+  { p: "teach", q: tl("TEACH(Student, Course, Instructor); {Student, Course} → Instructor ve Instructor → Course. En yüksek normal form hangisi?", "TEACH(Student, Course, Instructor); {Student, Course} → Instructor and Instructor → Course. What is the highest normal form?"),
+    opts: [["2NF", false, tl("Kısmi ya da geçişli bağımlılık yok: Instructor → Course'ta sağ taraf Course asal bir özniteliktir.", "There is no partial or transitive dependency: in Instructor → Course the right side, Course, is a prime attribute.")],
+      ["3NF", true, tl("Doğru. Aday anahtarlar {Student, Course} ve {Student, Instructor}; Course asal olduğu için Instructor → Course 3NF'e uyar. Ama Instructor süper anahtar olmadığı için BCNF'e uymaz.", "Right. The candidate keys are {Student, Course} and {Student, Instructor}; Course is prime, so Instructor → Course is allowed by 3NF. Instructor is not a superkey, so BCNF fails.")],
+      ["BCNF", false, tl("BCNF her bağımlılığın sol tarafının süper anahtar olmasını ister. Instructor tek başına bir süper anahtar değil.", "BCNF needs the left side of every dependency to be a superkey. Instructor alone is not a superkey.")]] },
+  { p: "chain", q: tl("R(A, B, C, D) için A → B, B → C, C → D. Aday anahtar hangisi?", "For R(A, B, C, D) with A → B, B → C, C → D, what is the candidate key?"),
+    opts: [["{A}", true, tl("Doğru. A⁺ = {A, B, C, D}: A → B ile B, B → C ile C, C → D ile D eklenir. A'yı hiçbir bağımlılık belirlemediği için her anahtarda bulunmak zorundadır.", "Right. A⁺ = {A, B, C, D}: A → B adds B, B → C adds C, C → D adds D. No dependency determines A, so it must be in every key.")],
+      ["{A, B}", false, tl("{A, B} bir süper anahtardır ama minimal değildir: B çıkarılınca kalan {A} hâlâ her şeyi belirler.", "{A, B} is a superkey but not minimal: without B, {A} still determines everything.")],
+      ["{D}", false, tl("D⁺ = {D}; D hiçbir şeyi belirlemez. Bağımlılık zincirinin sonu anahtar olamaz.", "D⁺ = {D}; D determines nothing. The end of a dependency chain cannot be a key.")]] },
+  { p: "lots", q: tl("LOTS'ta County_name → Tax_rate hangi normal formu bozar? (Aday anahtarlar Property_id ve {County_name, Lot}.)", "In LOTS, which normal form does County_name → Tax_rate break? (The candidate keys are Property_id and {County_name, Lot}.)"),
+    opts: [["2NF", true, tl("Doğru. County_name, {County_name, Lot} aday anahtarının bir parçasıdır ve asal olmayan Tax_rate ona bağlıdır: kısmi bağımlılık. Kitap bu yüzden LOTS'u önce LOTS1 ve LOTS2'ye ayırır.", "Right. County_name is part of the candidate key {County_name, Lot} and the nonprime Tax_rate depends on it: a partial dependency. That is why the book first splits LOTS into LOTS1 and LOTS2.")],
+      [tl("Yalnız 3NF", "3NF only"), false, tl("Geçişli bağımlılık gibi görünse de sol taraf bir aday anahtarın parçası; genel tanımla bu önce 2NF'i bozar.", "It may look transitive, but the left side is part of a candidate key; by the general definition it breaks 2NF first.")],
+      [tl("Hiçbirini", "None"), false, tl("County_name süper anahtar değil ve Tax_rate asal değil; bu bağımlılık en azından 3NF'i bozar.", "County_name is not a superkey and Tax_rate is not prime; this dependency breaks at least 3NF.")]] },
+  { p: "lots", q: tl("LOTS'ta Area → Price hangi normal formu bozar?", "In LOTS, which normal form does Area → Price break?"),
+    opts: [["2NF", false, tl("Area hiçbir aday anahtarın parçası değil, bu yüzden kısmi bağımlılık değildir.", "Area is not part of any candidate key, so this is not a partial dependency.")],
+      ["3NF", true, tl("Doğru. Area süper anahtar değil, Price asal değil ve Area bir anahtarın parçası da değil: geçişli bağımlılık. 2NF'e uyar ama 3NF'i bozar.", "Right. Area is not a superkey, Price is not prime and Area is not part of a key: a transitive dependency. It satisfies 2NF but breaks 3NF.")],
+      [tl("Yalnız BCNF", "BCNF only"), false, tl("Yalnız BCNF'i bozan bağımlılıkta sağ taraf asaldır. Price asal değil, bu yüzden 3NF de bozulur.", "A dependency that breaks only BCNF has a prime right side. Price is not prime, so 3NF breaks too.")]] },
+  { p: "teach", njb: [["Student", "Instructor"], ["Student", "Course"]], q: tl("TEACH'i {Student, Instructor} ve {Student, Course} olarak ayırırsak join kayıpsız olur mu?", "If TEACH is split into {Student, Instructor} and {Student, Course}, is the join lossless?"),
+    opts: [[tl("Evet, kayıpsız", "Yes, lossless"), false, tl("NJB testine göre ortak öznitelik Student, iki parçadan birinin geri kalanını belirlemeli. Student ne Instructor'ı ne Course'u belirler.", "By the NJB test the common attribute Student must determine the rest of one part. Student determines neither Instructor nor Course.")],
+      [tl("Hayır, sahte satırlar oluşabilir", "No, spurious tuples can appear"), true, tl("Doğru. Student → Instructor da Student → Course da sağlanmaz; kitaptaki D1 ayrıştırması bu yüzden kayıplıdır. Kayıpsız olan D3'tür: {Instructor, Course} ve {Instructor, Student}.", "Right. Neither Student → Instructor nor Student → Course holds; that is why the book's decomposition D1 is lossy. The lossless one is D3: {Instructor, Course} and {Instructor, Student}.")],
+      [tl("Bağımlılıklara bakmadan söylenemez", "Cannot be told without the data"), false, tl("NJB testi yalnızca bağımlılıklara bakar; verinin kendisine gerek yoktur.", "The NJB test only looks at the dependencies; the data itself is not needed.")]] },
+  { p: "lots1a", q: tl("LOTS1A(Property_id, County_name, Lot, Area) BCNF'e ayrıştırılınca hangi bağımlılık korunamaz?", "When LOTS1A(Property_id, County_name, Lot, Area) is decomposed into BCNF, which dependency is lost?"),
+    opts: [["Property_id → County_name, Lot, Area", false, tl("Bu bağımlılığın sol tarafı bir anahtar; parçalar üzerinden kontrol edilebilir.", "The left side of this dependency is a key; it can be checked through the parts.")],
+      ["{County_name, Lot} → Property_id, Area", true, tl("Doğru. Area → County_name yüzünden ilişki {Area, County_name} ve {Property_id, Area, Lot} olarak ayrılır. County_name ile Lot artık aynı parçada değildir, bu bağımlılık kaybolur. BCNF bazen bağımlılık korumayı feda eder.", "Right. Because of Area → County_name the relation splits into {Area, County_name} and {Property_id, Area, Lot}. County_name and Lot are no longer in the same part, so this dependency is lost. BCNF sometimes gives up dependency preservation.")],
+      ["Area → County_name", false, tl("Bu bağımlılık ayrıştırmanın nedenidir ve {Area, County_name} parçasında aynen durur.", "This dependency is the reason for the split and stays intact in the part {Area, County_name}.")]] },
+];
+{
+  const host = $("#nf-decide");
+  if (host) {
+    let k = 0, answered = [];
+    const score = () => answered.filter((j, i) => j != null && ND[i].opts[j][1]).length;
+    const head = h("div", { class: "pl-bar" }), card = h("div");
+    host.append(h("div", { class: "player" }, head, card));
+    const show = () => {
+      const d = ND[k], p = PRESETS[d.p], R = parseAttrs(p.attrs), F = parseFDs(p.fds);
+      const prevB = button(tl("◀ Önceki", "◀ Previous"), () => { k--; show(); });
+      const nextB = button(k === ND.length - 1 ? tl("Sonuç", "Result") : tl("Sonraki ▶", "Next ▶"), () => { k++; k < ND.length ? show() : finish(); }, { kind: "primary" });
+      prevB.disabled = k === 0; nextB.disabled = answered[k] == null;
+      head.replaceChildren(prevB, nextB, h("span", { class: "pl-count" }, tl(`Soru ${k + 1} / ${ND.length} · ${score()} doğru`, `Question ${k + 1} of ${ND.length} · ${score()} correct`)),
+        h("div", { class: "pl-dots", style: { margin: 0 } }, ...ND.map((q, j) => h("button", { type: "button", class: "pl-dot" + (j === k ? " on" : "") + (answered[j] == null ? "" : q.opts[answered[j]][1] ? " good" : " bad"), onclick: () => { k = j; show(); } }, String(j + 1)))));
+      const opts = h("div", { class: "quiz-options" }), fb = h("div"), detail = h("div");
+      const pick = (j, initial = false) => {
+        if (!initial) { answered[k] = j; show(); return; } // re-render: score, dots and the Next button follow the answer
+        [...opts.children].forEach((b, m) => { b.disabled = true; b.classList.toggle("correct", d.opts[m][1]); b.classList.toggle("wrong", m === j && !d.opts[m][1]); });
+        const [, ok, why] = d.opts[j], right = d.opts.find((o) => o[1]);
+        fb.replaceChildren(h("div", { class: `res-msg ${ok ? "ok" : "warn"}`, style: { fontFamily: "inherit" } }, why),
+          ok ? "" : h("p", { class: "small" }, h("strong", {}, tl("Doğru cevap: ", "Correct answer: ")), right[0], ". ", right[2].replace(/^(Doğru|Right)\. /, "")),
+          h("div", { class: "btn-row", style: { margin: "6px 0" } }, button(tl("↺ Cevabı sıfırla", "↺ Reset answer"), () => { answered[k] = undefined; show(); })));
+        // the worked solution, step by step with before/after
+        if (d.njb) {
+          const [R1, R2] = d.njb, jn = njb(R1, R2, F);
+          detail.replaceChildren(h("div", { class: "ba-label" }, tl("Adım adım: ayrıştırma ve NJB testi", "Step by step: the decomposition and the NJB test")),
+            h("div", { class: "ba" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), fdDiagram(p.name, R, F)), h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+              h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), relationLine("R1", R1, F), relationLine("R2", R2, F))),
+            h("p", { class: jn.ok ? "nf-ok" : "nf-bad" }, tl(`R1 ∩ R2 = ${fmt(jn.common)} ve ${fmt(jn.common)}⁺ = {${closure(jn.common, F).join(", ")}}. ${jn.ok ? "Bu küme parçalardan birinin geri kalanını kapsıyor; ayrıştırma kayıpsız." : `Bu küme ne R1 − R2 = ${fmt(jn.left)} ne de R2 − R1 = ${fmt(jn.right)} kümesini kapsıyor; ayrıştırma kayıplı.`}`,
+              `R1 ∩ R2 = ${fmt(jn.common)} and ${fmt(jn.common)}⁺ = {${closure(jn.common, F).join(", ")}}. ${jn.ok ? "It covers one side, so the decomposition is lossless." : `It covers neither R1 − R2 = ${fmt(jn.left)} nor R2 − R1 = ${fmt(jn.right)}; the decomposition is lossy.`}`)));
+        } else {
+          const body = h("div");
+          normalize(body, { ...p, target: "BCNF" });
+          detail.replaceChildren(h("div", { class: "ba-label" }, tl("Adım adım çözüm: bağımlılık diyagramı, anahtar ve BCNF'e ayrıştırma (her adımda önce ve sonra)", "Worked solution: the dependency diagram, the key and the decomposition into BCNF (each step before and after)")), fdDiagram(p.name, R, F), body);
+        }
+      };
+      d.opts.forEach(([label], j) => opts.append(h("button", { type: "button", onclick: () => pick(j) }, h("span", { class: "opt-letter" }, "ABC"[j] + ") "), label)));
+      card.replaceChildren(h("p", { class: "decide-q" }, d.q), h("p", { class: "small muted" }, `${p.name}: ${p.fds.split("\n").join("; ").replace(/->/g, "→")}`), opts, fb, detail);
+      if (answered[k] != null) pick(answered[k], true);
+    };
+    const finish = () => {
+      k = ND.length - 1;
+      head.replaceChildren(button(tl("Baştan başla", "Start again"), () => { k = 0; answered = []; show(); }, { kind: "primary" }));
+      card.replaceChildren(h("p", { class: "decide-q" }, tl(`${ND.length} sorudan ${score()} tanesini doğru cevapladınız.`, `You answered ${score()} of ${ND.length} questions correctly.`)),
+        h("p", {}, tl("Bir soruya dönmek için numarasına tıklayın; kırmızılar yanlış cevapladıklarınız.", "Click a number to go back to a question; the red ones are those you missed.")),
+        h("div", { class: "pl-dots" }, ...ND.map((q, j) => h("button", { type: "button", class: "pl-dot " + (q.opts[answered[j]]?.[1] ? "good" : "bad"), onclick: () => { k = j; show(); } }, String(j + 1)))));
+    };
+    show();
+  }
 }

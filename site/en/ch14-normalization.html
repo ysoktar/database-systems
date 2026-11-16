@@ -44,6 +44,8 @@
   <li><strong>Insertion anomaly:</strong> a project nobody works on yet cannot be inserted, because part of the row's primary key (Ssn) would be empty. In the same way, an employee not yet assigned to a project cannot be inserted.</li>
   <li><strong>Deletion anomaly:</strong> if the row of the only person who works on a project is deleted, the project's information is lost too.</li>
 </ul>
+<p>In the lab below you can trigger the three anomalies yourself. When you press a button, the EMP_DEPT table before the operation appears on top and after it below; the problematic rows and cells are marked and the reason for the anomaly is written underneath.</p>
+<div id="anomaly-lab"></div>
 <p>The box below builds the table EMP_DEPT(Ename, Ssn, Bdate, Address, Dnumber, Dname, Dmgr_ssn) from COMPANY with a join (Figure 14.4 in the book). The name and manager of the Research department repeat in four rows. Changing the department's name in only one row leads to inconsistency: the same department number appears with two different names.</p>
 <pre class="sql run" data-title="An update anomaly: repeated department information in EMP_DEPT">
 DROP TABLE IF EXISTS demo.EMP_DEPT;   -- so that the box can be run again
@@ -79,6 +81,8 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
   <li><strong>Prime attribute</strong>: an attribute that is a member of some candidate key. <strong>Nonprime attribute</strong>: an attribute that is a member of no candidate key.</li>
 </ul>
 <p>The <strong>closure</strong> X<sup>+</sup> of a set of attributes X is all the attributes that X determines through the FDs. If X<sup>+</sup> contains all the attributes of the relation, X is a superkey. The tool below finds the candidate keys by computing closures in this way.</p>
+<p>The closure is computed step by step: start with X; add the right side of every dependency whose left side is in the set, and continue until no dependency adds anything new. Choose an example and an X below. Each step shows which dependency was applied and the set before and after. The figure on top is a <strong>dependency diagram</strong> as in the book: the attributes are in boxes and each dependency is a line underneath; the line drops from the left-side attributes and rises with arrows to the right-side attributes. Key attributes are underlined.</p>
+<div id="closure-steps"></div>
 
 <h2>First normal form (1NF)</h2>
 <p>1NF disallows composite attributes, multivalued attributes and nested relations, i.e. attributes whose value in a row is not atomic. 1NF is considered part of the definition of a relation, and most relational DBMSs allow only relations in 1NF to be defined.</p>
@@ -134,10 +138,18 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <p><strong>The general procedure:</strong> if R is not in BCNF and the dependency X → A causes the violation, R is decomposed into two relations: (i) R − A and (ii) X ∪ A. If one of them is not in BCNF, the process is repeated. In TEACH the violation is Instructor → Course, so the decomposition is (TEACH − Course) and (Instructor ∪ Course), i.e. D3. When the dependency Area → County_name is added to LOTS1A, the same procedure gives the result of the book's Figure 14.13a.</p>
 <div id="nf-teach"></div>
 
+<h2>Normalization step by step</h2>
+<p>This player takes a relation to the target normal form step by step. In the first step the candidate key is found with a closure. In each following step the violating dependency is shown in red in the dependency diagram and the relation is split in two: the relations before are on the left (or on top), the relations after beside them, and below, the NJB test shows that the decomposition is lossless. The last step lists the resulting relations and any dependency that could not be preserved. If you turn on predict mode, you choose the violating dependency before each split. You can pick the book's relations from the example list and 2NF, 3NF or BCNF from the target list.</p>
+<div id="nf-player"></div>
+
 <h2>The normalization tool</h2>
 <p>Write a relation schema and its functional dependencies, or choose one of the ready-made examples. The tool computes the closure of each dependency's left side, the candidate keys and the prime attributes; it says in sentences which normal form the relation is in and which dependency breaks the next one. Then it decomposes the relation step by step up to the normal form you choose; in each step the relation as it was is on the left and the relations it gives are on the right, and it says whether the decomposition is lossless according to the NJB test.</p>
 <p class="small muted">Syntax: separate attributes with spaces or commas; write each dependency on its own line as <code>A, B -&gt; C, D</code>. At most 12 attributes can be used.</p>
 <div id="nf-tool"></div>
+
+<h2>You decide</h2>
+<p>In these questions you decide the normal forms and keys. When you pick an option, it is explained why each option is right or wrong, and the worked solution appears below: the dependency diagram, the candidate key and every step of the decomposition before and after. If you answered wrong or want to try again, use the "Reset answer" button.</p>
+<div id="nf-decide"></div>
 
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="3">

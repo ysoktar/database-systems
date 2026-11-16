@@ -988,3 +988,25 @@ figure.er.zoomable.fs { position: fixed; inset: 0; z-index: 1000; }
 figure.er.zoomable:fullscreen svg, figure.er.zoomable.fs svg { width: 100%; height: auto; max-height: calc(100vh - 80px); max-width: none; }
 .pl-zoom-hint { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
 figure.er.zoomable::backdrop { background: var(--surface); }
+
+/* ---- Ch 14: dependency diagrams, closure sets, anomaly lab */
+.fd-diagram { overflow-x: auto; margin: 6px 0; }
+.fd-svg { display: block; max-width: 100%; height: auto; }
+.fd-svg .fd-name { font-family: var(--mono); font-size: 13px; font-weight: 700; fill: var(--text); }
+.fd-svg .fd-box { fill: var(--surface); stroke: var(--text-2); stroke-width: 1.2; }
+.fd-svg .fd-box.key { stroke: var(--pk); stroke-width: 1.8; }
+.fd-svg .fd-attr { font-family: var(--mono); font-size: 12.5px; fill: var(--text); text-anchor: middle; dominant-baseline: middle; }
+.fd-svg .fd-attr.key { fill: var(--pk); font-weight: 700; text-decoration: underline; }
+.fd-svg .fd-line line { stroke: var(--text-2); stroke-width: 1.4; }
+.fd-svg .fd-line.hl line { stroke: var(--accent); stroke-width: 2.4; }
+.fd-svg .fd-line.bad line { stroke: var(--critical); stroke-width: 2.6; }
+.set-chips { font-family: var(--mono); font-size: 0.86rem; }
+.set-chips .new { background: var(--accent); color: var(--accent-ink); border-radius: 4px; padding: 0 3px; font-weight: 700; }
+.nf-stack { display: grid; gap: 6px; }
+.ba.ba-stack { grid-template-columns: minmax(0, 1fr); }
+.ba.ba-stack .ba-arrow { justify-self: center; }
+.ba.ba-stack .ba-arrow::after { content: "↓"; }
+table.anomaly tr.hl-row td { background: var(--warn-wash); }
+table.anomaly tr.drop td { background: var(--err-wash); text-decoration: line-through; color: var(--critical); }
+table.anomaly td.cell-bad { background: var(--err-wash); color: var(--critical); font-weight: 700; outline: 2px solid var(--critical); outline-offset: -2px; }
+table.anomaly td.cell-warn { background: var(--warn-wash); }
