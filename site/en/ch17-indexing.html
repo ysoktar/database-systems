@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indexing structures · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 17: primary, clustering and secondary indexes, dense and sparse indexes, multilevel indexes, B-trees and B+-trees, multiple-key indexes, hash and bitmap indexes, physical database design; with an index types figure, a cost calculator and a step-by-step B+-tree insertion player.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch17-indexing.js"></script>
+</head>
+<body data-page="ch17-indexing">
+<main><div class="content">
+
+<h1>Indexing structures</h1>
+<p class="lead">On the previous page we saw how many block reads it takes to find a record: b/2 on average in an unordered file, log<sub>2</sub> b in a sorted file. Indexes are additional access paths that, like the index at the back of a book, tell which block holds the wanted value with far fewer reads. This page explains the index types, their costs, and the B+-tree that almost every database uses today.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Show primary, clustering and secondary indexes, and the difference between dense and sparse indexes, on a sample file.</li>
+    <li>Compute the number of blocks of an index and the block reads of a search from the record, block, key and pointer sizes.</li>
+    <li>Explain why a multilevel index works with log<sub>fo</sub>; compare B-trees and B+-trees.</li>
+    <li>Follow inserting into and searching a B+-tree step by step; explain node splits.</li>
+    <li>Say when hash, bitmap and function-based indexes fit, and how indexes are chosen in physical design.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Scope.</strong> All Ch 17 slides (1–41), listed for week 11 in the syllabus, are on this page. For the calculations and the B+-tree algorithms the examples and definitions of the same chapter of the book are used.</p>
+</div>
+
+<h2>Single-level ordered indexes</h2>
+<p>An <strong>index</strong> is an additional access structure used to reach records faster for certain search conditions; it does not change where the records of the data file are on disk, it provides a <strong>secondary access path</strong> to them. An index can be built on any field, and a file can have several indexes. The field the index is built on is the <strong>indexing field</strong>. An ordered index stores each value (or some values) of the indexing field with pointers to the disk blocks that contain that value, sorted by value. Because the index file is much smaller than the data file, a binary search on it reads far fewer blocks.</p>
+<p>There are three kinds of single-level ordered indexes:</p>
+<ul>
+  <li><strong>Primary index</strong>: built on the ordering key when the data file is sorted on a <em>key</em> field. The index has an entry for <em>each block</em> of the data file: the key of the block's first record (the block anchor) and the block's address. So a primary index is <strong>sparse</strong>.</li>
+  <li><strong>Clustering index</strong>: used when the data file is sorted on a non-key field, where a value can repeat in many records. The index has an entry for <em>each distinct value</em> of the field, pointing to the first block where the value appears. Since a file can be sorted on only one field, a file has at most one primary or one clustering index.</li>
+  <li><strong>Secondary index</strong>: built on any field the file is not sorted on, and a file can have many secondary indexes. The records are scattered with respect to that field, so the index needs an entry for <em>each record</em>; a secondary index is therefore <strong>dense</strong>. It takes more space than a primary index and the search is longer, but without the index the same search would scan the whole file.</li>
+</ul>
+<p>A <strong>dense index</strong> has an entry for every search value in the data file; a <strong>sparse index</strong> has entries for only some values. The big problem of a primary index is insertion and deletion: keeping the order moves records and changes block anchors. An unordered overflow file or a linked list of overflow records per block is used for this.</p>
+<p>In the figure below the eight employees of COMPANY are placed in a file with three records per block. Choose an index type and search for a value: the index entry used and the data block read are highlighted, and below it says how many blocks were read. Hovering over an index entry also highlights the block it points to.</p>
+<div id="index-types"></div>
+<p>The book's Tables 17.1 and 17.2 summarize the index types by the properties of the indexing field:</p>
+<table class="simple">
+  <thead><tr><th></th><th>File sorted on this field</th><th>File not sorted on this field</th></tr></thead>
+  <tbody>
+    <tr><td>Indexing field is a key</td><td>Primary index</td><td>Secondary index (on a key)</td></tr>
+    <tr><td>Indexing field is not a key</td><td>Clustering index</td><td>Secondary index (on a non-key)</td></tr>
+  </tbody>
+</table>
+<table class="simple">
+  <thead><tr><th>Index type</th><th>Number of entries</th><th>Dense or sparse?</th><th>Uses block anchors?</th></tr></thead>
+  <tbody>
+    <tr><td>Primary</td><td>Number of blocks in the data file</td><td>Sparse</td><td>Yes</td></tr>
+    <tr><td>Clustering</td><td>Number of distinct values of the indexing field</td><td>Sparse</td><td>Yes, for distinct values only</td></tr>
+    <tr><td>Secondary (key)</td><td>Number of records in the data file</td><td>Dense</td><td>No</td></tr>
+    <tr><td>Secondary (non-key)</td><td>Number of records or of distinct values</td><td>Dense or sparse</td><td>No</td></tr>
+  </tbody>
+</table>
+
+<h2>Computing index costs</h2>
+<p>An index entry consists of a key value (V bytes) and a pointer (P bytes), so the blocking factor of the index is bfr<sub>i</sub> = ⌊B / (V + P)⌋. The index takes b<sub>i</sub> = ⌈r<sub>i</sub> / bfr<sub>i</sub>⌉ blocks, where r<sub>i</sub> is the number of index entries: the number of data blocks for a primary index, the number of records for a dense secondary index. A binary search on the index reads ⌈log<sub>2</sub> b<sub>i</sub>⌉ blocks, and one more block is needed to read the record itself.</p>
+<p>The book's example: r = 300,000 records, R = 100 bytes, B = 4096 bytes. The data file has bfr = 40 and b = 7500 blocks; if the file is sorted, binary search reads ⌈log<sub>2</sub> 7500⌉ = 13 blocks. With a key of V = 9 bytes and a pointer of P = 6 bytes an index entry is 15 bytes and 273 entries fit in a block. The 7500 entries of the primary index take ⌈7500 / 273⌉ = 28 blocks, and a search reads ⌈log<sub>2</sub> 28⌉ + 1 = 6 blocks. If the same file is not sorted on this field, the 300,000 entries of a dense secondary index take 1099 blocks and a search reads ⌈log<sub>2</sub> 1099⌉ + 1 = 12 blocks; without the index, b/2 = 3750 blocks would be read on average.</p>
+<p>The calculator below does these computations with your numbers. The results include the multilevel index of the next section.</p>
+<div id="index-calc"></div>
+
+<h2>Multilevel indexes</h2>
+<p>Binary search halves the search space at each step. A multilevel index shrinks it by the <strong>fan-out</strong> (fo) at each step; fo is the number of entries that fit in an index block (bfr<sub>i</sub>). The idea: the index file is itself a sorted file, so a primary index can be built on it too. The first index is the <strong>first level</strong> (base level); the second level is a primary index holding the anchors of the first level's blocks; the third level is the index of the second. This continues until the top level fits in a single block. If the first level has r<sub>1</sub> entries, the number of levels is t = ⌈log<sub>fo</sub> r<sub>1</sub>⌉, and a search reads t + 1 blocks.</p>
+<p>In the book's example the first level of the dense secondary index is 1099 blocks. With fo = 273 the second level is ⌈1099 / 273⌉ = 5 blocks and the third level 1 block; so t = 3 and a search reads 4 blocks. The same search read 12 blocks with the single-level index. The book's Figure 17.6 shows a two-level primary index resembling the ISAM (indexed sequential access method) organization.</p>
+<div class="callout key">
+  <p>The problem of a multilevel index is again insertion and deletion: every level is a sorted file. B-trees and B+-trees solve this by leaving some free space in each node; they are called <strong>dynamic multilevel indexes</strong>.</p>
+</div>
+
+<h2>Search trees and B-trees</h2>
+<p>A <strong>tree</strong> is made of nodes. Every node except the root has one parent and zero or more children. A node with no children is a <strong>leaf</strong>, a non-leaf node an <strong>internal node</strong>. The subtree of a node is the node and all its descendants. If leaves are at different levels, the tree is <strong>unbalanced</strong>.</p>
+<p>In a <strong>search tree of order p</strong> each node holds at most p − 1 search values and p pointers: &lt;P<sub>1</sub>, K<sub>1</sub>, P<sub>2</sub>, K<sub>2</sub>, …, K<sub>q−1</sub>, P<sub>q</sub>&gt;. The values in a node are sorted, and every value X in the subtree under P<sub>i</sub> satisfies K<sub>i−1</sub> &lt; X &lt; K<sub>i</sub>. A search starts at the root and in each node follows a pointer according to the range the wanted value falls in. But if the insertion and deletion algorithms do not keep the tree balanced, it becomes unbalanced and search slows down.</p>
+<p>A <strong>B-tree</strong> is a search tree that solves this problem. A B-tree is <strong>always balanced</strong>: all leaves are at the same level. Space wasted by deletion never becomes excessive, because every node except the root is <strong>at least half full</strong>. In a B-tree of order p each node holds at most p − 1 search values, and in a B-tree each value comes with a data pointer to its record. When a value is inserted into a full node, the node splits in two and the middle value moves up to the parent; if the root splits, the tree grows by one level. The book's Figure 17.10 shows a B-tree of order 3 with the values 8, 5, 1, 7, 3, 12, 9, 6 inserted in this order; in the player below you can build the same tree step by step with the B-tree option.</p>
+
+<h2>B+-trees</h2>
+<p>Most databases use a variant of the B-tree, the <strong>B+-tree</strong>. In a B+-tree data pointers are stored <strong>only in the leaves</strong>. The leaves have an entry for every value of the search field; if the search field is a key the entry points straight to the record, otherwise to a block holding the pointers of the records with that value. Internal nodes only guide the search: some values from the leaves are <em>repeated</em> in internal nodes. The leaves are also linked by a pointer to the next leaf, so all values in a range can be read in order along the leaves.</p>
+<p>Since internal nodes have no data pointers, more values fit in an internal node, so the fan-out is larger and the tree is flatter. In the book's example B = 512 bytes, V = 9 bytes, the tree pointer P = 6 bytes and the data pointer P<sub>r</sub> = 7 bytes. The order of an internal node comes from (p − 1)·V + p·P ≤ B, giving p = 34; the order of a leaf from p<sub>leaf</sub>·(V + P<sub>r</sub>) + P ≤ B, giving p<sub>leaf</sub> = 31. If nodes are 69% full on average, a three-level B+-tree (root, two internal levels and the leaves) can point to about 255,507 records.</p>
+<p>To search for a value, start at the root. In an internal node, with the wanted value K, follow the first pointer if K ≤ K<sub>1</sub>, the i-th pointer if K<sub>i−1</sub> &lt; K ≤ K<sub>i</sub>, and the last pointer if K &gt; K<sub>q−1</sub> (the book's Algorithm 17.2). On reaching a leaf, look for the value there. Insertion follows the same path: the value is added to the right leaf. If the leaf overflows it splits: the first ⌈(p<sub>leaf</sub> + 1)/2⌉ values stay, the rest move to a new leaf, and the last value of the left leaf is <em>copied</em> up to the parent. If an internal node overflows it also splits, but this time the middle value is <em>moved</em> up to the parent (not copied). If the root splits, a new root is created and the tree grows by one level.</p>
+<p>The player below builds the tree of the book's Figure 17.12 (p = 3, p<sub>leaf</sub> = 2; values 8, 5, 1, 7, 3, 12, 9, 6) step by step. At each insertion the tree before is on top and after it below; the nodes the value went through and the split nodes are highlighted, and what happened is written in sentences. You can also enter your own values and orders, and search for a value to see the path followed from the root to a leaf.</p>
+<div id="bptree"></div>
+
+<h2>Indexes on multiple keys</h2>
+<p>Many queries have conditions on several attributes, for example "employees in department 4 who are 59 years old". There are three methods for this:</p>
+<ul>
+  <li><strong>An index on a composite key</strong>: a pair of values such as &lt;Dno, Age&gt; is used as a single search key, and pairs are sorted first on Dno and, if equal, on Age. It also helps conditions on only the first attribute, but not conditions on only the second.</li>
+  <li><strong>Partitioned hashing</strong>: each attribute is turned into a few bits by its own hash function, and the bits are concatenated into the bucket address. It suits equality comparisons only; it does not support range queries.</li>
+  <li><strong>Grid file</strong>: an array with one dimension per search attribute is built; for example one dimension is divided by Dno values and the other by age ranges. Each cell of the array points to the bucket holding the records with that pair of values (the book's Figure 17.14).</li>
+</ul>
+
+<h2>Other types of indexes</h2>
+<p>A <strong>hash index</strong> is a secondary access structure that uses hashing on a search key other than the one used for the organization of the data file. Its entries are of the form (K, P<sub>r</sub>) or (K, P): P<sub>r</sub> points to the record containing the key, P to the block containing that record. It is very fast for equality searches but does not help range queries.</p>
+<p>A <strong>bitmap index</strong> suits columns with many rows and few distinct values. For each value of the column an array of as many bits as there are rows is kept: bit i is 1 if row i has that value, 0 otherwise. Several conditions are combined very quickly with AND, OR and NOT on the bitmaps. An <strong>existence bitmap</strong> is used to tell deleted rows apart; bitmaps can also be used in the leaves of a B+-tree. Below you can see the bitmaps of the Sex and Dno columns for the COMPANY employees and, by choosing a condition, follow how the bitmaps are ANDed.</p>
+<div id="bitmap"></div>
+<p>In a <strong>function-based index</strong> a function is applied to one or more fields and the result becomes the index key. It was introduced in Oracle. For example an index created with <code>CREATE INDEX upper_ix ON Employee (UPPER(Lname));</code> can be used in a query with the condition <code>WHERE UPPER(Lname) = 'SMITH'</code>; an ordinary index on Lname could not be used for this condition.</p>
+
+<h2>General issues concerning indexing</h2>
+<p>In a <strong>physical index</strong> the pointer gives the physical address of the record; if the record moves, the pointer must change too. When record addresses are expected to change often, a <strong>logical index</strong> is used: its entries are of the form (K, K<sub>p</sub>), where K<sub>p</sub> is a key value used to find the record in the primary organization.</p>
+<p>The general form of the command that creates an index is: <code>CREATE [UNIQUE] INDEX &lt;name&gt; ON &lt;table&gt; (&lt;column&gt; [ASC | DESC], …) [CLUSTER];</code>. UNIQUE and CLUSTER are optional. A UNIQUE index is also used to enforce a key constraint: an insertion is rejected if the new record's key value already exists. On an index over a non-key field values may repeat. In the boxes below you can list the indexes of COMPANY, create a UNIQUE index and see how it rejects a duplicate.</p>
+<pre class="sql run" data-title="Listing the indexes: B-tree indexes created for the primary key and the foreign keys">
+SHOW INDEX FROM EMPLOYEE;
+</pre>
+<pre class="sql run" data-expect-error data-title="A UNIQUE index enforces a key constraint">
+DROP TABLE IF EXISTS demo.EMP_IDX;
+CREATE TABLE demo.EMP_IDX AS SELECT Ssn, Fname, Lname, Dno FROM EMPLOYEE;
+CREATE UNIQUE INDEX idx_lname ON demo.EMP_IDX (Lname);
+CREATE INDEX idx_dno ON demo.EMP_IDX (Dno);
+SHOW INDEX FROM demo.EMP_IDX;
+INSERT INTO demo.EMP_IDX VALUES ('999999999', 'Ann', 'Smith', 5);
+</pre>
+<p>The last INSERT is rejected because of the UNIQUE index on Lname (MySQL error code 1062), since the table already has an employee with the last name Smith. The index on Dno is not UNIQUE, so the same department number can appear in many rows.</p>
+<p>Other issues are these. Long, variable-length <strong>strings</strong> lower the fan-out; <strong>prefix compression</strong> is used against this: internal nodes store only as much of a key's prefix as is needed to separate the subtrees, instead of the whole key. <strong>Index tuning</strong> means reorganizing indexes to fit the requirements; the initial choice is revised for these reasons: some queries take too long because an index is missing, some indexes are never used, some indexes are updated too often because they are on a frequently changing attribute. A file with a secondary index on every field is a <strong>fully inverted file</strong>. Some systems allow <strong>indexing hints</strong> in queries. Finally, relations can be stored <strong>column by column</strong> instead of row by row (column-based storage); it gives advantages for read-only queries and extra freedom in choosing indexes.</p>
+
+<h2>Physical database design in relational databases</h2>
+<p>The goal of physical design is to create an appropriate storage structure for the data and to guarantee good performance. For this one must know the <strong>job mix</strong> of the applications: which queries and updates run, how often, and with what time constraints. For each query the files accessed and the attributes in selection and join conditions are analyzed; for each update the kind of operation (insert, delete, modify) and the attributes updated.</p>
+<ul>
+  <li><strong>Frequency of queries and transactions:</strong> how often each attribute is used as a selection or join attribute is examined. By the 80-20 rule, 80 percent of the processing is accounted for by only 20 percent of the queries and transactions; the design targets this 20%.</li>
+  <li><strong>Time constraints:</strong> the selection attributes of queries with time constraints are candidates for the primary access structure.</li>
+  <li><strong>Frequency of updates:</strong> a frequently updated file should have few access paths, because every index must itself be updated and slows down updates.</li>
+  <li><strong>Uniqueness constraints:</strong> there should be an access path on every candidate key attribute that is a primary key or UNIQUE.</li>
+</ul>
+<p>The design decisions about indexing are: whether to index an attribute (yes if it is a key or a query uses it); which attribute or attributes to index on (single or multiple); whether to set up a clustered index (there can be only one per table); whether to use a hash index instead of a tree index (hash indexes do not support range queries); whether to use dynamic hashing (it suits very volatile files).</p>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="2">
+  <p>The data file is sorted on Ssn and Ssn is a key. What type is the index built on Ssn, and how many entries does it have?</p>
+  <ol>
+    <li data-why="A clustering index is used when the file is sorted on a non-key field; Ssn is a key.">A clustering index; one entry per distinct Ssn</li>
+    <li data-why="Right: the file is sorted on a key field, so it is a primary index with one entry (a block anchor) per data block; that makes it sparse.">A primary index; one entry per data block</li>
+    <li data-why="A secondary index is built on a field the file is not sorted on. The file is sorted on Ssn.">A secondary index; one entry per record</li>
+    <li data-why="A primary index is sparse: it has one entry per block, not per record.">A primary index; one entry per record</li>
+  </ol>
+  <div class="explain">If the field the file is sorted on is a key, the index on it is a primary index. Since the records are sorted, knowing the first record of each block is enough; so the index is sparse and has as many entries as the data file has blocks.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>r = 300,000 records, B = 4096 bytes, V = 9 bytes, P = 6 bytes. The file is not sorted on the field and there is a dense secondary index on it. How many block reads does finding a record with the single-level index take?</p>
+  <ol>
+    <li data-why="6 is the search with the primary index of the same file (28 blocks); a secondary index is dense and much larger.">6</li>
+    <li data-why="3750 is the average of a linear search without an index (b/2).">3750</li>
+    <li data-why="Right: bfr_i = ⌊4096/15⌋ = 273, b_i = ⌈300,000/273⌉ = 1099, ⌈log2 1099⌉ = 11, plus 1 block for the record: 12.">12</li>
+    <li data-why="4 is the search with the multilevel version of the same index (t = 3 levels + 1).">4</li>
+  </ol>
+  <div class="explain">A dense secondary index has one entry per record: 300,000 entries, with 273 per block, take 1099 blocks. Binary search reads ⌈log<sub>2</sub> 1099⌉ = 11 blocks, plus 1 block for the record itself. You can try the same numbers in the calculator.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>What is the most important difference between a B+-tree and a B-tree?</p>
+  <ol>
+    <li data-why="Right: in a B+-tree data pointers are only in the leaves and the leaves are linked; internal nodes only guide the search, so the fan-out is larger.">Data pointers are only in the leaves, and the leaves are linked.</li>
+    <li data-why="Both are always balanced; all leaves are at the same level.">A B+-tree is balanced, a B-tree is not.</li>
+    <li data-why="In both trees every node except the root is at least half full.">In a B+-tree nodes need not be half full.</li>
+    <li data-why="Both can be used for equality and range searches; the linked leaves of a B+-tree make range searches easier.">A B+-tree can be used only for equality searches.</li>
+  </ol>
+  <div class="explain">In a B-tree each value sits in its node with its own data pointer. In a B+-tree all values are in the leaves with their data pointers; values in internal nodes are repeated only to show the way. Since internal nodes have no data pointers, more values fit and the tree is flatter.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>A B+-tree with p = 3 and p<sub>leaf</sub> = 2 has a single leaf [5, 8]. What happens when 1 is inserted?</p>
+  <ol>
+    <li data-why="A leaf holds at most p_leaf = 2 values; [1, 5, 8] is an overflow.">The leaf becomes [1, 5, 8] and the tree does not change.</li>
+    <li data-why="In a B+-tree the value of a split leaf is copied to the parent, but the new root holds 5, not 1: the left leaf is [1, 5].">The leaf splits and 1 goes up to the root.</li>
+    <li data-why="In a leaf split the value is not moved up but copied; 5 stays in the left leaf too.">The leaf splits, 5 moves to the root and is removed from the leaves.</li>
+    <li data-why="Right: ⌈(2+1)/2⌉ = 2 values ([1, 5]) stay left, 8 moves to a new leaf, and the last value of the left leaf, 5, is copied to a new root.">The leaf splits into [1, 5] and [8], and 5 is copied to a new root.</li>
+  </ol>
+  <div class="explain">The overflowing leaf splits: the first ⌈(p<sub>leaf</sub> + 1)/2⌉ = 2 values stay, the rest move to a new leaf. The last value of the left leaf (5) is copied to the parent; since there is no parent, a new root is created. This is exactly the third step of the book's insertion order in the player.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>A column has only two distinct values (M and F) and the table has millions of rows. Which index fits this column best?</p>
+  <ol>
+    <li data-why="A hash index uses a bucket per value; with two values millions of records fall into two buckets and the overflow chains get very long.">A hash index</li>
+    <li data-why="Right: for columns with few distinct values a bitmap index saves a lot of space and combines quickly with other conditions through AND/OR.">A bitmap index</li>
+    <li data-why="A clustering index needs the file to be sorted on this field and there can be only one per table; on its own it gives no selective access path either.">A clustering index</li>
+    <li data-why="A function-based index is used when the query puts a condition on a function of the column, not on the column itself.">A function-based index</li>
+  </ol>
+  <div class="explain">A bitmap index keeps as many bits as rows for each distinct value; two values need only two bit arrays. Conditions such as "Sex = 'F' AND Dno = 5" are found directly by ANDing two bitmaps. You can try this in the bitmap example on the page.</div>
+</div>
+
+</div></main>
+</body>
+</html>

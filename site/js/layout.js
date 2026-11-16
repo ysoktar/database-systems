@@ -40,6 +40,10 @@ export const NAV = [
     { id: "ch9-mapping", title: "ER'den tablolara eşleme", title_en: "ER-to-relational mapping", desc_en: "The mapping algorithm: Steps 1–7 for ER, 8A–8D for specializations, 9 for categories.", ch: "Ch 9", slides: "1–38", scope: "none", desc: "Eşleme algoritması: ER için Adım 1–7, özelleştirme için 8A–8D, kategoriler için Adım 9." },
     { id: "ch14-normalization", title: "Fonksiyonel bağımlılık ve normalizasyon", title_en: "Functional dependencies and normalization", desc_en: "Design guidelines and anomalies, FDs, keys, 1NF, 2NF, 3NF, BCNF, lossless decomposition.", ch: "Ch 14", slides: "1–55", scope: "none", desc: "Tasarım kuralları ve anomaliler, FD'ler, anahtarlar, 1NF, 2NF, 3NF, BCNF, kayıpsız ayrıştırma." },
   ] },
+  { part: "Bölüm VII · Depolama ve indeksleme", part_en: "Part VII · Storage and indexing", short: "Ch 16, 17", items: [
+    { id: "ch16-files", title: "Disk depolama, dosyalar ve hashing", title_en: "Disk storage, files and hashing", desc_en: "Storage hierarchy, disks, buffer management, blocking, heap and sorted files, hashing, RAID.", ch: "Ch 16", slides: "1–41", scope: "none", desc: "Depolama hiyerarşisi, diskler, tampon yönetimi, bloklama, heap ve sıralı dosyalar, hashing, RAID." },
+    { id: "ch17-indexing", title: "İndeks yapıları", title_en: "Indexing structures", desc_en: "Primary, clustering and secondary indexes, multilevel indexes, B-trees and B+-trees.", ch: "Ch 17", slides: "1–41", scope: "none", desc: "Birincil, kümeleme ve ikincil indeksler, çok seviyeli indeksler, B-ağaçları ve B+-ağaçları." },
+  ] },
   { part: "Uygulama", part_en: "Practice", items: [
     { id: "er-studio", title: "ER stüdyosu", title_en: "ER studio", desc_en: "Draw ER/EER, map to tables, turn tables back into ER; design exercises.", desc: "ER/EER çiz, tablolara dönüştür, tablolardan ER'e geri dön; tasarım alıştırmaları." },
     { id: "notebook", title: "Notebook alıştırmaları", title_en: "Notebook exercises", desc_en: "The 10 SQL exercises of the Colab notebook, with the same checker.", desc: "Colab notebook'undaki 10 SQL alıştırması, aynı kontrolcüyle." },

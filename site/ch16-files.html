@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disk depolama ve dosya yapıları · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 16: depolama hiyerarşisi, manyetik disk ve SSD, blokların tamponlanması ve tampon değiştirme stratejileri, kayıtların bloklara yerleşimi (blocking factor, spanned/unspanned), sırasız (heap), sıralı ve hash dosyaları, RAID ve modern depolama mimarileri; hesap makinesi ve simülasyonlarla.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch16-files.js"></script>
+</head>
+<body data-page="ch16-files">
+<main><div class="content">
+
+<h1>Disk depolama ve dosya yapıları</h1>
+<p class="lead">Şimdiye kadar tabloları mantıksal düzeyde düşündük. Bu sayfa bir DBMS'in tabloları diskte nasıl sakladığını anlatır: kayıtlar bloklara nasıl yerleşir, bir kaydı bulmak kaç blok okumak gerektirir, hash dosyaları ve RAID neden kullanılır.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Depolama hiyerarşisini ve bir disk bloğuna erişmenin neden pahalı olduğunu açıklayabilmek.</li>
+    <li>Kayıt ve blok boyutundan blocking factor'ü ve dosyanın kaç blok tuttuğunu hesaplayabilmek; spanned ile unspanned yerleşimi karşılaştırabilmek.</li>
+    <li>Sırasız (heap), sıralı ve hash dosyalarında arama, ekleme ve silmenin ortalama maliyetini blok sayısıyla söyleyebilmek.</li>
+    <li>Tampon yönetiminin ve değiştirme stratejilerinin (LRU, FIFO, Clock) işleyişini bir örnek üzerinde izleyebilmek; RAID seviyelerini karşılaştırabilmek.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Kapsam.</strong> Müfredatta 10. haftaya yazılan Ch 16 slaytlarının hepsi (1–41) bu sayfadadır. Slaytlar konuları başlık olarak sayar; hesaplamalar için kitabın aynı bölümündeki tanımlar ve formüller kullanılmıştır.</p>
+</div>
+
+<h2>Depolama hiyerarşisi</h2>
+<p>Veritabanları genellikle manyetik disklerde saklanır ve fiziksel dosya yapılarıyla erişilir. Depolama ortamları üç düzeyde sıralanır. <strong>Birincil depolama</strong> (primary storage) CPU'nun doğrudan çalıştığı ana bellek ve önbellektir (cache: static RAM; ana bellek: DRAM); hızlıdır ama pahalıdır ve sınırlıdır. <strong>İkincil depolama</strong> (secondary storage) manyetik diskler, flash bellek ve SSD'lerdir; büyüktür ve kalıcıdır, ama erişimi çok daha yavaştır. <strong>Üçüncül depolama</strong> (tertiary storage) teyp, CD ve DVD gibi çıkarılabilir ortamlardır; yedekleme ve arşiv için kullanılır.</p>
+<p>Verilerin çoğu <strong>kalıcıdır</strong> (persistent): programlar bittikten sonra da saklanır. <strong>Geçici</strong> (transient) veri yalnızca bir program çalışırken vardır. <strong>Dosya organizasyonu</strong>, kayıtların diske fiziksel olarak nasıl yerleştirildiğini ve bu yüzden nasıl erişilebileceğini belirler.</p>
+<div class="callout key">
+  <p>Bir disk bloğuna erişmek, ana bellekteki bir işlemden binlerce kat yavaştır. Bu yüzden dosya yapılarının amacı, bir işlem için okunması gereken <strong>blok sayısını</strong> azaltmaktır; bu sayfadaki bütün maliyetler blok sayısıyla ölçülür.</p>
+</div>
+
+<h2>Diskler ve SSD'ler</h2>
+<p>Bir sabit disk, verileri bitler (bir ve sıfırlar) olarak saklar; bitler byte'lara gruplanır. Disk tek ya da çift yüzlü olabilir. Yüzeydeki eş merkezli dairelere <strong>iz</strong> (track) denir ve izler <strong>bloklara</strong> ya da sektörlere bölünür. Birden çok diskten oluşan bir disk paketinde, bütün yüzeylerde aynı yarıçaptaki izler bir <strong>silindir</strong> oluşturur. <strong>Biçimlendirme</strong> (formatting) izleri eşit boyutlu disk bloklarına böler; bloklar aralarındaki boşluklarla (interblock gap) ayrılır.</p>
+<p>Disk ile ana bellek arasında veri her zaman <strong>blok birimiyle</strong> aktarılır: bir bloğun donanım adresi disk G/Ç donanımına verilir ve blok bir <strong>tampona</strong> (buffer) okunur ya da tampondan yazılır. Okuma ve yazmayı bir okuma/yazma kafası yapar; disk denetleyicisi (disk controller) diski bilgisayara SCSI, SATA ya da SAS gibi standart arayüzlerle bağlar. Bir bloğa erişim süresi üç parçadan oluşur: kafanın doğru ize gitmesi (<strong>seek time</strong>), bloğun kafanın altına gelmesi için diskin dönmesi (<strong>rotational delay</strong>) ve bloğun aktarılması (<strong>block transfer time</strong>). İlk ikisi milisaniyeler sürer ve maliyetin büyük kısmıdır; bu yüzden ardışık blokları birlikte okumak tek tek okumaktan çok daha ucuzdur.</p>
+<p>Verimli erişim için kullanılan teknikler şunlardır: verileri tamponlamak, verileri diskte uygun düzenlemek, istenmeden önce ileriyi okumak (read ahead), G/Ç isteklerini uygun sırayla planlamak, yazmaları geçici olarak bir log diskinde tutmak ve kurtarma için SSD ya da flash bellek kullanmak.</p>
+<ul>
+  <li><strong>SSD</strong> (solid state device, flash depolama): ana bileşeni bir denetleyici ve birbirine bağlı flash bellek kartlarıdır. Hareketli parçası yoktur, bu yüzden seek ve dönme gecikmesi yoktur ve veri daha az parçalanır. HDD'lerden pahalıdır. DRAM tabanlı SSD'ler flash'tan da hızlıdır.</li>
+  <li><strong>Manyetik teyp</strong>: sıralı erişimlidir; bir bloğa ulaşmak için önceki blokların hepsi taranır. Yedekleme ve arşiv için kullanılır.</li>
+</ul>
+
+<h2>Blokların tamponlanması</h2>
+<p>Bir dosyanın birkaç bloğu okunacaksa, ana bellekte birden çok tampon ayrılabilir. Bir blok okunurken CPU bir önceki bloğu işleyebilir; bu, CPU ile disk G/Ç'sinin paralel çalışabildiği durumlarda işe yarar. <strong>Çift tamponlamada</strong> (double buffering) iki tampon (A ve B) dönüşümlü kullanılır: disk A'ya okurken CPU B'yi işler, sonra roller değişir. Böylece ardışık bloklar beklemeden okunur.</p>
+<p>DBMS'in <strong>tampon yöneticisi</strong>, ana bellekteki sınırlı sayıda tamponu (frame) yönetir. Her tampon için iki bilgi tutulur: <strong>pin count</strong> (o anda bu sayfayı kaç işlemin kullandığı; sıfır değilse sayfa tampondan çıkarılamaz) ve <strong>dirty bit</strong> (sayfa değiştirildi mi; değiştirildiyse çıkarılmadan önce diske yazılmalıdır). İstenen sayfa tamponda yoksa ve boş tampon kalmadıysa, bir sayfa bir <strong>değiştirme stratejisiyle</strong> seçilip çıkarılır:</p>
+<ul>
+  <li><strong>LRU</strong> (least recently used): en uzun süredir kullanılmayan sayfa çıkarılır.</li>
+  <li><strong>FIFO</strong> (first in, first out): tampona en önce giren sayfa çıkarılır.</li>
+  <li><strong>Clock</strong>: tamponlar bir daire üzerinde düşünülür ve her birinin bir "kullanıldı" biti vardır. Bir saat ibresi dolaşır: biti 1 olan tamponun bitini 0 yapıp geçer, biti 0 olan ilk tamponu çıkarır. LRU'ya yaklaşan ama daha ucuz bir yöntemdir.</li>
+</ul>
+<p>Aşağıdaki simülasyonda bir sayfa istek dizisi ve tampon sayısı girin, bir strateji seçin. Her istekte tamponların istekten önceki hâli solda, sonraki hâli sağdadır; isabetler (hit) yeşil, eksikler (miss) kırmızıdır.</p>
+<div id="buffer-sim"></div>
+
+<h2>Kayıtların bloklara yerleşimi</h2>
+<p>Bir <strong>kayıt</strong> (record), birbiriyle ilişkili değerlerin topluluğudur ve her değer bir alana (field) karşılık gelir. Alanların tipleri sayısal, metin, Boolean ya da tarih/zaman olabilir; resim ya da belge gibi yapılandırılmamış büyük nesneler <strong>BLOB</strong> (binary large object) olarak saklanır. Kayıtlar sabit ya da değişken uzunluklu olabilir. Değişken uzunluğun nedenleri şunlardır: bazı alanların uzunluğu değişkendir, bazı alanlar tekrar eder, bazı alanlar isteğe bağlıdır ya da dosya farklı tiplerde kayıtlar içerir.</p>
+<ul>
+  <li><strong>Blocking factor</strong> (bfr): bir bloğa sığan kayıt sayısıdır. Blok boyutu B, kayıt boyutu R ise (R ≤ B) bfr = ⌊B / R⌋ olur.</li>
+  <li><strong>Unspanned</strong> yerleşimde bir kayıt blok sınırını geçemez; bu yüzden her blokta B − bfr · R byte kullanılmadan kalır.</li>
+  <li><strong>Spanned</strong> yerleşimde bir kaydın bir kısmı bir blokta, kalanı başka bir bloktadır; ilk bloğun sonundaki bir işaretçi kalanın bulunduğu bloğu gösterir. Kayıt bir bloktan büyükse spanned yerleşim zorunludur.</li>
+  <li>r kayıtlık bir dosyanın kapladığı blok sayısı <strong>b = ⌈r / bfr⌉</strong> olur.</li>
+</ul>
+<p>Dosyanın blokları diske <strong>bitişik</strong> (contiguous), <strong>bağlantılı</strong> (linked: her blok bir sonrakini gösterir) ya da <strong>indeksli</strong> (blok adresleri bir indeks bloğunda tutulur) olarak yerleştirilebilir. Dosya başlığı (file header ya da file descriptor), sistem programlarının ihtiyaç duyduğu bilgileri tutar: blokların disk adresleri ve kayıt biçimlerinin tanımı.</p>
+<p>Aşağıdaki hesap makinesi, kayıt sayısı, kayıt boyutu ve blok boyutundan bfr'yi, blok sayısını ve kullanılmayan alanı hesaplar; sonraki bölümün maliyet tablosu da aynı sayılarla hesaplanır.</p>
+<div id="block-calc"></div>
+
+<h2>Dosya işlemleri ve dosya organizasyonları</h2>
+<p>Dosya işlemleri iki gruptur: <strong>erişim</strong> işlemleri dosyayı değiştirmez; <strong>güncelleme</strong> işlemleri kayıt ekleyerek, silerek ya da değiştirerek dosyayı değiştirir. Kayıtlar bir seçim koşuluna göre seçilir. Kayıt düzeyindeki tipik işlemler şunlardır: Open, Find (koşulu sağlayan ilk kaydı bul), Read, FindNext, Delete, Insert, Close ve Scan.</p>
+<h3>Sırasız (heap) dosyalar</h3>
+<p>Kayıtlar dosyaya ekleniş sırasıyla yerleştirilir. <strong>Ekleme çok ucuzdur</strong>: son blok okunur, kayıt eklenir ve blok geri yazılır. <strong>Arama ise doğrusaldır</strong>: koşulu sağlayan tek bir kayıt aranıyorsa ortalama b/2, aranan kayıt yoksa ya da birden çok kayıt aranıyorsa b blok okunur. Silmek için kaydın bloğu bulunur, kayıt çıkarılıp blok yeniden yazılır; ya da kayda bir <strong>silindi işareti</strong> konur ve boşluklar daha sonra toplu olarak düzenlenir.</p>
+<h3>Sıralı dosyalar</h3>
+<p>Kayıtlar bir <strong>sıralama alanına</strong> (ordering field) göre sıralıdır; bu alan bir anahtarsa ona <strong>sıralama anahtarı</strong> denir. Kayıtları sıralama alanının sırasıyla okumak çok verimlidir ve bir sonraki kaydı bulmak genellikle yeni bir blok okumayı gerektirmez. Sıralama alanı üzerindeki bir eşitlik koşulu için <strong>ikili arama</strong> yapılabilir: yaklaşık ⌈log<sub>2</sub> b⌉ blok okunur. Ancak ekleme ve silme pahalıdır, çünkü sırayı korumak için kayıtların ortalama yarısının kaydırılması gerekir; bu yüzden eklemeler genellikle ayrı bir taşma (overflow) dosyasında biriktirilip dönem dönem birleştirilir. Sıralama alanı dışındaki bir alan üzerinde arama yine doğrusaldır.</p>
+<h3>Ortalama erişim maliyetleri</h3>
+<p>Kitaptaki Table 16.3, b bloklu bir dosyada bir kaydı bulmanın ortalama maliyetini özetler:</p>
+<table class="simple">
+  <thead><tr><th>Dosya tipi</th><th>Erişim yöntemi</th><th>Ortalama blok sayısı</th></tr></thead>
+  <tbody>
+    <tr><td>Heap (sırasız)</td><td>Doğrusal tarama</td><td>b / 2</td></tr>
+    <tr><td>Sıralı</td><td>Doğrusal tarama</td><td>b / 2</td></tr>
+    <tr><td>Sıralı</td><td>İkili arama (sıralama alanı üzerinde)</td><td>log<sub>2</sub> b</td></tr>
+    <tr><td>Hash (statik, taşma yokken)</td><td>Hash alanı üzerinde eşitlik</td><td>1</td></tr>
+  </tbody>
+</table>
+
+<h2>Hashing</h2>
+<p><strong>Hash fonksiyonu</strong> (randomizing function), bir kaydın hash alanının değerine uygulanır ve kaydın saklandığı disk bloğunun adresini verir. Bu düzene <strong>hash dosyası</strong> denir. Arama koşulu hash alanı üzerinde bir <em>eşitlik</em> olduğunda kayıt çoğunlukla tek bir blok okumayla bulunur. Hash alanı genellikle bir anahtardır. Aralık sorguları (Salary BETWEEN …) için hash yardımcı olmaz, çünkü yakın değerler rastgele bloklara dağılır.</p>
+<p><strong>İç hashing</strong> ana bellekte bir hash tablosu kullanır. Eklenen bir kaydın hash değeri zaten başka bir kaydın bulunduğu adrese düşerse buna <strong>çakışma</strong> (collision) denir. Çakışmalar üç yöntemle çözülür: <strong>açık adresleme</strong> (open addressing: sonraki boş yere konur), <strong>zincirleme</strong> (chaining: taşan kayıtlar bir taşma alanında bir zincirle bağlanır) ve <strong>çoklu hashing</strong> (çakışmada ikinci bir hash fonksiyonu denenir).</p>
+<p><strong>Dış hashing</strong>, disk dosyaları için kullanılır. Hedef adres alanı <strong>kovalardan</strong> (bucket) oluşur; bir kova bir disk bloğu ya da bitişik birkaç bloktur. Hash fonksiyonu bir anahtarı bir kova numarasına eşler; dosya başlığındaki bir tablo kova numarasını disk bloğunun adresine çevirir. Bir kovaya birden çok kayıt sığdığı için çakışma sorunu daha hafiftir; kova dolarsa yeni kayıtlar kovaya bağlı bir taşma zincirine konur. <strong>Statik hashing</strong>'de kova sayısı sabittir; dosya büyüdükçe taşma zincirleri uzar ve erişim yavaşlar.</p>
+<p>Dosyanın büyüyüp küçülmesine izin veren yöntemler de vardır. <strong>Extendible hashing</strong>, hash değerinin bitlerine bakan bir dizin (directory) tutar ve kova dolunca yalnızca o kovayı ikiye böler; dosya büyüdükçe performans düşmez. <strong>Dynamic hashing</strong> ağaç yapılı bir dizin kullanır. <strong>Linear hashing</strong> ise dizin olmadan kovaları sırayla bölerek dosyanın büyüyüp küçülmesini sağlar.</p>
+<p>Aşağıdaki simülasyon statik dış hashing'i gösterir: h(K) = K mod M. Anahtarları sırayla ekleyin; her eklemede kovaların önceki hâli solda, sonraki hâli sağdadır. Bir kova dolunca anahtar taşma zincirine gider ve o anahtarı bulmak artık bir yerine iki blok okumayı gerektirir.</p>
+<div id="hash-sim"></div>
+
+<h2>Diğer dosya organizasyonları</h2>
+<ul>
+  <li><strong>Karışık kayıtlı dosyalar:</strong> farklı tiplerdeki ilişkili kayıtlar (örneğin bir departman ve çalışanları) aynı dosyada, fiziksel olarak yan yana saklanabilir (physical clustering). Kayıtlar arasındaki ilişkiler mantıksal alan referanslarıyla kurulur. Böylece birlikte okunan kayıtlar aynı bloklardan gelir.</li>
+  <li><strong>B-ağaçları:</strong> birincil dosya organizasyonu olarak da kullanılabilir; kayıtlar ağacın yapraklarında saklanır. B-ağaçları <a href="ch17-indexing.html">indeksleme sayfasında</a> anlatılıyor.</li>
+  <li><strong>Sütun tabanlı depolama:</strong> bir tablonun her sütunu ayrı saklanır. Az sayıda sütunu çok sayıda satır üzerinde okuyan analitik sorgular için verimlidir.</li>
+</ul>
+
+<h2>RAID</h2>
+<p><strong>RAID</strong> (redundant arrays of independent disks), birden çok diski birlikte kullanarak hızı ve güvenilirliği artırır. Hız için <strong>veri şeritleme</strong> (data striping) kullanılır: veri disklere bölünür ve birden çok diskten paralel okunur. Şeritleme bit düzeyinde ya da blok düzeyinde olabilir. Güvenilirlik için <strong>fazlalık</strong> (redundancy) kullanılır: verinin bir kopyası (aynalama, mirroring ya da shadowing) ya da bir disk bozulduğunda veriyi yeniden hesaplamaya yarayan eşlik (parity) bilgisi saklanır.</p>
+<table class="simple">
+  <thead><tr><th>Seviye</th><th>Yöntem</th></tr></thead>
+  <tbody>
+    <tr><td>RAID 0</td><td>Veri şeritleme, fazlalık yok: veri iki ya da daha çok diske eşit bölünür. En hızlısıdır, ama bir disk bozulursa veri kaybolur.</td></tr>
+    <tr><td>RAID 1</td><td>Aynalanmış diskler: her blok iki diske yazılır. Bir disk bozulduğunda yeniden kurmak en kolay bu seviyededir.</td></tr>
+    <tr><td>RAID 2</td><td>Bellek tarzı Hamming kodlarıyla hata bulma ve düzeltme.</td></tr>
+    <tr><td>RAID 3</td><td>Tek bir eşlik diski; hatanın hangi diskte olduğunu disk denetleyicisi bildirir.</td></tr>
+    <tr><td>RAID 4 ve 5</td><td>Blok düzeyinde şeritleme ve eşlik. RAID 4'te eşlik tek bir diskte, RAID 5'te bütün disklere dağıtılmıştır; böylece eşlik diski darboğaz olmaz.</td></tr>
+    <tr><td>RAID 6</td><td>P+Q fazlalık şeması: iki fazlalık diskiyle aynı anda iki diskin bozulmasına karşı korur.</td></tr>
+  </tbody>
+</table>
+<p>Büyük veri depolama için genellikle RAID 3 ve 5 tercih edilir. Aşağıdaki şekilde bir RAID seviyesi seçin: veri bloklarının (B) ve eşlik bloklarının (P, Q) disklere nasıl dağıldığı görünür. Bir diskin üzerine tıklayarak onu bozabilirsiniz; şekil, o diskteki blokların yeniden hesaplanıp hesaplanamayacağını ve kapasitenin ne kadarının veriye ayrıldığını gösterir. İkinci bir diski de bozup RAID 5 ile RAID 6 arasındaki farkı görün.</p>
+<div id="raid"></div>
+
+<h2>Modern depolama mimarileri</h2>
+<ul>
+  <li><strong>SAN</strong> (storage area network): çevrim içi depolama birimleri, yüksek hızlı bir ağın düğümleri olarak yapılandırılır.</li>
+  <li><strong>NAS</strong> (network-attached storage): dosya paylaşımı için kullanılan sunuculardır; ölçeklenebilir, güvenilir, esnek ve hızlıdır.</li>
+  <li><strong>iSCSI</strong>: istemciler, SCSI komutlarını uzaktaki SCSI depolama aygıtlarına IP ağı üzerinden gönderir. <strong>FCIP</strong> (Fibre Channel over IP), Fibre Channel komutlarını ve verisini IP paketlerine çevirip birbirinden uzak SAN'lar arasında taşır; <strong>FCoE</strong> (Fibre Channel over Ethernet) iSCSI'ye benzer, ama IP katmanı olmadan çalışır.</li>
+  <li><strong>Otomatik katmanlama</strong> (automated storage tiering): veriyi ihtiyaca göre depolama tipleri arasında kendiliğinden taşır; sık kullanılan veri SSD'lere gider.</li>
+  <li><strong>Nesne tabanlı depolama</strong>: veri, bloklardan oluşan dosyalar yerine nesneler olarak yönetilir. Her nesne meta-data ve küresel bir tanımlayıcı taşır; yapılandırılmamış verinin ölçeklenebilir saklanması için çok uygundur.</li>
+</ul>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p>Blok boyutu B = 512 byte, kayıt boyutu R = 100 byte ve dosyada r = 30 000 kayıt var. Unspanned yerleşimde blocking factor ve blok sayısı nedir?</p>
+  <ol>
+    <li data-why="5,12 kesirli bir değerdir; unspanned yerleşimde bir kayıt bölünemediği için bfr aşağı yuvarlanır.">bfr = 5,12; b = 5860</li>
+    <li data-why="Doğru: ⌊512 / 100⌋ = 5 kayıt bir bloğa sığar; ⌈30 000 / 5⌉ = 6000 blok gerekir.">bfr = 5; b = 6000</li>
+    <li data-why="bfr yukarı yuvarlanamaz: altıncı kayıt bloğa sığmaz (6 · 100 = 600 &gt; 512).">bfr = 6; b = 5000</li>
+    <li data-why="Blok sayısı r / bfr ile bulunur; r · R / B, spanned yerleşimde bile kayıp alanı yok sayan bir yaklaşımdır ve unspanned için yanlıştır.">bfr = 5; b = 5860</li>
+  </ol>
+  <div class="explain">bfr = ⌊B / R⌋ = ⌊512 / 100⌋ = 5; her blokta 512 − 500 = 12 byte kullanılmadan kalır. b = ⌈r / bfr⌉ = ⌈30 000 / 5⌉ = 6000 blok. Hesap makinesini bu sayılarla deneyebilirsiniz.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>6000 bloklu sıralı bir dosyada, sıralama anahtarı üzerinde ikili aramayla bir kayıt bulmak yaklaşık kaç blok okuma gerektirir?</p>
+  <ol>
+    <li data-why="3000, doğrusal aramanın ortalamasıdır (b/2); ikili arama her adımda aralığı yarıya indirir.">3000</li>
+    <li data-why="6000, bütün dosyayı taramaktır; sıralı bir dosyada sıralama anahtarı üzerinde buna gerek yoktur.">6000</li>
+    <li data-why="Doğru: ⌈log2 6000⌉ = 13, çünkü 2^12 = 4096 &lt; 6000 ≤ 8192 = 2^13.">13</li>
+    <li data-why="Tek blok okuma, hash alanı üzerinde eşitlik aranan bir hash dosyasının maliyetidir.">1</li>
+  </ol>
+  <div class="explain">İkili arama her blok okumasında aralığı yarıya indirir; bu yüzden ⌈log<sub>2</sub> b⌉ = ⌈log<sub>2</sub> 6000⌉ = 13 blok okunur. Aynı dosya heap olsaydı ortalama b/2 = 3000 blok okunurdu.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Hangi sorgu için bir hash dosyası (hash alanı Ssn) en az yardımcı olur?</p>
+  <ol>
+    <li data-why="Doğru: hash fonksiyonu yakın değerleri rastgele kovalara dağıtır; bir aralık için bütün kovaları taramak gerekir.">Ssn'i 100000000 ile 200000000 arasında olan çalışanlar</li>
+    <li data-why="Hash alanı üzerinde eşitlik, hash dosyasının en iyi olduğu durumdur: kayıt genellikle tek blok okumayla bulunur.">Ssn'i 123456789 olan çalışan</li>
+    <li data-why="Bu da hash alanı üzerinde bir eşitliktir; her Ssn için bir kova okunur.">Ssn'i 123456789 ya da 333445555 olan çalışanlar</li>
+    <li data-why="Yeni bir kayıt eklemek de hash'ten yararlanır: kaydın kovası doğrudan hesaplanır.">Ssn'i 999999999 olan yeni bir çalışan eklemek</li>
+  </ol>
+  <div class="explain">Hash dosyası, hash alanı üzerindeki eşitlik koşulları için tasarlanmıştır. Aralık sorgularında yakın anahtarlar farklı kovalara dağıldığı için hash bir sıralama sağlamaz; bütün dosya taranır. Aralık sorguları için sıralı dosyalar ya da B+-ağaçları uygundur.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Bir tampon yöneticisi, pin count'u 0 ve dirty bit'i 1 olan bir sayfayı çıkarmak istiyor. Ne olur?</p>
+  <ol>
+    <li data-why="Pin count 0 olduğu için sayfayı şu anda kullanan bir işlem yoktur; çıkarılabilir.">Sayfa çıkarılamaz, çünkü bir işlem onu kullanıyor.</li>
+    <li data-why="Dirty bit 1, sayfanın bellekte değiştirildiği anlamına gelir; diske yazılmadan atılırsa değişiklik kaybolur.">Sayfa diske yazılmadan atılır.</li>
+    <li data-why="Pin count'un 0 olması zaten çıkarmaya izin verir; beklemeye gerek yoktur.">Pin count 1 olana kadar beklenir.</li>
+    <li data-why="Doğru: sayfa kullanılmıyor (pin count 0) ama değiştirilmiş (dirty); önce diske yazılır, sonra tampon boşaltılır.">Sayfa önce diske yazılır, sonra tampon başka bir sayfa için kullanılır.</li>
+  </ol>
+  <div class="explain">Pin count, sayfayı o anda kaç işlemin kullandığını söyler; 0 ise sayfa çıkarılabilir. Dirty bit 1 ise sayfa bellekte değiştirilmiştir ve çıkarılmadan önce diske yazılmalıdır, yoksa değişiklik kaybolur.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>Bir disk bozulduğunda veri kaybetmemek ve eşlik diskinin darboğaz olmasını önlemek isteniyor. Hangi RAID seviyesi uygundur?</p>
+  <ol>
+    <li data-why="RAID 0'da fazlalık yoktur: bir disk bozulursa veri kaybolur.">RAID 0</li>
+    <li data-why="Doğru: RAID 5 blok düzeyinde şeritleme yapar ve eşliği bütün disklere dağıtır; tek bir disk bozulduğunda veri eşlikten yeniden hesaplanır.">RAID 5</li>
+    <li data-why="RAID 4'te eşlik tek bir diskte toplanır; her yazma o diske de gittiği için darboğaz olur.">RAID 4</li>
+    <li data-why="RAID 3 tek bir eşlik diski kullanır; o disk de darboğaz olabilir.">RAID 3</li>
+  </ol>
+  <div class="explain">RAID 4 ve 5 blok düzeyinde şeritleme ve eşlik kullanır. RAID 4'te eşlik tek diskte olduğu için her yazma o diske yük bindirir; RAID 5 eşliği bütün disklere dağıtarak bu darboğazı kaldırır. İki diskin aynı anda bozulmasına karşı RAID 6 gerekir.</div>
+</div>
+
+</div></main>
+</body>
+</html>

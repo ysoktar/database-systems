@@ -8,11 +8,18 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
 - **Bölüm sayfaları.** Ch 1–7: kavramlar, mimari, ER, EER, ilişkisel model ve kısıtlar, temel SQL, NULL ve iç içe sorgular,
   join/gruplama/WITH, assertion/trigger/view/ALTER. Ch 8: ilişkisel cebir (slaytlar 1–67). Ch 9: ER ve EER şemalarını tablolara
   eşleme (slaytlar 1–38). Ch 14: fonksiyonel bağımlılıklar ve normalizasyon, BCNF'e kadar (slaytlar 1–55); bir ilişkinin
-  aday anahtarlarını ve normal formunu bulan, onu NJB testiyle adım adım ayrıştıran bir araçla. Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
+  aday anahtarlarını ve normal formunu bulan, onu NJB testiyle adım adım ayrıştıran bir araçla. Ch 16: disk depolama,
+  tamponlama, bloklama, heap/sıralı/hash dosyalar ve RAID (slaytlar 1–41). Ch 17: indeks türleri, çok seviyeli indeksler,
+  B- ve B+-ağaçları, bitmap ve hash indeksler, fiziksel tasarım (slaytlar 1–41). Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
   çizilir. Bir konunun müfredatta yalnızca bir kısmı varsa, sayfanın başında kapsadığı slayt aralığı yazar.
 - **Önce ve sonra.** Adım adım gösterimlerde her adımın girdisi solda, sonucu sağda görünür: SQL'in kavramsal değerlendirme
   sırası, join türleri, ilişkisel cebirin her işlemi (atılan satırlar kırmızı, NULL ile kalanlar sarı), ER'den tablolara
   eşlemenin her adımı (tablonun önceki ve sonraki hâli) ve tablolardan ER'e geri dönüş.
+- **Etkileşimli oynatıcılar.** Ch 9'da Adım 1–9'u tek şemada gösteren ve diyagramda o adımın yapısını vurgulayan oynatıcı
+  (tahmin modu, büyütme ve tam ekran); Ch 14'te bağımlılık diyagramları, adım adım kapanış, anomali laboratuvarı ve
+  normalizasyon oynatıcısı; Ch 16'da tampon değiştirme, bloklama, hashing ve RAID simülasyonları; Ch 17'de indeks türleri,
+  maliyet hesaplayıcısı ve B+/B-ağacı ekleme oynatıcısı. "Sen karar ver" bölümleri her cevaptan sonra adım adım çözümü
+  gösterir ve cevap sıfırlanabilir.
 - **Notebook alıştırmaları**: notebook'taki 10 SQL alıştırması, notebook'takiyle aynı kontrolcüyle (aynı hash'ler; Python
   kontrolcüsü `site/js/lib/sqlcore.js`'e taşındı). İpuçları, doğrulanmış çözümler ve alternatifler.
 - **Çalışma rehberi (Ch 1–7)**: bölüm bölüm bilinmesi gerekenler, çözümlü ER/kısıt/anahtar problemleri, otomatik kontrol

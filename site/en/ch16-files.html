@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disk storage and file structures · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 16: the storage hierarchy, magnetic disks and SSDs, buffering and buffer replacement strategies, placing records in blocks (blocking factor, spanned/unspanned), heap, sorted and hash files, RAID and modern storage architectures; with calculators and simulations.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch16-files.js"></script>
+</head>
+<body data-page="ch16-files">
+<main><div class="content">
+
+<h1>Disk storage and file structures</h1>
+<p class="lead">So far we have thought about tables at the logical level. This page explains how a DBMS stores tables on disk: how records are placed in blocks, how many block reads it takes to find a record, and why hash files and RAID are used.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Explain the storage hierarchy and why accessing a disk block is expensive.</li>
+    <li>Compute the blocking factor and the number of blocks of a file from the record and block sizes; compare spanned and unspanned placement.</li>
+    <li>State the average cost of searching, inserting and deleting in heap, sorted and hash files in numbers of blocks.</li>
+    <li>Follow how buffer management and the replacement strategies (LRU, FIFO, Clock) work on an example; compare the RAID levels.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Scope.</strong> All Ch 16 slides (1–41), listed for week 10 in the syllabus, are on this page. The slides list the topics as headings; for the calculations the definitions and formulas of the same chapter of the book are used.</p>
+</div>
+
+<h2>The storage hierarchy</h2>
+<p>Databases are usually stored on magnetic disks and accessed through physical file structures. Storage media come in three levels. <strong>Primary storage</strong> is the main memory and cache the CPU works on directly (cache: static RAM; main memory: DRAM); it is fast but expensive and limited. <strong>Secondary storage</strong> is magnetic disks, flash memory and SSDs; it is large and persistent, but much slower to access. <strong>Tertiary storage</strong> is removable media such as tape, CDs and DVDs; it is used for backup and archiving.</p>
+<p>Most data is <strong>persistent</strong>: it is kept after programs end. <strong>Transient</strong> data exists only while a program runs. The <strong>file organization</strong> determines how records are physically placed on disk and therefore how they can be accessed.</p>
+<div class="callout key">
+  <p>Accessing a disk block is thousands of times slower than an operation in main memory. So the goal of file structures is to reduce the <strong>number of blocks</strong> that must be read for an operation; every cost on this page is measured in blocks.</p>
+</div>
+
+<h2>Disks and SSDs</h2>
+<p>A hard disk stores data as bits (ones and zeros), grouped into bytes. A disk may be single- or double-sided. The concentric circles on a surface are called <strong>tracks</strong>, and tracks are divided into <strong>blocks</strong> or sectors. In a disk pack of several disks, the tracks with the same radius on all surfaces form a <strong>cylinder</strong>. <strong>Formatting</strong> divides the tracks into equal-sized disk blocks, separated by interblock gaps.</p>
+<p>Data is always transferred between disk and main memory in <strong>units of blocks</strong>: the hardware address of a block is given to the disk I/O hardware and the block is read into or written from a <strong>buffer</strong>. A read/write head does the reading and writing; the disk controller connects the disk to the computer through standard interfaces such as SCSI, SATA or SAS. The time to access a block has three parts: moving the head to the right track (<strong>seek time</strong>), the disk rotating until the block is under the head (<strong>rotational delay</strong>), and transferring the block (<strong>block transfer time</strong>). The first two take milliseconds and are most of the cost, so reading consecutive blocks together is much cheaper than reading them one by one.</p>
+<p>The techniques used for efficient access are: buffering data, organizing data on disk properly, reading ahead before data is requested, scheduling I/O requests in a good order, temporarily keeping writes on a log disk, and using SSDs or flash memory for recovery.</p>
+<ul>
+  <li><strong>SSD</strong> (solid state device, flash storage): its main parts are a controller and a set of interconnected flash memory cards. It has no moving parts, so there is no seek or rotational delay and data is less fragmented. It is more expensive than an HDD. DRAM-based SSDs are even faster than flash.</li>
+  <li><strong>Magnetic tape</strong>: sequential access; reaching a block means scanning all blocks before it. It is used for backup and archiving.</li>
+</ul>
+
+<h2>Buffering of blocks</h2>
+<p>If several blocks of a file are to be read, several buffers can be reserved in main memory. While one block is being read, the CPU can process the previous one; this helps when the CPU and disk I/O can work in parallel. In <strong>double buffering</strong> two buffers (A and B) are used in turn: while the disk reads into A, the CPU processes B, then they swap. Consecutive blocks are then read without waiting.</p>
+<p>The DBMS <strong>buffer manager</strong> manages a limited number of buffers (frames) in main memory. Two pieces of information are kept for each frame: the <strong>pin count</strong> (how many processes are using the page right now; if it is not zero the page cannot be evicted) and the <strong>dirty bit</strong> (whether the page was modified; if so, it must be written to disk before it is evicted). If the requested page is not in the buffer and no frame is free, a page is chosen and evicted by a <strong>replacement strategy</strong>:</p>
+<ul>
+  <li><strong>LRU</strong> (least recently used): the page that has not been used for the longest time is evicted.</li>
+  <li><strong>FIFO</strong> (first in, first out): the page that entered the buffer first is evicted.</li>
+  <li><strong>Clock</strong>: the frames are thought of as arranged in a circle, each with a "referenced" bit. A clock hand goes around: it clears the bit of a frame whose bit is 1 and moves on, and evicts the first frame whose bit is 0. It approximates LRU at a lower cost.</li>
+</ul>
+<p>In the simulation below, enter a sequence of page requests and the number of frames, and choose a strategy. For each request the frames before the request are on the left and after it on the right; hits are green, misses red.</p>
+<div id="buffer-sim"></div>
+
+<h2>Placing records in blocks</h2>
+<p>A <strong>record</strong> is a collection of related values, each value corresponding to a field. Field types can be numeric, string, Boolean or date/time; large unstructured objects such as images or documents are stored as <strong>BLOBs</strong> (binary large objects). Records can be of fixed or variable length. Variable length comes from these reasons: some fields have variable length, some fields repeat, some fields are optional, or the file contains records of different types.</p>
+<ul>
+  <li><strong>Blocking factor</strong> (bfr): the number of records that fit in a block. With block size B and record size R (R ≤ B), bfr = ⌊B / R⌋.</li>
+  <li>In <strong>unspanned</strong> placement a record cannot cross a block boundary, so B − bfr · R bytes are left unused in every block.</li>
+  <li>In <strong>spanned</strong> placement part of a record is in one block and the rest in another; a pointer at the end of the first block points to the block with the rest. Spanned placement is required when a record is larger than a block.</li>
+  <li>A file of r records occupies <strong>b = ⌈r / bfr⌉</strong> blocks.</li>
+</ul>
+<p>The blocks of a file can be allocated on disk <strong>contiguously</strong>, <strong>linked</strong> (each block points to the next) or <strong>indexed</strong> (the block addresses are kept in an index block). The file header (file descriptor) holds the information system programs need: the disk addresses of the blocks and the description of the record formats.</p>
+<p>The calculator below computes bfr, the number of blocks and the unused space from the number of records, the record size and the block size; the cost table of the next section is computed with the same numbers.</p>
+<div id="block-calc"></div>
+
+<h2>File operations and file organizations</h2>
+<p>File operations fall into two groups: <strong>retrieval</strong> operations do not change the file; <strong>update</strong> operations change it by inserting, deleting or modifying records. Records are selected by a selection condition. Typical record-level operations are: Open, Find (find the first record that satisfies a condition), Read, FindNext, Delete, Insert, Close and Scan.</p>
+<h3>Unordered (heap) files</h3>
+<p>Records are placed in the file in the order they are inserted. <strong>Insertion is very cheap</strong>: the last block is read, the record is added and the block is written back. <strong>Search, however, is linear</strong>: looking for a single record that satisfies a condition reads b/2 blocks on average, and b blocks if the record does not exist or several records are wanted. To delete, the record's block is found, the record removed and the block rewritten; or the record gets a <strong>deletion marker</strong> and the gaps are reorganized later in bulk.</p>
+<h3>Sorted files</h3>
+<p>Records are sorted on an <strong>ordering field</strong>; if this field is a key it is called the <strong>ordering key</strong>. Reading records in the order of the ordering field is very efficient, and finding the next record usually needs no new block read. For an equality condition on the ordering field a <strong>binary search</strong> can be used: about ⌈log<sub>2</sub> b⌉ blocks are read. But insertion and deletion are expensive, because keeping the order means shifting half the records on average; so insertions are usually collected in a separate overflow file and merged periodically. A search on any field other than the ordering field is still linear.</p>
+<h3>Average access costs</h3>
+<p>The book's Table 16.3 summarizes the average cost of finding a record in a file of b blocks:</p>
+<table class="simple">
+  <thead><tr><th>File type</th><th>Access method</th><th>Average blocks</th></tr></thead>
+  <tbody>
+    <tr><td>Heap (unordered)</td><td>Linear scan</td><td>b / 2</td></tr>
+    <tr><td>Sorted</td><td>Linear scan</td><td>b / 2</td></tr>
+    <tr><td>Sorted</td><td>Binary search (on the ordering field)</td><td>log<sub>2</sub> b</td></tr>
+    <tr><td>Hash (static, no overflow)</td><td>Equality on the hash field</td><td>1</td></tr>
+  </tbody>
+</table>
+
+<h2>Hashing</h2>
+<p>A <strong>hash function</strong> (randomizing function) is applied to the value of a record's hash field and gives the address of the disk block where the record is stored. This organization is called a <strong>hash file</strong>. When the search condition is an <em>equality</em> on the hash field, the record is usually found with a single block read. The hash field is usually a key. Hashing does not help range queries (Salary BETWEEN …), because nearby values are scattered over random blocks.</p>
+<p><strong>Internal hashing</strong> uses a hash table in main memory. If the hash value of an inserted record falls on an address that already holds another record, this is a <strong>collision</strong>. Collisions are resolved in three ways: <strong>open addressing</strong> (the record goes to the next free position), <strong>chaining</strong> (overflowing records are linked in a chain in an overflow area) and <strong>multiple hashing</strong> (a second hash function is tried on a collision).</p>
+<p><strong>External hashing</strong> is used for disk files. The target address space consists of <strong>buckets</strong>; a bucket is one disk block or a few contiguous blocks. The hash function maps a key to a bucket number; a table in the file header converts the bucket number to a disk block address. Since a bucket holds several records, collisions are less of a problem; when a bucket is full, new records go to an overflow chain attached to the bucket. In <strong>static hashing</strong> the number of buckets is fixed; as the file grows the overflow chains get longer and access slows down.</p>
+<p>There are also methods that let the file grow and shrink. <strong>Extendible hashing</strong> keeps a directory that looks at the bits of the hash value and, when a bucket is full, splits only that bucket; performance does not degrade as the file grows. <strong>Dynamic hashing</strong> uses a tree-structured directory. <strong>Linear hashing</strong> lets the file grow and shrink without a directory by splitting buckets in order.</p>
+<p>The simulation below shows static external hashing: h(K) = K mod M. Insert the keys one by one; at each insertion the buckets before are on the left and after on the right. When a bucket is full the key goes to the overflow chain, and finding that key now takes two block reads instead of one.</p>
+<div id="hash-sim"></div>
+
+<h2>Other file organizations</h2>
+<ul>
+  <li><strong>Files of mixed records:</strong> related records of different types (for example a department and its employees) can be stored in the same file, physically next to each other (physical clustering). The relationships between records are set up with logical field references. Records read together then come from the same blocks.</li>
+  <li><strong>B-trees:</strong> can also be used as the primary file organization; the records are stored in the leaves of the tree. B-trees are explained on the <a href="ch17-indexing.html">indexing page</a>.</li>
+  <li><strong>Column-based storage:</strong> each column of a table is stored separately. It is efficient for analytical queries that read a few columns over many rows.</li>
+</ul>
+
+<h2>RAID</h2>
+<p><strong>RAID</strong> (redundant arrays of independent disks) uses several disks together to increase speed and reliability. For speed, <strong>data striping</strong> is used: data is divided over the disks and read from several disks in parallel. Striping can be at the bit level or the block level. For reliability, <strong>redundancy</strong> is used: a copy of the data (mirroring or shadowing) or parity information that lets the data be recomputed when a disk fails is stored.</p>
+<table class="simple">
+  <thead><tr><th>Level</th><th>Method</th></tr></thead>
+  <tbody>
+    <tr><td>RAID 0</td><td>Data striping, no redundancy: data is split evenly over two or more disks. It is the fastest, but if one disk fails data is lost.</td></tr>
+    <tr><td>RAID 1</td><td>Mirrored disks: every block is written to two disks. Rebuilding after a disk failure is easiest at this level.</td></tr>
+    <tr><td>RAID 2</td><td>Error detection and correction with memory-style Hamming codes.</td></tr>
+    <tr><td>RAID 3</td><td>A single parity disk; the disk controller tells which disk failed.</td></tr>
+    <tr><td>RAID 4 and 5</td><td>Block-level striping and parity. In RAID 4 parity is on one disk; in RAID 5 it is distributed over all disks, so the parity disk does not become a bottleneck.</td></tr>
+    <tr><td>RAID 6</td><td>The P+Q redundancy scheme: with two redundancy disks it protects against two disks failing at the same time.</td></tr>
+  </tbody>
+</table>
+<p>For large data storage RAID 3 and 5 are usually preferred. Choose a RAID level in the figure below: it shows how data blocks (B) and parity blocks (P, Q) are spread over the disks. Click a disk to make it fail; the figure shows whether the blocks on that disk can be recomputed and how much of the capacity holds data. Make a second disk fail too to see the difference between RAID 5 and RAID 6.</p>
+<div id="raid"></div>
+
+<h2>Modern storage architectures</h2>
+<ul>
+  <li><strong>SAN</strong> (storage area network): online storage units are configured as nodes of a high-speed network.</li>
+  <li><strong>NAS</strong> (network-attached storage): servers used for file sharing; scalable, reliable, flexible and fast.</li>
+  <li><strong>iSCSI</strong>: clients send SCSI commands to remote SCSI storage devices over an IP network. <strong>FCIP</strong> (Fibre Channel over IP) translates Fibre Channel commands and data into IP packets and carries them between distant SANs; <strong>FCoE</strong> (Fibre Channel over Ethernet) is similar to iSCSI but works without the IP layer.</li>
+  <li><strong>Automated storage tiering</strong>: automatically moves data between storage types as needed; frequently used data moves to SSDs.</li>
+  <li><strong>Object-based storage</strong>: data is managed as objects instead of files made of blocks. Each object carries metadata and a global identifier; it is well suited to scalable storage of unstructured data.</li>
+</ul>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="2">
+  <p>The block size is B = 512 bytes, the record size R = 100 bytes and the file has r = 30,000 records. What are the blocking factor and the number of blocks with unspanned placement?</p>
+  <ol>
+    <li data-why="5.12 is a fraction; with unspanned placement a record cannot be split, so bfr is rounded down.">bfr = 5.12; b = 5860</li>
+    <li data-why="Right: ⌊512 / 100⌋ = 5 records fit in a block; ⌈30,000 / 5⌉ = 6000 blocks are needed.">bfr = 5; b = 6000</li>
+    <li data-why="bfr cannot be rounded up: the sixth record does not fit (6 · 100 = 600 &gt; 512).">bfr = 6; b = 5000</li>
+    <li data-why="The number of blocks comes from r / bfr; r · R / B ignores the lost space and is wrong for unspanned placement.">bfr = 5; b = 5860</li>
+  </ol>
+  <div class="explain">bfr = ⌊B / R⌋ = ⌊512 / 100⌋ = 5; each block leaves 512 − 500 = 12 bytes unused. b = ⌈r / bfr⌉ = ⌈30,000 / 5⌉ = 6000 blocks. You can try these numbers in the calculator.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>In a sorted file of 6000 blocks, about how many block reads does a binary search on the ordering key need to find a record?</p>
+  <ol>
+    <li data-why="3000 is the average of a linear search (b/2); binary search halves the range at each step.">3000</li>
+    <li data-why="6000 is scanning the whole file; that is not needed on the ordering key of a sorted file.">6000</li>
+    <li data-why="Right: ⌈log2 6000⌉ = 13, because 2^12 = 4096 &lt; 6000 ≤ 8192 = 2^13.">13</li>
+    <li data-why="A single block read is the cost of an equality search on the hash field of a hash file.">1</li>
+  </ol>
+  <div class="explain">Binary search halves the range with every block read, so ⌈log<sub>2</sub> b⌉ = ⌈log<sub>2</sub> 6000⌉ = 13 blocks are read. If the same file were a heap, b/2 = 3000 blocks would be read on average.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>For which query does a hash file (hash field Ssn) help the least?</p>
+  <ol>
+    <li data-why="Right: the hash function scatters nearby values over random buckets; a range means scanning every bucket.">Employees whose Ssn is between 100000000 and 200000000</li>
+    <li data-why="Equality on the hash field is where a hash file is best: the record is usually found with one block read.">The employee whose Ssn is 123456789</li>
+    <li data-why="This is also equality on the hash field; one bucket is read for each Ssn.">Employees whose Ssn is 123456789 or 333445555</li>
+    <li data-why="Inserting a new record also benefits from hashing: the record's bucket is computed directly.">Inserting a new employee with Ssn 999999999</li>
+  </ol>
+  <div class="explain">A hash file is designed for equality conditions on the hash field. In range queries nearby keys are spread over different buckets, so hashing gives no order and the whole file is scanned. Sorted files or B+-trees suit range queries.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>A buffer manager wants to evict a page whose pin count is 0 and whose dirty bit is 1. What happens?</p>
+  <ol>
+    <li data-why="With pin count 0 no process is using the page right now; it can be evicted.">The page cannot be evicted, because a process is using it.</li>
+    <li data-why="Dirty bit 1 means the page was modified in memory; dropping it without writing would lose the change.">The page is dropped without being written to disk.</li>
+    <li data-why="A pin count of 0 already allows eviction; there is no need to wait.">It waits until the pin count becomes 1.</li>
+    <li data-why="Right: the page is not in use (pin count 0) but modified (dirty); it is first written to disk, then the frame is freed.">The page is first written to disk, then the frame is used for another page.</li>
+  </ol>
+  <div class="explain">The pin count says how many processes are using the page right now; if it is 0 the page can be evicted. If the dirty bit is 1 the page was modified in memory and must be written to disk before eviction, otherwise the change is lost.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>We want to lose no data when a disk fails and to avoid the parity disk becoming a bottleneck. Which RAID level fits?</p>
+  <ol>
+    <li data-why="RAID 0 has no redundancy: if a disk fails, data is lost.">RAID 0</li>
+    <li data-why="Right: RAID 5 stripes at the block level and distributes parity over all disks; when one disk fails, its data is recomputed from parity.">RAID 5</li>
+    <li data-why="In RAID 4 parity is on a single disk; every write also goes to that disk, which becomes a bottleneck.">RAID 4</li>
+    <li data-why="RAID 3 uses a single parity disk; that disk can also become a bottleneck.">RAID 3</li>
+  </ol>
+  <div class="explain">RAID 4 and 5 use block-level striping and parity. In RAID 4 parity is on one disk, so every write loads that disk; RAID 5 removes the bottleneck by spreading parity over all disks. Against two disks failing at once, RAID 6 is needed.</div>
+</div>
+
+</div></main>
+</body>
+</html>

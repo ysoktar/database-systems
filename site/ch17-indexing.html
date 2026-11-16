@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İndeks yapıları · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 17: birincil, kümeleme ve ikincil indeksler, yoğun ve seyrek indeksler, çok seviyeli indeksler, B-ağaçları ve B+-ağaçları, çok anahtarlı indeksler, hash ve bitmap indeksler, fiziksel veritabanı tasarımı; indeks türleri şekli, maliyet hesaplayıcısı ve adım adım B+-ağacı ekleme oynatıcısıyla.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch17-indexing.js"></script>
+</head>
+<body data-page="ch17-indexing">
+<main><div class="content">
+
+<h1>İndeks yapıları</h1>
+<p class="lead">Bir önceki sayfada bir kaydı bulmanın kaç blok okuma gerektirdiğini gördük: sırasız dosyada ortalama b/2, sıralı dosyada log<sub>2</sub> b. İndeksler, bir kitabın sonundaki dizin gibi, aranan değerin hangi blokta olduğunu çok daha az okumayla söyleyen ek erişim yollarıdır. Bu sayfa indeks türlerini, maliyetlerini ve bugünkü veritabanlarının neredeyse hepsinin kullandığı B+-ağacını anlatır.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Birincil, kümeleme ve ikincil indeksleri ve yoğun ile seyrek indeks farkını bir örnek dosya üzerinde gösterebilmek.</li>
+    <li>Kayıt, blok, anahtar ve işaretçi boyutlarından bir indeksin blok sayısını ve bir aramanın kaç blok okuma gerektirdiğini hesaplayabilmek.</li>
+    <li>Çok seviyeli indeksin neden log<sub>fo</sub> ile çalıştığını açıklayabilmek; B-ağacı ile B+-ağacını karşılaştırabilmek.</li>
+    <li>Bir B+-ağacına değer eklemeyi ve ağaçta aramayı adım adım izleyebilmek; düğüm bölünmelerini açıklayabilmek.</li>
+    <li>Hash, bitmap ve fonksiyon tabanlı indekslerin ne zaman uygun olduğunu ve fiziksel tasarımda indeks seçiminin nasıl yapıldığını söyleyebilmek.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Kapsam.</strong> Müfredatta 11. haftaya yazılan Ch 17 slaytlarının hepsi (1–41) bu sayfadadır. Hesaplamalar ve B+-ağacı algoritmaları için kitabın aynı bölümündeki örnekler ve tanımlar kullanılmıştır.</p>
+</div>
+
+<h2>Tek seviyeli sıralı indeksler</h2>
+<p>Bir <strong>indeks</strong>, belirli arama koşullarına karşılık kayıtlara daha hızlı ulaşmak için kullanılan ek bir erişim yapısıdır; veri dosyasının kayıtlarının diskteki yerini değiştirmez, onlara <strong>ikincil bir erişim yolu</strong> sağlar. Herhangi bir alan üzerinde indeks kurulabilir ve aynı dosyada birden çok indeks olabilir. İndeksin kurulduğu alana <strong>indeksleme alanı</strong> denir. Sıralı bir indeks, indeksleme alanının her değerini (ya da bazı değerlerini) o değerin bulunduğu disk bloklarını gösteren işaretçilerle birlikte, değere göre sıralı olarak saklar. İndeks dosyası veri dosyasından çok daha küçük olduğu için üzerinde ikili arama çok daha az blok okur.</p>
+<p>Üç tür tek seviyeli sıralı indeks vardır:</p>
+<ul>
+  <li><strong>Birincil indeks</strong> (primary index): veri dosyası bir <em>anahtar</em> alana göre sıralıysa, o sıralama anahtarı üzerine kurulur. İndekste veri dosyasının <em>her bloğu</em> için bir giriş bulunur: bloğun ilk kaydının anahtarı (blok çapası, anchor) ve bloğun adresi. Bu yüzden birincil indeks <strong>seyrektir</strong>.</li>
+  <li><strong>Kümeleme indeksi</strong> (clustering index): veri dosyası anahtar olmayan, yani aynı değerin birçok kayıtta tekrar edebildiği bir alana göre sıralıysa kullanılır. İndekste alanın <em>her farklı değeri</em> için bir giriş vardır ve giriş o değerin ilk göründüğü bloğu gösterir. Bir dosya yalnızca bir alana göre sıralı olabildiği için bir dosyanın en fazla bir birincil ya da bir kümeleme indeksi olabilir.</li>
+  <li><strong>İkincil indeks</strong> (secondary index): dosyanın sıralı olmadığı herhangi bir alan üzerine kurulur ve bir dosyanın birçok ikincil indeksi olabilir. Kayıtlar o alana göre dağınık durduğu için indekste <em>her kayıt</em> için bir giriş gerekir; bu yüzden ikincil indeks <strong>yoğundur</strong>. Birincil indeksten daha çok yer kaplar ve arama daha uzun sürer, ama indeks olmasaydı aynı arama bütün dosyayı taramak demekti.</li>
+</ul>
+<p><strong>Yoğun indeks</strong> (dense), veri dosyasındaki her arama değeri için bir giriş içerir; <strong>seyrek indeks</strong> (sparse) yalnızca bazı değerler için giriş içerir. Birincil indeksin büyük sorunu ekleme ve silmedir: sırayı korumak için kayıtlar kaydırılır ve blok çapaları değişir. Bunun için sırasız bir taşma dosyası ya da her bloğa bağlı bir taşma kayıtları listesi kullanılır.</p>
+<p>Aşağıdaki şekilde COMPANY'nin sekiz çalışanı, her blokta üç kayıt olacak şekilde bir dosyaya yerleştirilmiştir. Bir indeks türü seçin ve bir değer arayın: kullanılan indeks girişi ve okunan veri bloğu vurgulanır, altında kaç blok okunduğu yazar. Bir indeks girişinin üzerine geldiğinizde gösterdiği blok da vurgulanır.</p>
+<div id="index-types"></div>
+<p>Kitaptaki Table 17.1 ve 17.2, indeks türlerini indeksleme alanının özelliklerine göre özetler:</p>
+<table class="simple">
+  <thead><tr><th></th><th>Dosya bu alana göre sıralı</th><th>Dosya bu alana göre sıralı değil</th></tr></thead>
+  <tbody>
+    <tr><td>İndeksleme alanı anahtar</td><td>Birincil indeks</td><td>İkincil indeks (anahtar üzerinde)</td></tr>
+    <tr><td>İndeksleme alanı anahtar değil</td><td>Kümeleme indeksi</td><td>İkincil indeks (anahtar olmayan alan üzerinde)</td></tr>
+  </tbody>
+</table>
+<table class="simple">
+  <thead><tr><th>İndeks türü</th><th>Giriş sayısı</th><th>Yoğun mu seyrek mi?</th><th>Blok çapası kullanır mı?</th></tr></thead>
+  <tbody>
+    <tr><td>Birincil</td><td>Veri dosyasındaki blok sayısı</td><td>Seyrek</td><td>Evet</td></tr>
+    <tr><td>Kümeleme</td><td>İndeksleme alanının farklı değer sayısı</td><td>Seyrek</td><td>Evet, yalnızca farklı değerler için</td></tr>
+    <tr><td>İkincil (anahtar)</td><td>Veri dosyasındaki kayıt sayısı</td><td>Yoğun</td><td>Hayır</td></tr>
+    <tr><td>İkincil (anahtar olmayan)</td><td>Kayıt sayısı ya da farklı değer sayısı</td><td>Yoğun ya da seyrek</td><td>Hayır</td></tr>
+  </tbody>
+</table>
+
+<h2>İndeks maliyetlerinin hesaplanması</h2>
+<p>Bir indeks girişi, bir anahtar değeri (V byte) ve bir işaretçiden (P byte) oluşur; bu yüzden indeksin blocking factor'ü bfr<sub>i</sub> = ⌊B / (V + P)⌋'dir. İndeksin blok sayısı b<sub>i</sub> = ⌈r<sub>i</sub> / bfr<sub>i</sub>⌉ olur; burada r<sub>i</sub> indeksteki giriş sayısıdır: birincil indekste veri dosyasının blok sayısı, yoğun ikincil indekste kayıt sayısı. İndeks üzerinde ikili arama ⌈log<sub>2</sub> b<sub>i</sub>⌉ blok okur ve kaydın kendisini okumak için bir blok daha gerekir.</p>
+<p>Kitaptaki örnek: r = 300 000 kayıt, R = 100 byte, B = 4096 byte. Veri dosyasında bfr = 40 ve b = 7500 blok vardır; dosya sıralıysa ikili arama ⌈log<sub>2</sub> 7500⌉ = 13 blok okur. Anahtar V = 9 byte ve işaretçi P = 6 byte ise indeks girişi 15 byte olur ve bir bloğa 273 giriş sığar. Birincil indeksin 7500 girişi ⌈7500 / 273⌉ = 28 blok tutar ve arama ⌈log<sub>2</sub> 28⌉ + 1 = 6 blok okur. Aynı dosya bu alana göre sıralı değilse, yoğun ikincil indeksin 300 000 girişi 1099 blok tutar ve arama ⌈log<sub>2</sub> 1099⌉ + 1 = 12 blok okur; indeks olmasaydı ortalama b/2 = 3750 blok okunurdu.</p>
+<p>Aşağıdaki hesap makinesi bu hesapları sizin sayılarınızla yapar. Sonuçlar, bir sonraki bölümün çok seviyeli indeksini de içerir.</p>
+<div id="index-calc"></div>
+
+<h2>Çok seviyeli indeksler</h2>
+<p>İkili arama her adımda arama alanını yarıya indirir. Çok seviyeli indeks ise her adımda alanı <strong>fan-out</strong> (fo) kadar küçültür; fo, bir indeks bloğuna sığan giriş sayısıdır (bfr<sub>i</sub>). Fikir şudur: indeks dosyası da sıralı bir dosyadır, öyleyse onun üzerine de bir birincil indeks kurulabilir. İlk indeks <strong>birinci seviye</strong> (base level) olur; ikinci seviye birinci seviyenin bloklarının çapalarını tutan bir birincil indekstir; üçüncü seviye ikincinin indeksidir. En üst seviye tek bir bloğa sığana kadar devam edilir. Birinci seviyede r<sub>1</sub> giriş varsa seviye sayısı t = ⌈log<sub>fo</sub> r<sub>1</sub>⌉ olur ve bir arama t + 1 blok okur.</p>
+<p>Kitaptaki örnekte yoğun ikincil indeksin birinci seviyesi 1099 bloktur. fo = 273 ile ikinci seviye ⌈1099 / 273⌉ = 5 blok, üçüncü seviye 1 bloktur; yani t = 3 ve arama 4 blok okur. Aynı arama tek seviyeli indeksle 12 blok okuyordu. Kitaptaki Figure 17.6, ISAM (indexed sequential access method) düzenine benzeyen iki seviyeli bir birincil indeksi gösterir.</p>
+<div class="callout key">
+  <p>Çok seviyeli indeksin sorunu da ekleme ve silmedir: bütün seviyeler sıralı dosyalardır. B-ağaçları ve B+-ağaçları bu sorunu her düğümde biraz boş yer bırakarak çözer; bunlara <strong>dinamik çok seviyeli indeks</strong> denir.</p>
+</div>
+
+<h2>Arama ağaçları ve B-ağaçları</h2>
+<p>Bir <strong>ağaç</strong> düğümlerden oluşur. Kök dışındaki her düğümün bir ebeveyni ve sıfır ya da daha çok çocuğu vardır. Çocuğu olmayan düğüme <strong>yaprak</strong>, yaprak olmayan düğüme <strong>iç düğüm</strong> denir. Bir düğümün alt ağacı, o düğüm ve bütün torunlarıdır. Yapraklar farklı seviyelerdeyse ağaç <strong>dengesizdir</strong>.</p>
+<p><strong>p mertebeli bir arama ağacında</strong> (search tree of order p) her düğüm en fazla p − 1 arama değeri ve p işaretçi içerir: &lt;P<sub>1</sub>, K<sub>1</sub>, P<sub>2</sub>, K<sub>2</sub>, …, K<sub>q−1</sub>, P<sub>q</sub>&gt;. Değerler düğüm içinde sıralıdır ve P<sub>i</sub>'nin gösterdiği alt ağaçtaki her X değeri K<sub>i−1</sub> &lt; X &lt; K<sub>i</sub> koşulunu sağlar. Arama kökten başlar ve her düğümde aranan değerin hangi aralıkta olduğuna bakarak bir işaretçiyi izler. Ancak ekleme ve silme algoritmaları ağacın dengeli kalmasını garanti etmezse, ağaç dengesizleşir ve arama yavaşlar.</p>
+<p><strong>B-ağacı</strong> bu sorunu çözen bir arama ağacıdır. B-ağacı <strong>her zaman dengelidir</strong>: bütün yapraklar aynı seviyededir. Silmeyle boşa çıkan yer hiçbir zaman fazla olmaz, çünkü kök dışındaki her düğüm <strong>en az yarı doludur</strong>. p mertebeli bir B-ağacında her düğüm en fazla p − 1 arama değeri tutar ve B-ağacında her değerin yanında o değerin kaydını gösteren bir veri işaretçisi de bulunur. Dolu bir düğüme değer eklenince düğüm ikiye bölünür ve ortadaki değer ebeveyne çıkar; kök bölünürse ağaç bir seviye büyür. Kitaptaki Figure 17.10, 8, 5, 1, 7, 3, 12, 9, 6 değerleri sırayla eklenmiş 3 mertebeli bir B-ağacını gösterir; aşağıdaki oynatıcıda B-ağacı seçeneğiyle aynı ağacı adım adım kurabilirsiniz.</p>
+
+<h2>B+-ağaçları</h2>
+<p>Veritabanlarının çoğu B-ağacının bir çeşidi olan <strong>B+-ağacını</strong> kullanır. B+-ağacında veri işaretçileri <strong>yalnızca yapraklarda</strong> bulunur. Yapraklarda arama alanının her değeri için bir giriş vardır; arama alanı anahtarsa giriş doğrudan kaydı, anahtar değilse o değere sahip kayıtların işaretçilerini tutan bir bloğu gösterir. İç düğümler yalnızca aramayı yönlendirir: yapraklardaki bazı değerler iç düğümlerde <em>tekrar</em> görünür. Yapraklar ayrıca bir sonraki yaprağı gösteren bir işaretçiyle birbirine bağlıdır, bu yüzden bir aralıktaki bütün değerler yapraklar boyunca sırayla okunabilir.</p>
+<p>İç düğümlerde veri işaretçisi olmadığı için bir iç düğüme daha çok değer sığar, yani fan-out daha büyüktür ve ağaç daha basıktır. Kitaptaki örnekte B = 512 byte, V = 9 byte, ağaç işaretçisi P = 6 byte ve veri işaretçisi P<sub>r</sub> = 7 byte'tır. İç düğümün mertebesi (p − 1)·V + p·P ≤ B koşulundan p = 34, yaprağın mertebesi p<sub>leaf</sub>·(V + P<sub>r</sub>) + P ≤ B koşulundan p<sub>leaf</sub> = 31 bulunur. Düğümler ortalama %69 doluysa, üç seviyeli bir B+-ağacı (kök, iki iç seviye ve yapraklar) yaklaşık 255 507 kaydı gösterebilir.</p>
+<p>Bir değeri aramak için kökten başlanır. Bir iç düğümde aranan değer K, K ≤ K<sub>1</sub> ise ilk işaretçi, K<sub>i−1</sub> &lt; K ≤ K<sub>i</sub> ise i. işaretçi, K &gt; K<sub>q−1</sub> ise son işaretçi izlenir (kitaptaki Algoritma 17.2). Yaprağa ulaşınca değer orada aranır. Ekleme de aynı yolu izler: değer doğru yaprağa eklenir. Yaprak taşarsa ikiye bölünür, ilk ⌈(p<sub>leaf</sub> + 1)/2⌉ değer yerinde kalır, kalanlar yeni yaprağa geçer ve soldaki yaprağın son değeri ebeveyne <em>kopyalanır</em>. İç düğüm taşarsa o da bölünür, ama bu kez ortadaki değer ebeveyne <em>taşınır</em> (kopyalanmaz). Kök bölünürse yeni bir kök oluşur ve ağaç bir seviye uzar.</p>
+<p>Aşağıdaki oynatıcı, kitaptaki Figure 17.12'nin ağacını (p = 3, p<sub>leaf</sub> = 2; 8, 5, 1, 7, 3, 12, 9, 6 değerleri) adım adım kurar. Her eklemede ağacın önceki hâli üstte, sonraki hâli altta görünür; değerin girdiği düğüm ve bölünen düğümler vurgulanır ve ne olduğu cümleyle yazar. Kendi değerlerinizi ve mertebelerinizi de girebilir, bir değeri arayıp kökten yaprağa izlenen yolu görebilirsiniz.</p>
+<div id="bptree"></div>
+
+<h2>Çok anahtarlı indeksler</h2>
+<p>Birçok sorgu birden çok öznitelik üzerinde koşul içerir; örneğin "departmanı 4 ve yaşı 59 olan çalışanlar". Bunun için üç yöntem vardır:</p>
+<ul>
+  <li><strong>Bileşik anahtar üzerinde indeks</strong>: &lt;Dno, Age&gt; gibi bir değer çifti tek bir arama anahtarı olarak kullanılır ve çiftler önce Dno'ya, eşitse Age'e göre sıralanır. Yalnızca ilk özniteliği içeren koşullarda da işe yarar, yalnızca ikinci özniteliği içerenlerde yaramaz.</li>
+  <li><strong>Bölümlenmiş hashing</strong> (partitioned hashing): her öznitelik ayrı bir hash fonksiyonuyla birkaç bite dönüştürülür ve bitler birleştirilerek kova adresi bulunur. Yalnızca eşitlik karşılaştırmalarına uygundur; aralık sorgularını desteklemez.</li>
+  <li><strong>Izgara dosyası</strong> (grid file): her arama özniteliği için bir boyutu olan bir dizi kurulur; örneğin bir boyut Dno değerlerine, diğeri yaş aralıklarına bölünür. Dizinin her hücresi, o değer çiftine sahip kayıtların bulunduğu kovayı gösterir (kitaptaki Figure 17.14).</li>
+</ul>
+
+<h2>Diğer indeks türleri</h2>
+<p><strong>Hash indeksi</strong>, veri dosyasının organizasyonunda kullanılandan farklı bir arama anahtarı üzerinde hashing kullanan ikincil bir erişim yapısıdır. Girişleri (K, P<sub>r</sub>) ya da (K, P) biçimindedir: P<sub>r</sub> anahtarı içeren kaydı, P o kaydı içeren bloğu gösterir. Eşitlik aramasında çok hızlıdır ama aralık sorgularına yardımcı olmaz.</p>
+<p><strong>Bitmap indeksi</strong>, çok sayıda satır içeren ve az sayıda farklı değeri olan sütunlar için uygundur. Sütunun her değeri için, satır sayısı kadar bitten oluşan bir dizi tutulur: i. satır o değere sahipse i. bit 1, değilse 0'dır. Birden çok koşul, bitmap'ler üzerinde AND, OR ve NOT işlemleriyle çok hızlı birleştirilir. Silinen satırları ayırt etmek için bir <strong>varlık bitmap'i</strong> (existence bitmap) kullanılır; bitmap'ler B+-ağacının yapraklarında da kullanılabilir. Aşağıda COMPANY çalışanları için Sex ve Dno sütunlarının bitmap'lerini görebilir, bir koşul seçerek bitmap'lerin nasıl AND'lendiğini izleyebilirsiniz.</p>
+<div id="bitmap"></div>
+<p><strong>Fonksiyon tabanlı indeks</strong>te bir ya da birkaç alana bir fonksiyon uygulanır ve sonuç indeks anahtarı olur. Oracle'da ortaya çıkmıştır. Örneğin <code>CREATE INDEX upper_ix ON Employee (UPPER(Lname));</code> komutuyla kurulan bir indeks, <code>WHERE UPPER(Lname) = 'SMITH'</code> koşulunu içeren bir sorguda kullanılabilir; Lname üzerindeki sıradan bir indeks bu koşulda kullanılamazdı.</p>
+
+<h2>İndekslemeyle ilgili genel konular</h2>
+<p><strong>Fiziksel indeks</strong>te işaretçi kaydın fiziksel adresini gösterir; kayıt taşınırsa işaretçinin de değişmesi gerekir. Kayıtların adresleri sık değişecekse <strong>mantıksal indeks</strong> kullanılır: girişleri (K, K<sub>p</sub>) biçimindedir ve K<sub>p</sub>, kaydı birincil organizasyonda bulmaya yarayan bir anahtar değeridir.</p>
+<p>İndeks oluşturan komutun genel biçimi şudur: <code>CREATE [UNIQUE] INDEX &lt;ad&gt; ON &lt;tablo&gt; (&lt;sütun&gt; [ASC | DESC], …) [CLUSTER];</code>. UNIQUE ve CLUSTER isteğe bağlıdır. UNIQUE bir indeks, bir anahtar kısıtını zorlamak için de kullanılır: yeni kaydın anahtar değeri zaten varsa ekleme reddedilir. Anahtar olmayan bir alan üzerindeki indekste değerler tekrar edebilir. Aşağıdaki kutuda COMPANY'deki indeksleri listeleyebilir, bir UNIQUE indeks kurup onun bir tekrarı nasıl reddettiğini görebilirsiniz.</p>
+<pre class="sql run" data-title="İndeksleri listelemek: primary key ve foreign key'ler için kurulan B-tree indeksler">
+SHOW INDEX FROM EMPLOYEE;
+</pre>
+<pre class="sql run" data-expect-error data-title="UNIQUE indeks bir anahtar kısıtını zorlar">
+DROP TABLE IF EXISTS demo.EMP_IDX;
+CREATE TABLE demo.EMP_IDX AS SELECT Ssn, Fname, Lname, Dno FROM EMPLOYEE;
+CREATE UNIQUE INDEX idx_lname ON demo.EMP_IDX (Lname);
+CREATE INDEX idx_dno ON demo.EMP_IDX (Dno);
+SHOW INDEX FROM demo.EMP_IDX;
+INSERT INTO demo.EMP_IDX VALUES ('999999999', 'Ann', 'Smith', 5);
+</pre>
+<p>Son INSERT, Lname üzerindeki UNIQUE indeks yüzünden reddedilir (MySQL hata kodu 1062), çünkü tabloda Smith soyadlı bir çalışan zaten var. Dno üzerindeki indeks ise UNIQUE olmadığı için aynı departman numarası birçok satırda bulunabilir.</p>
+<p>Diğer konular şunlardır. Uzun ve değişken uzunluklu <strong>metinler</strong> fan-out'u düşürür; bunun için <strong>önek sıkıştırma</strong> (prefix compression) kullanılır: iç düğümlerde anahtarın tamamı yerine, alt ağaçları ayırmaya yetecek kadar öneki saklanır. <strong>İndeks ayarı</strong> (tuning), indeksleri gereksinimlere göre yeniden düzenlemektir; ilk seçim şu nedenlerle değiştirilir: bazı sorgular indeks olmadığı için çok uzun sürer, bazı indeksler hiç kullanılmaz, bazı indeksler sık değişen bir alan üzerinde olduğu için çok fazla güncellenir. Her alanında ikincil indeks bulunan dosyaya <strong>tamamen ters çevrilmiş dosya</strong> (fully inverted file) denir. Bazı sistemler sorgularda <strong>indeks ipuçlarına</strong> (hints) izin verir. Son olarak, ilişkileri satır satır değil <strong>sütun sütun saklamak</strong> (column-based storage) da mümkündür; yalnızca okunan sorgularda avantaj sağlar ve indeks seçiminde ek özgürlük verir.</p>
+
+<h2>İlişkisel veritabanlarında fiziksel tasarım</h2>
+<p>Fiziksel tasarımın amacı, verilere uygun bir depolama yapısı kurmak ve iyi performansı garanti etmektir. Bunun için uygulamaların <strong>iş karışımını</strong> (job mix) bilmek gerekir: hangi sorgular ve güncellemeler, ne sıklıkla ve hangi zaman kısıtlarıyla çalışacak? Her sorgu için erişilen dosyalar, seçim ve join koşullarındaki öznitelikler; her güncelleme için de işlem türü (ekleme, silme, değiştirme) ve güncellenen öznitelikler incelenir.</p>
+<ul>
+  <li><strong>Sorgu ve transaction sıklığı:</strong> her özniteliğin ne sıklıkla seçim ya da join özniteliği olarak kullanıldığına bakılır. 80-20 kuralına göre işlemlerin yüzde 80'ini sorgu ve transaction'ların yalnızca yüzde 20'si oluşturur; tasarım bu %20'ye göre yapılır.</li>
+  <li><strong>Zaman kısıtları:</strong> zaman kısıtı olan sorguların seçim öznitelikleri birincil erişim yapısı için adaydır.</li>
+  <li><strong>Güncelleme sıklığı:</strong> sık güncellenen bir dosyada erişim yolu sayısı az tutulmalıdır, çünkü her indeksin kendisi de güncellenmek zorundadır ve güncellemeleri yavaşlatır.</li>
+  <li><strong>Teklik kısıtları:</strong> primary key ya da UNIQUE olan bütün aday anahtar özniteliklerinde bir erişim yolu bulunmalıdır.</li>
+</ul>
+<p>İndekslemeyle ilgili tasarım kararları şunlardır: bir öznitelik indekslenmeli mi (anahtarsa ya da bir sorgu onu kullanıyorsa evet); hangi öznitelik ya da öznitelikler üzerinde indeks kurulmalı (tek ya da çok öznitelikli); kümeleme indeksi kurulmalı mı (tablo başına yalnızca bir tane olabilir); ağaç yerine hash indeksi mi kullanılmalı (hash indeksi aralık sorgularını desteklemez); dinamik hashing kullanılmalı mı (çok sık değişen dosyalar için uygundur).</p>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p>Veri dosyası Ssn'e göre sıralı ve Ssn bir anahtar. Ssn üzerine kurulan indeks hangi türdendir ve kaç giriş içerir?</p>
+  <ol>
+    <li data-why="Kümeleme indeksi, dosya anahtar olmayan bir alana göre sıralıyken kullanılır; Ssn anahtardır.">Kümeleme indeksi; her farklı Ssn için bir giriş</li>
+    <li data-why="Doğru: dosya bir anahtar alana göre sıralı olduğu için birincil indekstir ve her veri bloğu için bir giriş (blok çapası) içerir; bu yüzden seyrektir.">Birincil indeks; her veri bloğu için bir giriş</li>
+    <li data-why="İkincil indeks, dosyanın sıralı olmadığı bir alan üzerine kurulur. Dosya Ssn'e göre sıralı.">İkincil indeks; her kayıt için bir giriş</li>
+    <li data-why="Birincil indeks seyrektir: her kayıt için değil, her blok için bir giriş tutar.">Birincil indeks; her kayıt için bir giriş</li>
+  </ol>
+  <div class="explain">Dosyanın sıralandığı alan bir anahtarsa o alan üzerindeki indeks birincil indekstir. Kayıtlar sıralı olduğu için her bloğun ilk kaydını bilmek yeter; bu yüzden indeks seyrektir ve veri dosyasının blok sayısı kadar giriş içerir.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>r = 300 000 kayıt, B = 4096 byte, V = 9 byte, P = 6 byte. Dosya bu alana göre sıralı değil ve alan üzerinde yoğun bir ikincil indeks var. Tek seviyeli indeksle bir kaydı bulmak kaç blok okur?</p>
+  <ol>
+    <li data-why="6, aynı dosyanın birincil indeksiyle (28 blok) yapılan aramadır; ikincil indeks yoğundur ve çok daha büyüktür.">6</li>
+    <li data-why="3750, indeks olmadan doğrusal aramanın ortalamasıdır (b/2).">3750</li>
+    <li data-why="Doğru: bfr_i = ⌊4096/15⌋ = 273, b_i = ⌈300 000/273⌉ = 1099, ⌈log2 1099⌉ = 11 ve kaydı okumak için 1 blok daha: 12.">12</li>
+    <li data-why="4, aynı indeksin çok seviyeli hâliyle yapılan aramadır (t = 3 seviye + 1).">4</li>
+  </ol>
+  <div class="explain">Yoğun ikincil indekste her kayıt için bir giriş vardır: 300 000 giriş, bloğa 273 giriş sığdığı için 1099 blok. İkili arama ⌈log<sub>2</sub> 1099⌉ = 11 blok okur, kaydın kendisi için 1 blok daha gerekir. Hesap makinesinde aynı sayıları deneyebilirsiniz.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Bir B+-ağacının B-ağacından en önemli farkı nedir?</p>
+  <ol>
+    <li data-why="Doğru: B+-ağacında veri işaretçileri yalnızca yapraklardadır ve yapraklar birbirine bağlıdır; iç düğümler yalnızca aramayı yönlendirir, bu yüzden fan-out daha büyüktür.">Veri işaretçileri yalnızca yapraklarda bulunur ve yapraklar birbirine bağlıdır.</li>
+    <li data-why="İkisi de her zaman dengelidir; bütün yapraklar aynı seviyededir.">B+-ağacı dengeli, B-ağacı dengesizdir.</li>
+    <li data-why="İki ağaçta da kök dışındaki düğümler en az yarı doludur.">B+-ağacında düğümlerin yarı dolu olması gerekmez.</li>
+    <li data-why="İki ağaç da eşitlik ve aralık aramalarında kullanılabilir; B+-ağacının bağlı yaprakları aralık aramasını kolaylaştırır.">B+-ağacı yalnızca eşitlik aramasında kullanılabilir.</li>
+  </ol>
+  <div class="explain">B-ağacında her değer, bulunduğu düğümde kendi veri işaretçisiyle durur. B+-ağacında ise bütün değerler yapraklarda veri işaretçileriyle bulunur; iç düğümlerdeki değerler yalnızca yön göstermek için tekrar edilir. İç düğümlerde veri işaretçisi olmadığı için daha çok değer sığar ve ağaç daha basık olur.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>p = 3, p<sub>leaf</sub> = 2 olan bir B+-ağacında tek yaprak [5, 8] var. 1 eklenince ne olur?</p>
+  <ol>
+    <li data-why="Yaprağa en fazla p_leaf = 2 değer sığar; [1, 5, 8] taşmadır.">Yaprak [1, 5, 8] olur ve ağaç değişmez.</li>
+    <li data-why="B+-ağacında bölünen yaprağın değeri ebeveyne kopyalanır, ama yeni kökte 1 değil 5 bulunur: soldaki yaprak [1, 5]'tir.">Yaprak bölünür ve köke 1 çıkar.</li>
+    <li data-why="Yaprak bölünmesinde değer ebeveyne taşınmaz, kopyalanır; 5 sol yaprakta da kalır.">Yaprak bölünür, 5 köke taşınır ve yapraklardan silinir.</li>
+    <li data-why="Doğru: ⌈(2+1)/2⌉ = 2 değer ([1, 5]) solda kalır, 8 yeni yaprağa geçer ve soldaki yaprağın son değeri 5 yeni köke kopyalanır.">Yaprak [1, 5] ve [8] olarak bölünür, 5 yeni köke kopyalanır.</li>
+  </ol>
+  <div class="explain">Taşan yaprak ikiye bölünür: ilk ⌈(p<sub>leaf</sub> + 1)/2⌉ = 2 değer yerinde kalır, kalan yeni yaprağa geçer. Soldaki yaprağın son değeri (5) ebeveyne kopyalanır; ebeveyn olmadığı için yeni bir kök oluşur. Oynatıcıda kitabın ekleme sırasının üçüncü adımı tam olarak budur.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>Bir sütunda yalnızca iki farklı değer (M ve F) var ve tabloda milyonlarca satır var. Hangi indeks bu sütun için en uygundur?</p>
+  <ol>
+    <li data-why="Hash indeksi her değer için bir kova kullanır; iki değer için milyonlarca kayıt iki kovaya düşer ve taşma zincirleri çok uzar.">Hash indeksi</li>
+    <li data-why="Doğru: az sayıda farklı değeri olan sütunlarda bitmap indeksi çok yer kazandırır ve başka koşullarla AND/OR işlemleriyle hızlı birleştirilir.">Bitmap indeksi</li>
+    <li data-why="Kümeleme indeksi dosyanın bu alana göre sıralı olmasını gerektirir ve tablo başına yalnızca bir tane olabilir; tek başına seçici bir arama yolu da sağlamaz.">Kümeleme indeksi</li>
+    <li data-why="Fonksiyon tabanlı indeks, sorgu sütunun kendisine değil bir fonksiyonuna koşul koyduğunda kullanılır.">Fonksiyon tabanlı indeks</li>
+  </ol>
+  <div class="explain">Bitmap indeksi her farklı değer için satır sayısı kadar bit tutar; iki değer için yalnızca iki bit dizisi gerekir. "Sex = 'F' AND Dno = 5" gibi koşullar, iki bitmap'in AND'lenmesiyle doğrudan bulunur. Sayfadaki bitmap örneğinde bunu deneyebilirsiniz.</div>
+</div>
+
+</div></main>
+</body>
+</html>
