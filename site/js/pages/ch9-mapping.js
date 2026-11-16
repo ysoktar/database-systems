@@ -212,7 +212,6 @@ const ALL_STEPS_DSL = `entity EMPLOYEE
   Ssn key
   Name(Fname, Lname)
   Salary
-  Job_type
 entity DEPARTMENT
   Dnumber key
   Dname
@@ -227,10 +226,14 @@ entity SUPPLIER
   Sname key
 entity PART
   Part_no key
-entity SECRETARY
-  Typing_speed
-entity ENGINEER
-  Eng_type
+entity VEHICLE
+  Vehicle_id key
+  License_plate_no
+  Price
+entity CAR
+  Max_speed
+entity TRUCK
+  Tonnage
 entity BANK
   Bname key
 entity OWNER
@@ -242,18 +245,19 @@ relationship WORKS_ON: EMPLOYEE M, PROJECT N
 identifying relationship DEPENDENTS_OF: EMPLOYEE 1, DEPENDENT N total
 relationship SUPPLY: SUPPLIER M, PART N, PROJECT P
   Quantity
-specialization EMPLOYEE -> SECRETARY, ENGINEER disjoint partial on Job_type
+specialization VEHICLE -> CAR, TRUCK disjoint total
 category OWNER = EMPLOYEE | BANK partial
 `;
 const ALL_STEPS_LAYOUT = {
   "E:EMPLOYEE": { x: 470, y: 380 }, "E:DEPARTMENT": { x: 900, y: 170 }, "R:MANAGES": { x: 690, y: 80 }, "R:WORKS_FOR": { x: 690, y: 260 },
   "E:PROJECT": { x: 900, y: 560 }, "R:WORKS_ON": { x: 690, y: 470 }, "R:SUPPLY": { x: 930, y: 740 }, "E:SUPPLIER": { x: 780, y: 900 }, "E:PART": { x: 1120, y: 880 },
   "R:DEPENDENTS_OF": { x: 470, y: 580 }, "E:DEPENDENT": { x: 470, y: 760 },
-  "S:0": { x: 300, y: 230 }, "E:SECRETARY": { x: 120, y: 140 }, "E:ENGINEER": { x: 330, y: 80 },
+  "E:VEHICLE": { x: 210, y: 70 }, "S:0": { x: 210, y: 180 }, "E:CAR": { x: 80, y: 270 }, "E:TRUCK": { x: 330, y: 250 },
   "E:BANK": { x: 90, y: 420 }, "U:OWNER": { x: 250, y: 500 }, "E:OWNER": { x: 230, y: 650 },
 };
 const PLAYER_EXAMPLES = [
-  ["all", tl("Baştan sona: Adım 1–9 tek şemada", "Start to finish: Steps 1–9 in one schema")],
+  ["all", tl("Baştan sona: Adım 1–9 tek şemada (8A–8D hepsi uygulanır)", "Start to finish: Steps 1–9 in one schema (8A–8D all apply)")],
+  ["vehicle", tl("VEHICLE (Figure 4.3b): yalnız Adım 8, 8A–8D hepsi uygulanır", "VEHICLE (Figure 4.3b): Step 8 only, 8A–8D all apply")],
   ["company", tl("COMPANY: Adım 1–6", "COMPANY: Steps 1–6")],
   ["supply", tl("SUPPLY: Adım 7 (üçlü ilişki)", "SUPPLY: Step 7 (ternary relationship)")],
   ["employee-eer", tl("EMPLOYEE özelleştirmeleri: Adım 8", "EMPLOYEE specializations: Step 8")],
@@ -262,13 +266,18 @@ const PLAYER_EXAMPLES = [
   ["vehicle-eer", tl("Araç sahipleri, kategoriler: Adım 5 ve 9", "Vehicle owners, categories: Steps 5 and 9")],
 ];
 function stepPlayer(host, exId = "all", spec = "8A", predictInit = false) {
-  const ex = exId === "all" ? { dsl: ALL_STEPS_DSL, layout: ALL_STEPS_LAYOUT } : exampleById(exId);
+  const ex = exId === "all" ? { dsl: ALL_STEPS_DSL, layout: ALL_STEPS_LAYOUT } : exId === "vehicle" ? { dsl: FIG_4_3B } : exampleById(exId);
   const { model } = parseER(ex.dsl);
   const res = mapER(model, { spec });
   const steps = res.steps.filter((s) => s.snapshot);
   const exSel = h("select", { "aria-label": tl("Örnek", "Example"), onchange: () => stepPlayer(host, exSel.value, specSel.value, predict) }, ...PLAYER_EXAMPLES.map(([id, label]) => h("option", { value: id, selected: id === exId }, label)));
   const specSel = h("select", { "aria-label": tl("Adım 8 seçeneği", "Step 8 option"), onchange: () => stepPlayer(host, exSel.value, specSel.value, predict) }, ...["8A", "8B", "8C", "8D"].map((o) => h("option", { value: o, selected: o === spec }, o)));
   const hasSpec = model.specializations.length > 0;
+  // an option the algorithm could not apply (for example 8B on a partial specialization) is reported, not hidden
+  const fellBack = steps.filter((s) => s.step === "8" && !s.title.includes(`${tl("Adım", "Step")} ${spec} `));
+  const fallbackNote = hasSpec && fellBack.length ? h("div", { class: "res-msg warn", style: { fontFamily: "inherit", marginBottom: "8px" } },
+    tl(`Seçtiğiniz ${spec}, bu örnekteki ${fellBack.length} özelleştirmeden ${fellBack.length > 1 ? "bazılarına" : "birine"} uygulanamıyor; algoritma orada geçerli bir seçeneğe dönüyor. Nedeni, ilgili Adım 8 kutusunda yazıyor (numarası 8 olan düğmeler).`,
+      `The chosen ${spec} cannot be applied to ${fellBack.length > 1 ? `${fellBack.length} of the specializations` : "one specialization"} in this example; the algorithm falls back to a valid option there. The reason is given in the Step 8 box (the buttons numbered 8).`)) : null;
   const pos = { ...autoLayout(model), ...(ex.layout || {}) };
   let i = -1, predict = predictInit, asked = -1;
   const dots = h("div", { class: "pl-dots" }, ...steps.map((s, k) => h("button", { type: "button", class: `pl-dot s${s.step}`, title: s.title, "aria-label": s.title, onclick: () => go(k, true) }, s.step)));
@@ -282,6 +291,7 @@ function stepPlayer(host, exId = "all", spec = "8A", predictInit = false) {
   const schema = h("div", { class: "pl-schema" });
   host.replaceChildren(h("div", { class: "player" },
     h("div", { class: "pl-bar" }, h("label", { class: "small sim-field" }, tl("Örnek: ", "Example: "), exSel), hasSpec ? h("label", { class: "small sim-field" }, tl("Adım 8 seçeneği: ", "Step 8 option: "), specSel) : null),
+    fallbackNote,
     h("div", { class: "pl-bar" }, prev, next, reset, counter, h("label", { class: "small pl-predict" }, predictBox, tl(" Tahmin modu: önce siz tahmin edin", " Predict mode: guess first"))),
     dots, h("div", { class: "pl-grid side" }, figHost, side), schema));
 
@@ -316,6 +326,10 @@ function stepPlayer(host, exId = "all", spec = "8A", predictInit = false) {
     side.replaceChildren(
       h("div", { class: "step-title" }, s.title),
       verdict || "",
+      s.step === "8" && !s.title.includes(`${tl("Adım", "Step")} ${spec} `) ? h("div", { class: "res-msg warn", style: { fontFamily: "inherit", margin: "6px 0" } },
+        (() => { const why = ((res.notes.find((n) => n.startsWith(constructOf(s))) || "").replace(/<[^>]+>/g, "").match(/(?:çünkü|because) (.*)$/) || [, ""])[1];
+          return tl(`Seçtiğiniz ${spec} bu özelleştirmeye uygulanamıyor${why ? `, çünkü ${why}` : "."}`, `The chosen ${spec} cannot be applied to this specialization${why ? `, because ${why}` : "."}`); })()
+        + tl(` Bu yüzden algoritma ${(s.title.match(/8[ABCD]/) || [""])[0]} seçeneğini kullandı.`, ` So the algorithm used option ${(s.title.match(/8[ABCD]/) || [""])[0]}.`)) : "",
       h("p", { class: "pl-rule" }, ruleOf(s)),
       h("p", { class: "small", html: s.html }),
       ...changedTables(s).map((t) => h("div", { class: "ba" },
