@@ -10,7 +10,8 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
   eşleme (slaytlar 1–38). Ch 14: fonksiyonel bağımlılıklar ve normalizasyon, BCNF'e kadar (slaytlar 1–55); bir ilişkinin
   aday anahtarlarını ve normal formunu bulan, onu NJB testiyle adım adım ayrıştıran bir araçla. Ch 16: disk depolama,
   tamponlama, bloklama, heap/sıralı/hash dosyalar ve RAID (slaytlar 1–41). Ch 17: indeks türleri, çok seviyeli indeksler,
-  B- ve B+-ağaçları, bitmap ve hash indeksler, fiziksel tasarım (slaytlar 1–41). Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
+  B- ve B+-ağaçları, bitmap ve hash indeksler, fiziksel tasarım (slaytlar 1–41). Ch 20: transaction'lar, eşzamanlılık
+  sorunları, ACID, kurtarılabilir ve serileştirilebilir çizelgeler, izolasyon seviyeleri (slaytlar 1–44). Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
   çizilir. Bir konunun müfredatta yalnızca bir kısmı varsa, sayfanın başında kapsadığı slayt aralığı yazar.
 - **Önce ve sonra.** Adım adım gösterimlerde her adımın girdisi solda, sonucu sağda görünür: SQL'in kavramsal değerlendirme
   sırası, join türleri, ilişkisel cebirin her işlemi (atılan satırlar kırmızı, NULL ile kalanlar sarı), ER'den tablolara
@@ -18,7 +19,8 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
 - **Etkileşimli oynatıcılar.** Ch 9'da Adım 1–9'u tek şemada gösteren ve diyagramda o adımın yapısını vurgulayan oynatıcı
   (tahmin modu, büyütme ve tam ekran); Ch 14'te bağımlılık diyagramları, adım adım kapanış, anomali laboratuvarı ve
   normalizasyon oynatıcısı; Ch 16'da tampon değiştirme, bloklama, hashing ve RAID simülasyonları; Ch 17'de indeks türleri,
-  maliyet hesaplayıcısı ve B+/B-ağacı ekleme oynatıcısı. "Sen karar ver" bölümleri her cevaptan sonra adım adım çözümü
+  maliyet hesaplayıcısı ve B+/B-ağacı ekleme oynatıcısı. Ch 20'de eşzamanlılık sorunları oynatıcısı, durum
+  diyagramı ve öncelik grafını adım adım kuran çizelge analizcisi. "Sen karar ver" bölümleri her cevaptan sonra adım adım çözümü
   gösterir ve cevap sıfırlanabilir.
 - **Notebook alıştırmaları**: notebook'taki 10 SQL alıştırması, notebook'takiyle aynı kontrolcüyle (aynı hash'ler; Python
   kontrolcüsü `site/js/lib/sqlcore.js`'e taşındı). İpuçları, doğrulanmış çözümler ve alternatifler.
@@ -83,6 +85,7 @@ notebook'un parmak izleriyle karşılaştırır.
 | `site/js/lib/sqlbox.js`, `codeview.js` | düzenlenebilir, çalıştırılabilir SQL kutuları; satır numaralı editör |
 | `site/js/lib/sqllinks.js`, `errhelp.js` | bir kelimeye ait olanı bulma ve açıklama; MySQL biçiminde hatalar ve ad önerileri |
 | `site/js/lib/fd.js` | fonksiyonel bağımlılıklar: kapanış, aday anahtarlar, 2NF/3NF/BCNF testleri, ayrıştırma, NJB, bağımlılıkların korunması |
+| `site/js/lib/schedule.js` | transaction çizelgeleri: çakışmalar, öncelik grafı, serileştirilebilirlik, kurtarılabilirlik sınıfları |
 | `site/js/lib/stepper.js` | önce → sonra gösterimli adım adım sorgu görünümleri |
 | `site/js/lib/i18n.js`, `site/en/` | Türkçe/İngilizce metinler; her sayfanın İngilizce eşi |
 | `site/js/lib/sqlcore.js` | komut ayırma ve notebook'un kontrolcüsü (DOM'suz; testler de kullanır) |

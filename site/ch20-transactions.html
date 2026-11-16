@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transaction işleme · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 20: transaction kavramı, read_item ve write_item, eşzamanlılık sorunları (lost update, dirty read, incorrect summary, unrepeatable read), transaction durumları ve sistem logu, ACID, kurtarılabilirliğe ve serileştirilebilirliğe göre çizelgeler, öncelik grafı, SQL'de transaction desteği ve izolasyon seviyeleri; adım adım oynatıcılar ve çizelge analizcisiyle.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch20-transactions.js"></script>
+</head>
+<body data-page="ch20-transactions">
+<main><div class="content">
+
+<h1>Transaction işleme</h1>
+<p class="lead">Bir banka uygulamasında para transferi iki güncellemedir: bir hesaptan düşmek ve diğerine eklemek. Bu ikisinin arasında sistem çökerse ya da aynı anda başka bir kullanıcı aynı hesabı değiştirirse ne olur? Bu sayfa, veritabanının bu durumları nasıl ele aldığını anlatır: transaction kavramı, eşzamanlı çalışmanın sorunları, ACID özellikleri ve hangi çizelgelerin doğru sayıldığı.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Transaction'ı, read_item ve write_item işlemlerini, okuma ve yazma kümelerini açıklayabilmek.</li>
+    <li>Kontrolsüz eşzamanlılığın dört sorununu (lost update, temporary update, incorrect summary, unrepeatable read) bir örnek üzerinde adım adım gösterebilmek.</li>
+    <li>Transaction durumlarını, sistem logunu, commit noktasını ve ACID özelliklerini açıklayabilmek.</li>
+    <li>Bir çizelgenin kurtarılabilir, cascadeless ya da strict olup olmadığını söyleyebilmek.</li>
+    <li>Öncelik grafını kurarak bir çizelgenin çakışma serileştirilebilir olup olmadığını test edebilmek; SQL'de transaction'ları ve izolasyon seviyelerini kullanabilmek.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Kapsam.</strong> Müfredatta 12. haftaya yazılan Ch 20 slaytlarının hepsi (1–44) bu sayfadadır. Örnekler kitabın aynı bölümündeki şekillerden alınmıştır.</p>
+</div>
+
+<h2>Transaction işlemeye giriş</h2>
+<p>Bir <strong>transaction</strong>, veritabanı işlemenin mantıksal bir birimi olan, çalışmakta olan bir programdır. Transaction işleme sistemleri, büyük veritabanları ve yüzlerce eşzamanlı kullanıcısı olan, yüksek erişilebilirlik ve hızlı yanıt gerektiren sistemlerdir; uçak rezervasyonu, bankacılık ve borsa gibi. <strong>Tek kullanıcılı</strong> bir DBMS'i aynı anda en fazla bir kullanıcı kullanır (örneğin bir ev bilgisayarı); <strong>çok kullanıcılı</strong> bir DBMS'e birçok kullanıcı aynı anda erişir.</p>
+<p><strong>Çok programlama</strong> (multiprogramming), işletim sisteminin birden çok süreci eşzamanlı çalıştırmasıdır: bir sürecin komutlarını çalıştırır, onu askıya alır, başka bir sürecin komutlarını çalıştırır. Tek CPU'da bu, işlemlerin <strong>iç içe geçmesi</strong> (interleaved processing) demektir; birden çok CPU varsa süreçler gerçekten <strong>paralel</strong> çalışabilir (kitaptaki Figure 20.1). Bu sayfadaki teori iç içe geçmiş çalışmayı esas alır.</p>
+<p>Transaction'ın sınırları <code>begin transaction</code> ve <code>end transaction</code> ifadeleriyle belirtilir. Veritabanını değiştirmeyen transaction'a <strong>salt okunur</strong> (read-only), değiştirene <strong>okuma-yazma</strong> (read-write) transaction denir. Veritabanı adlandırılmış <strong>veri öğelerinin</strong> (data item) bir topluluğu olarak düşünülür. Bir veri öğesi bir kayıt, bir disk bloğu ya da bir kaydın tek bir öznitelik değeri olabilir; öğenin boyutuna <strong>granülerlik</strong> denir. Buradaki kavramlar granülerlikten bağımsızdır.</p>
+<p>Bir transaction veritabanına iki temel işlemle erişir:</p>
+<ul>
+  <li><strong>read_item(X)</strong>: X adlı veri öğesini X adlı bir program değişkenine okur. X'i içeren disk bloğunun adresi bulunur, blok (henüz değilse) bir tampona kopyalanır ve X tampondan değişkene kopyalanır.</li>
+  <li><strong>write_item(X)</strong>: X program değişkeninin değerini X veri öğesine yazar. Blok bulunup tampona kopyalanır, X değişkeni tampondaki doğru yere yazılır ve güncellenen blok (hemen ya da daha sonra) diske geri yazılır.</li>
+</ul>
+<p>Bir transaction'ın okuduğu bütün öğeler <strong>okuma kümesini</strong> (read set), yazdığı bütün öğeler <strong>yazma kümesini</strong> (write set) oluşturur. Kitaptaki Figure 20.2'nin iki transaction'ı aşağıda kullanılacak: T1, X uçağından N koltuğu Y uçağına aktarır (read_item(X); X := X − N; write_item(X); read_item(Y); Y := Y + N; write_item(Y)); T2, X uçağına M koltuk rezerve eder (read_item(X); X := X + M; write_item(X)). DBMS, veritabanı önbelleğinde birkaç tampon tutar; tamponlar doluyken hangisinin değiştirileceğine LRU gibi bir <a href="ch16-files.html">tampon değiştirme stratejisi</a> karar verir.</p>
+
+<h2>Eşzamanlılık kontrolü neden gerekli?</h2>
+<p>Farklı kullanıcıların transaction'ları aynı anda çalışıp aynı öğelere erişebilir. İşlemleri kontrolsüz iç içe geçerse, her transaction tek başına doğru olsa bile sonuç yanlış olabilir. Kitap dört sorun verir:</p>
+<ul>
+  <li><strong>Kayıp güncelleme</strong> (lost update): iki transaction aynı öğeyi okur ve ikisi de yazar; ikinci yazma birincinin güncellemesini ezer.</li>
+  <li><strong>Geçici güncelleme</strong> (temporary update ya da dirty read): bir transaction bir öğeyi günceller ve sonra başarısız olur; ama bu arada başka bir transaction güncellenmiş, yani hiç geçerli olmamış değeri okumuştur.</li>
+  <li><strong>Yanlış özet</strong> (incorrect summary): bir transaction toplama gibi bir özet hesaplarken diğeri bazı öğeleri günceller; özet bazı öğelerin eski, bazılarının yeni değerini kullanır.</li>
+  <li><strong>Tekrarlanamayan okuma</strong> (unrepeatable read): bir transaction aynı öğeyi iki kez okur, ama arada başka bir transaction onu değiştirdiği için iki okuma farklı değer verir.</li>
+</ul>
+<p>Aşağıdaki oynatıcıda bir sorun seçin ve işlemleri adım adım ilerletin. Her adımda çalışan işlem vurgulanır; veritabanındaki değerlerin ve transaction'ların yerel değişkenlerinin önceki ve sonraki hâli yan yana görünür. Son adımda sonuç, transaction'lar sırayla (seri) çalışsaydı çıkacak doğru sonuçla karşılaştırılır.</p>
+<div id="problems"></div>
+
+<h2>Kurtarma neden gerekli?</h2>
+<p>Bir transaction ya bütün işlemleriyle başarıyla tamamlanır ve etkisi veritabanına kalıcı olarak kaydedilir (<strong>commit</strong>), ya da veritabanını hiç etkilemez (<strong>abort</strong>). Bir transaction'ın bazı işlemlerinin uygulanıp diğerlerinin uygulanmamasına izin verilmez. Transaction'lar şu nedenlerle başarısız olabilir: bilgisayar arızası (sistem çökmesi); transaction ya da sistem hatası (örneğin sıfıra bölme ya da yanlış bir parametre); transaction'ın kendisinin fark ettiği yerel hatalar ya da istisnalar (örneğin yetersiz bakiye); eşzamanlılık kontrolünün transaction'ı iptal etmesi (örneğin bir kilitlenmeyi çözmek için); disk arızası; fiziksel sorunlar ve felaketler (yangın, elektrik kesintisi, yanlışlıkla üzerine yazma). Sistem, arızadan sonra hızla kurtulabilmek için yeterli bilgiyi tutmalıdır; disk arızası ve felaketlerden kurtulmak uzun sürer.</p>
+
+<h2>Transaction ve sistem kavramları</h2>
+<p>Sistem her transaction'ın ne zaman başladığını, bittiğini, commit ya da abort olduğunu izler. Bunun için şu işlemler kullanılır: <code>BEGIN_TRANSACTION</code>, <code>READ</code> ya da <code>WRITE</code>, <code>END_TRANSACTION</code> (okuma ve yazmalar bitti; şimdi değişikliklerin kalıcı olup olamayacağı kontrol edilir), <code>COMMIT_TRANSACTION</code> (başarılı bitiş; değişiklikler kalıcıdır) ve <code>ROLLBACK</code> ya da <code>ABORT</code> (başarısız bitiş; değişiklikler geri alınır).</p>
+<p>Kitaptaki Figure 20.4, bir transaction'ın durumlarını gösterir. Aşağıdaki şekilde bir olaya tıklayın; transaction'ın hangi durumdan hangisine geçtiği vurgulanır.</p>
+<div id="states"></div>
+<p><strong>Sistem logu</strong>, transaction'ların veritabanı öğelerini etkileyen bütün işlemlerini kaydeden, yalnızca sonuna eklenen sıralı bir dosyadır. Disk ya da felaket arızası dışında hiçbir arızadan etkilenmez. Log kayıtları önce ana bellekteki bir <strong>log tamponunda</strong> toplanır; tampon dolunca diskteki log dosyasının sonuna eklenir. Log dosyası dönem dönem yedeklenir. Log'a bakarak bir transaction'ın işlemleri geri alınabilir (<strong>undo</strong>) ya da yeniden yapılabilir (<strong>redo</strong>).</p>
+<p>Bir transaction'ın <strong>commit noktası</strong>, veritabanına erişen bütün işlemleri başarıyla tamamlandığında ve işlemlerin etkisi log'a kaydedildiğinde gelir. Transaction log'a bir commit kaydı yazar. Sistem çökerse, log'da start_transaction kaydı olan ama commit kaydı olmayan transaction'lar aranır; bunların etkisi geri alınır. Bu yüzden log tamponu, transaction commit noktasına ulaşmadan <strong>diske zorla yazılır</strong> (force-writing).</p>
+<p>DBMS'lere özgü tampon değiştirme stratejileri de vardır. <strong>Alan ayırma</strong> (domain separation) yönteminde her alan bir tür disk sayfasıyla (indeks sayfaları, veri dosyası sayfaları, log sayfaları) ilgilenir ve her alana ayrılan tampon sayısı önceden belirlenir. <strong>Sıcak küme</strong> (hot set) yöntemi, bir sayfa kümesini tekrar tekrar tarayan sorgularda işe yarar: işlem bitene kadar bu küme tampondan çıkarılmaz. <strong>DBMIN</strong> yöntemi, belirli bir veritabanı işleminin algoritması için sayfa erişim desenini önceden belirler ve sorgu yerellik kümesi modeliyle (QLSM) yerellik kümesini hesaplar.</p>
+
+<h2>Transaction'ların istenen özellikleri: ACID</h2>
+<ul>
+  <li><strong>Atomicity</strong> (bölünmezlik): transaction ya bütünüyle yapılır ya da hiç yapılmaz. Bunu kurtarma alt sistemi sağlar.</li>
+  <li><strong>Consistency preservation</strong> (tutarlılığın korunması): transaction, tek başına ve baştan sona çalıştığında veritabanını tutarlı bir durumdan başka bir tutarlı duruma götürür. Bu, programcının ve kısıtları zorlayan DBMS modüllerinin sorumluluğudur.</li>
+  <li><strong>Isolation</strong> (yalıtım): transaction, başka transaction'larla aynı anda çalışsa bile onlardan etkilenmiyormuş gibi görünmelidir. Bunu eşzamanlılık kontrolü sağlar.</li>
+  <li><strong>Durability</strong> (kalıcılık): commit olan bir transaction'ın değişiklikleri, sonraki hiçbir arızada kaybolmamalıdır. Bunu da kurtarma alt sistemi sağlar.</li>
+</ul>
+<p>Yalıtımın seviyeleri vardır. Seviye 0 yalıtım, daha yüksek seviyeli transaction'ların kirli okumalarının üzerine yazmaz; seviye 1'de kayıp güncelleme yoktur; seviye 2'de kayıp güncelleme ve kirli okuma yoktur; seviye 3 (gerçek yalıtım) bunlara ek olarak tekrarlanabilir okuma sağlar. Bir de <strong>anlık görüntü yalıtımı</strong> (snapshot isolation) vardır; aşağıda SQL bölümünde anlatılıyor.</p>
+<p>Aşağıdaki kutular atomicity'yi COMPANY dışındaki küçük bir tabloda gösterir. İlk kutuda transfer yarıda ROLLBACK ile iptal edilir ve tablo transferden önceki hâline döner; ikincide iki güncelleme COMMIT ile birlikte kalıcı olur.</p>
+<pre class="sql run" data-title="ROLLBACK: yarım kalan transfer geri alınır">
+DROP TABLE IF EXISTS demo.ACCOUNT;
+CREATE TABLE demo.ACCOUNT (Acc CHAR(1) PRIMARY KEY, Balance INT);
+INSERT INTO demo.ACCOUNT VALUES ('X', 80), ('Y', 100);
+START TRANSACTION;
+UPDATE demo.ACCOUNT SET Balance = Balance - 5 WHERE Acc = 'X';
+SELECT * FROM demo.ACCOUNT;
+ROLLBACK;
+SELECT * FROM demo.ACCOUNT;
+</pre>
+<pre class="sql run" data-title="COMMIT: iki güncelleme birlikte kalıcı olur">
+DROP TABLE IF EXISTS demo.ACCOUNT;
+CREATE TABLE demo.ACCOUNT (Acc CHAR(1) PRIMARY KEY, Balance INT);
+INSERT INTO demo.ACCOUNT VALUES ('X', 80), ('Y', 100);
+START TRANSACTION;
+UPDATE demo.ACCOUNT SET Balance = Balance - 5 WHERE Acc = 'X';
+UPDATE demo.ACCOUNT SET Balance = Balance + 5 WHERE Acc = 'Y';
+COMMIT;
+SELECT * FROM demo.ACCOUNT;
+</pre>
+
+<h2>Kurtarılabilirliğe göre çizelgeler</h2>
+<p>Bir <strong>çizelge</strong> (schedule ya da history), birden çok transaction'ın işlemlerinin çalışma sırasıdır; farklı transaction'ların işlemleri iç içe geçebilir, ama her transaction'ın kendi işlemleri kendi sırasıyla görünür. Kısaltmalar şunlardır: r<sub>i</sub>(X) = T<sub>i</sub>'nin read_item(X)'i, w<sub>i</sub>(X) = write_item(X), c<sub>i</sub> = commit, a<sub>i</sub> = abort. Örneğin kayıp güncelleme çizelgesi S<sub>a</sub>: r1(X); r2(X); w1(X); r1(Y); w2(X); w1(Y) olarak yazılır. Çizelgedeki işlemler <strong>tam sıralıdır</strong>: herhangi iki işlemden biri diğerinden önce gelir.</p>
+<p>İki işlem şu üç koşulu birlikte sağlıyorsa <strong>çakışır</strong> (conflict): farklı transaction'lara aittir, aynı X öğesine erişir ve en az biri write_item(X)'tir. Başka bir deyişle, sıraları değiştirildiğinde sonuç değişebilen işlemler çakışır. r1(X) ile w2(X) bir <strong>okuma-yazma çakışmasıdır</strong>, w1(X) ile w2(X) bir <strong>yazma-yazma çakışmasıdır</strong>; iki okuma çakışmaz.</p>
+<p>Kurtarılabilirliğe göre üç sınıf vardır; her biri bir öncekini kapsar:</p>
+<ul>
+  <li><strong>Kurtarılabilir</strong> (recoverable): commit olan hiçbir transaction'ın sonradan geri alınması gerekmez. Bunun koşulu şudur: T, T′'nün yazdığı bir öğeyi okuduysa, T′ commit olmadan T commit olmaz. Kurtarılamaz çizelgelere DBMS izin vermemelidir. Kurtarılabilir bir çizelgede bile <strong>basamaklı geri alma</strong> (cascading rollback) olabilir: abort olan bir transaction'dan okuma yapmış, henüz commit olmamış transaction'ların da geri alınması gerekir.</li>
+  <li><strong>Cascadeless</strong>: her transaction yalnızca commit olmuş transaction'ların yazdığı öğeleri okur; bu yüzden basamaklı geri alma olmaz.</li>
+  <li><strong>Strict</strong>: X'i en son yazan transaction commit ya da abort olana kadar hiçbir transaction X'i ne okuyabilir ne yazabilir. Kurtarma çok basitleşir: abort olan bir transaction'ın yazdıklarını geri almak için öğelerin <strong>önceki görüntüsü</strong> (before image) geri yüklenir.</li>
+</ul>
+<p>Kitabın örneklerinde S<sub>c</sub>: r1(X); w1(X); r2(X); r1(Y); w2(X); c2; a1 kurtarılamaz, çünkü T2, T1'in yazdığı X'i okuyup T1'den önce commit oluyor; T1 abort olunca T2'nin okuduğu değer geçersiz kalıyor ama T2 artık geri alınamıyor. Commit'leri yer değiştiren S<sub>d</sub> kurtarılabilir; ama cascadeless değildir. Çizelge analizcisi bu sınıfları her çizelge için gerekçesiyle söyler.</p>
+
+<h2>Serileştirilebilirliğe göre çizelgeler</h2>
+<p>Bir çizelgede transaction'ların işlemleri iç içe geçmiyorsa, yani her transaction baştan sona art arda çalışıyorsa çizelge <strong>seridir</strong> (serial). Seri çizelgeler her zaman doğru kabul edilir, çünkü her transaction tek başına doğrudur. Ama seri çizelgeler eşzamanlılığı yasaklar: bir transaction G/Ç beklerken CPU boş durur. Bu uygulamada kabul edilemez. Çözüm, bir seri çizelgeye <strong>eşdeğer</strong> olan çizelgelere izin vermektir. n transaction'lık bir çizelge, aynı n transaction'ın bir seri çizelgesine eşdeğerse <strong>serileştirilebilirdir</strong> (serializable).</p>
+<p>Eşdeğerliği tanımlamanın üç yolu vardır:</p>
+<ul>
+  <li><strong>Sonuç eşdeğerliği</strong> (result equivalence): iki çizelge veritabanının aynı son durumunu üretir. Bu tesadüfi olabilir; kitaptaki Figure 20.6'da iki çizelge yalnızca X = 100 başlangıç değeri için aynı sonucu verir. Bu yüzden tek başına kullanılamaz.</li>
+  <li><strong>Çakışma eşdeğerliği</strong> (conflict equivalence): çakışan her işlem çiftinin göreli sırası iki çizelgede de aynıdır. S çizelgesi, bir S′ seri çizelgesine çakışma eşdeğerse <strong>çakışma serileştirilebilirdir</strong>.</li>
+  <li><strong>Görünüm eşdeğerliği</strong> (view equivalence): her okuma işlemi iki çizelgede de aynı yazma işleminin sonucunu okur ve son yazmalar aynıdır; okumalar iki çizelgede de aynı "görünümü" görür. Bir seri çizelgeye görünüm eşdeğer olan çizelge <strong>görünüm serileştirilebilirdir</strong>. Kör yazma yoksa (her yazma, öğenin eski değerini okuduktan sonra yapılıyorsa; constrained write assumption) çakışma ve görünüm serileştirilebilirliği aynıdır. Yazılan değer eski değerden bağımsız olabiliyorsa (unconstrained write assumption) görünüm serileştirilebilirliği daha geniştir. Banka hesaplarındaki borç-alacak (debit-credit) transaction'ları gibi bazı uygulamalar için bundan da gevşek koşullar yeterlidir.</li>
+</ul>
+<p>Çakışma serileştirilebilirliği <strong>öncelik grafıyla</strong> (precedence graph) test edilir (kitaptaki Algoritma 20.1). Her transaction bir düğümdür. T<sub>j</sub>, T<sub>i</sub>'nin yazdığı bir öğeyi daha sonra okursa, T<sub>i</sub>'nin okuduğu bir öğeyi daha sonra yazarsa ya da T<sub>i</sub>'nin yazdığı bir öğeyi daha sonra yazarsa T<sub>i</sub> → T<sub>j</sub> kenarı eklenir. Grafta <strong>döngü yoksa</strong> çizelge çakışma serileştirilebilirdir ve grafın topolojik sıralaması eşdeğer bir seri sırayı verir; döngü varsa serileştirilebilir değildir.</p>
+<p>Aşağıdaki analizcide kitabın çizelgelerinden birini seçin ya da kendi çizelgenizi yazın. Adım adım ilerlediğinizde çizelgedeki çakışan işlem çiftleri tek tek bulunur ve her biri grafa bir kenar ekler; grafın önceki ve sonraki hâli yan yana görünür. Son adım döngüyü (varsa) kırmızıyla gösterir, eşdeğer seri sırayı ve kurtarılabilirlik sınıflarını yazar.</p>
+<div id="schedule-tool"></div>
+<p>Serileştirilebilir olmak seri olmaktan farklıdır: serileştirilebilir bir çizelge, doğruluktan hiç vazgeçmeden eşzamanlı çalışmanın faydasını verir. Ama uygulamada bir çizelgeyi önceden test etmek zordur; işlemlerin sırası sistem yüküne, transaction'ların gönderilme zamanına ve süreç önceliklerine bağlıdır ve önceden bilinemez. Bu yüzden DBMS'ler serileştirilebilirliği garanti eden <strong>protokoller</strong> (kurallar) uygular; kilitleme protokolleri bir sonraki bölümün (Ch 21) konusudur.</p>
+
+<h2>SQL'de transaction desteği</h2>
+<p>SQL'de açık bir Begin_Transaction ifadesi yoktur; transaction, ilk SQL ifadesiyle kendiliğinden başlar (MySQL'de <code>START TRANSACTION</code> ile açıkça da başlatılabilir). Her transaction'ın ise açık bir bitiş ifadesi olmalıdır: <code>COMMIT</code> ya da <code>ROLLBACK</code>. <code>SET TRANSACTION</code> ifadesiyle üç özellik belirlenir: <strong>erişim modu</strong> (READ ONLY ya da READ WRITE), <strong>tanılama alanı boyutu</strong> (diagnostic area size: tanılama alanında aynı anda tutulabilecek koşul sayısı) ve <strong>izolasyon seviyesi</strong>.</p>
+<p>İzolasyon seviyesi düştükçe şu ihlaller mümkün olur: <strong>kirli okuma</strong> (dirty read: commit olmamış bir değeri okumak), <strong>tekrarlanamayan okuma</strong> (nonrepeatable read: aynı satırı iki kez okuyup farklı değer görmek) ve <strong>hayaletler</strong> (phantoms: aynı koşulla iki kez okuyup, arada başka bir transaction yeni satır eklediği için farklı satır kümesi görmek). Kitaptaki Table 20.1:</p>
+<table class="simple">
+  <thead><tr><th>İzolasyon seviyesi</th><th>Kirli okuma</th><th>Tekrarlanamayan okuma</th><th>Hayalet</th></tr></thead>
+  <tbody>
+    <tr><td>READ UNCOMMITTED</td><td>Evet</td><td>Evet</td><td>Evet</td></tr>
+    <tr><td>READ COMMITTED</td><td>Hayır</td><td>Evet</td><td>Evet</td></tr>
+    <tr><td>REPEATABLE READ</td><td>Hayır</td><td>Hayır</td><td>Evet</td></tr>
+    <tr><td>SERIALIZABLE</td><td>Hayır</td><td>Hayır</td><td>Hayır</td></tr>
+  </tbody>
+</table>
+<p><strong>Anlık görüntü yalıtımı</strong> (snapshot isolation), bazı ticari DBMS'lerde kullanılır: transaction, okuduğu öğeleri transaction başladığında veritabanının anlık görüntüsündeki commit olmuş değerlere göre görür. Hayalet sorununun oluşmayacağını garanti eder.</p>
+<pre class="sql run" data-title="İzolasyon seviyesini ayarlamak ve okumak">
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SELECT @@transaction_isolation;
+</pre>
+
+<h2>Sen karar ver</h2>
+<p>Bu sorularda çizelgeleri siz sınıflandırıyorsunuz: serileştirilebilir mi, kurtarılabilir mi, hangi sorun var? Bir seçeneği işaretlediğinizde açıklaması görünür ve altında çizelgenin adım adım çözümü açılır: çakışmalar ve öncelik grafının her adımdaki hâli. "Cevabı sıfırla" ile soruyu yeniden deneyebilirsiniz.</p>
+<div id="tx-decide"></div>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="3">
+  <p>T1 ve T2 aynı X'i okuyor; önce T1, sonra T2 yazıyor ve T2'nin yazdığı değer T1'in güncellemesini hesaba katmıyor. Bu hangi sorundur?</p>
+  <ol>
+    <li data-why="Kirli okuma, abort olan bir transaction'ın yazdığı geçersiz değeri okumaktır; burada abort yok.">Geçici güncelleme (dirty read)</li>
+    <li data-why="Yanlış özet, bir toplama hesaplanırken öğelerin bir kısmının güncellenmesidir.">Yanlış özet</li>
+    <li data-why="Doğru: iki transaction X'in aynı eski değerini okudu; ikinci yazma birincinin güncellemesini ezdi.">Kayıp güncelleme (lost update)</li>
+    <li data-why="Tekrarlanamayan okuma, aynı transaction'ın aynı öğeyi iki kez okuyup farklı değer görmesidir.">Tekrarlanamayan okuma</li>
+  </ol>
+  <div class="explain">Kayıp güncellemede iki transaction aynı eski değeri okur ve kendi hesaplarıyla yazar; sonra yazanın değeri kalır ve öncekinin güncellemesi kaybolur. Oynatıcıdaki ilk örnekte X = 80 iken doğru sonuç 79 olmalıyken 84 çıkar.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>Çizelge: r1(X); w1(X); r2(X); w2(X); c2; a1. Bu çizelge hangi sınıftadır?</p>
+  <ol>
+    <li data-why="Strict, kurtarılabilir ve cascadeless olmayı da gerektirir; bu çizelge kurtarılabilir bile değil.">Strict</li>
+    <li data-why="Doğru: T2, T1'in yazdığı X'i okuyup T1'den önce commit oluyor; T1 abort olunca T2'nin okuduğu değer geçersiz kalıyor ama T2 geri alınamıyor.">Kurtarılamaz</li>
+    <li data-why="Cascadeless, yalnızca commit olmuş değerleri okumaktır; T2 commit olmamış T1'in değerini okuyor.">Cascadeless</li>
+    <li data-why="Kurtarılabilir olması için T2'nin, okuduğu değeri yazan T1'den sonra commit olması gerekirdi.">Kurtarılabilir ama cascadeless değil</li>
+  </ol>
+  <div class="explain">T2, T1'den okuyor (r2(X), w1(X)'ten sonra) ve T1 bitmeden commit oluyor. T1 abort olunca T2'nin commit olmuş sonucu geçersiz bir değere dayanır; bu yüzden çizelge kurtarılamaz. Analizcide bu çizelgeyi yazıp gerekçeyi görebilirsiniz.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Bir çizelgenin öncelik grafında T1 → T2 ve T2 → T1 kenarları var. Ne söylenebilir?</p>
+  <ol>
+    <li data-why="Doğru: grafta bir döngü var; bu yüzden çizelge hiçbir seri çizelgeye çakışma eşdeğer değildir.">Çizelge çakışma serileştirilebilir değildir.</li>
+    <li data-why="Seri sıra yalnızca grafta döngü yokken, topolojik sıralamayla bulunur.">Eşdeğer seri sıra T1, T2'dir.</li>
+    <li data-why="Öncelik grafı kurtarılabilirliği değil, çakışma serileştirilebilirliğini test eder.">Çizelge kurtarılamazdır.</li>
+    <li data-why="Döngü, serileştirilebilir olmadığının kanıtıdır; ek bilgiye gerek yoktur.">Daha fazla bilgi olmadan bir şey söylenemez.</li>
+  </ol>
+  <div class="explain">T1 → T2, T1'in bir işleminin T2'nin çakışan bir işleminden önce geldiğini; T2 → T1 de tersini söyler. Bir seri çizelgede T1 ya tamamen önce ya tamamen sonra çalıştığı için ikisi birden sağlanamaz. Kitaptaki çizelge C bu durumdadır.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Hangi izolasyon seviyesi tekrarlanamayan okumayı önler ama hayaletlere izin verir?</p>
+  <ol>
+    <li data-why="READ UNCOMMITTED kirli okumaya bile izin verir.">READ UNCOMMITTED</li>
+    <li data-why="READ COMMITTED kirli okumayı önler, ama tekrarlanamayan okumaya izin verir.">READ COMMITTED</li>
+    <li data-why="SERIALIZABLE hayaletleri de önler.">SERIALIZABLE</li>
+    <li data-why="Doğru: REPEATABLE READ kirli ve tekrarlanamayan okumayı önler; hayaletler hâlâ mümkündür.">REPEATABLE READ</li>
+  </ol>
+  <div class="explain">Table 20.1'e göre REPEATABLE READ'de bir transaction'ın okuduğu satırlar değişmez, ama başka bir transaction aynı koşulu sağlayan yeni satırlar ekleyebilir; bu yüzden aynı sorgu ikinci kez daha çok satır döndürebilir (hayalet).</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>ACID'in hangi özelliğini sağlamak eşzamanlılık kontrolünün sorumluluğudur?</p>
+  <ol>
+    <li data-why="Atomicity'yi kurtarma alt sistemi sağlar: yarım kalan transaction'ın etkileri geri alınır.">Atomicity</li>
+    <li data-why="Doğru: isolation, eşzamanlı çalışan transaction'ların birbirini etkilemiyormuş gibi görünmesidir; bunu eşzamanlılık kontrolü sağlar.">Isolation</li>
+    <li data-why="Durability'yi kurtarma alt sistemi sağlar: commit olmuş değişiklikler arızalarda kaybolmaz.">Durability</li>
+    <li data-why="Tutarlılığın korunması, programcının ve kısıtları zorlayan modüllerin sorumluluğudur.">Consistency preservation</li>
+  </ol>
+  <div class="explain">Atomicity ve durability kurtarma alt sisteminin, isolation eşzamanlılık kontrolünün, consistency ise transaction'ı yazan programcının ve bütünlük kısıtlarının sorumluluğudur.</div>
+</div>
+
+</div></main>
+</body>
+</html>

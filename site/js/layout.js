@@ -44,6 +44,9 @@ export const NAV = [
     { id: "ch16-files", title: "Disk depolama, dosyalar ve hashing", title_en: "Disk storage, files and hashing", desc_en: "Storage hierarchy, disks, buffer management, blocking, heap and sorted files, hashing, RAID.", ch: "Ch 16", slides: "1–41", scope: "none", desc: "Depolama hiyerarşisi, diskler, tampon yönetimi, bloklama, heap ve sıralı dosyalar, hashing, RAID." },
     { id: "ch17-indexing", title: "İndeks yapıları", title_en: "Indexing structures", desc_en: "Primary, clustering and secondary indexes, multilevel indexes, B-trees and B+-trees.", ch: "Ch 17", slides: "1–41", scope: "none", desc: "Birincil, kümeleme ve ikincil indeksler, çok seviyeli indeksler, B-ağaçları ve B+-ağaçları." },
   ] },
+  { part: "Bölüm VIII · Transaction'lar ve programlama", part_en: "Part VIII · Transactions and programming", short: "Ch 20", items: [
+    { id: "ch20-transactions", title: "Transaction işleme", title_en: "Transaction processing", desc_en: "Concurrency problems, transaction states and the log, ACID, recoverable and serializable schedules, isolation levels.", ch: "Ch 20", slides: "1–44", scope: "none", desc: "Eşzamanlılık sorunları, transaction durumları ve log, ACID, kurtarılabilir ve serileştirilebilir çizelgeler, izolasyon seviyeleri." },
+  ] },
   { part: "Uygulama", part_en: "Practice", items: [
     { id: "er-studio", title: "ER stüdyosu", title_en: "ER studio", desc_en: "Draw ER/EER, map to tables, turn tables back into ER; design exercises.", desc: "ER/EER çiz, tablolara dönüştür, tablolardan ER'e geri dön; tasarım alıştırmaları." },
     { id: "notebook", title: "Notebook alıştırmaları", title_en: "Notebook exercises", desc_en: "The 10 SQL exercises of the Colab notebook, with the same checker.", desc: "Colab notebook'undaki 10 SQL alıştırması, aynı kontrolcüyle." },

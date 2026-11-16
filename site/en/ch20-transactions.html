@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transaction processing · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 20: transactions, read_item and write_item, the concurrency problems (lost update, dirty read, incorrect summary, unrepeatable read), transaction states and the system log, ACID, schedules by recoverability and serializability, precedence graphs, transaction support and isolation levels in SQL; with step-by-step players and a schedule analyzer.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch20-transactions.js"></script>
+</head>
+<body data-page="ch20-transactions">
+<main><div class="content">
+
+<h1>Transaction processing</h1>
+<p class="lead">In a banking application a money transfer is two updates: subtracting from one account and adding to another. What happens if the system crashes between the two, or another user changes the same account at the same time? This page explains how the database deals with these situations: the transaction concept, the problems of concurrent execution, the ACID properties, and which schedules count as correct.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Explain transactions, the read_item and write_item operations, and read and write sets.</li>
+    <li>Show the four problems of uncontrolled concurrency (lost update, temporary update, incorrect summary, unrepeatable read) step by step on an example.</li>
+    <li>Explain transaction states, the system log, the commit point and the ACID properties.</li>
+    <li>Tell whether a schedule is recoverable, cascadeless or strict.</li>
+    <li>Test whether a schedule is conflict serializable by building its precedence graph; use transactions and isolation levels in SQL.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Scope.</strong> All Ch 20 slides (1–44), listed for week 12 in the syllabus, are on this page. The examples come from the figures of the same chapter of the book.</p>
+</div>
+
+<h2>Introduction to transaction processing</h2>
+<p>A <strong>transaction</strong> is an executing program that forms a logical unit of database processing. Transaction processing systems are systems with large databases and hundreds of concurrent users that require high availability and fast response, such as airline reservations, banking and stock markets. A <strong>single-user</strong> DBMS is used by at most one user at a time (for example a home computer); a <strong>multiuser</strong> DBMS is accessed by many users concurrently.</p>
+<p><strong>Multiprogramming</strong> means the operating system executes several processes concurrently: it runs commands of one process, suspends it, and runs commands of another. On a single CPU this means <strong>interleaved processing</strong>; with several CPUs processes can run truly in <strong>parallel</strong> (the book's Figure 20.1). The theory on this page assumes interleaved execution.</p>
+<p>The boundaries of a transaction are given by <code>begin transaction</code> and <code>end transaction</code> statements. A transaction that does not change the database is <strong>read-only</strong>, one that does is <strong>read-write</strong>. The database is seen as a collection of named <strong>data items</strong>. A data item can be a record, a disk block or a single attribute value of a record; the size of an item is its <strong>granularity</strong>. The concepts here do not depend on granularity.</p>
+<p>A transaction accesses the database with two basic operations:</p>
+<ul>
+  <li><strong>read_item(X)</strong>: reads the data item named X into a program variable named X. The address of the disk block containing X is found, the block is copied into a buffer (if it is not there yet), and X is copied from the buffer into the variable.</li>
+  <li><strong>write_item(X)</strong>: writes the value of the program variable X into the data item X. The block is found and copied into a buffer, the variable X is written into the right place in the buffer, and the updated block is written back to disk (immediately or later).</li>
+</ul>
+<p>All items a transaction reads form its <strong>read set</strong>, all items it writes its <strong>write set</strong>. The two transactions of the book's Figure 20.2 are used below: T1 transfers N seats from flight X to flight Y (read_item(X); X := X − N; write_item(X); read_item(Y); Y := Y + N; write_item(Y)); T2 reserves M seats on flight X (read_item(X); X := X + M; write_item(X)). The DBMS keeps several buffers in the database cache; when they are full, a <a href="ch16-files.html">buffer replacement policy</a> such as LRU decides which one is replaced.</p>
+
+<h2>Why concurrency control is needed</h2>
+<p>Transactions of different users may run at the same time and access the same items. If their operations interleave without control, the result can be wrong even though each transaction is correct on its own. The book gives four problems:</p>
+<ul>
+  <li><strong>Lost update</strong>: two transactions read the same item and both write it; the second write overwrites the first one's update.</li>
+  <li><strong>Temporary update</strong> (dirty read): a transaction updates an item and then fails; meanwhile another transaction has read the updated value, which never became valid.</li>
+  <li><strong>Incorrect summary</strong>: while one transaction computes a summary such as a sum, another updates some items; the summary uses old values for some items and new values for others.</li>
+  <li><strong>Unrepeatable read</strong>: a transaction reads the same item twice, but another transaction changes it in between, so the two reads give different values.</li>
+</ul>
+<p>In the player below choose a problem and step through the operations. At each step the running operation is highlighted; the values in the database and the transactions' local variables before and after are shown side by side. At the last step the outcome is compared with the correct result the transactions would give if run one after the other (serially).</p>
+<div id="problems"></div>
+
+<h2>Why recovery is needed</h2>
+<p>A transaction either completes all its operations successfully and its effect is recorded permanently in the database (<strong>commit</strong>), or it has no effect on the database at all (<strong>abort</strong>). Some operations of a transaction may not be applied while others are not. Transactions can fail for these reasons: a computer failure (system crash); a transaction or system error (for example division by zero or a wrong parameter); local errors or exceptions detected by the transaction itself (for example insufficient balance); concurrency control aborting the transaction (for example to resolve a deadlock); disk failure; physical problems and catastrophes (fire, power failure, accidental overwriting). The system must keep enough information to recover quickly after a failure; recovering from disk failures and catastrophes takes long.</p>
+
+<h2>Transaction and system concepts</h2>
+<p>The system keeps track of when each transaction starts, terminates, commits or aborts. The operations used for this are: <code>BEGIN_TRANSACTION</code>, <code>READ</code> or <code>WRITE</code>, <code>END_TRANSACTION</code> (reads and writes are done; now it is checked whether the changes can be made permanent), <code>COMMIT_TRANSACTION</code> (successful end; the changes are permanent) and <code>ROLLBACK</code> or <code>ABORT</code> (unsuccessful end; the changes are undone).</p>
+<p>The book's Figure 20.4 shows the states of a transaction. Click an event in the figure below; the transition from one state to the next is highlighted.</p>
+<div id="states"></div>
+<p>The <strong>system log</strong> is a sequential, append-only file that records every operation of transactions that affects database items. It is not affected by any failure except disk or catastrophic failure. Log records are first collected in a <strong>log buffer</strong> in main memory; when it is full it is appended to the end of the log file on disk. The log file is backed up periodically. Using the log, a transaction's operations can be undone (<strong>undo</strong>) or redone (<strong>redo</strong>).</p>
+<p>A transaction reaches its <strong>commit point</strong> when all its operations that access the database have completed successfully and their effect has been recorded in the log. The transaction writes a commit record into the log. If the system crashes, the log is searched for transactions that have a start_transaction record but no commit record; their effect is undone. So the log buffer is <strong>force-written</strong> to disk before the transaction reaches its commit point.</p>
+<p>There are also DBMS-specific buffer replacement policies. In the <strong>domain separation</strong> method each domain handles one type of disk pages (index pages, data file pages, log pages), and the number of buffers for each domain is predetermined. The <strong>hot set</strong> method helps queries that scan a set of pages repeatedly: the set is not replaced in the buffers until processing is done. The <strong>DBMIN</strong> method predetermines the page reference pattern for the algorithm of a particular type of database operation and calculates the locality set with the query locality set model (QLSM).</p>
+
+<h2>Desirable properties of transactions: ACID</h2>
+<ul>
+  <li><strong>Atomicity</strong>: a transaction is performed in its entirety or not at all. The recovery subsystem ensures this.</li>
+  <li><strong>Consistency preservation</strong>: a transaction, run alone and to completion, takes the database from one consistent state to another. This is the responsibility of the programmer and of the DBMS modules that enforce constraints.</li>
+  <li><strong>Isolation</strong>: a transaction should appear as if it were not interfered with by other transactions, even when running concurrently with them. Concurrency control ensures this.</li>
+  <li><strong>Durability</strong>: the changes of a committed transaction must not be lost in any later failure. The recovery subsystem ensures this too.</li>
+</ul>
+<p>Isolation has levels. Level 0 isolation does not overwrite the dirty reads of higher-level transactions; level 1 has no lost updates; level 2 has no lost updates and no dirty reads; level 3 (true isolation) adds repeatable reads. There is also <strong>snapshot isolation</strong>, explained in the SQL section below.</p>
+<p>The boxes below show atomicity on a small table outside COMPANY. In the first box the transfer is cancelled halfway with ROLLBACK and the table returns to its state before the transfer; in the second the two updates become permanent together with COMMIT.</p>
+<pre class="sql run" data-title="ROLLBACK: the half-done transfer is undone">
+DROP TABLE IF EXISTS demo.ACCOUNT;
+CREATE TABLE demo.ACCOUNT (Acc CHAR(1) PRIMARY KEY, Balance INT);
+INSERT INTO demo.ACCOUNT VALUES ('X', 80), ('Y', 100);
+START TRANSACTION;
+UPDATE demo.ACCOUNT SET Balance = Balance - 5 WHERE Acc = 'X';
+SELECT * FROM demo.ACCOUNT;
+ROLLBACK;
+SELECT * FROM demo.ACCOUNT;
+</pre>
+<pre class="sql run" data-title="COMMIT: the two updates become permanent together">
+DROP TABLE IF EXISTS demo.ACCOUNT;
+CREATE TABLE demo.ACCOUNT (Acc CHAR(1) PRIMARY KEY, Balance INT);
+INSERT INTO demo.ACCOUNT VALUES ('X', 80), ('Y', 100);
+START TRANSACTION;
+UPDATE demo.ACCOUNT SET Balance = Balance - 5 WHERE Acc = 'X';
+UPDATE demo.ACCOUNT SET Balance = Balance + 5 WHERE Acc = 'Y';
+COMMIT;
+SELECT * FROM demo.ACCOUNT;
+</pre>
+
+<h2>Characterizing schedules by recoverability</h2>
+<p>A <strong>schedule</strong> (history) is the order in which the operations of several transactions execute; operations of different transactions may interleave, but each transaction's own operations appear in its own order. The shorthand is: r<sub>i</sub>(X) = read_item(X) of T<sub>i</sub>, w<sub>i</sub>(X) = write_item(X), c<sub>i</sub> = commit, a<sub>i</sub> = abort. For example the lost update schedule S<sub>a</sub> is written r1(X); r2(X); w1(X); r1(Y); w2(X); w1(Y). The operations in a schedule are <strong>totally ordered</strong>: of any two operations, one comes before the other.</p>
+<p>Two operations <strong>conflict</strong> if they satisfy all three conditions: they belong to different transactions, they access the same item X, and at least one of them is a write_item(X). In other words, operations conflict if changing their order can change the outcome. r1(X) and w2(X) are a <strong>read-write conflict</strong>, w1(X) and w2(X) a <strong>write-write conflict</strong>; two reads do not conflict.</p>
+<p>There are three classes by recoverability; each contains the next:</p>
+<ul>
+  <li><strong>Recoverable</strong>: no committed transaction ever needs to be rolled back. The condition: if T read an item written by T′, T does not commit before T′ commits. The DBMS should not permit nonrecoverable schedules. Even a recoverable schedule can have <strong>cascading rollback</strong>: uncommitted transactions that read from an aborted transaction must be rolled back too.</li>
+  <li><strong>Cascadeless</strong>: every transaction reads only items written by committed transactions; so there is no cascading rollback.</li>
+  <li><strong>Strict</strong>: no transaction can read or write an item X until the last transaction that wrote X has committed or aborted. Recovery becomes very simple: to undo the writes of an aborted transaction, the <strong>before image</strong> of the items is restored.</li>
+</ul>
+<p>In the book's examples S<sub>c</sub>: r1(X); w1(X); r2(X); r1(Y); w2(X); c2; a1 is not recoverable, because T2 reads the X written by T1 and commits before T1; when T1 aborts, the value T2 read becomes invalid but T2 can no longer be undone. S<sub>d</sub>, with the commits swapped, is recoverable; but it is not cascadeless. The schedule analyzer states these classes with the reason for every schedule.</p>
+
+<h2>Characterizing schedules by serializability</h2>
+<p>If the operations of transactions do not interleave in a schedule, that is, each transaction runs from start to end one after another, the schedule is <strong>serial</strong>. Serial schedules are always considered correct, because each transaction is correct on its own. But serial schedules prohibit concurrency: the CPU sits idle while a transaction waits for I/O. That is unacceptable in practice. The solution is to allow schedules that are <strong>equivalent</strong> to a serial schedule. A schedule of n transactions is <strong>serializable</strong> if it is equivalent to some serial schedule of the same n transactions.</p>
+<p>There are three ways to define equivalence:</p>
+<ul>
+  <li><strong>Result equivalence</strong>: the two schedules produce the same final database state. This may be accidental; in the book's Figure 20.6 two schedules give the same result only for the initial value X = 100. So it cannot be used alone.</li>
+  <li><strong>Conflict equivalence</strong>: the relative order of every pair of conflicting operations is the same in both schedules. A schedule S is <strong>conflict serializable</strong> if it is conflict equivalent to some serial schedule S′.</li>
+  <li><strong>View equivalence</strong>: each read operation reads the result of the same write operation in both schedules, and the final writes are the same; the reads see the same "view" in both schedules. A schedule view equivalent to a serial schedule is <strong>view serializable</strong>. Without blind writes (each write comes after reading the item's old value; the constrained write assumption) conflict and view serializability coincide. If a written value may be independent of the old value (the unconstrained write assumption), view serializability is broader. For some applications, such as debit-credit transactions on bank accounts, even less stringent conditions are enough.</li>
+</ul>
+<p>Conflict serializability is tested with a <strong>precedence graph</strong> (the book's Algorithm 20.1). Each transaction is a node. An edge T<sub>i</sub> → T<sub>j</sub> is added if T<sub>j</sub> later reads an item T<sub>i</sub> wrote, later writes an item T<sub>i</sub> read, or later writes an item T<sub>i</sub> wrote. If the graph has <strong>no cycle</strong>, the schedule is conflict serializable and a topological sort of the graph gives an equivalent serial order; if it has a cycle, it is not serializable.</p>
+<p>In the analyzer below choose one of the book's schedules or type your own. As you step through, the conflicting pairs of operations are found one by one and each adds an edge to the graph; the graph before and after is shown side by side. The last step shows the cycle (if any) in red and gives the equivalent serial order and the recoverability classes.</p>
+<div id="schedule-tool"></div>
+<p>Being serializable is different from being serial: a serializable schedule gives the benefit of concurrent execution without giving up any correctness. But in practice testing a schedule in advance is hard; the order of operations depends on system load, the time transactions are submitted and process priorities, and cannot be known beforehand. So DBMSs enforce <strong>protocols</strong> (sets of rules) that guarantee serializability; locking protocols are the topic of the next chapter (Ch 21).</p>
+
+<h2>Transaction support in SQL</h2>
+<p>SQL has no explicit Begin_Transaction statement; a transaction starts implicitly with the first SQL statement (in MySQL it can also be started explicitly with <code>START TRANSACTION</code>). But every transaction must have an explicit end statement: <code>COMMIT</code> or <code>ROLLBACK</code>. The <code>SET TRANSACTION</code> statement sets three characteristics: the <strong>access mode</strong> (READ ONLY or READ WRITE), the <strong>diagnostic area size</strong> (the number of conditions that can be held in the diagnostic area at the same time) and the <strong>isolation level</strong>.</p>
+<p>The lower the isolation level, the more of these violations become possible: <strong>dirty read</strong> (reading an uncommitted value), <strong>nonrepeatable read</strong> (reading the same row twice and seeing different values) and <strong>phantoms</strong> (reading twice with the same condition and seeing a different set of rows, because another transaction inserted new rows in between). The book's Table 20.1:</p>
+<table class="simple">
+  <thead><tr><th>Isolation level</th><th>Dirty read</th><th>Nonrepeatable read</th><th>Phantom</th></tr></thead>
+  <tbody>
+    <tr><td>READ UNCOMMITTED</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+    <tr><td>READ COMMITTED</td><td>No</td><td>Yes</td><td>Yes</td></tr>
+    <tr><td>REPEATABLE READ</td><td>No</td><td>No</td><td>Yes</td></tr>
+    <tr><td>SERIALIZABLE</td><td>No</td><td>No</td><td>No</td></tr>
+  </tbody>
+</table>
+<p><strong>Snapshot isolation</strong> is used in some commercial DBMSs: a transaction sees the items it reads as the committed values in the database snapshot taken when the transaction started. It ensures the phantom problem does not occur.</p>
+<pre class="sql run" data-title="Setting and reading the isolation level">
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SELECT @@transaction_isolation;
+</pre>
+
+<h2>You decide</h2>
+<p>In these questions you classify schedules: are they serializable, recoverable, which problem do they show? When you pick an option its explanation appears, and below it the schedule's worked solution: the conflicts and the precedence graph at every step. Use "Reset answer" to try a question again.</p>
+<div id="tx-decide"></div>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="3">
+  <p>T1 and T2 read the same X; T1 writes first, then T2, and the value T2 writes does not take T1's update into account. Which problem is this?</p>
+  <ol>
+    <li data-why="A dirty read reads an invalid value written by a transaction that aborts; there is no abort here.">Temporary update (dirty read)</li>
+    <li data-why="An incorrect summary is items being updated while a sum is computed.">Incorrect summary</li>
+    <li data-why="Right: both transactions read the same old value of X; the second write overwrote the first one's update.">Lost update</li>
+    <li data-why="An unrepeatable read is the same transaction reading an item twice and seeing different values.">Unrepeatable read</li>
+  </ol>
+  <div class="explain">In a lost update two transactions read the same old value and write their own results; the later writer's value stays and the earlier one's update is lost. In the first example of the player, with X = 80, the correct result 79 becomes 84.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>Schedule: r1(X); w1(X); r2(X); w2(X); c2; a1. Which class is it in?</p>
+  <ol>
+    <li data-why="Strict also requires being recoverable and cascadeless; this schedule is not even recoverable.">Strict</li>
+    <li data-why="Right: T2 reads the X written by T1 and commits before T1; when T1 aborts, the value T2 read becomes invalid but T2 cannot be undone.">Not recoverable</li>
+    <li data-why="Cascadeless means reading only committed values; T2 reads the value of the uncommitted T1.">Cascadeless</li>
+    <li data-why="To be recoverable T2 would have to commit after T1, which wrote the value it read.">Recoverable but not cascadeless</li>
+  </ol>
+  <div class="explain">T2 reads from T1 (r2(X) after w1(X)) and commits before T1 ends. When T1 aborts, T2's committed result rests on an invalid value; so the schedule is not recoverable. You can type this schedule into the analyzer to see the reason.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>A schedule's precedence graph has the edges T1 → T2 and T2 → T1. What can be said?</p>
+  <ol>
+    <li data-why="Right: the graph has a cycle; so the schedule is not conflict equivalent to any serial schedule.">The schedule is not conflict serializable.</li>
+    <li data-why="A serial order is found by topological sort only when the graph has no cycle.">The equivalent serial order is T1, T2.</li>
+    <li data-why="The precedence graph tests conflict serializability, not recoverability.">The schedule is not recoverable.</li>
+    <li data-why="The cycle proves the schedule is not serializable; no more information is needed.">Nothing can be said without more information.</li>
+  </ol>
+  <div class="explain">T1 → T2 says an operation of T1 comes before a conflicting operation of T2; T2 → T1 says the opposite. In a serial schedule T1 runs entirely before or entirely after, so both cannot hold. The book's schedule C is in this situation.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which isolation level prevents nonrepeatable reads but allows phantoms?</p>
+  <ol>
+    <li data-why="READ UNCOMMITTED even allows dirty reads.">READ UNCOMMITTED</li>
+    <li data-why="READ COMMITTED prevents dirty reads but allows nonrepeatable reads.">READ COMMITTED</li>
+    <li data-why="SERIALIZABLE prevents phantoms too.">SERIALIZABLE</li>
+    <li data-why="Right: REPEATABLE READ prevents dirty and nonrepeatable reads; phantoms are still possible.">REPEATABLE READ</li>
+  </ol>
+  <div class="explain">By Table 20.1, under REPEATABLE READ the rows a transaction read do not change, but another transaction can insert new rows satisfying the same condition; so the same query can return more rows the second time (a phantom).</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>Ensuring which ACID property is the responsibility of concurrency control?</p>
+  <ol>
+    <li data-why="Atomicity is ensured by the recovery subsystem: the effects of an unfinished transaction are undone.">Atomicity</li>
+    <li data-why="Right: isolation means concurrent transactions appear not to affect each other; concurrency control ensures it.">Isolation</li>
+    <li data-why="Durability is ensured by the recovery subsystem: committed changes are not lost in failures.">Durability</li>
+    <li data-why="Consistency preservation is the responsibility of the programmer and of the modules that enforce constraints.">Consistency preservation</li>
+  </ol>
+  <div class="explain">Atomicity and durability are the responsibility of the recovery subsystem, isolation of concurrency control, and consistency of the programmer who writes the transaction and of the integrity constraints.</div>
+</div>
+
+</div></main>
+</body>
+</html>
