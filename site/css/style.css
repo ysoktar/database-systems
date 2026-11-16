@@ -1100,3 +1100,13 @@ table.php-arr tr.new td { background: var(--accent-wash); font-weight: 700; }
 .ph-ba { align-items: start; }
 table.rel tr.keep td { background: var(--accent-wash); font-weight: 650; }
 table.rel tr.dim td { color: var(--muted); }
+
+/* dark theme: faded diagram parts need more opacity to stay readable on a dark background */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .er.focus g[data-id]:not(.hl):not(.done) { opacity: 0.6; }
+  :root:not([data-theme="light"]) .er.focus g.done { opacity: 0.85; }
+  :root:not([data-theme="light"]) .er.focus .link { opacity: 0.55; }
+}
+:root[data-theme="dark"] .er.focus g[data-id]:not(.hl):not(.done) { opacity: 0.6; }
+:root[data-theme="dark"] .er.focus g.done { opacity: 0.85; }
+:root[data-theme="dark"] .er.focus .link { opacity: 0.55; }
