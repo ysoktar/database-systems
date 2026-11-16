@@ -44,7 +44,8 @@ export const NAV = [
     { id: "ch16-files", title: "Disk depolama, dosyalar ve hashing", title_en: "Disk storage, files and hashing", desc_en: "Storage hierarchy, disks, buffer management, blocking, heap and sorted files, hashing, RAID.", ch: "Ch 16", slides: "1–41", scope: "none", desc: "Depolama hiyerarşisi, diskler, tampon yönetimi, bloklama, heap ve sıralı dosyalar, hashing, RAID." },
     { id: "ch17-indexing", title: "İndeks yapıları", title_en: "Indexing structures", desc_en: "Primary, clustering and secondary indexes, multilevel indexes, B-trees and B+-trees.", ch: "Ch 17", slides: "1–41", scope: "none", desc: "Birincil, kümeleme ve ikincil indeksler, çok seviyeli indeksler, B-ağaçları ve B+-ağaçları." },
   ] },
-  { part: "Bölüm VIII · Transaction'lar ve programlama", part_en: "Part VIII · Transactions and programming", short: "Ch 20", items: [
+  { part: "Bölüm VIII · Transaction'lar ve programlama", part_en: "Part VIII · Transactions and programming", short: "Ch 11, 20", items: [
+    { id: "ch11-php", title: "PHP ile web veritabanı programlama", title_en: "Web database programming with PHP", desc_en: "Three-tier web architecture, PHP basics, arrays, forms, PEAR DB, placeholders, fetchRow and getAll.", ch: "Ch 11", slides: "1–35", scope: "none", desc: "Üç katmanlı web mimarisi, PHP temelleri, diziler, formlar, PEAR DB, placeholder'lar, fetchRow ve getAll." },
     { id: "ch20-transactions", title: "Transaction işleme", title_en: "Transaction processing", desc_en: "Concurrency problems, transaction states and the log, ACID, recoverable and serializable schedules, isolation levels.", ch: "Ch 20", slides: "1–44", scope: "none", desc: "Eşzamanlılık sorunları, transaction durumları ve log, ACID, kurtarılabilir ve serileştirilebilir çizelgeler, izolasyon seviyeleri." },
   ] },
   { part: "Uygulama", part_en: "Practice", items: [

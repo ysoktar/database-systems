@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web database programming with PHP · Database Systems</title>
+<meta name="description" content="Elmasri &amp; Navathe Ch 11: the three-tier web architecture, a simple PHP example, variables, strings, arrays, functions, server variables and forms, connecting to a database with PEAR DB, creating tables, inserting records with placeholders, query results with fetchRow and getAll, other web techniques; with a request player and examples that run on a real database.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/pages/ch11-php.js"></script>
+</head>
+<body data-page="ch11-php">
+<main><div class="content">
+
+<h1>Web database programming with PHP</h1>
+<p class="lead">So far we have run SQL directly in a console. In real applications, however, a user fills in a form on a web page, a program on the server builds SQL commands from the inputs and sends them to the database, and sends the results back as HTML. This page explains PHP, the language the book uses for this, and the PEAR DB library.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Follow the role of the browser, the web server running PHP and the DBMS step by step on a request in the three-tier web architecture.</li>
+    <li>Read PHP variables, string types, arrays, functions and form variables and say what they print.</li>
+    <li>Explain connecting to a database, running commands and handling errors with PEAR DB.</li>
+    <li>Explain why placeholders are used; loop over a query result with fetchRow and getAll.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Scope.</strong> All Ch 11 slides (1–35) in the syllabus are on this page. The code examples are based on the book's Figures 11.1–11.7. Since PHP does not run in the browser, the PHP code is shown; the SQL commands this code sends to the database are run on the page's real MySQL engine.</p>
+</div>
+
+<h2>Web database programming and PHP</h2>
+<p>There are various programming techniques for adding dynamic features to web pages. <strong>PHP</strong> is one of the most widely used: an open source, general-purpose scripting language; its interpreters are free and available on almost every platform (on UNIX systems it usually comes installed).</p>
+<p>The architecture of the book's examples has three tiers:</p>
+<ul>
+  <li><strong>Client tier</strong>: the user's browser. It displays HTML pages and sends the values entered into forms to the server.</li>
+  <li><strong>Middle tier</strong>: the web server and the PHP programs running on it. It takes the values coming from a form, sends SQL commands to the database and turns the result into HTML.</li>
+  <li><strong>Bottom tier</strong>: the database server, that is, the DBMS. It runs the SQL commands and returns the results to the PHP program.</li>
+</ul>
+<p>In the player below choose a scenario and follow the request step by step. At each step the tier that is working is highlighted; the data carried between tiers, and the PHP variables and the output produced before and after, are shown side by side. The query in the database scenario really runs on the page's MySQL engine.</p>
+<div id="tier-player"></div>
+
+<h2>A simple PHP example</h2>
+<p>The book's Figure 11.1 is a PHP program that asks the user for a name and then greets them. The program is stored at <code>http://www.myserver.com/example/greeting.php</code>. When the browser requests this address, the web server runs the program and sends the HTML it produces to the browser.</p>
+<pre class="code-block"><code>&lt;?php
+// Printing a welcome message if the user submitted their name
+// through the HTML form
+if ($_POST['user_name']) {
+  print("Welcome, ");
+  print($_POST['user_name']);
+}
+else {
+  // Printing the form to enter the user name since no name has
+  // been entered yet
+  print &lt;&lt;&lt;_HTML_
+  &lt;FORM method="post" action="$_SERVER['PHP_SELF']"&gt;
+  Enter your name: &lt;input type="text" name="user_name"&gt;
+  &lt;BR/&gt;
+  &lt;INPUT type="submit" value="SUBMIT NAME"&gt;
+  &lt;/FORM&gt;
+_HTML_;
+}
+?&gt;</code></pre>
+<p>These are the parts of the program. PHP code is written between the start tag <code>&lt;?php</code> and the end tag <code>?&gt;</code>; text outside them is sent as HTML as it is. Comments are written with <code>//</code> to the end of the line or between <code>/* … */</code>. <code>$_POST</code> is a predefined PHP variable available everywhere (auto-global): an array holding all the values entered through the form's parameters; here <code>$_POST['user_name']</code> is the value of the form's <code>user_name</code> field. PHP arrays are dynamic, that is, they can grow at run time. Long texts can be written in a <em>here document</em> opened with <code>&lt;&lt;&lt;_HTML_</code> and closed with <code>_HTML_;</code>. PHP variable names start with the <code>$</code> sign.</p>
+<p>When the program is first requested, <code>$_POST['user_name']</code> is empty, so the else part runs and the form is shown (Figure 11.1b). When the user types John Smith and presses the button, the form is sent to the same program (<code>action="$_SERVER['PHP_SELF']"</code>); this time the if part runs and "Welcome, John Smith" is printed (Figure 11.1c–d). The first scenario of the player shows exactly these two requests.</p>
+
+<h2>Variables, data types and strings</h2>
+<p>PHP variable names start with <code>$</code> and can contain letters, digits and the underscore (_). The type of a variable is not declared; it is set when a value is assigned. The numeric types are integers and floating-point numbers. The programming constructs are similar to other languages: for loops, while loops and if conditions. Boolean expressions use the comparison operators <code>==</code> (equal), <code>!=</code> (not equal), <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code> and <code>&lt;=</code>.</p>
+<p>There are three main ways to express text, and the difference between them is often asked in exams:</p>
+<ul>
+  <li><strong>Single-quoted strings</strong>: literal texts containing no variables. If you write <code>'Hello $name'</code>, the output shows <code>$name</code> literally.</li>
+  <li><strong>Double-quoted strings</strong> and <strong>here documents</strong>: the values of variables inside them are put into the text (interpolation). <code>"Hello $name"</code> becomes <code>Hello John</code> if <code>$name</code> is John. Escape sequences such as <code>\n</code> are also interpreted inside double quotes.</li>
+  <li>The <strong>period (.) operator</strong> concatenates strings: <code>'Hello ' . $name</code>.</li>
+</ul>
+<p>Give the <code>$name</code> variable a value below. First guess what each line will print, then click the line to see its output; it is based on the examples of the book's Figure 11.2.</p>
+<div id="php-strings"></div>
+
+<h2>Arrays</h2>
+<p>PHP arrays are well suited to holding query results: in a two-dimensional array the first dimension represents the rows of a table and the second the columns (attributes) within a row. There are two main types of arrays:</p>
+<ul>
+  <li><strong>Numeric array</strong>: an integer index is associated with each element. The indexes start at zero and grow one by one.</li>
+  <li><strong>Associative array</strong>: made of (key =&gt; value) pairs; elements are accessed by key.</li>
+</ul>
+<p>There are two ways to loop through arrays: a <code>foreach ($array as $key =&gt; $value)</code> loop and a for loop using indexes. The <code>count</code> function returns the number of elements in the array; the <code>sort</code> function sorts the array by its element values. The player below runs the statements of the book's Figure 11.3 one by one and shows the array before and after each statement. Notice that <code>sort</code> deletes the keys of an associative array.</p>
+<div id="php-arrays"></div>
+
+<h2>Functions</h2>
+<p>Functions are defined to structure a complex program and to share common sections of code. Arguments are passed by value: changing an argument inside the function does not affect the caller's variable. The book's Figure 11.4 rewrites the program of Figure 11.1 with two functions; Figure 11.5 shows a function with arguments and a return value:</p>
+<pre class="code-block"><code>function display_welcome() {
+  print("Welcome, ");
+  print($_POST['user_name']);
+}
+function display_empty_form() {
+  print &lt;&lt;&lt;_HTML_
+  &lt;FORM method="post" action="$_SERVER['PHP_SELF']"&gt;
+  Enter your name: &lt;INPUT type="text" name="user_name"&gt;
+  &lt;BR/&gt;
+  &lt;INPUT type="submit" value="Submit name"&gt;
+  &lt;/FORM&gt;
+_HTML_;
+}
+if ($_POST['user_name']) { display_welcome(); }
+else { display_empty_form(); }
+
+function course_instructor($course, $teaching_assignments) {
+  if (array_key_exists($course, $teaching_assignments)) {
+    $instructor = $teaching_assignments[$course];
+    RETURN "$instructor is teaching $course";
+  }
+  else {
+    RETURN "there is no $course course";
+  }
+}
+$teaching = array('Database' =&gt; 'Smith', 'OS' =&gt; 'Carrick', 'Graphics' =&gt; 'Kam');
+$teaching['Graphics'] = 'Benson'; $teaching['Data Mining'] = 'Kam';
+$x = course_instructor('Database', $teaching);  // "Smith is teaching Database"
+$x = course_instructor('Computer Architecture', $teaching);  // "there is no Computer Architecture course"</code></pre>
+
+<h2>Server variables and forms</h2>
+<p><code>$_SERVER</code> is a predefined array available everywhere that gives information about the server where the PHP interpreter runs and about the incoming request. Examples:</p>
+<ul>
+  <li><code>$_SERVER['SERVER_NAME']</code>: the name of the server, for example www.uta.edu.</li>
+  <li><code>$_SERVER['REMOTE_ADDR']</code>: the IP address of the client that sent the request; <code>$_SERVER['REMOTE_HOST']</code>: the client's host name (the slide writes REMOTE_ADDRESS).</li>
+  <li><code>$_SERVER['PATH_INFO']</code>: the part of the URL after the program name; <code>$_SERVER['QUERY_STRING']</code>: the parameters after the ? in the URL.</li>
+  <li><code>$_SERVER['DOCUMENT_ROOT']</code>: the root directory of the web server's files.</li>
+</ul>
+<p><code>$_POST</code> holds the values the user entered in HTML forms through <code>&lt;INPUT&gt;</code> tags; the keys of the array are the <code>name</code> attributes of the INPUT tags.</p>
+
+<h2>Database programming with PHP</h2>
+<p>For database access the book uses the <strong>PEAR DB</strong> library, part of the PHP Extension and Application Repository (PEAR). First the library module <code>DB.php</code> is loaded; the library's functions are accessed as <code>DB::&lt;function_name&gt;</code>. <code>DB::connect('string')</code> connects to a database; the format of the string is <code>&lt;DBMS software&gt;://&lt;user account&gt;:&lt;password&gt;@&lt;database server&gt;</code>. The book's Figure 11.6 shows connecting, creating a table and inserting records:</p>
+<pre class="code-block"><code>require 'DB.php';
+$d = DB::connect('oci8://acct1:pass12@www.host.com/db1');
+if (DB::isError($d)) { die("cannot connect - " . $d-&gt;getMessage()); }
+$q = $d-&gt;query("CREATE TABLE EMPLOYEE
+   (Emp_id INT,
+    Name VARCHAR(15),
+    Job VARCHAR(10),
+    Dno INT)");
+if (DB::isError($q)) { die("table creation not successful - " . $q-&gt;getMessage()); }
+$d-&gt;setErrorHandling(PEAR_ERROR_DIE);
+$eid = $d-&gt;nextID('EMPLOYEE');
+$q = $d-&gt;query("INSERT INTO EMPLOYEE VALUES
+   ($eid, $_POST['emp_name'], $_POST['emp_job'], $_POST['emp_dno'])");
+$eid = $d-&gt;nextID('EMPLOYEE');
+$q = $d-&gt;query('INSERT INTO EMPLOYEE VALUES (?, ?, ?, ?)',
+   array($eid, $_POST['emp_name'], $_POST['emp_job'], $_POST['emp_dno']));</code></pre>
+<p><code>oci8</code> is the driver that connects to Oracle; for MySQL one writes <code>mysql</code>. If <code>DB::connect</code> fails it returns an error object; <code>DB::isError</code> checks for it and <code>getMessage</code> gives the error's text. <code>$d-&gt;query</code> takes an SQL command as a string and sends it to the database server to be executed. Instead of checking for errors after every command, <code>$d-&gt;setErrorHandling(PEAR_ERROR_DIE)</code> can be called: on any later error the program terminates and prints the default error message.</p>
+<p>The box below is the equivalent of the commands Figure 11.6 sends from PHP to the database; the next examples on this page use this table. (To avoid confusion with the EMPLOYEE table of COMPANY the table is created in the demo database; the employees are COMPANY's employees.)</p>
+<pre class="sql run" id="emp11-setup" data-title="The commands Figure 11.6 sends: create the table and insert the records">
+DROP TABLE IF EXISTS demo.EMPLOYEE;
+CREATE TABLE demo.EMPLOYEE (Emp_id INT, Name VARCHAR(20), Job VARCHAR(10), Dno INT);
+INSERT INTO demo.EMPLOYEE VALUES
+  (1, 'John Smith', 'Engineer', 5), (2, 'Franklin Wong', 'Manager', 5), (3, 'Alicia Zelaya', 'Secretary', 4),
+  (4, 'Jennifer Wallace', 'Manager', 4), (5, 'Ramesh Narayan', 'Engineer', 5), (6, 'Joyce English', 'Secretary', 5),
+  (7, 'Ahmad Jabbar', 'Engineer', 4), (8, 'James Borg', 'Manager', 1);
+SELECT * FROM demo.EMPLOYEE;
+</pre>
+
+<h2>Collecting data from forms and inserting records</h2>
+<p>In web applications the information of the record to insert is usually collected from an HTML form. To give each new record a unique identifier PEAR DB's <code>$d-&gt;nextID</code> function is used: it generates a sequence of unique values for a particular table. The difference between the two INSERTs of Figure 11.6 matters. The first puts the values from the form directly into the SQL text. The second uses <strong>placeholders</strong>: <code>?</code> is written in the SQL text in place of the values, and the values are given as a separate array; the library puts each value in place, quoted correctly and made safe with escape characters.</p>
+<p>You can see why this matters in the lab below. Enter values into the form's fields: on the left the values are put into the SQL text with string concatenation, on the right with placeholders, and both queries really run. First try an ordinary value, then press the "Malicious input" button. The query built by concatenation changes meaning because of the quote mark the user typed and returns all records; this attack is called <strong>SQL injection</strong>. The query with placeholders sees the input only as a value.</p>
+<div id="placeholder-lab"></div>
+
+<h2>Retrieving query results</h2>
+<p>The result of a SELECT query is held in a variable such as <code>$q</code>. <code>$q-&gt;fetchRow()</code> returns the next row of the result and returns empty (false) when no rows are left; so it is usually used in the condition of a while loop. The returned row is an array: <code>$r[0]</code> is the first column, <code>$r[1]</code> the second. Alternatively <code>$allresult = $d-&gt;getAll(query)</code> gets all rows of the result in a single variable, as a two-dimensional array, which can be looped over with foreach. The book's Figure 11.7:</p>
+<pre class="code-block"><code>$q = $d-&gt;query('SELECT Name, Dno FROM EMPLOYEE');
+while ($r = $q-&gt;fetchRow()) {
+  print "employee $r[0] works for department $r[1] \n";
+}
+$q = $d-&gt;query('SELECT Name FROM EMPLOYEE WHERE Job = ? AND Dno = ?',
+   array($_POST['emp_job'], $_POST['emp_dno']));
+print "employees in dept $_POST['emp_dno'] whose job is $_POST['emp_job']: \n";
+while ($r = $q-&gt;fetchRow()) {
+  print " $r[0] \n";
+}
+$allresult = $d-&gt;getAll('SELECT Name, Job, Dno FROM EMPLOYEE');
+foreach ($allresult as $r) {
+  print " $r[0] $r[1] $r[2] \n";
+}</code></pre>
+<p>The player below runs these loops step by step. The query runs on the page's MySQL engine and the result's rows are fetched. At each step you see the row returned by <code>fetchRow()</code>, the <code>$r</code> variable before and after, and the output the program has produced so far. When the rows run out, <code>fetchRow()</code> returns false and the loop ends.</p>
+<div id="fetch-loop"></div>
+
+<h2>Other techniques</h2>
+<p>PHP runs on the server and sends HTML to the client. There are many other languages and technologies for web database programming:</p>
+<ul>
+  <li><strong>Java servlets</strong>: Java objects that run on the server and interact with the client; they can store information during an interaction session.</li>
+  <li><strong>Java Server Pages (JSP)</strong>: create dynamic web pages by scripting at the server and send them to the client; somewhat like PHP.</li>
+  <li><strong>JavaScript</strong>: a scripting language that can run at the client (in the browser) or at the server. All the interactive tools of this site are written in JavaScript.</li>
+  <li><strong>JSON</strong> (JavaScript Object Notation): a text-based representation of objects; it serves a function similar to XML and is used in many NoSQL systems. For example an employee can be written as <code>{"Name": "John Smith", "Job": "Engineer", "Dno": 5}</code>.</li>
+</ul>
+
+<h2>Test yourself</h2>
+<div class="quiz" data-answer="2">
+  <p>If <code>$name = 'John';</code>, what does <code>print 'Hello $name';</code> print?</p>
+  <ol>
+    <li data-why="The value of a variable is put only into double-quoted strings and here documents.">Hello John</li>
+    <li data-why="Right: single-quoted strings are taken literally; $name is printed as is.">Hello $name</li>
+    <li data-why="Single quotes are not an error; they are a valid string type in PHP.">A syntax error</li>
+    <li data-why="The variable is not empty; but inside single quotes it is not interpreted anyway.">Hello</li>
+  </ol>
+  <div class="explain">Variables are not interpreted in single-quoted strings. <code>"Hello $name"</code> (double quotes) or <code>'Hello ' . $name</code> (concatenation) would print <code>Hello John</code>. You can try this in the string examples.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>In the three-tier architecture, in which tier does the PHP program run?</p>
+  <ol>
+    <li data-why="The client tier is the browser; PHP runs on the server, not in the browser.">The client tier</li>
+    <li data-why="The bottom tier is the DBMS; PHP sends SQL commands to the database but does not run inside it.">The bottom tier</li>
+    <li data-why="Right: PHP runs on the web server in the middle tier; it takes form values, sends SQL to the DBMS and produces HTML.">The middle tier</li>
+    <li data-why="PHP runs in a single tier, on the web server.">All three tiers</li>
+  </ol>
+  <div class="explain">The browser is the client tier, the web server running PHP the middle tier, and the DBMS the bottom tier. In the request player you can see which tier is working at each step.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Why should placeholders (?) be used for user input in a query?</p>
+  <ol>
+    <li data-why="Right: the values are not added to the SQL text; the library quotes them safely, so quote marks typed by the user cannot change the query's meaning.">The input is used only as a value; it cannot change the structure of the query (SQL injection is prevented).</li>
+    <li data-why="Placeholders are used to put values in place safely and correctly, not to speed up the query.">The query always runs faster.</li>
+    <li data-why="Placeholders stand only for values, not for a table or column name.">They let you change the table name at run time.</li>
+    <li data-why="Unique identifiers are generated by nextID; that has nothing to do with placeholders.">They give each record a unique key.</li>
+  </ol>
+  <div class="explain">Adding values to the SQL text by string concatenation lets a quote mark typed by the user change the rest of the query. With placeholders the library quotes the value itself and adds escape characters. In the placeholder lab you can compare the two cases with "Malicious input".</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>When does the loop <code>while ($r = $q-&gt;fetchRow())</code> end?</p>
+  <ol>
+    <li data-why="The loop runs until the result rows run out, not a fixed number of times.">After ten rows</li>
+    <li data-why="fetchRow returns the next row on each call; it does not stop after the first row.">When the first row has been read</li>
+    <li data-why="A query error ends the program with setErrorHandling(PEAR_ERROR_DIE); that is not the normal end of the loop.">Only when an error occurs</li>
+    <li data-why="Right: when no rows are left fetchRow returns false, the assignment is false and the while condition fails.">When no rows are left in the result and fetchRow returns false</li>
+  </ol>
+  <div class="explain">fetchRow returns the next row of the result as an array on each call. When the rows run out it returns false; the value of the assignment is false, so the while loop ends. The last step of the fetchRow player is exactly this.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>For <code>$teaching = array('Database' =&gt; 'Smith', 'OS' =&gt; 'Carrick');</code>, what does <code>$teaching['Database']</code> give after <code>sort($teaching);</code> runs?</p>
+  <ol>
+    <li data-why="sort does not keep the keys of an associative array; the key Database no longer exists.">'Smith'</li>
+    <li data-why="Right: sort orders the values and rebuilds the array with the indexes 0, 1, …; the key 'Database' is lost.">Nothing: the key no longer exists</li>
+    <li data-why="sort orders the values: Carrick comes before Smith, but it goes to index 0, not to the key Database.">'Carrick'</li>
+    <li data-why="sort also works on associative arrays; but it deletes the keys.">An error, because sort does not work on associative arrays</li>
+  </ol>
+  <div class="explain">sort orders the values and gives the array numeric indexes from 0; the keys of the associative array are lost. To keep the keys, asort is used; to sort by keys, ksort. In the array player you can see the sort step before and after.</div>
+</div>
+
+</div></main>
+</body>
+</html>

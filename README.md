@@ -11,7 +11,8 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
   aday anahtarlarını ve normal formunu bulan, onu NJB testiyle adım adım ayrıştıran bir araçla. Ch 16: disk depolama,
   tamponlama, bloklama, heap/sıralı/hash dosyalar ve RAID (slaytlar 1–41). Ch 17: indeks türleri, çok seviyeli indeksler,
   B- ve B+-ağaçları, bitmap ve hash indeksler, fiziksel tasarım (slaytlar 1–41). Ch 20: transaction'lar, eşzamanlılık
-  sorunları, ACID, kurtarılabilir ve serileştirilebilir çizelgeler, izolasyon seviyeleri (slaytlar 1–44). Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
+  sorunları, ACID, kurtarılabilir ve serileştirilebilir çizelgeler, izolasyon seviyeleri (slaytlar 1–44). Ch 11: PHP ile web
+  veritabanı programlama, PEAR DB, placeholder'lar, fetchRow ve getAll (slaytlar 1–35). Kitabın COMPANY sorguları (Q0, Q1, …) çalıştırılabilir; ER/EER diyagramları kitaptaki gösterimle
   çizilir. Bir konunun müfredatta yalnızca bir kısmı varsa, sayfanın başında kapsadığı slayt aralığı yazar.
 - **Önce ve sonra.** Adım adım gösterimlerde her adımın girdisi solda, sonucu sağda görünür: SQL'in kavramsal değerlendirme
   sırası, join türleri, ilişkisel cebirin her işlemi (atılan satırlar kırmızı, NULL ile kalanlar sarı), ER'den tablolara
@@ -20,7 +21,8 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
   (tahmin modu, büyütme ve tam ekran); Ch 14'te bağımlılık diyagramları, adım adım kapanış, anomali laboratuvarı ve
   normalizasyon oynatıcısı; Ch 16'da tampon değiştirme, bloklama, hashing ve RAID simülasyonları; Ch 17'de indeks türleri,
   maliyet hesaplayıcısı ve B+/B-ağacı ekleme oynatıcısı. Ch 20'de eşzamanlılık sorunları oynatıcısı, durum
-  diyagramı ve öncelik grafını adım adım kuran çizelge analizcisi. "Sen karar ver" bölümleri her cevaptan sonra adım adım çözümü
+  diyagramı ve öncelik grafını adım adım kuran çizelge analizcisi; Ch 11'de üç katmanlı istek oynatıcısı,
+  gerçek veritabanında çalışan fetchRow döngüsü ve SQL injection'ı gösteren placeholder laboratuvarı. "Sen karar ver" bölümleri her cevaptan sonra adım adım çözümü
   gösterir ve cevap sıfırlanabilir.
 - **Notebook alıştırmaları**: notebook'taki 10 SQL alıştırması, notebook'takiyle aynı kontrolcüyle (aynı hash'ler; Python
   kontrolcüsü `site/js/lib/sqlcore.js`'e taşındı). İpuçları, doğrulanmış çözümler ve alternatifler.
