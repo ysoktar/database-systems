@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Özet kâğıdı ve sözlük · Veritabanı Sistemleri</title>
-<meta name="description" content="Tek sayfalık özet: SQL sözdizimi ve değerlendirme sırası, sorgu kalıpları, NULL kuralları, ER/EER gösterimi, kısıtlar ve Türkçe–İngilizce veritabanı terimleri sözlüğü.">
+<meta name="description" content="Tek sayfalık özet: SQL sözdizimi ve değerlendirme sırası, sorgu kalıpları, NULL kuralları, ER/EER gösterimi, kısıtlar, ilişkisel cebir, eşleme ve normal formlar, dosya ve indeks formülleri, transaction'lar ve Türkçe–İngilizce veritabanı terimleri sözlüğü.">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
@@ -193,33 +193,133 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
   </tbody>
 </table>
 
+<h2>İlişkisel cebir</h2>
+<table class="simple">
+  <thead><tr><th>İşlem</th><th>Gösterim</th><th>SQL karşılığı</th></tr></thead>
+  <tbody>
+    <tr><td>Seçme (satırlar)</td><td>σ<sub>koşul</sub>(R)</td><td>WHERE</td></tr>
+    <tr><td>İzdüşüm (sütunlar, tekrarsız)</td><td>π<sub>A, B</sub>(R)</td><td>SELECT DISTINCT A, B</td></tr>
+    <tr><td>Yeniden adlandırma</td><td>ρ<sub>S(B1, B2)</sub>(R)</td><td>AS</td></tr>
+    <tr><td>Birleşim, kesişim, fark (union uyumlu)</td><td>R ∪ S, R ∩ S, R − S</td><td>UNION, INTERSECT, EXCEPT</td></tr>
+    <tr><td>Kartezyen çarpım</td><td>R × S</td><td>FROM R, S (koşulsuz)</td></tr>
+    <tr><td>θ-join, equijoin, natural join</td><td>R ⋈<sub>koşul</sub> S, R * S</td><td>JOIN … ON, NATURAL JOIN</td></tr>
+    <tr><td>Bölme ("her" soruları)</td><td>R ÷ S</td><td>çift NOT EXISTS</td></tr>
+    <tr><td>Gruplama ve aggregate</td><td><sub>G</sub>ℑ<sub>F A</sub>(R)</td><td>GROUP BY G, F(A)</td></tr>
+    <tr><td>Outer join</td><td>⟕ ⟖ ⟗</td><td>LEFT / RIGHT / FULL OUTER JOIN</td></tr>
+  </tbody>
+</table>
+<p>Tam işlem kümesi: {σ, π, ∪, ρ, −, ×}; diğer işlemler bunlarla yazılabilir. "Hepsi" → ÷, "hiç … olmayan" → −.</p>
+
+<h2>Tasarım: eşleme ve normal formlar</h2>
+<table class="simple">
+  <thead><tr><th>ER yapısı</th><th>Tablolara eşleme (Ch 9)</th></tr></thead>
+  <tbody>
+    <tr><td>Normal varlık</td><td>kendi tablosu; basit öznitelikler, bileşiğin parçaları; PK = anahtar</td></tr>
+    <tr><td>Zayıf varlık</td><td>kendi tablosu + sahibin PK'sı (FK, ON DELETE CASCADE); PK = sahibin PK'sı + partial key</td></tr>
+    <tr><td>1:1</td><td>FK total katılan tarafa (ya da birleştirme, ya da ilişki tablosu)</td></tr>
+    <tr><td>1:N</td><td>FK N tarafına; ilişki öznitelikleri de oraya</td></tr>
+    <tr><td>M:N, n-li ilişki</td><td>yeni tablo; PK = katılımcıların FK'leri</td></tr>
+    <tr><td>Çok değerli öznitelik</td><td>yeni tablo; PK = sahibin PK'sı + değer</td></tr>
+    <tr><td>Özelleştirme</td><td>8A her durumda; 8B yalnızca total; 8C yalnızca disjoint; 8D overlapping de</td></tr>
+    <tr><td>Kategori</td><td>anahtarlar farklıysa yapay anahtar (surrogate key)</td></tr>
+  </tbody>
+</table>
+<table class="simple">
+  <thead><tr><th>Normal form</th><th>Koşul (Ch 14)</th><th>İhlal</th></tr></thead>
+  <tbody>
+    <tr><td>1NF</td><td>atomik değerler, tekrarlayan grup yok</td><td>çok değerli sütun</td></tr>
+    <tr><td>2NF</td><td>asal olmayan her öznitelik her anahtarın tamamına bağlı</td><td>kısmi bağımlılık: anahtarın parçası → asal olmayan</td></tr>
+    <tr><td>3NF</td><td>her X → A için X süper anahtar ya da A asal</td><td>geçişli bağımlılık: anahtar → X → asal olmayan</td></tr>
+    <tr><td>BCNF</td><td>her X → A için X süper anahtar</td><td>sol tarafı süper anahtar olmayan, sağ tarafı asal bağımlılık</td></tr>
+  </tbody>
+</table>
+<p>X⁺ bütün öznitelikleri içeriyorsa X süper anahtardır. Ayrıştırma: X → A ihlalinde X ∪ A ayrılır, eski ilişkiden A çıkarılır. NJB: (R1 ∩ R2) → (R1 − R2) ya da (R1 ∩ R2) → (R2 − R1) ise kayıpsız.</p>
+
+<h2>Dosyalar ve indeksler</h2>
+<table class="simple">
+  <thead><tr><th>Büyüklük</th><th>Formül</th></tr></thead>
+  <tbody>
+    <tr><td>Blocking factor (unspanned)</td><td>bfr = ⌊B / R⌋</td></tr>
+    <tr><td>Blok sayısı</td><td>b = ⌈r / bfr⌉</td></tr>
+    <tr><td>Arama: heap (ortalama) / sıralı dosyada ikili / hash</td><td>b/2 &nbsp;|&nbsp; ⌈log₂ b⌉ &nbsp;|&nbsp; 1 (taşma yoksa)</td></tr>
+    <tr><td>İndeks fan-out</td><td>fo = bfrᵢ = ⌊B / (V + P)⌋</td></tr>
+    <tr><td>Giriş sayısı: birincil (seyrek) / yoğun ikincil</td><td>b &nbsp;|&nbsp; r</td></tr>
+    <tr><td>Tek seviyeli indeksle arama</td><td>⌈log₂ bᵢ⌉ + 1</td></tr>
+    <tr><td>Çok seviyeli indeksle arama</td><td>t + 1, t = ⌈log<sub>fo</sub> r₁⌉</td></tr>
+    <tr><td>B+-ağacı mertebesi: iç düğüm / yaprak</td><td>(p − 1)·V + p·P ≤ B &nbsp;|&nbsp; p<sub>leaf</sub>·(V + P<sub>r</sub>) + P ≤ B</td></tr>
+  </tbody>
+</table>
+<p>B+-ağacına ekleme: yaprak taşarsa ilk ⌈(p<sub>leaf</sub> + 1)/2⌉ değer solda kalır ve soldaki son değer ebeveyne <strong>kopyalanır</strong>; iç düğüm taşarsa ortadaki değer ebeveyne <strong>taşınır</strong>. Arama: K ≤ Kᵢ ise i. işaretçi; arama her zaman yaprakta biter.</p>
+
+<h2>Transaction'lar ve PHP</h2>
+<table class="simple">
+  <thead><tr><th>Kavram</th><th>Özet (Ch 20)</th></tr></thead>
+  <tbody>
+    <tr><td>ACID</td><td>atomicity ve durability: kurtarma; isolation: eşzamanlılık kontrolü; consistency: programcı ve kısıtlar</td></tr>
+    <tr><td>Çakışma</td><td>farklı transaction, aynı öğe, en az biri yazma</td></tr>
+    <tr><td>Serileştirilebilir</td><td>öncelik grafında döngü yok; topolojik sıra = eşdeğer seri sıra</td></tr>
+    <tr><td>Kurtarılabilir ⊃ cascadeless ⊃ strict</td><td>okuyan yazandan sonra commit · yalnızca commit olmuş değer okunur · yazan bitmeden erişim yok</td></tr>
+    <tr><td>İzolasyon seviyeleri</td><td>READ UNCOMMITTED (kirli okuma) · READ COMMITTED (tekrarlanamayan okuma) · REPEATABLE READ (hayalet) · SERIALIZABLE (hiçbiri)</td></tr>
+  </tbody>
+</table>
+<p><strong>PHP (Ch 11):</strong> <code>'…$x…'</code> olduğu gibi, <code>"…$x…"</code> değişkeni yerleştirir, <code>.</code> birleştirir; <code>$_POST['ad']</code> formdaki değer; <code>DB::connect</code>, <code>$d-&gt;query(sql, array(…))</code> placeholder'larla (<code>?</code>), <code>while ($r = $q-&gt;fetchRow())</code>, <code>$d-&gt;getAll(sql)</code>.</p>
+
 <h2>Sözlük</h2>
 <table class="simple" id="glossary">
   <thead><tr><th>İngilizce</th><th>Türkçe</th><th>Kısa tanım</th></tr></thead>
   <tbody>
+    <tr><td>ACID</td><td>ACID</td><td>atomicity, consistency, isolation, durability: transaction'ın istenen özellikleri</td></tr>
     <tr><td>attribute</td><td>öznitelik</td><td>varlığın ya da ilişkinin özelliği; tabloda sütun</td></tr>
+    <tr><td>B+-tree</td><td>B+-ağacı</td><td>veri işaretçileri yalnızca yapraklarda olan, yaprakları bağlı, dengeli arama ağacı</td></tr>
+    <tr><td>BCNF (Boyce-Codd normal form)</td><td>Boyce-Codd normal formu</td><td>her X → A için X süper anahtar</td></tr>
+    <tr><td>blocking factor</td><td>bloklama faktörü (bfr)</td><td>bir bloğa sığan kayıt sayısı</td></tr>
+    <tr><td>buffer</td><td>tampon</td><td>disk bloğunun ana bellekteki kopyasını tutan alan</td></tr>
     <tr><td>candidate key</td><td>aday anahtar</td><td>bir ilişkinin minimal superkey'lerinden her biri</td></tr>
     <tr><td>cardinality ratio</td><td>kardinalite oranı</td><td>bir varlığın katılabileceği en çok ilişki örneği: 1:1, 1:N, M:N</td></tr>
-    <tr><td>category (union type)</td><td>kategori</td><td>farklı üst sınıfların birleşiminin alt kümesi olan alt sınıf</td></tr>
+    <tr><td>cascadeless schedule</td><td>cascadeless çizelge</td><td>yalnızca commit olmuş değerlerin okunduğu çizelge</td></tr>
     <tr><td>catalog</td><td>katalog</td><td>meta-data'nın saklandığı yer (data dictionary)</td></tr>
+    <tr><td>category (union type)</td><td>kategori</td><td>farklı üst sınıfların birleşiminin alt kümesi olan alt sınıf</td></tr>
+    <tr><td>closure (X⁺)</td><td>kapanış</td><td>X'in FD'ler aracılığıyla belirlediği bütün öznitelikler</td></tr>
+    <tr><td>clustering index</td><td>kümeleme indeksi</td><td>dosyanın sıralı olduğu anahtar olmayan alan üzerindeki indeks</td></tr>
+    <tr><td>conflict serializable</td><td>çakışma serileştirilebilir</td><td>bir seri çizelgeye çakışma eşdeğer olan çizelge</td></tr>
     <tr><td>correlated nested query</td><td>ilintili iç içe sorgu</td><td>dış sorgunun sütununa referans veren iç sorgu</td></tr>
+    <tr><td>dense / sparse index</td><td>yoğun / seyrek indeks</td><td>her değer için / yalnızca bazı değerler için giriş içeren indeks</td></tr>
     <tr><td>derived attribute</td><td>türetilmiş öznitelik</td><td>başka verilerden hesaplanan öznitelik</td></tr>
+    <tr><td>division</td><td>bölme</td><td>"her" sorularını cevaplayan cebir işlemi (÷)</td></tr>
     <tr><td>domain</td><td>alan / değer kümesi</td><td>bir özniteliğin alabileceği atomik değerler</td></tr>
     <tr><td>entity integrity</td><td>varlık bütünlüğü</td><td>PK NULL olamaz</td></tr>
     <tr><td>foreign key</td><td>yabancı anahtar</td><td>başka (ya da aynı) ilişkinin PK'sına referans veren öznitelikler</td></tr>
+    <tr><td>functional dependency</td><td>fonksiyonel bağımlılık</td><td>X → Y: X değerleri aynı olan iki satırın Y değerleri de aynıdır</td></tr>
     <tr><td>generalization / specialization</td><td>genelleştirme / özelleştirme</td><td>alt sınıflardan üst sınıf çıkarma / üst sınıfı alt sınıflara ayırma</td></tr>
+    <tr><td>hashing</td><td>hashing (karma)</td><td>anahtardan hash fonksiyonuyla blok adresini hesaplama</td></tr>
     <tr><td>identifying relationship</td><td>tanımlayıcı ilişki</td><td>zayıf varlığı sahibine bağlayan ilişki</td></tr>
     <tr><td>inheritance</td><td>kalıtım</td><td>alt sınıfın üst sınıfın öznitelik ve ilişkilerini alması</td></tr>
     <tr><td>instance / state / extension</td><td>örnek / durum</td><td>belli bir andaki veri</td></tr>
+    <tr><td>isolation level</td><td>izolasyon seviyesi</td><td>bir transaction'ın başkalarının etkisine ne kadar açık olduğu</td></tr>
+    <tr><td>lossless (non-additive) join</td><td>kayıpsız birleştirme</td><td>ayrıştırılan parçaların join'i sahte satır üretmez</td></tr>
+    <tr><td>multilevel index</td><td>çok seviyeli indeks</td><td>indeksin indeksi; her seviye fan-out kadar küçülür</td></tr>
     <tr><td>multivalued attribute</td><td>çok değerli öznitelik</td><td>bir varlık için birden çok değer alabilen öznitelik</td></tr>
-    <tr><td>participation constraint</td><td>katılım kısıtı</td><td>total (zorunlu) ya da partial (isteğe bağlı) katılım</td></tr>
+    <tr><td>natural join</td><td>doğal birleştirme</td><td>aynı adlı öznitelikler üzerinde equijoin, tekrarlanan sütun atılır</td></tr>
+    <tr><td>normal form</td><td>normal form</td><td>bir ilişki şemasının tekrar ve anomaliye karşı düzeyini gösteren koşul</td></tr>
+    <tr><td>partial / transitive dependency</td><td>kısmi / geçişli bağımlılık</td><td>anahtarın parçasına / anahtar olmayan bir özniteliğe bağlılık</td></tr>
     <tr><td>partial key (discriminator)</td><td>kısmi anahtar</td><td>aynı sahibe bağlı zayıf varlıkları ayıran öznitelik</td></tr>
+    <tr><td>participation constraint</td><td>katılım kısıtı</td><td>total (zorunlu) ya da partial (isteğe bağlı) katılım</td></tr>
+    <tr><td>placeholder</td><td>yer tutucu</td><td>SQL metninde değerin yerine yazılan ? işareti</td></tr>
+    <tr><td>precedence graph</td><td>öncelik grafı</td><td>çakışmalardan kurulan, transaction'lar arası yönlü graf</td></tr>
+    <tr><td>primary index</td><td>birincil indeks</td><td>dosyanın sıralı olduğu anahtar alan üzerindeki seyrek indeks</td></tr>
     <tr><td>primary key</td><td>birincil anahtar</td><td>tuple'ları tanımlamak için seçilen candidate key</td></tr>
+    <tr><td>prime attribute</td><td>asal öznitelik</td><td>herhangi bir aday anahtarın üyesi olan öznitelik</td></tr>
+    <tr><td>RAID</td><td>RAID</td><td>hız ve güvenilirlik için birden çok diskin şeritleme ve fazlalıkla kullanılması</td></tr>
+    <tr><td>recoverable schedule</td><td>kurtarılabilir çizelge</td><td>commit olmuş hiçbir transaction'ın geri alınması gerekmeyen çizelge</td></tr>
     <tr><td>referential integrity</td><td>referans bütünlüğü</td><td>FK değeri var olan bir PK'ya eşit ya da NULL</td></tr>
     <tr><td>relation / tuple</td><td>ilişki / demet (satır)</td><td>tuple'ların kümesi / bir satır</td></tr>
+    <tr><td>relational algebra</td><td>ilişkisel cebir</td><td>ilişkiler üzerinde çalışan, sonucu yine ilişki olan işlemler</td></tr>
     <tr><td>relationship type</td><td>ilişki tipi</td><td>varlık tipleri arasındaki ilişkilendirme</td></tr>
+    <tr><td>schedule (history)</td><td>çizelge</td><td>birden çok transaction'ın işlemlerinin çalışma sırası</td></tr>
     <tr><td>schema / intension</td><td>şema</td><td>veritabanının tanımı</td></tr>
+    <tr><td>secondary index</td><td>ikincil indeks</td><td>dosyanın sıralı olmadığı bir alan üzerindeki indeks</td></tr>
     <tr><td>superkey</td><td>süper anahtar</td><td>değerleri her tuple için farklı olan öznitelik kümesi</td></tr>
+    <tr><td>system log</td><td>sistem logu</td><td>transaction işlemlerini kaydeden, yalnızca sonuna eklenen dosya</td></tr>
     <tr><td>three-valued logic</td><td>üç değerli mantık</td><td>TRUE, FALSE, UNKNOWN</td></tr>
     <tr><td>transaction</td><td>hareket (işlem)</td><td>ya tamamen ya hiç uygulanan işlemler dizisi</td></tr>
     <tr><td>trigger</td><td>tetikleyici</td><td>olay-koşul-eylem (ECA) kuralı</td></tr>
