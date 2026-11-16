@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study guide: Ch 8–20 · Database Systems</title>
+<meta name="description" content="A study guide for Elmasri &amp; Navathe Ch 8, 9, 11, 14, 16, 17 and 20: approach to question types, what to know chapter by chapter, concept questions, worked problems (algebra, mapping, normalization, index cost, B+-trees, schedules), common mistakes and a practice set.">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/theme-init.js"></script>
+<script type="module" src="../js/layout.js"></script>
+</head>
+<body data-page="study-guide">
+<main><div class="content">
+
+<h1>Study guide: Ch 8–20</h1>
+<p class="lead">Scope: relational algebra (Ch 8), ER-to-relational mapping (Ch 9), web database programming with PHP (Ch 11), functional dependencies and normalization (Ch 14), disk storage and files (Ch 16), indexes (Ch 17) and transaction processing (Ch 20). This page brings together what you need to know from each chapter, how to approach the common question types, and problems you can solve on paper and check.</p>
+
+<h2>How to study</h2>
+<ol>
+  <li>Read the <a href="#approach">approach to question types</a> table: the steps for each question pattern and the page that shows that pattern step by step.</li>
+  <li>Check the items of the <strong>what to know, chapter by chapter</strong> table one by one. If you cannot explain an item, go back to the linked page.</li>
+  <li>Answer the <strong>concept questions</strong> in your own words first, then open the answer and compare.</li>
+  <li>Solve the <a href="#worked">worked problems</a> on paper first. Then open the answer and follow the same problem step by step in the player on the related page: the players show every step before and after, so you can see at which step you went wrong.</li>
+  <li>Read the <a href="#mistakes">common mistakes</a> list and repeat the <a href="#practice">practice set</a> until you pass 80% on the first try.</li>
+</ol>
+
+<h2 id="approach">Approach to question types</h2>
+<table class="simple">
+  <thead><tr><th>Question type</th><th>Steps</th><th>To study</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Writing a query in relational algebra</strong></td>
+      <td>(1) Find the relations needed. (2) Apply conditions as early as possible with σ. (3) Combine relations through foreign keys with ⋈. (4) Choose the wanted attributes with π. (5) If the question says "every" or "all", use division (÷); if it says "no … " or "not any", use difference (−). Break long expressions into intermediate results (←).</td>
+      <td><a href="ch8-algebra.html">Ch 8: relational algebra</a>, worked problem 1</td></tr>
+    <tr><td><strong>Mapping an ER/EER schema to tables</strong></td>
+      <td>Apply the algorithm in order: (1) regular entities, (2) weak entities, (3) 1:1, (4) 1:N (foreign key on the N side), (5) M:N (new table), (6) multivalued attributes (new table), (7) n-ary relationships (new table), (8) specializations (the fitting one of 8A–8D), (9) categories. Write the primary key and the foreign keys of every table.</td>
+      <td><a href="ch9-mapping.html">Ch 9: step-by-step player</a>, worked problem 2</td></tr>
+    <tr><td><strong>Finding keys and normal forms, decomposing</strong></td>
+      <td>(1) Attributes that are on the right side of no dependency are in every key; start with them and compute the closure (X⁺). (2) Separate prime and nonprime attributes. (3) For each dependency ask: is the left side a superkey? If not: if the left side is part of a key and the right side is not prime, it is partial (a 2NF violation); if the left side is not part of a key and the right side is not prime, it is transitive (a 3NF violation); if the right side is prime, it is a BCNF violation only. (4) For a violation X → A, split off X ∪ A and remove A from the old relation. (5) Check losslessness with the NJB test, then dependency preservation.</td>
+      <td><a href="ch14-normalization.html">Ch 14: normalization player</a>, worked problem 3</td></tr>
+    <tr><td><strong>Computing block and index costs</strong></td>
+      <td>(1) bfr = ⌊B / R⌋, b = ⌈r / bfr⌉. (2) An index entry is V + P bytes; fo = ⌊B / (V + P)⌋. (3) Number of entries: b for a primary index, r for a dense secondary index. (4) A single-level index reads ⌈log₂ bᵢ⌉ + 1; in a multilevel index each level divides the previous one by fo, and t + 1 blocks are read. (5) Compare with no index (b/2 or log₂ b).</td>
+      <td><a href="ch16-files.html">Ch 16: calculator</a>, <a href="ch17-indexing.html">Ch 17: cost calculator</a>, worked problem 4</td></tr>
+    <tr><td><strong>Inserting into a B+-tree</strong></td>
+      <td>(1) Find the leaf the value goes to from the root (pointer i if K ≤ Kᵢ). (2) If the leaf has room, add it. (3) If it overflows: the first ⌈(p<sub>leaf</sub> + 1)/2⌉ values stay left, and the last value of the left leaf is <em>copied</em> to the parent. (4) If an internal node overflows, its middle value is <em>moved</em> to the parent. (5) If the root splits, a new root is created. Redraw the tree after every insertion.</td>
+      <td><a href="ch17-indexing.html">Ch 17: B+-tree player</a>, worked problem 5</td></tr>
+    <tr><td><strong>Classifying a schedule</strong></td>
+      <td>(1) Find the conflicting pairs: different transactions, the same item, at least one write. (2) For each pair draw an edge from the earlier to the later transaction. (3) Without a cycle the schedule is serializable; a topological sort gives an equivalent serial order. (4) For recoverability look at whom each read reads from and at the commit order: if the reader commits before the writer, it is not recoverable; if an uncommitted value is read, it is not cascadeless; if an item is accessed before its writer ends, it is not strict.</td>
+      <td><a href="ch20-transactions.html">Ch 20: schedule analyzer</a>, worked problem 6</td></tr>
+    <tr><td><strong>Reading PHP code</strong></td>
+      <td>(1) Single or double quotes: is the variable interpolated? (2) The $_POST keys are the name attributes of the form. (3) Follow the query/fetchRow/getAll flow: fetchRow returns false when no rows are left. (4) Does user input enter the SQL by concatenation or through placeholders?</td>
+      <td><a href="ch11-php.html">Ch 11: request and loop players</a></td></tr>
+  </tbody>
+</table>
+
+<h2>What to know, chapter by chapter</h2>
+<table class="simple">
+  <thead><tr><th>Chapter</th><th>What to know</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>Ch 8</td><td>σ, π, ρ and sequences of operations · set operations and union compatibility · Cartesian product, θ-join, equijoin, natural join · division and why it is used for "every" questions · the complete set {σ, π, ∪, ρ, −, ×} · query trees · aggregate functions and grouping (ℑ) · recursive closure · outer joins and outer union · writing the book's queries Q1–Q7 in algebra</td><td><a href="ch8-algebra.html">Relational algebra</a></td></tr>
+    <tr><td>Ch 9</td><td>Steps 1–7 of the mapping algorithm and where the foreign key goes in each · the three approaches for 1:1 and why total participation matters · the primary key of a weak entity · the primary key for multivalued attributes and n-ary relationships · options 8A–8D and when each can be used · shared subclasses · categories and surrogate keys · comparing the ER and relational models (Table 9.1)</td><td><a href="ch9-mapping.html">ER-to-relational mapping</a></td></tr>
+    <tr><td>Ch 11</td><td>The three-tier architecture · PHP tags, variables, single/double-quoted strings, here documents, the period operator · numeric and associative arrays, count, sort · functions and passing by value · $_SERVER and $_POST · PEAR DB: DB::connect, query, isError, setErrorHandling, nextID · placeholders · fetchRow and getAll · servlets, JSP, JavaScript, JSON</td><td><a href="ch11-php.html">Web database programming with PHP</a></td></tr>
+    <tr><td>Ch 14</td><td>The four informal guidelines and the update, insertion and deletion anomalies · NULLs and spurious tuples · the definition of a functional dependency and ruling FDs out from a state · superkey, key, prime attribute · closure · 1NF, 2NF, 3NF and their general definitions · BCNF and how it differs from 3NF · the NJB test and lossless joins · dependency preservation</td><td><a href="ch14-normalization.html">Functional dependencies and normalization</a></td></tr>
+    <tr><td>Ch 16</td><td>The storage hierarchy · the parts of disk access time · buffering, pin count, dirty bit, LRU/FIFO/Clock · records, blocking factor, spanned/unspanned · the costs of heap and sorted files (Table 16.3) · internal and external hashing, collision resolution, the problem of static hashing, extendible/dynamic/linear hashing · RAID levels · SAN, NAS and other modern architectures</td><td><a href="ch16-files.html">Disk storage and files</a></td></tr>
+    <tr><td>Ch 17</td><td>Primary, clustering and secondary indexes · dense and sparse indexes · index cost computations · multilevel indexes and fan-out · search trees, B-trees, B+-trees and their difference · B+-tree orders, search and insertion · multiple-key indexes · hash, bitmap and function-based indexes · physical and logical indexes · CREATE INDEX · physical design decisions</td><td><a href="ch17-indexing.html">Indexing structures</a></td></tr>
+    <tr><td>Ch 20</td><td>Transactions, read_item, write_item, read/write sets · the four concurrency problems · kinds of failures · transaction states, the system log, the commit point · ACID and which subsystem ensures each · schedules, conflicting operations · recoverable, cascadeless, strict · serial, serializable, result/conflict/view equivalence · precedence graphs · COMMIT/ROLLBACK, SET TRANSACTION and isolation levels in SQL (Table 20.1), snapshot isolation</td><td><a href="ch20-transactions.html">Transaction processing</a></td></tr>
+  </tbody>
+</table>
+
+<h2>Short-answer concept questions</h2>
+<ol>
+  <li><strong>What is the difference between a natural join and an equijoin?</strong>
+    <div class="hint" data-label="Show the answer"><p>An equijoin is a θ-join that uses only equality comparisons, and in the result the matching attributes of the two relations stay separate (as two columns with the same values). A natural join (*) does an equijoin on the attributes with the same name and drops one of these repeated columns.</p></div></li>
+  <li><strong>Why does the foreign key go to the N side when a 1:N relationship is mapped?</strong>
+    <div class="hint" data-label="Show the answer"><p>Each entity on the N side takes part in the relationship at most once, so the other side's key fits into its row as a single value. In the other direction a row on the 1 side would have to hold many values; that breaks 1NF.</p></div></li>
+  <li><strong>What is the difference between 3NF and BCNF? When is a relation in 3NF but not in BCNF?</strong>
+    <div class="hint" data-label="Show the answer"><p>BCNF requires X to be a superkey for every X → A. 3NF allows one extra escape: if A is a prime attribute, X need not be a superkey. So a dependency whose left side is not a superkey and whose right side is prime (like Instructor → Course in TEACH) leaves the relation in 3NF but breaks BCNF.</p></div></li>
+  <li><strong>How is a decomposition tested for losslessness?</strong>
+    <div class="hint" data-label="Show the answer"><p>For a decomposition into two parts {R1, R2}, the NJB test: if the common attributes (R1 ∩ R2) determine the rest of one of the parts, that is, if (R1 ∩ R2) → (R1 − R2) or (R1 ∩ R2) → (R2 − R1) is in F⁺, the decomposition is lossless.</p></div></li>
+  <li><strong>Why is a primary index sparse and a dense secondary index dense?</strong>
+    <div class="hint" data-label="Show the answer"><p>In a primary index the file is sorted on the index field, so knowing the first record of each block (the block anchor) is enough; the anchors tell which block a wanted value falls into. In a secondary index the file is not sorted on this field; the values are scattered over the blocks, so an entry is needed for every record.</p></div></li>
+  <li><strong>What is the difference between a leaf split and an internal node split in a B+-tree?</strong>
+    <div class="hint" data-label="Show the answer"><p>When a leaf splits, the last value of the left leaf is copied to the parent; the value also stays in the leaf, because all values must be in the leaves. When an internal node splits, its middle value is moved to the parent and does not stay in the internal node, because internal nodes only show the way.</p></div></li>
+  <li><strong>Define recoverable, cascadeless and strict schedules in one sentence each.</strong>
+    <div class="hint" data-label="Show the answer"><p>Recoverable: a transaction does not commit before the transactions whose values it read have committed. Cascadeless: transactions read only committed values, so there is no cascading rollback. Strict: nobody reads or writes X before the last transaction that wrote X ends; undoing is just restoring the before image.</p></div></li>
+  <li><strong>What is the difference between single-quoted and double-quoted PHP strings?</strong>
+    <div class="hint" data-label="Show the answer"><p>Single-quoted strings are taken literally; a $variable inside is printed as is. In double-quoted strings (and here documents) the values of variables are put into the text and escape sequences such as \n are interpreted.</p></div></li>
+  <li><strong>Which DBMS component ensures each ACID property?</strong>
+    <div class="hint" data-label="Show the answer"><p>Atomicity and durability are the responsibility of the recovery subsystem, isolation of concurrency control. Consistency preservation is the responsibility of the programmer who writes the transaction and of the modules that enforce integrity constraints.</p></div></li>
+</ol>
+
+<h2 id="worked">Worked problems</h2>
+<h3>Problem 1: relational algebra</h3>
+<p>On COMPANY: write in relational algebra the first and last names of the employees who work on <em>all</em> the projects John Smith works on.</p>
+<div class="hint" data-label="Show the answer">
+  <p>The word "all" means division. First Smith's projects and the employee–project pairs are found, then the second is divided by the first:</p>
+  <pre class="algebra">SMITH ← σ<sub>Fname='John' AND Lname='Smith'</sub>(EMPLOYEE)
+SMITH_PNOS ← π<sub>Pno</sub>(WORKS_ON ⋈<sub>Essn=Ssn</sub> SMITH)
+SSN_PNOS ← π<sub>Essn, Pno</sub>(WORKS_ON)
+SSNS(Ssn) ← SSN_PNOS ÷ SMITH_PNOS
+RESULT ← π<sub>Lname, Fname</sub>(SSNS * EMPLOYEE)</pre>
+  <p>Smith works on projects 1 and 2; those who work on both are Smith and English. The book's Figure 8.8 is this query; in the <a href="ch8-algebra.html">division player of the algebra page</a> you can see every step before and after.</p>
+</div>
+
+<h3>Problem 2: ER-to-relational mapping</h3>
+<p>Schema: STUDENT(Sid key, Name); COURSE(Cno key, Title); INSTRUCTOR(Iid key, Name, Phones multivalued). ENROLLS is an M:N relationship between STUDENT and COURSE with the attribute Grade. TEACHES is a relationship between INSTRUCTOR (1) and COURSE (N), and every course has an instructor (the COURSE side is total). Write the tables with their primary and foreign keys.</p>
+<div class="hint" data-label="Show the answer">
+  <ul>
+    <li>Step 1: STUDENT(<u>Sid</u>, Name), COURSE(<u>Cno</u>, Title), INSTRUCTOR(<u>Iid</u>, Name).</li>
+    <li>Step 4: TEACHES is 1:N, so the foreign key goes to the N side, COURSE: COURSE(<u>Cno</u>, Title, Iid), Iid → INSTRUCTOR. The COURSE side is total, so Iid can be NOT NULL.</li>
+    <li>Step 5: ENROLLS is M:N, so it becomes a new table: ENROLLS(<u>Sid, Cno</u>, Grade); Sid → STUDENT, Cno → COURSE.</li>
+    <li>Step 6: Phones is multivalued, so it becomes a new table: INSTRUCTOR_PHONES(<u>Iid, Phone</u>); Iid → INSTRUCTOR.</li>
+  </ul>
+  <p>The result is five tables. You can try similar decisions with explanations in the <a href="ch9-mapping.html">"You decide" section of Ch 9</a>.</p>
+</div>
+
+<h3>Problem 3: normalization</h3>
+<p>In the relation R(A, B, C, D, E), F = {AB → C, C → D, B → E}. Find the candidate key, the highest normal form of the relation and a lossless decomposition into BCNF. Are the dependencies preserved?</p>
+<div class="hint" data-label="Show the answer">
+  <p><strong>Key:</strong> A and B are on the right side of no dependency, so they are in every key. AB⁺: AB → C adds C, C → D adds D, B → E adds E; AB⁺ = {A, B, C, D, E}. The candidate key is {A, B}; the prime attributes are A and B.</p>
+  <p><strong>Normal form:</strong> in B → E, B is part of the key and E is not prime: a partial dependency. The relation is in 1NF but not in 2NF.</p>
+  <p><strong>Decomposition:</strong> B → E splits off R1(B, E), leaving R(A, B, C, D) (2NF). C → D is transitive (AB → C → D): R2(C, D) is split off, leaving R(A, B, C). All three relations are in BCNF: {B, E}, {C, D}, {A, B, C}. At each step the common attribute (B and C) determines the rest of one part, so the decomposition is lossless, and each of the three dependencies stays inside one part, so all are preserved.</p>
+  <p>Type this schema into the <a href="ch14-normalization.html">normalization tool</a> to see the steps before and after.</p>
+</div>
+
+<h3>Problem 4: file and index cost</h3>
+<p>r = 50,000 records, R = 200 bytes, B = 2048 bytes, unspanned placement. Key field V = 10 bytes, block pointer P = 6 bytes. (a) What are bfr and b? (b) If the file is sorted on the key, how many blocks does binary search read? (c) How many blocks does a search with a primary index read? (d) If the file is not sorted, how many blocks does a search with a dense secondary index and with its multilevel version read?</p>
+<div class="hint" data-label="Show the answer">
+  <ol type="a">
+    <li>bfr = ⌊2048 / 200⌋ = 10; b = ⌈50,000 / 10⌉ = 5000 blocks.</li>
+    <li>⌈log₂ 5000⌉ = 13 (2¹² = 4096 &lt; 5000 ≤ 8192).</li>
+    <li>An index entry is 16 bytes, fo = ⌊2048 / 16⌋ = 128. The 5000 entries of the primary index take ⌈5000 / 128⌉ = 40 blocks; a search reads ⌈log₂ 40⌉ + 1 = 6 + 1 = 7 blocks.</li>
+    <li>The 50,000 entries of the dense secondary index take ⌈50,000 / 128⌉ = 391 blocks; a search reads ⌈log₂ 391⌉ + 1 = 9 + 1 = 10 blocks. In the multilevel version the levels are 391 → ⌈391/128⌉ = 4 → 1 blocks, so t = 3 and a search reads 4 blocks. Without an index, b/2 = 2500 blocks would be read on average.</li>
+  </ol>
+  <p>You can check the same numbers in the <a href="ch17-indexing.html">cost calculator of Ch 17</a>.</p>
+</div>
+
+<h3>Problem 5: inserting into a B+-tree</h3>
+<p>Insert the values 20, 10, 30, 40, 50 in this order into an empty B+-tree with p = 3 and p<sub>leaf</sub> = 2. Explain every split and draw the final tree.</p>
+<div class="hint" data-label="Show the answer">
+  <ul>
+    <li>20 and 10: a single leaf [10, 20].</li>
+    <li>30: the leaf becomes [10, 20, 30] and overflows. The first ⌈3/2⌉ = 2 values stay left: [10, 20]; [30] moves to a new leaf; 20 is copied to a new root. Root [20].</li>
+    <li>40: 40 &gt; 20, so it goes to the right leaf: [30, 40].</li>
+    <li>50: the right leaf becomes [30, 40, 50] and overflows: [30, 40] and [50]; 40 is copied to the root. The root can hold 2 values (p − 1 = 2), so it does not split: [20, 40].</li>
+  </ul>
+  <p>Final tree: root [20, 40]; leaves [10, 20] → [30, 40] → [50]. In the <a href="ch17-indexing.html">B+-tree player</a>, type "20 10 30 40 50" instead of "8 5 1 …" to see the tree before and after each insertion.</p>
+</div>
+
+<h3>Problem 6: schedules</h3>
+<p>S: r1(X); r2(X); w1(Y); r3(Y); w2(Z); r3(Z); c1; c2; c3. (a) Is S conflict serializable? If so, give an equivalent serial order. (b) Is S recoverable, cascadeless, strict?</p>
+<div class="hint" data-label="Show the answer">
+  <ol type="a">
+    <li>There are only reads on X, so no conflict. Y: w1(Y) comes before r3(Y): T1 → T3. Z: w2(Z) comes before r3(Z): T2 → T3. The graph has no cycle: S is serializable; equivalent serial orders are T1 → T2 → T3 or T2 → T1 → T3.</li>
+    <li>T3 reads Y from T1 and Z from T2, and commits after both have committed: recoverable. But T3 reads these values before T1 and T2 have committed: it is not cascadeless, and therefore not strict either.</li>
+  </ol>
+  <p>Paste the schedule into the <a href="ch20-transactions.html">schedule analyzer</a> to see the graph at every step.</p>
+</div>
+
+<h2 id="mistakes">Common mistakes</h2>
+<ul>
+  <li><strong>Using a join instead of division for an "all" question.</strong> A join means "at least one"; "all" needs division (or a double NOT EXISTS).</li>
+  <li><strong>Putting the foreign key on the 1 side of a 1:N relationship.</strong> Many employee numbers do not fit in one department row; the foreign key always goes to the N side.</li>
+  <li><strong>Mapping an M:N relationship with a foreign key.</strong> M:N always becomes a new table whose primary key combines the keys of both sides.</li>
+  <li><strong>Keeping a multivalued attribute in a single column.</strong> It breaks 1NF; a separate table is needed whose primary key is the owner's key together with the value.</li>
+  <li><strong>Confusing partial and transitive dependencies.</strong> Partial: the left side is part of a key. Transitive: the left side is part of no key and not a superkey either.</li>
+  <li><strong>Deciding prime attributes from the primary key alone.</strong> An attribute is prime if it is part of <em>any</em> candidate key; the normal form cannot be told without finding all candidate keys.</li>
+  <li><strong>Rounding bfr up.</strong> With unspanned placement bfr = ⌊B / R⌋; the number of blocks is rounded up: ⌈r / bfr⌉.</li>
+  <li><strong>Taking the number of entries of a primary index to be the number of records.</strong> A primary index is sparse: its number of entries is the number of blocks of the data file.</li>
+  <li><strong>Moving the value in a B+-tree leaf split.</strong> From a leaf it is copied to the parent; only from an internal node is it moved.</li>
+  <li><strong>Confusing serializable with serial.</strong> A serializable schedule may be interleaved; what matters is that it is equivalent to a serial schedule.</li>
+  <li><strong>Counting two reads as a conflict.</strong> A conflict needs at least one write.</li>
+</ul>
+
+<h2 id="practice">Practice set</h2>
+<div class="quiz" data-answer="3">
+  <p>Which operation is needed in a relational algebra expression for "employees who do not work in the Research department"?</p>
+  <ol>
+    <li data-why="Division is used for 'all' questions; here 'not any' is asked.">Division (÷)</li>
+    <li data-why="A join finds the employees who do work in Research, not those who do not.">Natural join (*)</li>
+    <li data-why="Right: the Research employees are removed from all employees: π_Ssn(EMPLOYEE) − π_Ssn(Research employees).">Difference (−)</li>
+    <li data-why="Union adds two sets together; it does not remove one set from another.">Union (∪)</li>
+  </ol>
+  <div class="explain">"Not" questions are solved with difference: first all employees, then those satisfying the condition are found, and the second is removed from the first. Difference needs both sides to be union compatible, so only Ssn is kept on both.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>A specialization is partial and overlapping. Which Step 8 option cannot be used?</p>
+  <ol>
+    <li data-why="8A can be used in every case.">8A</li>
+    <li data-why="Right: 8B is only correct for a total specialization; there is no table for entities in no subclass.">8B</li>
+    <li data-why="8D is designed for overlapping; in the partial case all flags are FALSE.">8D</li>
+    <li data-why="8A and 8D can be used; 8B cannot.">None can be used</li>
+  </ol>
+  <div class="explain">In 8B there is no table for the superclass, so an entity in no subclass is lost; that is why 8B is used only for total specializations. 8C cannot be used for this specialization either, since one type column is not enough for overlap; the right options are 8A and 8D.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>R(A, B, C) and F = {A → B, B → C}. Which normal form is R in?</p>
+  <ol>
+    <li data-why="The key has a single attribute (A), so there can be no partial dependency; R is at least in 2NF.">1NF</li>
+    <li data-why="For BCNF, B would have to be a superkey in B → C.">BCNF</li>
+    <li data-why="For 3NF, in B → C either B would have to be a superkey or C prime; neither holds.">3NF</li>
+    <li data-why="Right: the key is A; B → C is a transitive dependency (A → B → C), so R is in 2NF but not in 3NF.">2NF</li>
+  </ol>
+  <div class="explain">A is on no right side and A⁺ = {A, B, C}, so the key is A. With a single-attribute key there can be no partial dependency (2NF), but in B → C, B is not a superkey and C is not prime: a transitive dependency, a 3NF violation.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>B = 1024 bytes, R = 300 bytes, r = 9000 records. How many blocks does the file take with unspanned placement?</p>
+  <ol>
+    <li data-why="Right: bfr = ⌊1024 / 300⌋ = 3; b = ⌈9000 / 3⌉ = 3000.">3000</li>
+    <li data-why="2637 is r · R / B; it ignores the free space at the end of blocks in unspanned placement.">2637</li>
+    <li data-why="bfr is 3, not 3.41; the fourth record does not fit in a block.">2640</li>
+    <li data-why="bfr is not 2; 3 · 300 = 900 ≤ 1024, so three records fit.">4500</li>
+  </ol>
+  <div class="explain">bfr = ⌊1024 / 300⌋ = 3 (each block leaves 124 bytes free) and b = ⌈9000 / 3⌉ = 3000 blocks.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>If a B-tree and a B+-tree hold the same values, which one has more search values in its internal nodes, and why?</p>
+  <ol>
+    <li data-why="The internal nodes of a B-tree also carry data pointers; so fewer values fit in a node.">The B-tree, because all values are in internal nodes</li>
+    <li data-why="The number of values per node is not the same; data pointers take space.">Both the same, because their orders are the same</li>
+    <li data-why="Right: the internal nodes of a B+-tree have no data pointers, so more values fit in a node; the fan-out is larger and the tree flatter.">The B+-tree, because its internal nodes have no data pointers</li>
+    <li data-why="The internal nodes of a B+-tree also hold search values; they are repeated from the leaves for routing.">The internal nodes of a B+-tree hold no values at all</li>
+  </ol>
+  <div class="explain">With the same block size, more values fit in an internal node of a B+-tree, because no data pointer is kept next to each value. In the book's example the internal node order of the B+-tree is 34; under the same conditions the order of a B-tree is 23.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>Schedule: r1(X); w2(X); w1(X); c1; c2. Which edges are in the precedence graph?</p>
+  <ol>
+    <li data-why="w2(X) and w1(X) also conflict and give the edge T2 → T1.">Only T1 → T2</li>
+    <li data-why="Right: r1(X) – w2(X) gives T1 → T2, w2(X) – w1(X) gives T2 → T1; there is a cycle and the schedule is not serializable.">T1 → T2 and T2 → T1</li>
+    <li data-why="r1(X) comes before w2(X), so there is also the edge T1 → T2.">Only T2 → T1</li>
+    <li data-why="There are two conflicting pairs: one read-write and one write-write.">No edges</li>
+  </ol>
+  <div class="explain">r1(X) and w2(X) are a read-write conflict (T1 first: T1 → T2); w2(X) and w1(X) are a write-write conflict (T2 first: T2 → T1). With both directions the graph has a cycle.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>Which isolation level prevents dirty reads but allows nonrepeatable reads?</p>
+  <ol>
+    <li data-why="READ UNCOMMITTED allows dirty reads.">READ UNCOMMITTED</li>
+    <li data-why="REPEATABLE READ also prevents nonrepeatable reads.">REPEATABLE READ</li>
+    <li data-why="SERIALIZABLE prevents all three violations.">SERIALIZABLE</li>
+    <li data-why="Right: READ COMMITTED reads only committed values, but the same row can change between two reads.">READ COMMITTED</li>
+  </ol>
+  <div class="explain">By Table 20.1, READ COMMITTED prevents dirty reads; nonrepeatable reads and phantoms are still possible.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>In PHP, <code>while ($r = $q-&gt;fetchRow()) { print "$r[0] "; }</code>: how many times does the loop body run when the query returns 3 rows?</p>
+  <ol>
+    <li data-why="Right: fetchRow returns a row three times; on the fourth call it returns false and the loop ends.">3</li>
+    <li data-why="The fourth call returns false, so the body does not run a fourth time.">4</li>
+    <li data-why="fetchRow returns the next row on every call; the loop does not stop at the first row.">1</li>
+    <li data-why="fetchRow returns rows as long as the result has rows; the loop does not end immediately.">0</li>
+  </ol>
+  <div class="explain">fetchRow is called four times: the first three return a row each and the body runs; the fourth returns false and the while condition becomes false.</div>
+</div>
+
+</div></main>
+</body>
+</html>

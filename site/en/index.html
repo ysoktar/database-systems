@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Database Systems · BIL372 midterm study site</title>
-<meta name="description" content="An interactive study site for the BIL372/BIL071 Database Systems midterm: Elmasri &amp; Navathe Ch 1–7, ER/EER, the relational model, SQL; notebook exercises on MySQL running in the browser.">
+<title>Database Systems · BIL372 study site</title>
+<meta name="description" content="An interactive study site for BIL372/BIL071 Database Systems: Elmasri &amp; Navathe Ch 1–9, 11, 14, 16, 17, 20; ER/EER, the relational model, SQL, relational algebra, normalization, files, indexes, transactions; MySQL running in the browser and step-by-step players.">
 <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../css/style.css">
 <script src="../js/theme-init.js"></script>
@@ -15,13 +15,14 @@
 
 <section class="hero">
   <div>
-    <div class="kicker"><span>BIL372/BIL071 Database Systems · Fall 2026–2027 · Elmasri &amp; Navathe, 7th edition, Ch 1–7</span></div>
+    <div class="kicker"><span>BIL372/BIL071 Database Systems · Fall 2026–2027 · Elmasri &amp; Navathe, 7th edition, Ch 1–9, 11, 14, 16, 17, 20</span></div>
     <h1>Database Systems</h1>
-    <p class="question">How do we model a company's data, put it into tables, and query it with SQL?</p>
-    <p class="lead">Everything the midterm covers in one place: concepts, ER/EER modelling, the relational model and SQL. Every SQL box on these pages
-      is connected to <strong>a MySQL running in your browser</strong>: change the queries on the book's COMPANY database and run them right away.</p>
+    <p class="question">How do we model a company's data, put it into tables, query it, store it, and run it correctly for many users at the same time?</p>
+    <p class="lead">All the topics of the course in one place: concepts, ER/EER modelling, the relational model, SQL, relational algebra, mapping, normalization, files and indexes, transactions and PHP. Every SQL box on these pages
+      is connected to <strong>a MySQL running in your browser</strong>: change the queries on the book's COMPANY database and run them right away. Algorithms (mapping, normalization, B+-trees, precedence graphs and more) are shown with step-by-step players, each step before and after.</p>
     <div class="btn-row" style="margin-top:1rem">
-      <a class="btn primary" href="exam-midterm.html">Midterm guide →</a>
+      <a class="btn primary" href="exam-midterm.html">Guide: Ch 1–7 →</a>
+      <a class="btn primary" href="study-guide.html">Guide: Ch 8–20 →</a>
       <a class="btn" href="notebook.html">Notebook exercises</a>
       <a class="btn" href="er-studio.html">ER studio</a>
     </div>
@@ -39,6 +40,11 @@
   <li><strong>Requirements → conceptual schema (Ch 3–4).</strong> Sentences like "every employee works for a department" become an ER/EER diagram: entities, relationships, cardinality and participation constraints.</li>
   <li><strong>Conceptual schema → relational schema (Ch 5, the mapping in Ch 9).</strong> Entities and relationships become tables, keys become primary and foreign keys; integrity constraints protect the data.</li>
   <li><strong>Relational schema → SQL (Ch 6–7).</strong> <code>CREATE TABLE</code> defines the schema; <code>SELECT</code> queries it, <code>INSERT/UPDATE/DELETE</code> change it; views, triggers and assertions add further rules.</li>
+  <li><strong>The language behind the queries (Ch 8).</strong> Relational algebra shows how SQL queries are expressed and executed inside the DBMS.</li>
+  <li><strong>The quality of the design (Ch 14).</strong> Functional dependencies and normal forms measure whether tables contain repetition and anomalies; bad tables are decomposed without loss.</li>
+  <li><strong>From the application to the database (Ch 11).</strong> A web program builds SQL commands from the values of a form and shows the results to the user.</li>
+  <li><strong>Storing on disk and fast access (Ch 16–17).</strong> Records are placed in blocks; hash files and B+-tree indexes find a record with a few block reads.</li>
+  <li><strong>Many users at the same time (Ch 20).</strong> Transactions and serializable schedules keep concurrent updates from corrupting the data.</li>
   <li><strong>Underneath it all, the DBMS (Ch 1–2).</strong> The three-schema architecture and data independence keep programs safe from schema changes.</li>
 </ol>
 
@@ -66,7 +72,7 @@ LIMIT 3;
 </pre>
 
 <div class="callout note">
-  <p>This site is not official course material and does not replace the slides or the book. Scope: Ch 1–7. The checker of the notebook exercises uses the same fingerprints (hashes) as the notebook.</p>
+  <p>This site is not official course material and does not replace the slides or the book. Scope: Ch 1–9, 11, 14, 16, 17 and 20; if only part of a chapter is in the syllabus, the top of its page says which slides it covers. The checker of the notebook exercises uses the same fingerprints (hashes) as the notebook.</p>
 </div>
 
 </div></main>

@@ -28,6 +28,8 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
   kontrolcüsü `site/js/lib/sqlcore.js`'e taşındı). İpuçları, doğrulanmış çözümler ve alternatifler.
 - **Çalışma rehberi (Ch 1–7)**: bölüm bölüm bilinmesi gerekenler, çözümlü ER/kısıt/anahtar problemleri, otomatik kontrol
   edilen 8 SQL problemi, sık yapılan hatalar ve bütün sayfaların sorularından oluşan bir deneme seti.
+- **Çalışma rehberi (Ch 8–20)**: soru tiplerine yaklaşım, bölüm bölüm bilinmesi gerekenler, kavram soruları, çözümlü
+  problemler (cebir, eşleme, normalizasyon, indeks maliyeti, B+-ağacı, çizelgeler), sık yapılan hatalar ve deneme seti.
 - **ER stüdyosu**: ER/EER diyagramlarını sürükle-bırak ya da metinle çizme (iki görünüm eşitlenir; geri alma, otomatik
   yerleşim, 1/N ↔ (min,max) gösterimi, SVG/PNG ve paylaşım bağlantısı); diyagramı Ch 9 algoritmasıyla (adım 1–9,
   özelleştirme seçenekleri 8A–8D) adım adım tablolara dönüştürüp MySQL'de oluşturma; kendi `CREATE TABLE`'larınızı ER
