@@ -930,9 +930,17 @@ pre.algebra sub, .stepper-note sub { font-size: 0.72em; }
 .decide-q { font-weight: 600; margin: 0 0 8px; }
 .player .res-msg { font-family: inherit; font-size: 0.9rem; line-height: 1.5; }
 .pl-grid { grid-template-columns: minmax(0, 1fr); }
+/* wide screens: the diagram on the left, the change (rule, before/after) beside it */
+@media (min-width: 1000px) {
+  .pl-grid.side { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+  .pl-grid.side .pl-side .ba { grid-template-columns: minmax(0, 1fr); }
+  .pl-grid.side .pl-side .ba-arrow { justify-self: center; }
+  .pl-grid.side .pl-side .ba-arrow::after { content: "↓"; }
+  .pl-grid.side .pl-fig { position: sticky; top: 70px; }
+}
 @media (max-width: 860px) { .pl-grid { grid-template-columns: minmax(0, 1fr); } }
 .pl-grid > *, .decide-grid > * { min-width: 0; }
-.pl-fig svg, .decide-grid svg { max-width: 100%; height: auto; }
+.pl-fig svg, .decide-grid svg { max-width: 100%; min-width: 0; height: auto; }
 
 /* ---- Ch 16 simulators */
 .sim-field { display: inline-flex; align-items: center; gap: 4px; }
@@ -972,8 +980,8 @@ pre.algebra sub, .stepper-note sub { font-size: 0.72em; }
 .sim-table .frames { flex-wrap: nowrap; }
 /* zoomable ER diagrams: hover enlarges over the page, click opens full screen */
 .pl-fig { position: relative; }
-figure.er.zoomable { cursor: zoom-in; transition: transform 0.2s ease, box-shadow 0.2s ease; transform-origin: top center; background: var(--surface); }
-.pl-fig.zoomed figure.er.zoomable { position: relative; z-index: 30; transform: scale(1.25); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); }
+figure.er.zoomable { cursor: zoom-in; transition: transform 0.2s ease, box-shadow 0.2s ease; transform-origin: top left; background: var(--surface); }
+.pl-fig.zoomed figure.er.zoomable { position: relative; z-index: 30; transform: scale(1.6); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); }
 .decide-grid .pl-fig.zoomed figure.er.zoomable { transform: scale(1.8); }
 figure.er.zoomable:fullscreen, figure.er.zoomable.fs { cursor: zoom-out; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; margin: 0; transform: none; box-shadow: none; }
 figure.er.zoomable.fs { position: fixed; inset: 0; z-index: 1000; }
