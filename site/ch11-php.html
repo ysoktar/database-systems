@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PHP ile web veritabanı programlama · Veritabanı Sistemleri</title>
+<meta name="description" content="Elmasri & Navathe Ch 11: üç katmanlı web mimarisi, basit bir PHP örneği, değişkenler, stringler, diziler, fonksiyonlar, $_SERVER ve $_POST, PEAR DB ile veritabanına bağlanma, tablo oluşturma, placeholder'larla kayıt ekleme, fetchRow ve getAll ile sorgu sonuçları, diğer web teknikleri; istek oynatıcısı ve gerçek veritabanında çalışan örneklerle.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/pages/ch11-php.js"></script>
+</head>
+<body data-page="ch11-php">
+<main><div class="content">
+
+<h1>PHP ile web veritabanı programlama</h1>
+<p class="lead">Şimdiye kadar SQL'i doğrudan bir konsolda çalıştırdık. Gerçek uygulamalarda ise kullanıcı bir web sayfasındaki formu doldurur, sunucudaki bir program bu girdilerden SQL komutları oluşturup veritabanına gönderir ve sonuçları HTML olarak geri yollar. Bu sayfa, kitabın bu iş için kullandığı PHP dilini ve PEAR DB kütüphanesini anlatır.</p>
+
+<div class="callout goals">
+  <ul>
+    <li>Üç katmanlı web mimarisinde tarayıcının, PHP çalıştıran web sunucusunun ve DBMS'in rolünü bir istek üzerinde adım adım izleyebilmek.</li>
+    <li>PHP'nin değişkenlerini, string türlerini, dizilerini, fonksiyonlarını ve form değişkenlerini okuyup çıktısını söyleyebilmek.</li>
+    <li>PEAR DB ile veritabanına bağlanmayı, komut çalıştırmayı ve hataları ele almayı açıklayabilmek.</li>
+    <li>Placeholder'ların neden kullanıldığını açıklayabilmek; bir sorgu sonucunu fetchRow ve getAll ile dolaşabilmek.</li>
+  </ul>
+</div>
+
+<div class="callout note">
+  <p><strong>Kapsam.</strong> Müfredatta Ch 11 slaytlarının hepsi (1–35) bu sayfadadır. Kod örnekleri kitabın Figure 11.1–11.7'sine dayanır. Tarayıcıda PHP çalışmadığı için PHP kodları gösterilir; bu kodların veritabanına gönderdiği SQL komutları ise sayfadaki gerçek MySQL motorunda çalıştırılır.</p>
+</div>
+
+<h2>Web veritabanı programlama ve PHP</h2>
+<p>Web sayfalarına dinamik özellikler eklemek için çeşitli programlama teknikleri vardır. <strong>PHP</strong>, bunlardan en yaygın olanlardan biridir: açık kaynaklı, genel amaçlı bir betik (scripting) dilidir; yorumlayıcıları ücretsizdir ve neredeyse bütün platformlarda bulunur (UNIX sistemlerinde genellikle kurulu gelir).</p>
+<p>Kitabın örneklerindeki mimari üç katmanlıdır:</p>
+<ul>
+  <li><strong>İstemci katmanı</strong> (client tier): kullanıcının tarayıcısı. HTML sayfalarını gösterir ve formlara girilen değerleri sunucuya gönderir.</li>
+  <li><strong>Orta katman</strong> (middle tier): web sunucusu ve onun üzerinde çalışan PHP programları. Formdan gelen değerleri alır, veritabanına SQL komutları gönderir ve sonucu HTML'e dönüştürür.</li>
+  <li><strong>Alt katman</strong> (bottom tier): veritabanı sunucusu, yani DBMS. SQL komutlarını çalıştırır ve sonuçları PHP programına döndürür.</li>
+</ul>
+<p>Aşağıdaki oynatıcıda bir senaryo seçin ve isteği adım adım izleyin. Her adımda o anda çalışan katman vurgulanır; katmanlar arasında taşınan veri ile PHP değişkenlerinin ve üretilen çıktının önceki ve sonraki hâli yan yana görünür. Veritabanı senaryosundaki sorgu sayfanın MySQL motorunda gerçekten çalışır.</p>
+<div id="tier-player"></div>
+
+<h2>Basit bir PHP örneği</h2>
+<p>Kitaptaki Figure 11.1, kullanıcıdan adını isteyen ve sonra onu selamlayan bir PHP programıdır. Program <code>http://www.myserver.com/example/greeting.php</code> adresinde saklanır. Tarayıcı bu adresi istediğinde web sunucusu programı çalıştırır ve programın ürettiği HTML'i tarayıcıya gönderir.</p>
+<pre class="code-block"><code>&lt;?php
+// Kullanıcı adını formla gönderdiyse bir karşılama mesajı yaz
+if ($_POST['user_name']) {
+  print("Welcome, ");
+  print($_POST['user_name']);
+}
+else {
+  // Henüz ad girilmediyse adı girmek için formu yaz
+  print &lt;&lt;&lt;_HTML_
+  &lt;FORM method="post" action="$_SERVER['PHP_SELF']"&gt;
+  Enter your name: &lt;input type="text" name="user_name"&gt;
+  &lt;BR/&gt;
+  &lt;INPUT type="submit" value="SUBMIT NAME"&gt;
+  &lt;/FORM&gt;
+_HTML_;
+}
+?&gt;</code></pre>
+<p>Programın parçaları şunlardır. PHP kodu <code>&lt;?php</code> başlangıç etiketi ile <code>?&gt;</code> bitiş etiketi arasına yazılır; bunların dışında kalan metin olduğu gibi HTML olarak gönderilir. Yorumlar <code>//</code> ile satır sonuna kadar ya da <code>/* … */</code> arasında yazılır. <code>$_POST</code>, PHP'nin önceden tanımlı, her yerden erişilebilen (auto-global) bir değişkenidir: formun parametrelerine girilen bütün değerleri tutan bir dizidir; burada <code>$_POST['user_name']</code>, formdaki <code>user_name</code> alanının değeridir. PHP dizileri dinamiktir, yani çalışırken büyüyebilir. Uzun metinler, <code>&lt;&lt;&lt;_HTML_</code> ile açılıp <code>_HTML_;</code> ile kapanan bir <em>here document</em> içine yazılabilir. PHP değişken adları <code>$</code> işaretiyle başlar.</p>
+<p>Program ilk istendiğinde <code>$_POST['user_name']</code> boş olduğu için else kısmı çalışır ve form gösterilir (Figure 11.1b). Kullanıcı John Smith yazıp düğmeye bastığında form aynı programa gönderilir (<code>action="$_SERVER['PHP_SELF']"</code>); bu kez if kısmı çalışır ve "Welcome, John Smith" yazılır (Figure 11.1c–d). Oynatıcıdaki ilk senaryo tam olarak bu iki isteği gösterir.</p>
+
+<h2>Değişkenler, veri tipleri ve stringler</h2>
+<p>PHP değişken adları <code>$</code> ile başlar ve harf, rakam ve alt çizgi (_) içerebilir. Değişkenlerin tipi bildirilmez; değer atandığında belirlenir. Sayısal tipler tamsayılar ve kayan noktalı sayılardır. Programlama yapıları diğer dillerdekine benzer: for döngüleri, while döngüleri ve if koşulları. Boolean ifadelerde karşılaştırma operatörleri kullanılır: <code>==</code> (eşit), <code>!=</code> (eşit değil), <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code> ve <code>&lt;=</code>.</p>
+<p>Metinleri ifade etmenin üç ana yolu vardır, ve aralarındaki fark sınavlarda sık sorulur:</p>
+<ul>
+  <li><strong>Tek tırnaklı stringler</strong>: değişken içermeyen, olduğu gibi alınan (literal) metinlerdir. <code>'Hello $name'</code> yazarsanız çıktıda <code>$name</code> harfi harfine görünür.</li>
+  <li><strong>Çift tırnaklı stringler</strong> ve <strong>here document'lar</strong>: içlerindeki değişkenlerin değeri metne yerleştirilir (interpolation). <code>"Hello $name"</code>, <code>$name</code> John ise <code>Hello John</code> olur. Çift tırnak içinde <code>\n</code> gibi kaçış dizileri de yorumlanır.</li>
+  <li><strong>Nokta (.) operatörü</strong> stringleri birleştirir: <code>'Hello ' . $name</code>.</li>
+</ul>
+<p>Aşağıda <code>$name</code> değişkenine bir değer verin. Her satırın ne yazdıracağını önce kendiniz tahmin edin, sonra satıra tıklayarak çıktıyı görün; kitaptaki Figure 11.2'nin örneklerine dayanır.</p>
+<div id="php-strings"></div>
+
+<h2>Diziler</h2>
+<p>PHP dizileri sorgu sonuçlarını tutmak için çok uygundur: iki boyutlu bir dizide birinci boyut tablonun satırlarını, ikinci boyut bir satırın sütunlarını (özniteliklerini) temsil eder. İki ana dizi türü vardır:</p>
+<ul>
+  <li><strong>Sayısal dizi</strong> (numeric array): her elemana bir tamsayı indeksi karşılık gelir. İndeksler sıfırdan başlar ve birer birer artar.</li>
+  <li><strong>İlişkisel dizi</strong> (associative array): (anahtar =&gt; değer) çiftlerinden oluşur; elemanlara anahtarla erişilir.</li>
+</ul>
+<p>Dizileri dolaşmanın iki yolu vardır: <code>foreach ($dizi as $anahtar =&gt; $deger)</code> döngüsü ve indeksle çalışan bir for döngüsü. <code>count</code> fonksiyonu dizideki eleman sayısını verir; <code>sort</code> fonksiyonu diziyi eleman değerlerine göre sıralar. Aşağıdaki oynatıcı, kitaptaki Figure 11.3'ün komutlarını sırayla çalıştırır ve her komuttan sonra dizinin önceki ve sonraki hâlini gösterir. <code>sort</code>'un ilişkisel dizinin anahtarlarını sildiğine dikkat edin.</p>
+<div id="php-arrays"></div>
+
+<h2>Fonksiyonlar</h2>
+<p>Karmaşık bir programı düzenlemek ve ortak kod parçalarını paylaşmak için fonksiyonlar tanımlanır. Argümanlar değerle (by value) geçirilir: fonksiyon içinde argümana yapılan değişiklik çağıranın değişkenini etkilemez. Kitaptaki Figure 11.4, Figure 11.1'in programını iki fonksiyonla yeniden yazar; Figure 11.5 ise argüman alan ve değer döndüren bir fonksiyon gösterir:</p>
+<pre class="code-block"><code>function display_welcome() {
+  print("Welcome, ");
+  print($_POST['user_name']);
+}
+function display_empty_form() {
+  print &lt;&lt;&lt;_HTML_
+  &lt;FORM method="post" action="$_SERVER['PHP_SELF']"&gt;
+  Enter your name: &lt;INPUT type="text" name="user_name"&gt;
+  &lt;BR/&gt;
+  &lt;INPUT type="submit" value="Submit name"&gt;
+  &lt;/FORM&gt;
+_HTML_;
+}
+if ($_POST['user_name']) { display_welcome(); }
+else { display_empty_form(); }
+
+function course_instructor($course, $teaching_assignments) {
+  if (array_key_exists($course, $teaching_assignments)) {
+    $instructor = $teaching_assignments[$course];
+    RETURN "$instructor is teaching $course";
+  }
+  else {
+    RETURN "there is no $course course";
+  }
+}
+$teaching = array('Database' =&gt; 'Smith', 'OS' =&gt; 'Carrick', 'Graphics' =&gt; 'Kam');
+$teaching['Graphics'] = 'Benson'; $teaching['Data Mining'] = 'Kam';
+$x = course_instructor('Database', $teaching);  // "Smith is teaching Database"
+$x = course_instructor('Computer Architecture', $teaching);  // "there is no Computer Architecture course"</code></pre>
+
+<h2>Sunucu değişkenleri ve formlar</h2>
+<p><code>$_SERVER</code>, PHP yorumlayıcısının çalıştığı sunucu ve gelen istek hakkında bilgi veren, önceden tanımlı ve her yerden erişilebilen bir dizidir. Örnekler:</p>
+<ul>
+  <li><code>$_SERVER['SERVER_NAME']</code>: sunucunun adı, örneğin www.uta.edu.</li>
+  <li><code>$_SERVER['REMOTE_ADDR']</code>: isteği gönderen istemcinin IP adresi; <code>$_SERVER['REMOTE_HOST']</code>: istemcinin adı (slaytta REMOTE_ADDRESS olarak geçer).</li>
+  <li><code>$_SERVER['PATH_INFO']</code>: URL'nin program adından sonraki kısmı; <code>$_SERVER['QUERY_STRING']</code>: URL'deki ? işaretinden sonraki parametreler.</li>
+  <li><code>$_SERVER['DOCUMENT_ROOT']</code>: web sunucusunun dosyalarının bulunduğu kök dizin.</li>
+</ul>
+<p><code>$_POST</code> ise kullanıcının HTML formlarında <code>&lt;INPUT&gt;</code> etiketleriyle girdiği değerleri tutar; dizinin anahtarları INPUT etiketlerinin <code>name</code> öznitelikleridir.</p>
+
+<h2>PHP ile veritabanı programlama</h2>
+<p>Kitap, veritabanı erişimi için PHP Extension and Application Repository'nin (PEAR) bir parçası olan <strong>PEAR DB</strong> kütüphanesini kullanır. Önce <code>DB.php</code> kütüphane modülü yüklenir; kütüphanenin fonksiyonlarına <code>DB::&lt;fonksiyon_adı&gt;</code> biçiminde erişilir. Veritabanına bağlanmak için <code>DB::connect('string')</code> kullanılır; string'in biçimi <code>&lt;DBMS yazılımı&gt;://&lt;kullanıcı hesabı&gt;:&lt;parola&gt;@&lt;veritabanı sunucusu&gt;</code>'dur. Kitaptaki Figure 11.6 bağlanmayı, tablo oluşturmayı ve kayıt eklemeyi gösterir:</p>
+<pre class="code-block"><code>require 'DB.php';
+$d = DB::connect('oci8://acct1:pass12@www.host.com/db1');
+if (DB::isError($d)) { die("cannot connect - " . $d-&gt;getMessage()); }
+$q = $d-&gt;query("CREATE TABLE EMPLOYEE
+   (Emp_id INT,
+    Name VARCHAR(15),
+    Job VARCHAR(10),
+    Dno INT)");
+if (DB::isError($q)) { die("table creation not successful - " . $q-&gt;getMessage()); }
+$d-&gt;setErrorHandling(PEAR_ERROR_DIE);
+$eid = $d-&gt;nextID('EMPLOYEE');
+$q = $d-&gt;query("INSERT INTO EMPLOYEE VALUES
+   ($eid, $_POST['emp_name'], $_POST['emp_job'], $_POST['emp_dno'])");
+$eid = $d-&gt;nextID('EMPLOYEE');
+$q = $d-&gt;query('INSERT INTO EMPLOYEE VALUES (?, ?, ?, ?)',
+   array($eid, $_POST['emp_name'], $_POST['emp_job'], $_POST['emp_dno']));</code></pre>
+<p><code>oci8</code>, Oracle'a bağlanan sürücüdür; MySQL için <code>mysql</code> yazılır. <code>DB::connect</code> başarısız olursa bir hata nesnesi döner; <code>DB::isError</code> bunu kontrol eder ve <code>getMessage</code> hatanın metnini verir. <code>$d-&gt;query</code>, bir SQL komutunu string olarak alır ve çalıştırılmak üzere veritabanı sunucusuna gönderir. Her komuttan sonra hatayı tek tek kontrol etmek yerine <code>$d-&gt;setErrorHandling(PEAR_ERROR_DIE)</code> çağrılabilir: bundan sonraki herhangi bir hatada program sonlanır ve varsayılan hata mesajı yazılır.</p>
+<p>Aşağıdaki kutu, Figure 11.6'nın PHP'den veritabanına gönderdiği komutların karşılığıdır; bu sayfanın sonraki örnekleri bu tabloyu kullanır. (COMPANY'deki EMPLOYEE tablosuyla karışmaması için tablo demo veritabanında oluşturulur; çalışanlar COMPANY'nin çalışanlarıdır.)</p>
+<pre class="sql run" id="emp11-setup" data-title="Figure 11.6'nın gönderdiği komutlar: tabloyu oluştur ve kayıtları ekle">
+DROP TABLE IF EXISTS demo.EMPLOYEE;
+CREATE TABLE demo.EMPLOYEE (Emp_id INT, Name VARCHAR(20), Job VARCHAR(10), Dno INT);
+INSERT INTO demo.EMPLOYEE VALUES
+  (1, 'John Smith', 'Engineer', 5), (2, 'Franklin Wong', 'Manager', 5), (3, 'Alicia Zelaya', 'Secretary', 4),
+  (4, 'Jennifer Wallace', 'Manager', 4), (5, 'Ramesh Narayan', 'Engineer', 5), (6, 'Joyce English', 'Secretary', 5),
+  (7, 'Ahmad Jabbar', 'Engineer', 4), (8, 'James Borg', 'Manager', 1);
+SELECT * FROM demo.EMPLOYEE;
+</pre>
+
+<h2>Formdan veri toplama ve kayıt ekleme</h2>
+<p>Web uygulamalarında eklenecek kaydın bilgileri genellikle bir HTML formundan toplanır. Her yeni kayda benzersiz bir tanımlayıcı vermek için PEAR DB'nin <code>$d-&gt;nextID</code> fonksiyonu kullanılır: belirli bir tablo için benzersiz değerlerden oluşan bir dizi (sequence) üretir. Figure 11.6'daki iki INSERT arasındaki fark önemlidir. Birincisi formdan gelen değerleri doğrudan SQL metninin içine yerleştirir. İkincisi <strong>placeholder</strong> kullanır: SQL metninde değerlerin yerine <code>?</code> yazılır ve değerler ayrı bir dizi olarak verilir; kütüphane her değeri doğru biçimde tırnaklayıp kaçış karakterleriyle güvenli hâle getirerek yerine koyar.</p>
+<p>Bunun neden önemli olduğunu aşağıdaki laboratuvarda görebilirsiniz. Formun alanlarına değer girin: sol tarafta değerler SQL metnine string birleştirmeyle, sağ tarafta placeholder'larla konur ve iki sorgu da gerçekten çalıştırılır. Önce normal bir değer deneyin, sonra "Saldırgan girdi" düğmesine basın. Birleştirmeyle oluşturulan sorgu, kullanıcının yazdığı tırnak işareti yüzünden anlamını değiştirir ve bütün kayıtları döndürür; bu saldırıya <strong>SQL injection</strong> denir. Placeholder'lı sorgu ise girdiyi yalnızca bir değer olarak görür.</p>
+<div id="placeholder-lab"></div>
+
+<h2>Sorgu sonuçlarını almak</h2>
+<p>Bir SELECT sorgusunun sonucu <code>$q</code> gibi bir değişkende tutulur. <code>$q-&gt;fetchRow()</code>, sonucun bir sonraki satırını döndürür ve satır kalmadığında boş (false) döner; bu yüzden genellikle bir while döngüsünün koşulunda kullanılır. Dönen satır bir dizidir: <code>$r[0]</code> ilk sütun, <code>$r[1]</code> ikinci sütundur. Bunun yerine <code>$allresult = $d-&gt;getAll(sorgu)</code> ile sonucun bütün satırları tek bir değişkende, iki boyutlu bir dizi olarak alınabilir ve bir foreach döngüsüyle dolaşılabilir. Kitaptaki Figure 11.7:</p>
+<pre class="code-block"><code>$q = $d-&gt;query('SELECT Name, Dno FROM EMPLOYEE');
+while ($r = $q-&gt;fetchRow()) {
+  print "employee $r[0] works for department $r[1] \n";
+}
+$q = $d-&gt;query('SELECT Name FROM EMPLOYEE WHERE Job = ? AND Dno = ?',
+   array($_POST['emp_job'], $_POST['emp_dno']));
+print "employees in dept $_POST['emp_dno'] whose job is $_POST['emp_job']: \n";
+while ($r = $q-&gt;fetchRow()) {
+  print " $r[0] \n";
+}
+$allresult = $d-&gt;getAll('SELECT Name, Job, Dno FROM EMPLOYEE');
+foreach ($allresult as $r) {
+  print " $r[0] $r[1] $r[2] \n";
+}</code></pre>
+<p>Aşağıdaki oynatıcı bu döngüleri adım adım çalıştırır. Sorgu sayfanın MySQL motorunda çalışır ve sonucun satırları alınır. Her adımda <code>fetchRow()</code>'un döndürdüğü satır, <code>$r</code> değişkeninin önceki ve sonraki hâli ve programın o ana kadar ürettiği çıktı görünür. Satırlar bitince <code>fetchRow()</code> false döner ve döngü biter.</p>
+<div id="fetch-loop"></div>
+
+<h2>Diğer teknikler</h2>
+<p>PHP sunucuda çalışır ve istemciye HTML gönderir. Web veritabanı programlama için başka birçok dil ve teknoloji de vardır:</p>
+<ul>
+  <li><strong>Java servlet'leri</strong>: sunucuda çalışan ve istemciyle etkileşen Java nesneleridir; bir etkileşim oturumu (session) boyunca bilgi saklayabilirler.</li>
+  <li><strong>Java Server Pages (JSP)</strong>: sunucuda betiklerle dinamik web sayfaları oluşturup istemciye gönderir; PHP'ye biraz benzer.</li>
+  <li><strong>JavaScript</strong>: istemcide (tarayıcıda) ya da sunucuda çalışabilen bir betik dilidir. Bu sitedeki etkileşimli araçların hepsi JavaScript ile yazılmıştır.</li>
+  <li><strong>JSON</strong> (JavaScript Object Notation): nesnelerin metin tabanlı gösterimidir; XML'e benzer bir işlev görür ve birçok NoSQL sisteminde kullanılır. Örneğin bir çalışan <code>{"Name": "John Smith", "Job": "Engineer", "Dno": 5}</code> olarak yazılabilir.</li>
+</ul>
+
+<h2>Kendinizi sınayın</h2>
+<div class="quiz" data-answer="2">
+  <p><code>$name = 'John';</code> ise <code>print 'Hello $name';</code> ne yazdırır?</p>
+  <ol>
+    <li data-why="Değişkenin değeri yalnızca çift tırnaklı stringlere ve here document'lara yerleştirilir.">Hello John</li>
+    <li data-why="Doğru: tek tırnaklı stringler olduğu gibi (literal) alınır; $name harfi harfine yazılır.">Hello $name</li>
+    <li data-why="Tek tırnak bir hata değildir; PHP'de geçerli bir string türüdür.">Bir sözdizimi hatası</li>
+    <li data-why="Değişken boş değil; ama tek tırnak içinde zaten yorumlanmaz.">Hello</li>
+  </ol>
+  <div class="explain">Tek tırnaklı stringlerde değişkenler yorumlanmaz. <code>"Hello $name"</code> (çift tırnak) ya da <code>'Hello ' . $name</code> (birleştirme) <code>Hello John</code> yazdırırdı. String örneklerinde bunu deneyebilirsiniz.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>Üç katmanlı mimaride PHP programı hangi katmanda çalışır?</p>
+  <ol>
+    <li data-why="İstemci katmanı tarayıcıdır; PHP tarayıcıda değil sunucuda çalışır.">İstemci katmanı</li>
+    <li data-why="Alt katman DBMS'tir; PHP veritabanına SQL komutları gönderir ama onun içinde çalışmaz.">Alt katman</li>
+    <li data-why="Doğru: PHP, orta katmandaki web sunucusunda çalışır; formdan gelen değerleri alır, DBMS'e SQL gönderir ve HTML üretir.">Orta katman</li>
+    <li data-why="PHP tek bir katmanda, web sunucusunda çalışır.">Her üç katmanda</li>
+  </ol>
+  <div class="explain">Tarayıcı istemci katmanı, PHP çalıştıran web sunucusu orta katman, DBMS alt katmandır. İstek oynatıcısında her adımda hangi katmanın çalıştığını görebilirsiniz.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>Bir sorguda kullanıcı girdisi için neden placeholder (?) kullanılmalıdır?</p>
+  <ol>
+    <li data-why="Doğru: değerler SQL metnine eklenmez, kütüphane onları güvenli biçimde tırnaklar; kullanıcının yazdığı tırnak işaretleri sorgunun anlamını değiştiremez.">Girdi yalnızca bir değer olarak kullanılır; sorgunun yapısını değiştiremez (SQL injection önlenir).</li>
+    <li data-why="Placeholder'lar sorguyu hızlandırmak için değil, değerleri güvenli ve doğru biçimde yerleştirmek için kullanılır.">Sorgu her zaman daha hızlı çalışır.</li>
+    <li data-why="Placeholder'lar bir tablo ya da sütun adının yerine değil, yalnızca değerlerin yerine kullanılır.">Tablo adını çalışırken değiştirmeye yarar.</li>
+    <li data-why="Benzersiz tanımlayıcıları nextID üretir; placeholder'larla ilgisi yoktur.">Her kayda benzersiz bir anahtar verir.</li>
+  </ol>
+  <div class="explain">Değerleri SQL metnine string birleştirmeyle eklemek, kullanıcının yazdığı bir tırnak işaretinin sorgunun geri kalanını değiştirmesine izin verir. Placeholder'larda kütüphane değeri kendisi tırnaklar ve kaçış karakterleri ekler. Placeholder laboratuvarında "Saldırgan girdi" ile iki durumu karşılaştırabilirsiniz.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p><code>while ($r = $q-&gt;fetchRow())</code> döngüsü ne zaman biter?</p>
+  <ol>
+    <li data-why="Döngü belirli bir sayıda değil, sonuç satırları bitene kadar döner.">On satırdan sonra</li>
+    <li data-why="fetchRow her çağrıda bir sonraki satırı verir; ilk satırdan sonra durmaz.">İlk satır okununca</li>
+    <li data-why="Bir sorgu hatası setErrorHandling(PEAR_ERROR_DIE) ile programı sonlandırır; döngünün normal bitişi bu değildir.">Yalnızca bir hata oluşunca</li>
+    <li data-why="Doğru: satır kalmadığında fetchRow false döner, atama false olur ve while koşulu sağlanmaz.">Sonuçta satır kalmayınca fetchRow false döndüğünde</li>
+  </ol>
+  <div class="explain">fetchRow her çağrıda sonucun bir sonraki satırını bir dizi olarak döndürür. Satırlar bitince false döner; atamanın değeri false olduğu için while döngüsü biter. fetchRow oynatıcısının son adımı tam olarak budur.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p><code>$teaching = array('Database' =&gt; 'Smith', 'OS' =&gt; 'Carrick');</code> için <code>sort($teaching);</code> çalıştıktan sonra <code>$teaching['Database']</code> neyi verir?</p>
+  <ol>
+    <li data-why="sort ilişkisel dizinin anahtarlarını korumaz; Database anahtarı artık yoktur.">'Smith'</li>
+    <li data-why="Doğru: sort değerleri sıralar ve diziyi 0, 1, … indeksleriyle yeniden kurar; 'Database' anahtarı kaybolur.">Hiçbir şey: anahtar artık yok</li>
+    <li data-why="sort değerleri sıralar: Carrick Smith'ten önce gelir, ama 0 indeksine yerleşir, Database anahtarına değil.">'Carrick'</li>
+    <li data-why="sort ilişkisel dizilerde de çalışır; ama anahtarları siler.">Bir hata, çünkü sort ilişkisel dizide çalışmaz</li>
+  </ol>
+  <div class="explain">sort, değerleri sıralar ve diziye 0'dan başlayan sayısal indeksler verir; ilişkisel dizinin anahtarları kaybolur. Anahtarları korumak için asort, anahtarlara göre sıralamak için ksort kullanılır. Dizi oynatıcısında sort adımının önceki ve sonraki hâlini görebilirsiniz.</div>
+</div>
+
+</div></main>
+</body>
+</html>

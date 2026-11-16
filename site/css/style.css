@@ -1079,3 +1079,24 @@ table.bitmap tr.result td.b1 { background: var(--ok-wash); color: var(--good-tex
 .st-edge.on { stroke: var(--accent); stroke-width: 2.8; }
 .st-head { fill: var(--text-2); }
 .st-lbl { font-size: 11px; fill: var(--muted); text-anchor: middle; font-family: var(--font); }
+
+/* ---- Ch 11: code blocks, tiers, PHP output */
+pre.code-block { font-family: var(--mono); font-size: 0.82rem; line-height: 1.5; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; overflow-x: auto; margin: 0.6rem 0 1rem; white-space: pre; }
+pre.code-block.small-code { font-size: 0.78rem; margin: 4px 0 8px; padding: 6px 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tiers { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: center; margin-bottom: 10px; }
+.tier { border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px 8px; text-align: center; background: var(--surface-2); font-size: 0.85rem; font-weight: 650; color: var(--text-2); }
+.tier.peer { border-color: var(--accent); }
+.tier.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tier-arrow { color: var(--muted); font-size: 1.2rem; font-weight: 700; }
+.tier-arrow.on { color: var(--accent); }
+@media (max-width: 600px) { .tiers { grid-template-columns: minmax(0, 1fr); } .tier-arrow { transform: rotate(90deg); justify-self: center; } }
+.php-line { cursor: pointer; margin-bottom: 6px; }
+.php-out { padding: 2px 4px 6px; }
+.php-out code { background: var(--ok-wash); padding: 1px 6px; border-radius: 4px; font-family: var(--mono); }
+.php-out.hidden { display: none; }
+.php-line:has(.php-out.hidden) pre.code-block::after { content: "  ← ?"; color: var(--accent); font-weight: 700; }
+table.php-arr td { font-family: var(--mono); font-size: 0.8rem; }
+table.php-arr tr.new td { background: var(--accent-wash); font-weight: 700; }
+.ph-ba { align-items: start; }
+table.rel tr.keep td { background: var(--accent-wash); font-weight: 650; }
+table.rel tr.dim td { color: var(--muted); }
