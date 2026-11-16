@@ -1050,3 +1050,32 @@ table.bitmap td.b0 { color: var(--muted); }
 table.bitmap tr.used td.b1 { background: var(--accent-wash); }
 table.bitmap tr.result th, table.bitmap tr.result td { border-top: 2px solid var(--text-2); }
 table.bitmap tr.result td.b1 { background: var(--ok-wash); color: var(--good-text); }
+
+/* ---- Ch 20: schedules, precedence graphs, state diagram */
+.tx-sched td, .tx-sched th { font-family: var(--mono); font-size: 0.8rem; padding: 3px 10px; }
+.tx-sched tr.cur td { background: var(--accent-wash); font-weight: 700; }
+.tx-sched tr.done td { color: var(--text-2); }
+.tx-vals { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.tx-val { font-family: var(--mono); font-size: 0.8rem; padding: 1px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); }
+.tx-val.new { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.tx-inline { font-family: var(--mono); font-size: 0.85rem; background: var(--surface-2); padding: 6px 10px; border-radius: 6px; white-space: pre-wrap; }
+.pg-wrap { max-width: 260px; }
+.pg-svg { display: block; width: 100%; height: auto; }
+.pg-node circle { fill: var(--surface); stroke: var(--text-2); stroke-width: 1.5; }
+.pg-node text { font-family: var(--mono); font-size: 13px; font-weight: 700; fill: var(--text); text-anchor: middle; dominant-baseline: middle; }
+.pg-edge { stroke: var(--text-2); stroke-width: 1.5; }
+.pg-edge.new { stroke: var(--accent); stroke-width: 2.6; }
+.pg-edge.cyc { stroke: var(--critical); stroke-width: 2.6; }
+.pg-head { fill: var(--text-2); } .pg-head.new { fill: var(--accent); } .pg-head.cyc { fill: var(--critical); }
+.pg-lbl { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); text-anchor: middle; }
+.pg-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; align-items: start; }
+@media (max-width: 760px) { .pg-grid { grid-template-columns: minmax(0, 1fr); } }
+.st-svg { display: block; width: 100%; max-width: 780px; height: auto; }
+.st-node rect { fill: var(--surface); stroke: var(--text-2); stroke-width: 1.4; }
+.st-node.seen rect { fill: var(--surface-2); }
+.st-node.cur rect { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 2.6; }
+.st-node text { font-size: 13px; font-weight: 650; fill: var(--text); text-anchor: middle; dominant-baseline: middle; font-family: var(--font); }
+.st-edge { stroke: var(--text-2); stroke-width: 1.4; fill: none; }
+.st-edge.on { stroke: var(--accent); stroke-width: 2.8; }
+.st-head { fill: var(--text-2); }
+.st-lbl { font-size: 11px; fill: var(--muted); text-anchor: middle; font-family: var(--font); }
