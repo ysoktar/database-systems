@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Veritabanı Sistemleri · BIL372 arasınav çalışma sitesi</title>
-<meta name="description" content="BIL372/BIL071 Veritabanı Sistemleri arasınavı için etkileşimli çalışma sitesi: Elmasri & Navathe Ch 1–7, ER/EER, ilişkisel model, SQL; tarayıcıda çalışan MySQL ile notebook alıştırmaları.">
+<title>Veritabanı Sistemleri · BIL372 çalışma sitesi</title>
+<meta name="description" content="BIL372/BIL071 Veritabanı Sistemleri için etkileşimli çalışma sitesi: Elmasri & Navathe Ch 1–9, 11, 14, 16, 17, 20; ER/EER, ilişkisel model, SQL, ilişkisel cebir, normalizasyon, dosyalar, indeksler, transaction'lar; tarayıcıda çalışan MySQL ve adım adım oynatıcılar.">
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
@@ -15,13 +15,14 @@
 
 <section class="hero">
   <div>
-    <div class="kicker"><span>BIL372/BIL071 Veritabanı Sistemleri · 2026–2027 Güz · Elmasri &amp; Navathe, 7. baskı, Ch 1–7</span></div>
+    <div class="kicker"><span>BIL372/BIL071 Veritabanı Sistemleri · 2026–2027 Güz · Elmasri &amp; Navathe, 7. baskı, Ch 1–9, 11, 14, 16, 17, 20</span></div>
     <h1>Veritabanı Sistemleri</h1>
-    <p class="question">Bir şirketin verisini nasıl modelleriz, tablolara nasıl dökeriz, SQL ile nasıl sorgularız?</p>
-    <p class="lead">Arasınavın tüm kapsamı tek yerde: kavramlar, ER/EER modelleme, ilişkisel model ve SQL. Sayfalardaki her SQL kutusu
-      <strong>tarayıcınızda çalışan bir MySQL</strong>'e bağlı: kitabın COMPANY veritabanı üzerinde sorguları değiştirip hemen çalıştırabilirsiniz.</p>
+    <p class="question">Bir şirketin verisini nasıl modelleriz, tablolara nasıl dökeriz, nasıl sorgularız, nasıl saklarız ve aynı anda birçok kullanıcıya nasıl doğru çalıştırırız?</p>
+    <p class="lead">Dersin bütün konuları tek yerde: kavramlar, ER/EER modelleme, ilişkisel model, SQL, ilişkisel cebir, eşleme, normalizasyon, dosyalar ve indeksler, transaction'lar ve PHP. Sayfalardaki her SQL kutusu
+      <strong>tarayıcınızda çalışan bir MySQL</strong>'e bağlı: kitabın COMPANY veritabanı üzerinde sorguları değiştirip hemen çalıştırabilirsiniz. Algoritmalar (eşleme, normalizasyon, B+-ağacı, öncelik grafı ve diğerleri) adım adım oynatıcılarla, her adımın önceki ve sonraki hâliyle gösterilir.</p>
     <div class="btn-row" style="margin-top:1rem">
-      <a class="btn primary" href="exam-midterm.html">Arasınav rehberi →</a>
+      <a class="btn primary" href="exam-midterm.html">Rehber: Ch 1–7 →</a>
+      <a class="btn primary" href="study-guide.html">Rehber: Ch 8–20 →</a>
       <a class="btn" href="notebook.html">Notebook alıştırmaları</a>
       <a class="btn" href="er-studio.html">ER stüdyosu</a>
     </div>
@@ -39,6 +40,11 @@
   <li><strong>Gereksinimler → kavramsal şema (Ch 3–4).</strong> "Her çalışan bir departmanda çalışır" gibi cümleler ER/EER diyagramına dönüşür: varlıklar, ilişkiler, kardinalite ve katılım kısıtları.</li>
   <li><strong>Kavramsal şema → ilişkisel şema (Ch 5, eşleme Ch 9'da).</strong> Varlıklar ve ilişkiler tablolara, anahtarlar primary key ve foreign key'lere dönüşür; bütünlük kısıtları veriyi korur.</li>
   <li><strong>İlişkisel şema → SQL (Ch 6–7).</strong> <code>CREATE TABLE</code> şemayı tanımlar; <code>SELECT</code> sorgular, <code>INSERT/UPDATE/DELETE</code> günceller; view, trigger ve assertion ek kurallar ekler.</li>
+  <li><strong>Sorguların arkasındaki dil (Ch 8).</strong> İlişkisel cebir, SQL sorgularının DBMS içinde nasıl ifade edilip çalıştırıldığını gösterir.</li>
+  <li><strong>Tasarımın kalitesi (Ch 14).</strong> Fonksiyonel bağımlılıklar ve normal formlar, tabloların tekrar ve anomali içerip içermediğini ölçer; kötü tablolar kayıpsız biçimde ayrıştırılır.</li>
+  <li><strong>Uygulamadan veritabanına (Ch 11).</strong> Bir web programı formdan aldığı değerlerle SQL komutları oluşturur ve sonuçları kullanıcıya gösterir.</li>
+  <li><strong>Diskte saklama ve hızlı erişim (Ch 16–17).</strong> Kayıtlar bloklara yerleşir; hash dosyaları ve B+-ağacı indeksleri bir kaydı birkaç blok okumayla bulur.</li>
+  <li><strong>Aynı anda birçok kullanıcı (Ch 20).</strong> Transaction'lar ve serileştirilebilir çizelgeler, eşzamanlı güncellemelerin veriyi bozmamasını sağlar.</li>
   <li><strong>Hepsinin altında DBMS (Ch 1–2).</strong> Üç-şema mimarisi ve veri bağımsızlığı, programların şema değişikliklerinden etkilenmemesini sağlar.</li>
 </ol>
 
@@ -66,7 +72,7 @@ LIMIT 3;
 </pre>
 
 <div class="callout note">
-  <p>Bu site resmî ders materyali değildir; ders slaytlarının ve kitabın yerini tutmaz. Kapsam: Ch 1–7. Notebook alıştırmalarının kontrolcüsü notebook'takiyle aynı parmak izlerini (hash) kullanır.</p>
+  <p>Bu site resmî ders materyali değildir; ders slaytlarının ve kitabın yerini tutmaz. Kapsam: Ch 1–9, 11, 14, 16, 17 ve 20; bir bölümün müfredatta yalnızca bir kısmı varsa, sayfanın başında hangi slaytları kapsadığı yazar. Notebook alıştırmalarının kontrolcüsü notebook'takiyle aynı parmak izlerini (hash) kullanır.</p>
 </div>
 
 </div></main>
