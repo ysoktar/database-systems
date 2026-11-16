@@ -30,9 +30,8 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
   edilen 8 SQL problemi, sık yapılan hatalar ve bütün sayfaların sorularından oluşan bir deneme seti.
 - **Bütün konuların rehberi (Ch 1–20)**: kapsam haritası, çalışma planı, gereksinimden ER'e, eşlemeye, normalizasyona,
   SQL'e, cebire, indeks seçimine ve transaction'a uzanan uçtan uca bir çözümlü problem (SQL kısımları çalıştırılabilir) ve
-  bütün bölümleri karıştıran bir deneme seti.
-- **Çalışma rehberi (Ch 8–20)**: soru tiplerine yaklaşım, bölüm bölüm bilinmesi gerekenler, kavram soruları, çözümlü
-  problemler (cebir, eşleme, normalizasyon, indeks maliyeti, B+-ağacı, çizelgeler), sık yapılan hatalar ve deneme seti.
+  bütün bölümleri karıştıran bir deneme seti; Ch 8–20 için soru tiplerine yaklaşım, bölüm bölüm bilinmesi gerekenler,
+  kavram soruları, çözümlü problemler (cebir, eşleme, normalizasyon, indeks maliyeti, B+-ağacı, çizelgeler) ve hatalar.
 - **ER stüdyosu**: ER/EER diyagramlarını sürükle-bırak ya da metinle çizme (iki görünüm eşitlenir; geri alma, otomatik
   yerleşim, 1/N ↔ (min,max) gösterimi, SVG/PNG ve paylaşım bağlantısı); diyagramı Ch 9 algoritmasıyla (adım 1–9,
   özelleştirme seçenekleri 8A–8D) adım adım tablolara dönüştürüp MySQL'de oluşturma; kendi `CREATE TABLE`'larınızı ER
