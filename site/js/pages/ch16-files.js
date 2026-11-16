@@ -209,3 +209,62 @@ const frameRow = (cells, { hit = null, inserted = null, evicted = null, hand = n
   $("#raid").append(h("div", { class: "player" }, seg, out));
   draw();
 }
+
+// ---------------------------------------------------------------- you decide (files, buffers, hashing, RAID)
+import { decidePlayer, calcSteps } from "../lib/decide.js";
+{
+  const host = $("#files-decide");
+  // the buffer contents after each request (LRU or FIFO), for the worked solutions
+  const simulate = (reqs, n, strat) => {
+    let frames = [], last = {}, rows = [];
+    reqs.forEach((p, t) => {
+      const before = frames.join(", ") || "—";
+      let what;
+      if (frames.includes(p)) { last[p] = t; what = tl(`${p} tamponda: isabet`, `${p} is in the buffer: a hit`); }
+      else if (frames.length < n) { frames.push(p); last[p] = t; what = tl(`${p} boş tampona okunur`, `${p} is read into a free frame`); }
+      else {
+        const victim = strat === "LRU" ? frames.reduce((a, b) => (last[a] <= last[b] ? a : b)) : frames[0];
+        frames = frames.filter((x) => x !== victim); frames.push(p); last[p] = t;
+        what = tl(`${victim} çıkarılır (${strat === "LRU" ? "en uzun süredir kullanılmayan" : "en önce giren"}), ${p} okunur`, `${victim} is evicted (${strat === "LRU" ? "least recently used" : "first in"}), ${p} is read`);
+      }
+      rows.push([tl(`İstek ${t + 1}: ${p}`, `Request ${t + 1}: ${p}`), tl(`Önce [${before}] → sonra [${frames.join(", ")}]. ${what}.`, `Before [${before}] → after [${frames.join(", ")}]. ${what}.`)]);
+    });
+    return calcSteps(rows);
+  };
+  if (host) decidePlayer(host, [
+    { q: tl("B = 4096 byte, R = 150 byte, r = 20 000 kayıt, unspanned. Dosya kaç blok tutar?", "B = 4096 bytes, R = 150 bytes, r = 20,000 records, unspanned. How many blocks does the file take?"),
+      opts: [["741", true, tl("Doğru. bfr = ⌊4096 / 150⌋ = 27; b = ⌈20 000 / 27⌉ = 741.", "Right. bfr = ⌊4096 / 150⌋ = 27; b = ⌈20,000 / 27⌉ = 741.")],
+        ["733", false, tl("733, r · R / B'nin yukarı yuvarlanmasıdır; blokların sonunda kalan boş alanı yok sayar.", "733 is r · R / B rounded up; it ignores the free space left at the end of blocks.")],
+        ["740", false, tl("Blok sayısı aşağı değil yukarı yuvarlanır: son 20 kayıt için de bir blok gerekir.", "The number of blocks is rounded up, not down: the last 20 records need a block too.")]],
+      detail: () => calcSteps([[tl("1. Blocking factor", "1. Blocking factor"), tl("bfr = ⌊B / R⌋ = ⌊4096 / 150⌋ = ⌊27,3⌋ = 27 kayıt/blok; her blokta 4096 − 27 · 150 = 46 byte boş kalır.", "bfr = ⌊B / R⌋ = ⌊4096 / 150⌋ = ⌊27.3⌋ = 27 records per block; each block leaves 4096 − 27 · 150 = 46 bytes free.")],
+        [tl("2. Blok sayısı", "2. Number of blocks"), tl("b = ⌈r / bfr⌉ = ⌈20 000 / 27⌉ = ⌈740,7⌉ = 741 blok.", "b = ⌈r / bfr⌉ = ⌈20,000 / 27⌉ = ⌈740.7⌉ = 741 blocks.")]]) },
+    { q: tl("741 bloklu bir heap dosyasında, dosyada olmayan bir anahtarı aramak kaç blok okur? Aynı dosya anahtara göre sıralı olsaydı?", "In a heap file of 741 blocks, how many blocks does searching for a key that is not in the file read? And if the file were sorted on the key?"),
+      opts: [[tl("741 ve 10", "741 and 10"), true, tl("Doğru. Heap'te kaydın olmadığını anlamak için bütün bloklar okunur; sıralı dosyada ikili arama ⌈log₂ 741⌉ = 10 blok okur.", "Right. In a heap all blocks are read to know the record is absent; in a sorted file binary search reads ⌈log₂ 741⌉ = 10 blocks.")],
+        [tl("371 ve 10", "371 and 10"), false, tl("371 (b/2), var olan bir kaydın ortalama maliyetidir; olmayan bir kayıt için dosyanın sonuna kadar gidilir.", "371 (b/2) is the average cost for a record that exists; for a missing record the whole file is read.")],
+        [tl("741 ve 1", "741 and 1"), false, tl("Tek blok okuma hash dosyasının maliyetidir; sıralı dosyada ikili arama yapılır.", "A single block read is the cost of a hash file; a sorted file uses binary search.")]],
+      detail: () => calcSteps([[tl("Heap", "Heap"), tl("Kayıtlar sırasız olduğu için 741 bloğun hepsi okunur; ancak sonunda kaydın olmadığı anlaşılır.", "Records are unordered, so all 741 blocks are read; only at the end is it known that the record is absent.")],
+        [tl("Sıralı dosya", "Sorted file"), tl("İkili arama her okumada aralığı yarıya indirir: 2⁹ = 512 < 741 ≤ 1024 = 2¹⁰, yani ⌈log₂ 741⌉ = 10 blok.", "Binary search halves the range at each read: 2⁹ = 512 < 741 ≤ 1024 = 2¹⁰, so ⌈log₂ 741⌉ = 10 blocks.")]]) },
+    { q: tl("3 tamponlu LRU ile istekler 1, 2, 3, 1, 4. Dördüncü sayfa (4) geldiğinde hangi sayfa çıkarılır?", "With 3 frames and LRU the requests are 1, 2, 3, 1, 4. When page 4 arrives, which page is evicted?"),
+      opts: [["1", false, tl("1 az önce (4. istekte) kullanıldı; en yakın zamanda kullanılan sayfadır.", "1 was just used (request 4); it is the most recently used page.")],
+        ["2", true, tl("Doğru. Son kullanımlar: 1 → 4. istek, 2 → 2. istek, 3 → 3. istek. En uzun süredir kullanılmayan 2'dir.", "Right. Last uses: 1 → request 4, 2 → request 2, 3 → request 3. The least recently used is 2.")],
+        ["3", false, tl("3, 2'den daha yakın zamanda kullanıldı.", "3 was used more recently than 2.")]],
+      detail: () => simulate(["1", "2", "3", "1", "4"], 3, "LRU") },
+    { q: tl("Aynı istekler (1, 2, 3, 1, 4) FIFO ile çalışırsa 4 geldiğinde hangi sayfa çıkarılır?", "If the same requests (1, 2, 3, 1, 4) run with FIFO, which page is evicted when 4 arrives?"),
+      opts: [["1", true, tl("Doğru. FIFO tampona en önce gireni çıkarır; 1'in yeniden kullanılması sırasını değiştirmez.", "Right. FIFO evicts the page that entered first; reusing 1 does not change its place.")],
+        ["2", false, tl("2 kullanım zamanına göre seçilirdi (LRU); FIFO giriş sırasına bakar.", "2 would be chosen by last use (LRU); FIFO looks at the order of entry.")],
+        ["3", false, tl("3 en son giren sayfadır.", "3 is the page that entered last.")]],
+      detail: () => simulate(["1", "2", "3", "1", "4"], 3, "FIFO") },
+    { q: tl("h(K) = K mod 4 ve kova kapasitesi 2. Anahtarlar 4, 8, 12 sırayla eklenir. 12 nereye yazılır ve onu bulmak kaç blok okur?", "h(K) = K mod 4 and bucket capacity 2. The keys 4, 8, 12 are inserted in order. Where does 12 go and how many block reads does finding it take?"),
+      opts: [[tl("Kova 0'a; 1 blok", "Bucket 0; 1 block"), false, tl("Kova 0'da yalnızca iki yer var ve 4 ile 8 onları doldurdu.", "Bucket 0 has only two places and 4 and 8 filled them.")],
+        [tl("Kova 0'ın taşma zincirine; 2 blok", "Bucket 0's overflow chain; 2 blocks"), true, tl("Doğru. 4, 8 ve 12'nin hepsi 0'a düşer; kova dolu olduğu için 12 taşma zincirine gider ve onu bulmak için kova ile taşma bloğu okunur.", "Right. 4, 8 and 12 all hash to 0; the bucket is full, so 12 goes to the overflow chain and finding it reads the bucket and the overflow block.")],
+        [tl("Kova 3'e; 1 blok", "Bucket 3; 1 block"), false, tl("12 mod 4 = 0'dır; statik hashing boş bir kovaya kaydırmaz.", "12 mod 4 = 0; static hashing does not move it to an empty bucket.")]],
+      detail: () => calcSteps([["4", tl("h(4) = 0 → kova 0: önce [–, –], sonra [4, –].", "h(4) = 0 → bucket 0: before [–, –], after [4, –].")], ["8", tl("h(8) = 0 → kova 0: önce [4, –], sonra [4, 8].", "h(8) = 0 → bucket 0: before [4, –], after [4, 8].")],
+        ["12", tl("h(12) = 0 → kova 0 dolu: önce [4, 8], sonra [4, 8] ↳ [12]. Arama: kova bloğu + taşma bloğu = 2 okuma.", "h(12) = 0 → bucket 0 is full: before [4, 8], after [4, 8] ↳ [12]. Search: bucket block + overflow block = 2 reads.")]]) },
+    { q: tl("4 diskli bir RAID 5 dizisinde kapasitenin ne kadarı veriye ayrılır ve kaç disk bozulmasına dayanır?", "In a RAID 5 array of 4 disks, how much of the capacity holds data and how many disk failures does it survive?"),
+      opts: [[tl("%75; bir disk", "75%; one disk"), true, tl("Doğru. Her şeritte 4 bloktan 1'i eşliktir; tek bir disk bozulursa blokları eşlikten yeniden hesaplanır.", "Right. In each stripe 1 of 4 blocks is parity; if one disk fails its blocks are recomputed from parity.")],
+        [tl("%50; bir disk", "50%; one disk"), false, tl("%50 aynalamadır (RAID 1).", "50% is mirroring (RAID 1).")],
+        [tl("%75; iki disk", "75%; two disks"), false, tl("İki disk bozulmasına dayanmak için iki fazlalık bloğu gerekir: RAID 6.", "Surviving two failures needs two redundancy blocks: RAID 6.")]],
+      detail: () => calcSteps([[tl("Yerleşim", "Layout"), tl("Her şeritte 3 veri bloğu ve 1 eşlik bloğu vardır; eşlik blokları diskler arasında dönüşümlü dağılır.", "Each stripe has 3 data blocks and 1 parity block; the parity blocks rotate across the disks.")],
+        [tl("Kapasite", "Capacity"), tl("3 / 4 = %75. Sayfadaki RAID şeklinde bir diske tıklayarak bozulmayı deneyebilirsiniz.", "3 / 4 = 75%. You can try a failure by clicking a disk in the RAID figure on the page.")]]) },
+  ]);
+}

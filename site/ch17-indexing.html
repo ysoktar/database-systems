@@ -125,6 +125,10 @@ INSERT INTO demo.EMP_IDX VALUES ('999999999', 'Ann', 'Smith', 5);
 </ul>
 <p>İndekslemeyle ilgili tasarım kararları şunlardır: bir öznitelik indekslenmeli mi (anahtarsa ya da bir sorgu onu kullanıyorsa evet); hangi öznitelik ya da öznitelikler üzerinde indeks kurulmalı (tek ya da çok öznitelikli); kümeleme indeksi kurulmalı mı (tablo başına yalnızca bir tane olabilir); ağaç yerine hash indeksi mi kullanılmalı (hash indeksi aralık sorgularını desteklemez); dinamik hashing kullanılmalı mı (çok sık değişen dosyalar için uygundur).</p>
 
+<h2>Sen karar ver</h2>
+<p>Bu sorularda indeks türünü, indeks maliyetini ve B+-ağacına eklemeyi siz belirliyorsunuz. Her cevaptan sonra seçeneklerin açıklaması ve adım adım çözüm görünür; B+-ağacı sorularında ağacın eklemeden önceki ve sonraki hâli çizilir. "Cevabı sıfırla" ile soruyu yeniden deneyebilirsiniz.</p>
+<div id="index-decide"></div>
+
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="2">
   <p>Veri dosyası Ssn'e göre sıralı ve Ssn bir anahtar. Ssn üzerine kurulan indeks hangi türdendir ve kaç giriş içerir?</p>
