@@ -55,6 +55,7 @@ export const NAV = [
   ] },
   { part: "Sınav", part_en: "Exam", items: [
     { id: "exam-midterm", title: "Arasınav çalışma rehberi", title_en: "Midterm study guide", desc_en: "What to know chapter by chapter, worked problems, a practice set.", desc: "Bölüm bölüm bilinmesi gerekenler, çözümlü sorular, deneme seti." },
+    { id: "exam-final", title: "Final çalışma rehberi", title_en: "Final exam study guide", desc_en: "All topics: a scope map, a study plan, an end-to-end worked problem from requirements to transactions, a mixed practice set.", desc: "Bütün konular: kapsam haritası, çalışma planı, gereksinimden transaction'a uçtan uca çözümlü problem, karışık deneme seti." },
     { id: "study-guide", title: "Çalışma rehberi: Ch 8–20", title_en: "Study guide: Ch 8–20", desc_en: "Algebra, mapping, normalization, files and indexes, transactions, PHP: what to know, worked problems, a practice set.", desc: "Cebir, eşleme, normalizasyon, dosyalar ve indeksler, transaction'lar, PHP: bilinmesi gerekenler, çözümlü problemler, deneme seti." },
     { id: "cheatsheet", title: "Özet kâğıdı ve sözlük", title_en: "Cheat sheet and glossary", desc_en: "SQL syntax, ER notation, Turkish–English terms.", desc: "SQL sözdizimi, ER gösterimi, Türkçe–İngilizce terimler." },
   ] },

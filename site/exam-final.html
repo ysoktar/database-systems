@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Final çalışma rehberi · Veritabanı Sistemleri</title>
+<meta name="description" content="Bütün konuları (Elmasri & Navathe Ch 1–9, 11, 14, 16, 17, 20) kapsayan final çalışma rehberi: kapsam haritası, çalışma planı, soru tiplerine yaklaşım, gereksinimden transaction'a uçtan uca çözümlü bir problem ve bütün bölümleri karıştıran bir deneme seti.">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
+<script type="module" src="js/layout.js"></script>
+</head>
+<body data-page="exam-final">
+<main><div class="content">
+
+<h1>Final çalışma rehberi</h1>
+<p class="lead">Finalde dersin bütün konuları çıkar: arasınavın konuları (Ch 1–7) ve sonrasındakiler (Ch 8, 9, 11, 14, 16, 17, 20). Bu sayfa iki yarıyı birbirine bağlar: hangi konunun nerede anlatıldığını, nasıl bir sırayla çalışabileceğinizi ve konuların tek bir problemde nasıl bir araya geldiğini gösterir. Ayrıntılı listeler ve problemler için <a href="exam-midterm.html">arasınav rehberine (Ch 1–7)</a> ve <a href="study-guide.html">Ch 8–20 rehberine</a> bağlantı verir.</p>
+
+<div class="callout key">
+  <p>Finalde konular çoğu zaman tek bir senaryoda birleşir: bir gereksinim metninden ER diyagramı çizip tablolara eşlemek, tabloların normal formunu kontrol etmek, SQL ve ilişkisel cebirle sorgu yazmak, hangi indeksin uygun olduğuna karar vermek ve eşzamanlı işlemlerin doğruluğunu tartışmak. Aşağıdaki <a href="#end-to-end">uçtan uca problem</a> tam olarak böyle bir sorudur.</p>
+</div>
+
+<h2>Kapsam haritası</h2>
+<table class="simple">
+  <thead><tr><th>Konu</th><th>Bölümler</th><th>Sayfalar</th><th>Rehber</th></tr></thead>
+  <tbody>
+    <tr><td>Temel kavramlar ve mimari</td><td>Ch 1–2</td><td><a href="ch1-intro.html">Veritabanı ve DBMS</a>, <a href="ch2-architecture.html">Mimari</a></td><td><a href="exam-midterm.html">Ch 1–7</a></td></tr>
+    <tr><td>Kavramsal modelleme</td><td>Ch 3–4</td><td><a href="ch3-er.html">ER modeli</a>, <a href="ch4-eer.html">EER modeli</a>, <a href="er-studio.html">ER stüdyosu</a></td><td><a href="exam-midterm.html">Ch 1–7</a></td></tr>
+    <tr><td>İlişkisel model ve kısıtlar</td><td>Ch 5</td><td><a href="ch5-relational.html">İlişkisel model</a></td><td><a href="exam-midterm.html">Ch 1–7</a></td></tr>
+    <tr><td>SQL</td><td>Ch 6–7</td><td><a href="ch6-sql.html">Temel SQL</a>, <a href="ch7-nested.html">NULL ve iç içe</a>, <a href="ch7-joins.html">Join ve gruplama</a>, <a href="ch7-views.html">Trigger ve view</a>, <a href="notebook.html">Notebook</a></td><td><a href="exam-midterm.html">Ch 1–7</a></td></tr>
+    <tr><td>İlişkisel cebir</td><td>Ch 8</td><td><a href="ch8-algebra.html">İlişkisel cebir</a></td><td><a href="study-guide.html">Ch 8–20</a></td></tr>
+    <tr><td>Tasarım: eşleme ve normalizasyon</td><td>Ch 9, 14</td><td><a href="ch9-mapping.html">ER'den tablolara eşleme</a>, <a href="ch14-normalization.html">Normalizasyon</a></td><td><a href="study-guide.html">Ch 8–20</a></td></tr>
+    <tr><td>Depolama ve indeksleme</td><td>Ch 16–17</td><td><a href="ch16-files.html">Disk depolama ve dosyalar</a>, <a href="ch17-indexing.html">İndeks yapıları</a></td><td><a href="study-guide.html">Ch 8–20</a></td></tr>
+    <tr><td>Programlama ve transaction'lar</td><td>Ch 11, 20</td><td><a href="ch11-php.html">PHP</a>, <a href="ch20-transactions.html">Transaction işleme</a></td><td><a href="study-guide.html">Ch 8–20</a></td></tr>
+  </tbody>
+</table>
+
+<h2>Çalışma planı</h2>
+<p>Konular birbirinin üzerine kurulduğu için aşağıdaki sıra önerilir. Her adımda önce sayfayı okuyun, sonra oradaki oynatıcıyı ya da SQL kutularını kendiniz kullanın, en sonda sayfanın sınamalarını çözün.</p>
+<ol>
+  <li><strong>Kavramlar (Ch 1–2):</strong> tanımlar, üç-şema mimarisi, veri bağımsızlığı. Kısa cevaplı sorulara hazırlanmak için arasınav rehberinin kavram sorularını cevaplayın.</li>
+  <li><strong>ER ve EER (Ch 3–4):</strong> gereksinimden diyagram çizmeyi <a href="er-studio.html">ER stüdyosunda</a> en az iki alıştırmayla tekrar edin.</li>
+  <li><strong>Eşleme (Ch 9):</strong> hemen ardından, çizdiğiniz diyagramları tablolara dönüştürün. <a href="ch9-mapping.html">Adım adım oynatıcı</a> Adım 1–9'u tek şemada gösterir.</li>
+  <li><strong>İlişkisel model ve kısıtlar (Ch 5):</strong> anahtarlar ve hangi işlemin hangi kısıtı ihlal ettiği.</li>
+  <li><strong>Normalizasyon (Ch 14):</strong> anahtar bulma, normal formlar ve ayrıştırma. Eşlemeden sonra çalışmak iyi olur, çünkü iyi bir eşleme genellikle zaten 3NF tablolar üretir.</li>
+  <li><strong>SQL (Ch 6–7) ve ilişkisel cebir (Ch 8):</strong> aynı soruları iki dilde yazın. Notebook alıştırmalarını sitenin MySQL'ine kontrol ettirin, sonra aynı sorguların cebir karşılığını yazın.</li>
+  <li><strong>PHP (Ch 11):</strong> kod okuma, string türleri, fetchRow döngüsü ve placeholder'lar.</li>
+  <li><strong>Dosyalar ve indeksler (Ch 16–17):</strong> blok ve indeks maliyeti hesaplarını ve B+-ağacına eklemeyi kâğıt üzerinde çözün, oynatıcılarla kontrol edin.</li>
+  <li><strong>Transaction'lar (Ch 20):</strong> eşzamanlılık sorunları, ACID, çizelgelerin kurtarılabilirliği ve serileştirilebilirliği.</li>
+  <li><strong>Karışık tekrar:</strong> <a href="#end-to-end">uçtan uca problemi</a> ve <a href="#practice">karışık deneme setini</a> çözün; yanlış yaptığınız konuya dönün.</li>
+</ol>
+
+<h2>Soru tiplerine yaklaşım</h2>
+<p>Her soru tipinin adım adım yöntemi iki rehberde ayrıntılı olarak anlatılıyor. Aşağıdaki tablo hangi tipin nerede olduğunu gösterir.</p>
+<table class="simple">
+  <thead><tr><th>Soru tipi</th><th>Nerede?</th></tr></thead>
+  <tbody>
+    <tr><td>Gereksinimden ER/EER çizmek</td><td><a href="exam-midterm.html#approach">Arasınav rehberi: soru tipleri</a></td></tr>
+    <tr><td>Bir işlemin hangi kısıtı ihlal ettiği</td><td><a href="exam-midterm.html#approach">Arasınav rehberi: soru tipleri</a></td></tr>
+    <tr><td>Anahtar bulmak (gereksinimden)</td><td><a href="exam-midterm.html#approach">Arasınav rehberi: soru tipleri</a></td></tr>
+    <tr><td>SQL yazmak</td><td><a href="exam-midterm.html#approach">Arasınav rehberi: soru tipleri</a></td></tr>
+    <tr><td>İlişkisel cebirle sorgu yazmak</td><td><a href="study-guide.html#approach">Ch 8–20 rehberi: soru tipleri</a></td></tr>
+    <tr><td>ER/EER şemasını tablolara eşlemek</td><td><a href="study-guide.html#approach">Ch 8–20 rehberi: soru tipleri</a></td></tr>
+    <tr><td>Anahtar ve normal form bulmak, ayrıştırmak (FD'lerden)</td><td><a href="study-guide.html#approach">Ch 8–20 rehberi: soru tipleri</a></td></tr>
+    <tr><td>Blok ve indeks maliyeti hesaplamak</td><td><a href="study-guide.html#approach">Ch 8–20 rehberi: soru tipleri</a></td></tr>
+    <tr><td>B+-ağacına değer eklemek</td><td><a href="study-guide.html#approach">Ch 8–20 rehberi: soru tipleri</a></td></tr>
+    <tr><td>Bir çizelgeyi sınıflandırmak</td><td><a href="study-guide.html#approach">Ch 8–20 rehberi: soru tipleri</a></td></tr>
+    <tr><td>PHP kodu okumak</td><td><a href="study-guide.html#approach">Ch 8–20 rehberi: soru tipleri</a></td></tr>
+  </tbody>
+</table>
+
+<h2 id="end-to-end">Uçtan uca çözümlü problem: kütüphane</h2>
+<div class="callout example" data-label="Gereksinimler">
+  <ul>
+    <li>Kütüphanenin <strong>üyeleri</strong> üye numarası (benzersiz), ad ve bir ya da daha çok telefonla tutulur.</li>
+    <li>Her <strong>kitabın</strong> benzersiz bir ISBN'i, adı ve yayınevi vardır.</li>
+    <li>Bir kitabın birden çok <strong>kopyası</strong> olabilir. Kopyalar kitap içinde numaralanır (1, 2, …): aynı kopya numarası farklı kitaplarda kullanılır. Her kopyanın bir raf kodu vardır.</li>
+    <li>Bir kopya aynı anda en fazla bir üyeye <strong>ödünç</strong> verilir; bir üye birçok kopya alabilir. Ödünçte bir iade tarihi tutulur.</li>
+  </ul>
+</div>
+
+<h3>(a) ER diyagramı (Ch 3)</h3>
+<p>Varlıkları, ilişkileri, kısıtları ve anahtarları belirleyin.</p>
+<div class="hint" data-label="Cevabı göster">
+  <ul>
+    <li>MEMBER(<u>Mid</u>, Name, {Phones}): Phones çok değerli.</li>
+    <li>BOOK(<u>Isbn</u>, Title, Publisher).</li>
+    <li>BOOK_COPY zayıf bir varlıktır: kopya numarası yalnızca kitabın içinde tekildir. Partial key Copy_no, sahibi BOOK; tanımlayıcı ilişki HAS_COPY (BOOK 1, BOOK_COPY N, BOOK_COPY tarafı total). Shelf bir özniteliktir.</li>
+    <li>LOAN: MEMBER (1) ile BOOK_COPY (N) arasında bir ilişki; Due_date ilişkinin özniteliğidir. Bir kopya ödünçte olmayabilir, bir üyenin ödüncü olmayabilir: iki taraf da partial.</li>
+  </ul>
+  <p>Bu diyagramı <a href="er-studio.html">ER stüdyosunda</a> çizip bir sonraki adımı orada otomatik olarak da görebilirsiniz.</p>
+</div>
+
+<h3>(b) Tablolara eşleme (Ch 9)</h3>
+<div class="hint" data-label="Cevabı göster">
+  <ul>
+    <li>Adım 1: MEMBER(<u>Mid</u>, Name), BOOK(<u>Isbn</u>, Title, Publisher).</li>
+    <li>Adım 2: BOOK_COPY(<u>Isbn, Copy_no</u>, Shelf): Isbn, BOOK'a foreign key'dir ve sahip silinince kopyalar da silinmelidir (ON DELETE CASCADE).</li>
+    <li>Adım 4: LOAN 1:N olduğu için foreign key N tarafına, BOOK_COPY'ye gider ve ilişkinin özniteliği de onunla gelir: BOOK_COPY(<u>Isbn, Copy_no</u>, Shelf, Mid, Due_date); Mid, MEMBER'a foreign key'dir ve ödünçte olmayan kopyalarda NULL'dur.</li>
+    <li>Adım 6: MEMBER_PHONES(<u>Mid, Phone</u>).</li>
+  </ul>
+  <p>Aşağıdaki kutu bu tabloları örnek verilerle oluşturur; sonraki kutular bu tabloları kullanır.</p>
+</div>
+<pre class="sql run" id="final-lib" data-title="Kütüphane tabloları (eşlemenin sonucu) ve örnek veri">
+DROP TABLE IF EXISTS demo.BOOK_COPY;
+DROP TABLE IF EXISTS demo.BOOK;
+DROP TABLE IF EXISTS demo.MEMBER;
+CREATE TABLE demo.MEMBER (Mid INT PRIMARY KEY, Name VARCHAR(20) NOT NULL);
+CREATE TABLE demo.BOOK (Isbn CHAR(4) PRIMARY KEY, Title VARCHAR(30), Publisher VARCHAR(20));
+CREATE TABLE demo.BOOK_COPY (
+  Isbn     CHAR(4),
+  Copy_no  INT,
+  Shelf    VARCHAR(5),
+  Mid      INT,
+  Due_date DATE,
+  PRIMARY KEY (Isbn, Copy_no),
+  FOREIGN KEY (Isbn) REFERENCES demo.BOOK (Isbn) ON DELETE CASCADE,
+  FOREIGN KEY (Mid) REFERENCES demo.MEMBER (Mid));
+INSERT INTO demo.MEMBER VALUES (1, 'Ayse'), (2, 'Mehmet'), (3, 'Elif');
+INSERT INTO demo.BOOK VALUES ('B001', 'Database Systems', 'Pearson'), ('B002', 'Operating Systems', 'Wiley'), ('B003', 'Algorithms', 'MIT Press');
+INSERT INTO demo.BOOK_COPY VALUES ('B001', 1, 'A1', 1, '2026-12-01'), ('B001', 2, 'A1', 2, '2026-12-03'),
+  ('B002', 1, 'B2', 1, '2026-12-05'), ('B003', 1, 'C3', NULL, NULL), ('B003', 2, 'C3', 1, '2026-12-10');
+SELECT * FROM demo.BOOK_COPY;
+</pre>
+
+<h3>(c) Kısıt ihlali (Ch 5)</h3>
+<p><code>INSERT INTO BOOK_COPY VALUES ('B009', 1, 'Z9', NULL, NULL);</code> hangi kısıtı ihlal eder?</p>
+<div class="hint" data-label="Cevabı göster">
+  <p>BOOK'ta 'B009' ISBN'li bir kitap yok: Isbn foreign key'i referans verilen tabloda bulunmadığı için <strong>referential integrity</strong> ihlal edilir ve DBMS eklemeyi reddeder. Primary key (B009, 1) NULL değil ve tekil olduğu için entity ve key kısıtları sağlanır; Mid'in NULL olması da geçerlidir, çünkü foreign key NULL olabilir. Aşağıdaki kutu bu hatayı gösterir (MySQL hata kodu 1452).</p>
+</div>
+<pre class="sql run" data-setup="final-lib" data-expect-error data-title="Referential integrity ihlali: var olmayan bir kitabın kopyası">
+INSERT INTO demo.BOOK_COPY VALUES ('B009', 1, 'Z9', NULL, NULL);
+</pre>
+
+<h3>(d) SQL (Ch 6–7)</h3>
+<p>(1) En az iki kopya ödünç almış üyelerin adlarını ve ödünç sayılarını yazın. (2) Bütün kopyaları ödünçte olan kitapların adlarını yazın.</p>
+<div class="hint" data-label="Cevabı göster">
+  <p>(1) "Her üye için sayı" GROUP BY, "en az iki" grup koşulu olduğu için HAVING demektir. (2) "Bütün kopyaları ödünçte", "ödünçte olmayan kopyası yok" demektir: NOT EXISTS.</p>
+</div>
+<pre class="sql run" data-setup="final-lib" data-title="Ödünç sayıları ve bütün kopyaları ödünçte olan kitaplar">
+SELECT   M.Name, COUNT(*) AS Loans
+FROM     demo.MEMBER M JOIN demo.BOOK_COPY C ON C.Mid = M.Mid
+GROUP BY M.Mid, M.Name
+HAVING   COUNT(*) >= 2;
+
+SELECT B.Title
+FROM   demo.BOOK B
+WHERE  NOT EXISTS (SELECT * FROM demo.BOOK_COPY C
+                   WHERE C.Isbn = B.Isbn AND C.Mid IS NULL);
+</pre>
+
+<h3>(e) İlişkisel cebir (Ch 8)</h3>
+<p>Ayşe'nin ödünç aldığı kitapların adlarını ve her üyenin ödünç sayısını ilişkisel cebirle yazın.</p>
+<div class="hint" data-label="Cevabı göster">
+  <pre class="algebra">AYSE ← σ<sub>Name='Ayse'</sub>(MEMBER)
+AYSE_ISBNS ← π<sub>Isbn</sub>(BOOK_COPY ⋈<sub>BOOK_COPY.Mid=MEMBER.Mid</sub> AYSE)
+RESULT ← π<sub>Title</sub>(AYSE_ISBNS * BOOK)
+
+COUNTS ← <sub>Mid</sub>ℑ<sub>COUNT Copy_no</sub>(σ<sub>Mid IS NOT NULL</sub>(BOOK_COPY))</pre>
+  <p>Ayşe'nin kitapları Database Systems, Operating Systems ve Algorithms'tir. Gruplama işleminin solundaki öznitelik (Mid) grupları, sağındaki fonksiyon her grup için hesaplanan değeri verir.</p>
+</div>
+
+<h3>(f) Normalizasyon (Ch 14)</h3>
+<p>Bir geliştirici eşleme yapmadan tek bir tablo kullanıyor: LOAN_INFO(Mid, Isbn, Copy_no, Name, Title, Due_date). FD'ler: Mid → Name; Isbn → Title; {Isbn, Copy_no} → Mid, Due_date. Anahtarı, normal formu ve BCNF'e ayrıştırmayı bulun.</p>
+<div class="hint" data-label="Cevabı göster">
+  <p><strong>Anahtar:</strong> Isbn ve Copy_no hiçbir sağ tarafta yok. {Isbn, Copy_no}⁺: Isbn → Title ile Title, {Isbn, Copy_no} → Mid, Due_date ile Mid ve Due_date, Mid → Name ile Name eklenir; bütün öznitelikler. Aday anahtar {Isbn, Copy_no}.</p>
+  <p><strong>Normal form:</strong> Isbn → Title kısmi bağımlılıktır (Isbn anahtarın parçası, Title asal değil): ilişki 1NF'tedir. Mid → Name ise geçişlidir ({Isbn, Copy_no} → Mid → Name).</p>
+  <p><strong>Ayrıştırma:</strong> önce {Isbn, Title} (2NF), sonra {Mid, Name} (3NF) ayrılır; kalan {Isbn, Copy_no, Mid, Due_date}'tir. Üçü de BCNF'tedir, ayrıştırma kayıpsızdır ve bütün bağımlılıklar korunur. Sonuç (b)'deki eşlemeyle aynı tablolardır: BOOK'un bir parçası, MEMBER ve BOOK_COPY. İyi bir ER tasarımı ve doğru bir eşleme normal tablolar üretir.</p>
+</div>
+
+<h3>(g) İndeks seçimi ve maliyet (Ch 16–17)</h3>
+<p>BOOK_COPY tablosunda 120 000 satır var, satır boyutu 100 byte ve blok boyutu 4096 byte. Dosya {Isbn, Copy_no}'ya göre sıralı. "Bir üyenin ödünç aldığı kopyalar" sorgusu çok sık çalışıyor. Hangi indeksi önerirsiniz, ve Mid üzerindeki yoğun bir ikincil indeks (V = 4 byte, P = 6 byte) tek seviyeli ve çok seviyeli olarak kaç blok okur?</p>
+<div class="hint" data-label="Cevabı göster">
+  <p>Dosya {Isbn, Copy_no}'ya göre sıralı olduğu için Mid üzerinde birincil ya da kümeleme indeksi kurulamaz; Mid üzerinde bir <strong>ikincil indeks</strong> (uygulamada bir B+-ağacı) gerekir. Sorgu eşitlik araması olduğu için hash indeksi de olabilirdi, ama B+-ağacı aralık sorgularını da destekler.</p>
+  <p>Hesap: bfr = ⌊4096 / 100⌋ = 40, b = ⌈120 000 / 40⌉ = 3000 blok. İndeks girişi 10 byte, fo = ⌊4096 / 10⌋ = 409. Yoğun indeksin 120 000 girişi ⌈120 000 / 409⌉ = 294 blok tutar; tek seviyeli arama ⌈log₂ 294⌉ + 1 = 9 + 1 = 10 blok okur. Çok seviyeli hâlinde seviyeler 294 → 1 bloktur: t = 2, arama 3 blok okur (Mid tekil olmadığı için her ek eşleşen kopya en fazla bir blok daha okur). İndeks olmasaydı bütün dosya, 3000 blok taranırdı.</p>
+</div>
+
+<h3>(h) Transaction (Ch 20)</h3>
+<p>İki görevli aynı kopyayı aynı anda farklı üyelere vermeye çalışıyor. Her biri kopyanın Mid değerini okuyor, NULL olduğunu görüyor ve kendi üyesini yazıyor: r1(C); r2(C); w1(C); w2(C); c1; c2. Ne olur? Çizelge serileştirilebilir mi?</p>
+<div class="hint" data-label="Cevabı göster">
+  <p>Bu bir <strong>kayıp güncellemedir</strong>: iki görevli de kopyayı boş gördü, T2'nin yazması T1'inkini ezdi ve birinci üyeye verilen kopya sistemde kayboldu. r1(C) ile w2(C) T1 → T2, r2(C) ile w1(C) T2 → T1 kenarı verir: grafta döngü vardır, çizelge serileştirilebilir değildir. Çizelge kurtarılabilirdir (kimse commit olmamış bir değeri okumuyor), ama doğru değildir. DBMS bunu eşzamanlılık kontrolüyle (Ch 21'deki kilitleme protokolleri) ve uygun bir izolasyon seviyesiyle önler. Çizelgeyi <a href="ch20-transactions.html">çizelge analizcisinde</a> deneyebilirsiniz.</p>
+</div>
+
+<h2>Bütün dönemin en sık yapılan hataları</h2>
+<ul>
+  <li><strong>SQL'de "her" sorusunu join ile çözmek.</strong> "Her" bölme ya da çift NOT EXISTS ister; cebirde de aynı kural geçerlidir.</li>
+  <li><strong>= NULL yazmak.</strong> NULL ile karşılaştırma UNKNOWN verir; IS NULL kullanılır.</li>
+  <li><strong>WHERE ile HAVING'i karıştırmak.</strong> Aggregate içeren koşul gruplamadan sonra, HAVING'de yazılır.</li>
+  <li><strong>Zayıf varlığın primary key'ini yalnızca partial key sanmak.</strong> Sahibin anahtarı ile partial key birlikte primary key'dir; bu hem ER'de hem eşlemede sorulur.</li>
+  <li><strong>1:N'de foreign key'i 1 tarafına, M:N'yi tek bir foreign key ile eşlemek.</strong></li>
+  <li><strong>Asal öznitelikleri bütün aday anahtarları bulmadan belirlemek.</strong></li>
+  <li><strong>bfr'yi yukarı, blok sayısını aşağı yuvarlamak.</strong> Doğrusu tam tersidir.</li>
+  <li><strong>Serileştirilebilir ile seri olmayı karıştırmak; iki okumayı çakışma saymak.</strong></li>
+</ul>
+<p>Bölümlere göre ayrıntılı listeler <a href="exam-midterm.html#mistakes">arasınav rehberinde</a> ve <a href="study-guide.html#mistakes">Ch 8–20 rehberinde</a>.</p>
+
+<h2 id="practice">Karışık deneme seti</h2>
+<p>Sorular bütün bölümlerden karışık sıradadır, finaldeki gibi. Bölümlere göre ayrılmış setler için <a href="exam-midterm.html#practice">arasınav rehberinin deneme setine</a> ve <a href="study-guide.html#practice">Ch 8–20 rehberinin deneme setine</a> bakın.</p>
+<div class="quiz" data-answer="2">
+  <p>(Ch 2) Bir tabloya yeni bir sütun eklendiğinde, bu sütunu kullanmayan uygulama programlarının değiştirilmesi gerekmiyorsa hangi bağımsızlık sağlanmıştır?</p>
+  <ol>
+    <li data-why="Fiziksel bağımsızlık, iç şemadaki (dosya yapısı, indeks) değişikliklerin kavramsal şemayı etkilememesidir.">Fiziksel veri bağımsızlığı</li>
+    <li data-why="Doğru: kavramsal şema değişti (yeni sütun), ama dış şemalar ve programlar etkilenmedi.">Mantıksal veri bağımsızlığı</li>
+    <li data-why="Program-veri bağımsızlığı genel bir ilkedir; burada sorulan, üç-şema mimarisindeki seviyedir.">Program-işlem bağımsızlığı</li>
+    <li data-why="Bu bir bağımsızlık türü değildir.">Görünüm bağımsızlığı</li>
+  </ol>
+  <div class="explain">Kavramsal şemadaki bir değişikliğin dış şemaları etkilememesi mantıksal veri bağımsızlığıdır. Bir indeks eklemek ya da dosyayı yeniden düzenlemek ise fiziksel bağımsızlığın örneğidir; bu ikinci tür Ch 17'deki indekslerle de ilgilidir.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>(Ch 3 ve 9) Bir M:N ilişkinin özniteliği (örneğin WORKS_ON'daki Hours) tablolara nasıl yansır?</p>
+  <ol>
+    <li data-why="EMPLOYEE'deki bir sütun her çalışan için tek bir değer tutar; bir çalışanın her projede farklı saati vardır.">EMPLOYEE tablosuna bir sütun olarak</li>
+    <li data-why="Aynı sorun öbür taraf için de geçerlidir.">PROJECT tablosuna bir sütun olarak</li>
+    <li data-why="Doğru: Hours bir (çalışan, proje) çiftine aittir; bu yüzden ilişki tablosu WORKS_ON(Essn, Pno, Hours)'da durur.">İlişki için oluşturulan yeni tabloda</li>
+    <li data-why="İlişki öznitelikleri kaybolmaz; eşleme her özniteliği bir tabloya koyar.">Hiçbir tabloya, çünkü ilişki öznitelikleri saklanmaz</li>
+  </ol>
+  <div class="explain">M:N ilişki her zaman yeni bir tablo olur ve ilişkinin öznitelikleri o tabloya eklenir. Ch 3'te bu öznitelik ancak 1:1 ve 1:N ilişkilerde bir varlığa taşınabilir diye anlatılır; eşleme de aynı kuralı izler.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>(Ch 5) PROJECT tablosundan bir proje silinmek isteniyor, ama WORKS_ON'da bu projeye referans veren satırlar var. Foreign key ON DELETE CASCADE ile tanımlıysa ne olur?</p>
+  <ol>
+    <li data-why="Doğru: CASCADE, silinen projeye referans veren WORKS_ON satırlarını da siler.">Proje ve ona referans veren WORKS_ON satırları silinir.</li>
+    <li data-why="Reddetmek (RESTRICT / NO ACTION) varsayılan davranıştır; CASCADE tanımlıysa silme yayılır.">Silme reddedilir.</li>
+    <li data-why="SET NULL ayrı bir seçenektir; üstelik Pno, WORKS_ON'un primary key'inin parçası olduğu için NULL olamaz.">WORKS_ON'daki Pno değerleri NULL yapılır.</li>
+    <li data-why="Foreign key kısıtı tanımlıyken referans veren satırlar sahipsiz bırakılmaz.">Yalnızca proje silinir, WORKS_ON değişmez.</li>
+  </ol>
+  <div class="explain">ON DELETE CASCADE, silmeyi referans veren satırlara yayar. Ch 9'da zayıf varlıkların foreign key'inde CASCADE kullanılmasının nedeni de budur: sahip silinince zayıf varlıklar anlamsızlaşır.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>(Ch 7) <code>SELECT COUNT(Super_ssn) FROM EMPLOYEE;</code> COMPANY'de 8 çalışan varken ve birinin Super_ssn'i NULL iken ne döndürür?</p>
+  <ol>
+    <li data-why="COUNT(*) satırları sayar; COUNT(sütun) NULL olmayan değerleri sayar.">8</li>
+    <li data-why="COUNT NULL'ları atlar, ama hata vermez.">Hata</li>
+    <li data-why="Yalnızca bir değer NULL; diğerleri sayılır.">1</li>
+    <li data-why="Doğru: COUNT(sütun) NULL değerleri saymaz: 8 − 1 = 7.">7</li>
+  </ol>
+  <div class="explain">Aggregate fonksiyonlar NULL'ları atlar; yalnızca COUNT(*) bütün satırları sayar. Bu kural ilişkisel cebirdeki ℑ COUNT için de geçerlidir.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>(Ch 8) σ<sub>Dno=5</sub>(EMPLOYEE) ile π<sub>Dno</sub>(EMPLOYEE) arasındaki fark nedir?</p>
+  <ol>
+    <li data-why="σ sütunları değil satırları seçer; π ise sütunları seçer.">σ sütun, π satır seçer.</li>
+    <li data-why="Doğru: σ koşulu sağlayan satırları bütün sütunlarıyla döndürür; π yalnızca Dno sütununu, tekrarları atarak döndürür.">σ, Dno'su 5 olan satırları bütün sütunlarıyla; π yalnızca Dno sütununu tekrarsız döndürür.</li>
+    <li data-why="π cebirde tekrarları atar (küme semantiği); SQL'de SELECT ise atmaz.">İkisi de tekrarları korur.</li>
+    <li data-why="İkisinin sonucu farklıdır: biri satır, diğeri sütun seçer.">İkisi aynı sonucu verir.</li>
+  </ol>
+  <div class="explain">σ yatay bir bölümleme (satırlar), π dikey bir bölümlemedir (sütunlar). SQL'de σ WHERE'e, π SELECT DISTINCT'e karşılık gelir.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>(Ch 14) R(A, B, C) ve F = {AB → C, C → A}. R hangi normal formdadır?</p>
+  <ol>
+    <li data-why="Aday anahtarlar AB ve BC; A ve C asal olduğu için kısmi ya da geçişli bağımlılık yok.">1NF</li>
+    <li data-why="R 2NF'in ötesindedir: 3NF koşulu da sağlanır.">Yalnızca 2NF</li>
+    <li data-why="Doğru: C → A'da C süper anahtar değil ama A asal; bu 3NF'e uyar, BCNF'i bozar.">3NF ama BCNF değil</li>
+    <li data-why="C → A'nın sol tarafı C bir süper anahtar değildir; BCNF bozulur.">BCNF</li>
+  </ol>
+  <div class="explain">AB⁺ = {A, B, C} ve BC⁺ = {B, C, A}: aday anahtarlar AB ve BC; bütün öznitelikler asaldır. C → A'nın sol tarafı süper anahtar değil, ama sağ taraf asal olduğu için 3NF sağlanır; BCNF sağlanmaz. Kitaptaki TEACH ilişkisi aynı yapıdadır.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>(Ch 16) Hangi arama için sıralı bir dosya, sırasız (heap) bir dosyadan daha iyidir?</p>
+  <ol>
+    <li data-why="Doğru: sıralama alanı üzerindeki bir eşitlik ya da aralık araması ikili aramayla log₂ b blok okur.">Sıralama alanı üzerinde bir aralık araması</li>
+    <li data-why="Sıralama alanı dışındaki bir alanda sıralı dosya da doğrusal aranır.">Sıralama alanı dışındaki bir alan üzerinde eşitlik araması</li>
+    <li data-why="Ekleme sıralı dosyada pahalıdır, çünkü sıranın korunması gerekir; heap dosyada ucuzdur.">Yeni bir kayıt eklemek</li>
+    <li data-why="Bütün dosyayı okumak her iki dosyada da b blok gerektirir.">Bütün kayıtları sırasız okumak</li>
+  </ol>
+  <div class="explain">Sıralı dosya, sıralama alanı üzerindeki aramalarda üstündür; ekleme ve silmede ise kayıtların kaydırılması gerektiği için pahalıdır. İndeksler (Ch 17) bu dengeyi ek bir yapıyla çözer.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>(Ch 17) Bir B+-ağacında arama neden her zaman bir yaprakta biter?</p>
+  <ol>
+    <li data-why="Ağacın dengeli olması bütün yaprakların aynı derinlikte olmasını sağlar, ama nedeni bu değildir.">Çünkü ağaç dengelidir</li>
+    <li data-why="İç düğümlerde de arama değerleri vardır, ama yalnızca yön göstermek için.">Çünkü iç düğümlerde hiç değer yoktur</li>
+    <li data-why="Yapraklar birbirine bağlıdır, ama bu aralık taramasını kolaylaştırır; aramanın yaprakta bitmesinin nedeni değildir.">Çünkü yapraklar birbirine bağlıdır</li>
+    <li data-why="Doğru: veri işaretçileri yalnızca yapraklardadır; iç düğümdeki bir değer kaydın yerini değil yalnızca yönü gösterir.">Çünkü veri işaretçileri yalnızca yapraklardadır</li>
+  </ol>
+  <div class="explain">B+-ağacının iç düğümleri yalnızca yönlendirir; kayda giden işaretçi yapraktadır. B-ağacında ise değer bir iç düğümde bulunursa arama orada bitebilir.</div>
+</div>
+<div class="quiz" data-answer="2">
+  <p>(Ch 20) Bir transaction commit olduktan sonra sistem çöktü. Değişikliklerin kaybolmamasını hangi ACID özelliği ve hangi mekanizma sağlar?</p>
+  <ol>
+    <li data-why="Isolation eşzamanlı transaction'ların birbirini etkilememesidir; çökmeyle ilgili değildir.">Isolation; kilitler</li>
+    <li data-why="Doğru: durability; commit kaydı log'a zorla yazıldığı için değişiklikler log'dan yeniden yapılabilir (redo).">Durability; log'un commit'ten önce diske zorla yazılması</li>
+    <li data-why="Atomicity yarım kalan transaction'ın geri alınmasıdır; commit olmuş bir transaction'ın korunması durability'dir.">Atomicity; ROLLBACK</li>
+    <li data-why="Consistency kısıtlarla ilgilidir; çökmeden sonra değişiklikleri korumaz.">Consistency; CHECK kısıtları</li>
+  </ol>
+  <div class="explain">Log tamponu commit noktasından önce diske zorla yazılır. Sistem çökerse, commit kaydı olan transaction'ların değişiklikleri log'dan yeniden yapılır; commit kaydı olmayanlarınki geri alınır.</div>
+</div>
+<div class="quiz" data-answer="3">
+  <p>(Ch 11) Bir PHP programı kullanıcının yazdığı soyadını SQL'e <code>"... WHERE Lname = '" . $_POST['ln'] . "'"</code> biçiminde ekliyor. En büyük sorun nedir?</p>
+  <ol>
+    <li data-why="Nokta operatörü PHP'de geçerli bir birleştirme operatörüdür.">Nokta operatörü PHP'de çalışmaz.</li>
+    <li data-why="$_POST form değerlerini tutan geçerli bir değişkendir.">$_POST'a SQL içinden erişilemez.</li>
+    <li data-why="Doğru: kullanıcı bir tırnak işareti yazarak sorgunun yapısını değiştirebilir (SQL injection); placeholder kullanılmalıdır.">Kullanıcı girdisi sorgunun yapısını değiştirebilir (SQL injection).</li>
+    <li data-why="Sorgu sonucu fetchRow ile okunabilir; sorun bu değil.">Sonuç fetchRow ile okunamaz.</li>
+  </ol>
+  <div class="explain">String birleştirmeyle oluşturulan sorguda kullanıcının yazdığı tırnak işareti değeri kapatıp yeni koşullar ekleyebilir. Placeholder'larda değer yalnızca değer olarak kullanılır. Ch 11'deki placeholder laboratuvarında iki durumu karşılaştırabilirsiniz.</div>
+</div>
+<div class="quiz" data-answer="4">
+  <p>(Ch 4 ve 9) Bir özelleştirme total ve disjoint, alt sınıfların çok sayıda kendine özgü özniteliği var ve üst sınıfın başka bir ilişkisi yok. Hangi eşleme seçeneği hem NULL üretmez hem de bir nesnenin bütün bilgisini tek tablodan okutur?</p>
+  <ol>
+    <li data-why="8A NULL üretmez ama bir nesnenin bütün bilgisi için üst sınıf ile alt sınıf tablosunu join etmek gerekir.">8A</li>
+    <li data-why="8C tek tablodadır ama alt sınıfa özgü sütunlarda NULL üretir.">8C</li>
+    <li data-why="8D de tek tablodadır ve alt sınıfa özgü sütunlarda NULL üretir.">8D</li>
+    <li data-why="Doğru: total olduğu için her nesne bir alt sınıftadır, disjoint olduğu için yalnızca birindedir; her alt sınıf tablosu üst sınıfın özniteliklerini de taşır.">8B</li>
+  </ol>
+  <div class="explain">8B üst sınıf için tablo açmaz. Total olması hiçbir nesnenin kaybolmamasını, disjoint olması hiçbir şeyin tekrar etmemesini sağlar. Üst sınıfın ilişkileri olsaydı 8B uygun olmazdı, çünkü onlara bağlanacak bir üst sınıf tablosu yoktur.</div>
+</div>
+<div class="quiz" data-answer="1">
+  <p>(Ch 6 ve 17) <code>CREATE TABLE</code> içinde bir sütun UNIQUE tanımlandığında DBMS'ler genellikle ne yapar?</p>
+  <ol>
+    <li data-why="Doğru: tekilliği hızlı kontrol edebilmek için sütun üzerinde kendiliğinden bir indeks (genellikle B+-ağacı) kurar.">Tekilliği kontrol etmek için sütun üzerinde kendiliğinden bir indeks kurar.</li>
+    <li data-why="UNIQUE sütun NULL olabilir (primary key olamaz) ve tablo bu sütuna göre sıralanmak zorunda değildir.">Tabloyu bu sütuna göre fiziksel olarak sıralar.</li>
+    <li data-why="Her eklemede bütün tabloyu taramak çok yavaş olurdu; bu yüzden indeks kullanılır.">Her eklemede bütün tabloyu tarar.</li>
+    <li data-why="UNIQUE bir kısıttır; DBMS onu zorlar.">Hiçbir şey; UNIQUE yalnızca bir açıklamadır.</li>
+  </ol>
+  <div class="explain">Bir anahtar kısıtını zorlamak için yeni değerin zaten var olup olmadığını hızla bulmak gerekir; bu yüzden primary key ve UNIQUE sütunlar için indeks kurulur. Ch 17'deki SHOW INDEX kutusunda COMPANY'nin bu indekslerini görebilirsiniz.</div>
+</div>
+
+</div></main>
+</body>
+</html>
