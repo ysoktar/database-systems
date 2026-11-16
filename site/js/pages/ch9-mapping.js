@@ -207,7 +207,53 @@ function zoomable(fig, host) {
   });
 }
 
+// one schema with every construct, so the player can run Steps 1 to 9 without switching examples
+const ALL_STEPS_DSL = `entity EMPLOYEE
+  Ssn key
+  Name(Fname, Lname)
+  Salary
+  Job_type
+entity DEPARTMENT
+  Dnumber key
+  Dname
+  Locations multi
+entity PROJECT
+  Pnumber key
+  Pname
+weak entity DEPENDENT
+  Dependent_name partial
+  Relationship
+entity SUPPLIER
+  Sname key
+entity PART
+  Part_no key
+entity SECRETARY
+  Typing_speed
+entity ENGINEER
+  Eng_type
+entity BANK
+  Bname key
+entity OWNER
+relationship WORKS_FOR: EMPLOYEE N total, DEPARTMENT 1 total
+relationship MANAGES: EMPLOYEE 1 role=manager, DEPARTMENT 1 total
+  Start_date
+relationship WORKS_ON: EMPLOYEE M, PROJECT N
+  Hours
+identifying relationship DEPENDENTS_OF: EMPLOYEE 1, DEPENDENT N total
+relationship SUPPLY: SUPPLIER M, PART N, PROJECT P
+  Quantity
+specialization EMPLOYEE -> SECRETARY, ENGINEER disjoint partial on Job_type
+category OWNER = EMPLOYEE | BANK partial
+`;
+const ALL_STEPS_LAYOUT = {
+  "E:EMPLOYEE": { x: 470, y: 380 }, "E:DEPARTMENT": { x: 900, y: 170 }, "R:MANAGES": { x: 690, y: 80 }, "R:WORKS_FOR": { x: 690, y: 260 },
+  "E:PROJECT": { x: 900, y: 560 }, "R:WORKS_ON": { x: 690, y: 470 }, "R:SUPPLY": { x: 930, y: 740 }, "E:SUPPLIER": { x: 780, y: 900 }, "E:PART": { x: 1120, y: 880 },
+  "R:DEPENDENTS_OF": { x: 470, y: 580 }, "E:DEPENDENT": { x: 470, y: 760 },
+  "S:0": { x: 300, y: 230 }, "E:SECRETARY": { x: 120, y: 140 }, "E:ENGINEER": { x: 330, y: 80 },
+  "E:BANK": { x: 90, y: 420 }, "U:OWNER": { x: 250, y: 500 }, "E:OWNER": { x: 230, y: 650 },
+};
 const PLAYER_EXAMPLES = [
+  ["all", tl("Baştan sona: Adım 1–9 tek şemada", "Start to finish: Steps 1–9 in one schema")],
   ["company", tl("COMPANY: Adım 1–6", "COMPANY: Steps 1–6")],
   ["supply", tl("SUPPLY: Adım 7 (üçlü ilişki)", "SUPPLY: Step 7 (ternary relationship)")],
   ["employee-eer", tl("EMPLOYEE özelleştirmeleri: Adım 8", "EMPLOYEE specializations: Step 8")],
@@ -215,8 +261,8 @@ const PLAYER_EXAMPLES = [
   ["university-eer", tl("UNIVERSITY, paylaşılan alt sınıf: Adım 6 ve 8", "UNIVERSITY, shared subclass: Steps 6 and 8")],
   ["vehicle-eer", tl("Araç sahipleri, kategoriler: Adım 5 ve 9", "Vehicle owners, categories: Steps 5 and 9")],
 ];
-function stepPlayer(host, exId = "company", spec = "8A", predictInit = false) {
-  const ex = exampleById(exId);
+function stepPlayer(host, exId = "all", spec = "8A", predictInit = false) {
+  const ex = exId === "all" ? { dsl: ALL_STEPS_DSL, layout: ALL_STEPS_LAYOUT } : exampleById(exId);
   const { model } = parseER(ex.dsl);
   const res = mapER(model, { spec });
   const steps = res.steps.filter((s) => s.snapshot);
