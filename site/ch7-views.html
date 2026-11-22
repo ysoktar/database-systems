@@ -8,7 +8,7 @@
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
-<script type="module" src="js/layout.js"></script>
+<script type="module" src="js/pages/concept-decide.js"></script>
 </head>
 <body data-page="ch7-views">
 <main><div class="content">
@@ -234,6 +234,10 @@ SELECT COLUMN_NAME FROM information_schema.COLUMNS
 WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POSITION;
 </pre>
 <p>Kitapta <code>DROP COLUMN</code> için <code>CASCADE</code> (sütuna referans veren kısıt ve view'lar da silinir) ya da <code>RESTRICT</code> (referans veren yoksa silinir) seçilmelidir; MySQL bu sözcükleri kullanmaz. Kısıtı kaldırabilmek için <em>adı olmalıdır</em>: Ch 6'da kısıtlara ad vermenin nedeni budur. (MySQL foreign key için <code>DROP FOREIGN KEY ad</code>, diğer kısıtlar için <code>DROP CONSTRAINT ad</code> ya da <code>DROP CHECK ad</code> yazar.)</p>
+
+<h2>Sen karar ver</h2>
+<p>View'ın güncelliği, güncellenebilirliği, assertion ve trigger üzerine dört karar. Cevaptan sonra değişiklik bir transaction içinde gerçekten çalışır: view'ın sorgusunun önceki ve sonraki sonucu yan yana görünür, sonra transaction geri alınır.</p>
+<div id="views-decide"></div>
 
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="3">

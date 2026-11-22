@@ -170,6 +170,10 @@ DROP VIEW EMP_DEPT;
   <li><strong>By types of access paths and purpose</strong>: general-purpose and special-purpose (e.g. the old airline reservation systems: OLTP, online transaction processing).</li>
 </ul>
 
+<h2>You decide</h2>
+<p>Which level does a change happen at, and whom does it affect? Each question is a decision about the three-schema architecture and data independence; after you answer the reasoning opens step by step, and the index question really makes the change on MySQL.</p>
+<div id="arch-decide"></div>
+
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="2">
   <p>A company split the EMPLOYEE table in two: the personal information moved to EMP_PERSONAL, the salary information to EMP_PAY. The old programs keep working unchanged through a view named <code>EMPLOYEE</code>. What is this an example of?</p>

@@ -23,10 +23,11 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
   kayıpsız join kontrolü) ve serbest ayrıştırma laboratuvarı (sahte satırlar, NJB, normal formlar, kaybolan bağımlılıklar); Ch 16'da tampon değiştirme, bloklama, hashing ve RAID simülasyonları; Ch 17'de indeks türleri,
   maliyet hesaplayıcısı ve B+/B-ağacı ekleme oynatıcısı. Ch 20'de eşzamanlılık sorunları oynatıcısı, durum
   diyagramı ve öncelik grafını adım adım kuran çizelge analizcisi; Ch 11'de üç katmanlı istek oynatıcısı,
-  gerçek veritabanında çalışan fetchRow döngüsü ve SQL injection'ı gösteren placeholder laboratuvarı. "Sen karar ver" bölümleri (Ch 5, 6, 7, 8, 9, 14, 16, 17, 20) her
+  gerçek veritabanında çalışan fetchRow döngüsü ve SQL injection'ı gösteren placeholder laboratuvarı. "Sen karar ver" bölümleri (her bölüm sayfasında) her
   cevaptan sonra adım adım çözümü gösterir ve cevap sıfırlanabilir: sorgular MySQL'de adım adım çalışır (önceki adımın sonucu
   solda, bu adımınki sağda); veri değiştiren komutlar bir transaction içinde gerçekten çalışır, tablonun önceki ve sonraki hâli
-  (ya da DBMS'in hata mesajı) gösterilir ve transaction geri alınır.
+  (ya da DBMS'in hata mesajı) gösterilir ve transaction geri alınır; ER ve EER kararlarında doğru model çizilir ve Ch 9
+  eşlemesiyle tablolara dönüştürülür.
 - **Kısa sayfa girişleri.** Sayfanın hedefleri ve kapsadığı slayt aralığı başlığın altında katlanmış bir "Bu sayfa hakkında"
   kutusunda durur; konu ilk ekranda başlar. Kutunun açık ya da kapalı olması hatırlanır.
 - **Notebook alıştırmaları**: notebook'taki 10 SQL alıştırması, notebook'takiyle aynı kontrolcüyle (aynı hash'ler; Python
