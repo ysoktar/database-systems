@@ -34,51 +34,81 @@
 <div id="nf-terms"></div>
 
 <h2>From start to finish: the topic as one story</h2>
-<p>This section tells the whole topic in one read, for someone who has never seen it. The sections after it work through each step in detail and let you try it; here the aim is to see the whole picture once.</p>
+<p>Read this section once, from top to bottom. It assumes you know nothing about the topic. The details and the things to try come in the sections after it.</p>
 
-<h3>1. The problem: writing the same fact twice</h3>
-<p>Imagine a company keeps every employee and the projects they work on in one table:</p>
-<table class="simple jt">
-  <thead><tr><th><u>Ssn</u></th><th><u>Pnumber</u></th><th>Ename</th><th>Dnumber</th><th>Dname</th><th>Pname</th><th>Hours</th></tr></thead>
-  <tbody>
-    <tr><td>123</td><td>1</td><td>John Smith</td><td>5</td><td>Research</td><td>ProductX</td><td>32.5</td></tr>
-    <tr><td>123</td><td>2</td><td class="rep">John Smith</td><td class="rep">5</td><td class="rep">Research</td><td>ProductY</td><td>7.5</td></tr>
-    <tr><td>333</td><td>2</td><td>Franklin Wong</td><td>5</td><td class="rep">Research</td><td class="rep">ProductY</td><td>10</td></tr>
-  </tbody>
-</table>
-<p>The yellow cells repeat a fact already written in the table: "John Smith" appears twice, "Research" three times, "ProductY" twice. This repetition causes three problems, called <strong>anomalies</strong>. If Research is renamed, every row has to be changed; if one is forgotten, the same department has two names (an update anomaly). A project nobody works on yet cannot be added, because the row's Ssn would be empty (an insertion anomaly). Deleting the row of the only person on a project also loses the project's information (a deletion anomaly).</p>
-<p>In one sentence, the goal of normalization is this: <strong>never write the same fact twice.</strong></p>
+<h3>1. One table, one problem</h3>
+<p>A company keeps its employees and projects in a single table. Each row says: "this employee works on this project for this many hours a week."</p>
+<div class="split-tables story-t"><div class="split-t"><table class="simple jt"><thead><tr><th><u>Ssn</u></th><th><u>Pnumber</u></th><th>Ename</th><th>Dnumber</th><th>Dname</th><th>Pname</th><th>Hours</th></tr></thead><tbody><tr><td>123</td><td>1</td><td>John Smith</td><td>5</td><td>Research</td><td>ProductX</td><td>32.5</td></tr><tr><td>123</td><td>2</td><td class="rep">John Smith</td><td class="rep">5</td><td class="rep">Research</td><td>ProductY</td><td>7.5</td></tr><tr><td>333</td><td>2</td><td>Franklin Wong</td><td>5</td><td class="rep">Research</td><td class="rep">ProductY</td><td>10</td></tr></tbody></table></div></div>
+<p>Look at the yellow cells. "John Smith" is written twice. "Research" is written three times. The same fact sits in several places.</p>
+<p>Why is that bad? Three examples:</p>
+<ul>
+  <li>Research is renamed "R&amp;D". You have to change all three rows. Forget one, and the table contradicts itself.</li>
+  <li>A new project starts, but nobody works on it yet. You cannot add it to the table, because every row needs an employee.</li>
+  <li>Franklin Wong leaves and his row is deleted. If nobody else is on that project, the project's name is lost too.</li>
+</ul>
+<p>These three problems are called <strong>anomalies</strong>. They all have the same cause: repetition.</p>
+<div class="callout key"><p><strong>The only goal of normalization:</strong> write each fact exactly once.</p></div>
 
-<h3>2. Where does repetition come from? Functional dependencies</h3>
-<p>The notation <strong>X → Y</strong> means "if I know X, I know Y". An employee's number determines their name: Ssn → Ename. A department's number determines its name: Dnumber → Dname. A project's number determines its name: Pnumber → Pname. How many hours a week an employee works on a project is determined by the two together: {Ssn, Pnumber} → Hours. These dependencies come not from the data itself but from what the columns mean in the real world.</p>
+<h3>2. Which fact depends on which?</h3>
+<p>To find repetition we ask one question: if I know this column, which other column do I know too?</p>
+<ul>
+  <li>If I know an employee's number, I know their name. We write this as <strong>Ssn → Ename</strong>.</li>
+  <li>If I know a department's number, I know its name: <strong>Dnumber → Dname</strong>.</li>
+  <li>If I know a project's number, I know its name: <strong>Pnumber → Pname</strong>.</li>
+  <li>To know the hours I need both, the employee and the project: <strong>{Ssn, Pnumber} → Hours</strong>.</li>
+</ul>
+<p>These arrows are called <strong>functional dependencies</strong>. The left side of the arrow determines the right side.</p>
 
-<h3>3. Keys</h3>
-<p>The smallest set of columns whose value differs in every row is called a <strong>key</strong>. In this table the key is {Ssn, Pnumber}, because an employee appears only once per project. Columns that are part of a key are <strong>prime</strong>, the others are <strong>nonprime</strong>; here Ssn and Pnumber are prime, while Ename, Dnumber, Dname, Pname and Hours are not. All the columns reachable from X by chaining dependencies form the <strong>closure</strong> of X (X⁺). For example, Ssn⁺ = {Ssn, Ename, Dnumber, Dname}. If X⁺ contains every column, X is a superkey.</p>
+<h3>3. What identifies a row? The key</h3>
+<p>The columns that identify each row on their own are called the <strong>key</strong>. In this table Ssn alone is not enough, because John Smith is in two rows. Pnumber alone is not enough either. The two together are enough: an employee appears only once per project. So the key is <strong>{Ssn, Pnumber}</strong>. In the tables, key columns are underlined.</p>
 
-<h3>4. One rule</h3>
-<p>Every normal form rests on this rule: <strong>the left side of every dependency should be a key.</strong> Let us see why with Ssn → Ename. Ssn alone is not a key in this table, and it repeats once for each of an employee's projects, that is, in many rows. Ename is written again each time along with it. That is exactly where repetition comes from.</p>
-<p>The fix is the same every time: X and Y move to a table of their own, and Y is deleted from the original. Because the shared column X stays in both tables, they can still be joined later. The normal forms tighten this rule step by step.</p>
+<h3>4. The real cause of repetition</h3>
+<p>Look at the yellow cells again. Why is John Smith written twice? Because Ssn = 123 is in two rows, and Ssn → Ename. Every time Ssn repeats, the name repeats with it.</p>
+<div class="callout key"><p><strong>The rule:</strong> if the left side of an arrow is not a key, the fact on its right side repeats.</p></div>
+<p>The fix is always the same: we move that arrow to a table of its own. For Ssn → Ename we open a small table (Ssn, Ename). Each employee is written there once. We delete Ename from the big table. Since Ssn stays in both tables, we can join them again whenever we need to.</p>
+<p>The normal forms apply this rule step by step. Each one forbids one more kind of repetition.</p>
 
 <h3>5. 1NF: one value per cell</h3>
-<p>If a cell holds a list such as "Bellaire, Houston, Sugarland", searching or updating by that value is only possible by taking the text apart. 1NF forbids this and requires a single value in every cell. The list moves, together with the row's key, to a separate table; in DEPT_LOCATIONS(Dnumber, Dlocation) each location sits in its own row.</p>
+<p>First the simplest problem. A department can have several locations. It is tempting to write them in one cell:</p>
+<div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>DEPARTMENT</strong></div><table class="simple jt"><thead><tr><th><u>Dnumber</u></th><th>Dlocations</th></tr></thead><tbody><tr><td>5</td><td>Bellaire, Houston, Sugarland</td></tr></tbody></table></div></div>
+<p>But now it is hard to ask "which departments are in Houston?". You have to take the text in the cell apart. <strong>1NF</strong> asks for this: one value per cell. The fix is to give each location its own row:</p>
+<div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>DEPT_LOCATIONS</strong></div><table class="simple jt"><thead><tr><th><u>Dnumber</u></th><th><u>Dlocation</u></th></tr></thead><tbody><tr><td>5</td><td>Bellaire</td></tr><tr><td>5</td><td>Houston</td></tr><tr><td>5</td><td>Sugarland</td></tr></tbody></table></div></div>
 
-<h3>6. 2NF: depending on the whole key</h3>
-<p>With the key {Ssn, Pnumber}, there is the dependency Ssn → Ename. Ename depends not on the whole key but on only part of it; this is a <strong>partial dependency</strong>, and it is why an employee's name is written again for every project. 2NF requires every nonprime column to depend on the whole key. To fix it, the partial dependencies move to tables of their own: EMP(Ssn, Ename, Dnumber, Dname), PROJ(Pnumber, Pname) and WORKS_ON(Ssn, Pnumber, Hours). Only Hours, which the two columns determine together, stays in WORKS_ON. If the key is a single column it has no parts, so a table in 1NF is already in 2NF.</p>
+<h3>6. 2NF: facts that depend on part of the key move out</h3>
+<p>Our key has two columns: Ssn and Pnumber. But Ename depends only on Ssn; it does not care about Pnumber at all. Pname depends only on Pnumber. These facts depend on only part of the key, and they repeat. This is called a <strong>partial dependency</strong>.</p>
+<p><strong>2NF</strong> asks for this: a fact that depends on part of the key goes to a table of its own. The one table becomes three:</p>
+<div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>EMP</strong></div><table class="simple jt"><thead><tr><th><u>Ssn</u></th><th>Ename</th><th>Dnumber</th><th>Dname</th></tr></thead><tbody><tr><td>123</td><td>John Smith</td><td>5</td><td>Research</td></tr><tr><td>333</td><td>Franklin Wong</td><td>5</td><td class="rep">Research</td></tr></tbody></table></div><div class="split-t"><div class="split-h"><strong>PROJ</strong></div><table class="simple jt"><thead><tr><th><u>Pnumber</u></th><th>Pname</th></tr></thead><tbody><tr><td>1</td><td>ProductX</td></tr><tr><td>2</td><td>ProductY</td></tr></tbody></table></div><div class="split-t"><div class="split-h"><strong>WORKS_ON</strong></div><table class="simple jt"><thead><tr><th><u>Ssn</u></th><th><u>Pnumber</u></th><th>Hours</th></tr></thead><tbody><tr><td>123</td><td>1</td><td>32.5</td></tr><tr><td>123</td><td>2</td><td>7.5</td></tr><tr><td>333</td><td>2</td><td>10</td></tr></tbody></table></div></div>
+<p>John Smith is written once now. So is ProductY. But "Research" still appears twice. The next step is for that.</p>
 
-<h3>7. 3NF: depending on nothing but the key</h3>
-<p>The EMP table has the chain Ssn → Dnumber → Dname. Dname depends on the key not directly but through the non-key Dnumber; this is a <strong>transitive dependency</strong>. That is why "Research" is written again for every employee in the department. 3NF requires that no nonprime column depends on another nonprime column. To fix it, the second link of the chain is split off: EMP(Ssn, Ename, Dnumber) and DEPT(Dnumber, Dname).</p>
-<p>A short way to remember the three normal forms: every column depends on <em>the key</em> (1NF), <em>the whole key</em> (2NF) and <em>nothing but the key</em> (3NF).</p>
+<h3>7. 3NF: facts that depend on a non-key column move out</h3>
+<p>In the EMP table, Dname depends not on Ssn but on Dnumber. The chain is: Ssn → Dnumber → Dname. So Dname depends on the key not directly, but through another column. This is called a <strong>transitive dependency</strong>. The department's name is written again for every employee in it.</p>
+<p><strong>3NF</strong> asks for this: every fact depends only on the key, not on another column. The fix is to move Dnumber → Dname to a table of its own:</p>
+<div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>EMP</strong></div><table class="simple jt"><thead><tr><th><u>Ssn</u></th><th>Ename</th><th>Dnumber</th></tr></thead><tbody><tr><td>123</td><td>John Smith</td><td>5</td></tr><tr><td>333</td><td>Franklin Wong</td><td>5</td></tr></tbody></table></div><div class="split-t"><div class="split-h"><strong>DEPT</strong></div><table class="simple jt"><thead><tr><th><u>Dnumber</u></th><th>Dname</th></tr></thead><tbody><tr><td>5</td><td>Research</td></tr></tbody></table></div><div class="split-t"><div class="split-h"><strong>PROJ</strong></div><table class="simple jt"><thead><tr><th><u>Pnumber</u></th><th>Pname</th></tr></thead><tbody><tr><td>1</td><td>ProductX</td></tr><tr><td>2</td><td>ProductY</td></tr></tbody></table></div><div class="split-t"><div class="split-h"><strong>WORKS_ON</strong></div><table class="simple jt"><thead><tr><th><u>Ssn</u></th><th><u>Pnumber</u></th><th>Hours</th></tr></thead><tbody><tr><td>123</td><td>1</td><td>32.5</td></tr><tr><td>123</td><td>2</td><td>7.5</td></tr><tr><td>333</td><td>2</td><td>10</td></tr></tbody></table></div></div>
+<p>Now no fact is written twice. To rename Research, changing one cell is enough.</p>
+<p>One sentence to remember: every column must depend on <em>the key</em>, <em>the whole key</em> and <em>nothing but the key</em>. The first part is 1NF, the second 2NF, the third 3NF.</p>
 
 <h3>8. BCNF: the rule without exceptions</h3>
-<p>3NF has one exception: if the right side is a prime column, it allows the dependency even when the left side is not a key. BCNF removes this exception and requires the left side of every dependency to be a superkey. The difference shows up when there are several overlapping candidate keys.</p>
-<p>The table TEACH(Student, Course, Instructor) has the dependencies {Student, Course} → Instructor and Instructor → Course, because each instructor teaches a single course. Since Course is prime, the table is in 3NF. But Instructor is not a key, and the course an instructor teaches is written again for each of their students; so the table is not in BCNF. It is split into (Instructor, Course) and (Instructor, Student). The price is that the dependency {Student, Course} → Instructor no longer sits in a single table, that is, it is lost.</p>
+<p>Most tables are clean once they are in 3NF. But one rare case is left. Say that at a school each instructor teaches only one course:</p>
+<div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>TEACH</strong></div><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Course</u></th><th>Instructor</th></tr></thead><tbody><tr><td>Narayan</td><td>Database</td><td>Mark</td></tr><tr><td>Wallace</td><td class="rep">Database</td><td>Mark</td></tr><tr><td>Smith</td><td>Database</td><td>Navathe</td></tr></tbody></table></div></div>
+<p>The instructor determines the course: Instructor → Course. But the instructor is not a key. Mark has two students, so "Database" is written twice for him. 3NF does not catch this, because Course is part of the key, and 3NF makes an exception for parts of the key.</p>
+<p><strong>BCNF</strong> removes that exception: the left side of every arrow must be a key. The fix is the same as always, Instructor → Course goes to a table of its own:</p>
+<div class="split-tables story-t"><div class="split-t"><table class="simple jt"><thead><tr><th><u>Instructor</u></th><th>Course</th></tr></thead><tbody><tr><td>Mark</td><td>Database</td></tr><tr><td>Navathe</td><td>Database</td></tr></tbody></table></div><div class="split-t"><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Instructor</u></th></tr></thead><tbody><tr><td>Narayan</td><td>Mark</td></tr><tr><td>Wallace</td><td>Mark</td></tr><tr><td>Smith</td><td>Navathe</td></tr></tbody></table></div></div>
+<p>This has a small price. The rule "a student takes a course from only one instructor" no longer sits in a single table, so the database cannot check it by itself.</p>
 
-<h3>9. The two conditions of a split</h3>
-<p>The first condition cannot be given up: <strong>the join must be lossless.</strong> When the parts are joined again, the original rows must come back with nothing missing and nothing extra. Joining badly split parts produces <strong>spurious tuples</strong> that were never in the original. The NJB test checks this: the shared columns of the two parts must be a key of one of the parts. The shared column of DEPT and EMP is Dnumber, which is DEPT's key, so this split is lossless.</p>
-<p>The second condition can be dropped if necessary: <strong>dependencies should be preserved.</strong> Every dependency should stay inside a single table after the split, so that the DBMS can enforce it with a key. When moving to BCNF, as in the TEACH example, this condition sometimes cannot be met.</p>
+<h3>9. Careful when splitting: nothing may be lost</h3>
+<p>At every split we check one thing: when we join the parts again, do we get back exactly the original table?</p>
+<p>For a good split the answer is yes. For a bad split the join produces rows that were never in the original. These are called <strong>spurious tuples</strong>.</p>
+<p>The check is easy: the shared column of the two parts must be the key of one of the parts. The shared column of EMP and DEPT is Dnumber, and Dnumber is DEPT's key. So this split is safe. This check is called the <strong>NJB test</strong>.</p>
+<p>There is also a second wish: every arrow should stay inside a single table after the split. This is called <strong>dependency preservation</strong>. It is kept when possible; sometimes, as in the BCNF example, it is given up. A lossless join is never given up.</p>
 
 <h3>Summary</h3>
-<p>Repetition causes anomalies, and repetition comes from dependencies whose left side is not a key. 1NF makes every cell single-valued. 2NF removes dependencies on part of a key, 3NF removes dependencies on a non-key column, and BCNF removes every dependency whose left side is not a key. At each step X and Y move to a table of their own, and the shared column keeps the join lossless. In the sections below you can try each of these steps yourself.</p>
+<ol>
+  <li>Repetition causes anomalies.</li>
+  <li>The cause of repetition is an arrow whose left side is not a key.</li>
+  <li>The fix is to move that arrow to a table of its own.</li>
+  <li>1NF asks for one value per cell. 2NF removes dependencies on part of the key, 3NF removes dependencies on a non-key column. BCNF leaves no exceptions.</li>
+  <li>After every split, joining the parts must give back exactly the original table.</li>
+</ol>
 
 <h2>The problem: repetition and anomalies</h2>
 <p>Normalization has one goal: <strong>never write the same fact twice</strong>. When a fact repeats in many rows, the table can contradict itself as soon as it is changed, added to or deleted from. This section shows the problem; the next sections are the tools to measure it (dependencies, keys) and to remove it (normal forms).</p>
