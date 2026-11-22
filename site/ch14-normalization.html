@@ -88,13 +88,16 @@
 <p>Artık hiçbir bilgi iki kez yazılmıyor. Research'ün adını değiştirmek için tek bir hücreyi değiştirmek yeter.</p>
 <p>Akılda tutmak için tek cümle: her sütun <em>anahtara</em>, <em>anahtarın tamamına</em> ve <em>anahtardan başka hiçbir şeye</em> bağlı olmalıdır. Birinci kısım 1NF, ikincisi 2NF, üçüncüsü 3NF'tir.</p>
 
-<h3>8. BCNF: kuralın istisnasız hâli</h3>
-<p>Çoğu tablo 3NF'te temizlenmiş olur. Ama nadir bir durum kalır. Bir okulda her hoca yalnızca bir ders veriyor olsun:</p>
+<h3>8. BCNF: 3NF'ten tek farkı</h3>
+<p>Solu anahtar olmayan bir ok düşünün: X → A. İki normal form bu oka tek bir durumda farklı davranır:</p>
+<table class="simple nf-cmp"><thead><tr><th>Solu anahtar olmayan bir ok: X → A</th><th>3NF</th><th>BCNF</th></tr></thead><tbody><tr><td>A asal değil (Dnumber → Dname)</td><td class="no">yasak</td><td class="no">yasak</td></tr><tr><td>A asal (Instructor → Course)</td><td class="yes">izin verir</td><td class="no">yasak</td></tr></tbody></table>
+<p>Tek fark bu: <strong>A asalsa 3NF göz yumar, BCNF yummaz.</strong></p>
+<p>Örnek: bir okulda her hoca tek bir ders veriyor.</p>
 <div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>TEACH</strong></div><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Course</u></th><th>Instructor</th></tr></thead><tbody><tr><td>Narayan</td><td>Database</td><td>Mark</td></tr><tr><td>Wallace</td><td class="rep">Database</td><td>Mark</td></tr><tr><td>Smith</td><td>Database</td><td>Navathe</td></tr></tbody></table></div></div>
-<p>Hoca dersi belirler: Instructor → Course. Ama hoca anahtar değil. Mark'ın iki öğrencisi var, bu yüzden "Database" onun için iki kez yazılıyor. 3NF bunu yakalamaz, çünkü Course anahtarın bir parçasıdır, yani asaldır, ve 3NF sağ tarafı asal olan oklara bir istisna tanır.</p>
-<p><strong>BCNF</strong> bu istisnayı kaldırır: her okun solu bir anahtar olmalıdır. Çözüm yine aynıdır, Instructor → Course kendi tablosuna gider:</p>
+<p>Instructor → Course okunda Instructor anahtar değil. Course ise asal, çünkü anahtar {Student, Course}'un parçası. 3NF göz yumar, BCNF yummaz. Göz yumulan tekrar da görünüyor: "Database", Mark'ın her öğrencisi için yeniden yazılıyor.</p>
+<p>Çözüm her zamanki gibi: oku kendi tablosuna taşı.</p>
 <div class="split-tables story-t"><div class="split-t"><table class="simple jt"><thead><tr><th><u>Instructor</u></th><th>Course</th></tr></thead><tbody><tr><td>Mark</td><td>Database</td></tr><tr><td>Navathe</td><td>Database</td></tr></tbody></table></div><div class="split-t"><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Instructor</u></th></tr></thead><tbody><tr><td>Narayan</td><td>Mark</td></tr><tr><td>Wallace</td><td>Mark</td></tr><tr><td>Smith</td><td>Navathe</td></tr></tbody></table></div></div>
-<p>Bunun küçük bir bedeli vardır. "Bir öğrenci bir dersi tek bir hocadan alır" kuralı artık tek bir tabloda durmaz, bu yüzden veritabanı onu kendiliğinden denetleyemez.</p>
+<p>Bedeli: "öğrenci + ders → hoca" kuralı artık tek bir tabloda değil, bu yüzden veritabanı onu denetleyemez.</p>
 
 <h3>9. Bölerken dikkat: hiçbir şey kaybolmasın</h3>
 <p>Her bölmede bir şeyi kontrol ederiz: parçaları yeniden birleştirince orijinal tabloyu tam olarak geri alıyor muyuz?</p>
@@ -240,12 +243,13 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 
 <h2>Boyce-Codd normal formu (BCNF)</h2>
 <div class="nf-card">
-  <div class="nf-row"><div class="nf-k">Tek cümleyle</div><div class="nf-v">Her bağımlılığın sol tarafı bir süper anahtardır; istisna yoktur.</div></div>
-  <div class="nf-row"><div class="nf-k">Hangi sorunu çözer?</div><div class="nf-v">TEACH(Student, Course, Instructor)'da Instructor → Course: bir hocanın verdiği ders, hocanın her öğrencisi için tekrar yazılır. 3NF bunu yakalamaz, çünkü Course asaldır.</div></div>
-  <div class="nf-row"><div class="nf-k">Nasıl test edilir?</div><div class="nf-v">Süper anahtar olmayan bir sol taraf var mı? Sağ tarafın asal olup olmadığına bakılmaz. Fark yalnızca birden çok, örtüşen aday anahtar olduğunda ortaya çıkar.</div></div>
-  <div class="nf-row"><div class="nf-k">Nasıl düzeltilir?</div><div class="nf-v">Bozan X → A için R, (R − A) ve (X ∪ A) olarak bölünür: TEACH → (Student, Instructor) ve (Instructor, Course). Bedeli: {Student, Course} → Instructor artık tek bir tablonun içinde değildir, yani bir anahtarla zorlanamaz.</div></div>
+  <div class="nf-row"><div class="nf-k">Tek cümleyle</div><div class="nf-v">Her okun solu bir süper anahtardır. İstisna yoktur.</div></div>
+  <div class="nf-row"><div class="nf-k">3NF'ten farkı</div><div class="nf-v">Solu anahtar olmayan bir X → A'ya 3NF, A asalsa izin verir. BCNF hiç izin vermez.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl test edilir?</div><div class="nf-v">Solu süper anahtar olmayan bir ok var mı? Sağ tarafa bakılmaz.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl düzeltilir?</div><div class="nf-v">Bozan X → A için R'yi (R − A) ve (X ∪ A) olarak böl: TEACH → (Student, Instructor) ve (Instructor, Course). Bedeli: {Student, Course} → Instructor kaybolur.</div></div>
 </div>
-<p>3NF'in genel tanımı "X süper anahtar <em>ya da</em> A asal" der; BCNF ikinci seçeneği kaldırır. Bu yüzden her BCNF tablo 3NF'tedir, ama TEACH gibi 3NF'te olup BCNF'te olmayan tablolar vardır. TEACH'in iki parçaya bölünmesinin üç yolu vardır ve üçü de {Student, Course} → Instructor'ı kaybeder:</p>
+<table class="simple nf-cmp"><thead><tr><th>Solu anahtar olmayan bir ok: X → A</th><th>3NF</th><th>BCNF</th></tr></thead><tbody><tr><td>A asal değil (Dnumber → Dname)</td><td class="no">yasak</td><td class="no">yasak</td></tr><tr><td>A asal (Instructor → Course)</td><td class="yes">izin verir</td><td class="no">yasak</td></tr></tbody></table>
+<p>TEACH(Student, Course, Instructor)'da {Student, Course} → Instructor ve Instructor → Course var. Course asal olduğu için TEACH 3NF'tedir; Instructor süper anahtar olmadığı için BCNF'te değildir. İkiye bölmenin üç yolu var ve üçü de {Student, Course} → Instructor'ı kaybeder:</p>
 <ul>
   <li>D1: {Student, Instructor} ve {Student, Course}</li>
   <li>D2: {Course, Instructor} ve {Course, Student}</li>

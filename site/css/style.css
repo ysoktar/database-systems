@@ -1193,3 +1193,6 @@ table.jt th.c0, table.jt th.c1, table.jt th.c2, table.jt th.c3 { background-clip
 .story-t { margin: 6px 0 12px; }
 .story-t .split-h { margin: 0; }
 .story-t table, .story-t .table-wrap { margin: 2px 0 0; }
+table.nf-cmp { margin: 8px 0 12px; }
+table.nf-cmp td.no { color: var(--critical); font-weight: 650; }
+table.nf-cmp td.yes { color: var(--ok, #1a7f37); font-weight: 650; }

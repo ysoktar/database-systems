@@ -88,13 +88,16 @@
 <p>Now no fact is written twice. To rename Research, changing one cell is enough.</p>
 <p>One sentence to remember: every column must depend on <em>the key</em>, <em>the whole key</em> and <em>nothing but the key</em>. The first part is 1NF, the second 2NF, the third 3NF.</p>
 
-<h3>8. BCNF: the rule without exceptions</h3>
-<p>Most tables are clean once they are in 3NF. But one rare case is left. Say that at a school each instructor teaches only one course:</p>
+<h3>8. BCNF: its one difference from 3NF</h3>
+<p>Take an arrow whose left side is not a key: X → A. The two normal forms treat it differently in just one case:</p>
+<table class="simple nf-cmp"><thead><tr><th>An arrow whose left side is not a key: X → A</th><th>3NF</th><th>BCNF</th></tr></thead><tbody><tr><td>A is not prime (Dnumber → Dname)</td><td class="no">forbidden</td><td class="no">forbidden</td></tr><tr><td>A is prime (Instructor → Course)</td><td class="yes">allowed</td><td class="no">forbidden</td></tr></tbody></table>
+<p>That is the only difference: <strong>if A is prime, 3NF lets it pass and BCNF does not.</strong></p>
+<p>Example: at a school, each instructor teaches one course.</p>
 <div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>TEACH</strong></div><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Course</u></th><th>Instructor</th></tr></thead><tbody><tr><td>Narayan</td><td>Database</td><td>Mark</td></tr><tr><td>Wallace</td><td class="rep">Database</td><td>Mark</td></tr><tr><td>Smith</td><td>Database</td><td>Navathe</td></tr></tbody></table></div></div>
-<p>The instructor determines the course: Instructor → Course. But the instructor is not a key. Mark has two students, so "Database" is written twice for him. 3NF does not catch this, because Course is part of the key, that is, prime, and 3NF makes an exception for arrows whose right side is prime.</p>
-<p><strong>BCNF</strong> removes that exception: the left side of every arrow must be a key. The fix is the same as always, Instructor → Course goes to a table of its own:</p>
+<p>In the arrow Instructor → Course, Instructor is not a key. Course is prime, because it is part of the key {Student, Course}. 3NF lets it pass, BCNF does not. The repetition 3NF lets through is visible too: "Database" is written again for each of Mark's students.</p>
+<p>The fix is the usual one: move the arrow to a table of its own.</p>
 <div class="split-tables story-t"><div class="split-t"><table class="simple jt"><thead><tr><th><u>Instructor</u></th><th>Course</th></tr></thead><tbody><tr><td>Mark</td><td>Database</td></tr><tr><td>Navathe</td><td>Database</td></tr></tbody></table></div><div class="split-t"><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Instructor</u></th></tr></thead><tbody><tr><td>Narayan</td><td>Mark</td></tr><tr><td>Wallace</td><td>Mark</td></tr><tr><td>Smith</td><td>Navathe</td></tr></tbody></table></div></div>
-<p>This has a small price. The rule "a student takes a course from only one instructor" no longer sits in a single table, so the database cannot check it by itself.</p>
+<p>The price: the rule "student + course → instructor" is no longer in a single table, so the database cannot check it.</p>
 
 <h3>9. Careful when splitting: nothing may be lost</h3>
 <p>At every split we check one thing: when we join the parts again, do we get back exactly the original table?</p>
@@ -240,12 +243,13 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 
 <h2>Boyce-Codd normal form (BCNF)</h2>
 <div class="nf-card">
-  <div class="nf-row"><div class="nf-k">In one sentence</div><div class="nf-v">The left side of every dependency is a superkey; there are no exceptions.</div></div>
-  <div class="nf-row"><div class="nf-k">What problem does it solve?</div><div class="nf-v">In TEACH(Student, Course, Instructor), Instructor → Course: the course an instructor teaches is written again for each of the instructor's students. 3NF does not catch this, because Course is prime.</div></div>
-  <div class="nf-row"><div class="nf-k">How is it tested?</div><div class="nf-v">Is there a left side that is not a superkey? Whether the right side is prime does not matter. The difference only shows up with several overlapping candidate keys.</div></div>
-  <div class="nf-row"><div class="nf-k">How is it fixed?</div><div class="nf-v">For the violating X → A, R is split into (R − A) and (X ∪ A): TEACH → (Student, Instructor) and (Instructor, Course). The price: {Student, Course} → Instructor is no longer inside a single table, so no key can enforce it.</div></div>
+  <div class="nf-row"><div class="nf-k">In one sentence</div><div class="nf-v">The left side of every arrow is a superkey. No exceptions.</div></div>
+  <div class="nf-row"><div class="nf-k">Difference from 3NF</div><div class="nf-v">For an X → A whose left side is not a key, 3NF allows it if A is prime. BCNF never allows it.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it tested?</div><div class="nf-v">Is there an arrow whose left side is not a superkey? The right side does not matter.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it fixed?</div><div class="nf-v">For the violating X → A, split R into (R − A) and (X ∪ A): TEACH → (Student, Instructor) and (Instructor, Course). The price: {Student, Course} → Instructor is lost.</div></div>
 </div>
-<p>The general definition of 3NF says "X is a superkey <em>or</em> A is prime"; BCNF removes the second option. So every BCNF table is in 3NF, but there are tables like TEACH that are in 3NF and not in BCNF. There are three ways to split TEACH into two parts, and all three lose {Student, Course} → Instructor:</p>
+<table class="simple nf-cmp"><thead><tr><th>An arrow whose left side is not a key: X → A</th><th>3NF</th><th>BCNF</th></tr></thead><tbody><tr><td>A is not prime (Dnumber → Dname)</td><td class="no">forbidden</td><td class="no">forbidden</td></tr><tr><td>A is prime (Instructor → Course)</td><td class="yes">allowed</td><td class="no">forbidden</td></tr></tbody></table>
+<p>TEACH(Student, Course, Instructor) has {Student, Course} → Instructor and Instructor → Course. Since Course is prime, TEACH is in 3NF; since Instructor is not a superkey, it is not in BCNF. There are three ways to split it in two, and all three lose {Student, Course} → Instructor:</p>
 <ul>
   <li>D1: {Student, Instructor} and {Student, Course}</li>
   <li>D2: {Course, Instructor} and {Course, Student}</li>
