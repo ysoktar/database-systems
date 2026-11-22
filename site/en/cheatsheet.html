@@ -189,7 +189,7 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
     <tr><td>Total participation</td><td>a double line</td><td>every entity takes part at least once</td></tr>
     <tr><td>(min, max)</td><td>next to its own entity</td><td>min = 0 → partial, min ≥ 1 → total</td></tr>
     <tr><td>Specialization</td><td>a circle: <strong>d</strong> disjoint / <strong>o</strong> overlapping; a double line for total</td><td>⊂ on the subclass line</td></tr>
-    <tr><td>Category</td><td><strong>∪</strong> in the circle</td><td>a subset of the union of the superclasses</td></tr>
+    <tr><td>Category</td><td><span class="relop"><strong>∪</strong> in the circle</span></td><td>a subset of the union of the superclasses</td></tr>
   </tbody>
 </table>
 
@@ -197,15 +197,15 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
 <table class="simple">
   <thead><tr><th>Operation</th><th>Notation</th><th>SQL equivalent</th></tr></thead>
   <tbody>
-    <tr><td>Selection (rows)</td><td>σ<sub>condition</sub>(R)</td><td>WHERE</td></tr>
-    <tr><td>Projection (columns, no duplicates)</td><td>π<sub>A, B</sub>(R)</td><td>SELECT DISTINCT A, B</td></tr>
-    <tr><td>Rename</td><td>ρ<sub>S(B1, B2)</sub>(R)</td><td>AS</td></tr>
-    <tr><td>Union, intersection, difference (union compatible)</td><td>R ∪ S, R ∩ S, R − S</td><td>UNION, INTERSECT, EXCEPT</td></tr>
-    <tr><td>Cartesian product</td><td>R × S</td><td>FROM R, S (no condition)</td></tr>
-    <tr><td>θ-join, equijoin, natural join</td><td>R ⋈<sub>condition</sub> S, R * S</td><td>JOIN … ON, NATURAL JOIN</td></tr>
-    <tr><td>Division ("every" questions)</td><td>R ÷ S</td><td>double NOT EXISTS</td></tr>
-    <tr><td>Grouping and aggregates</td><td><sub>G</sub>ℑ<sub>F A</sub>(R)</td><td>GROUP BY G, F(A)</td></tr>
-    <tr><td>Outer join</td><td>⟕ ⟖ ⟗</td><td>LEFT / RIGHT / FULL OUTER JOIN</td></tr>
+    <tr><td>Selection (rows)</td><td><span class="relop">σ<sub>condition</sub>(R)</span></td><td>WHERE</td></tr>
+    <tr><td>Projection (columns, no duplicates)</td><td><span class="relop">π<sub>A, B</sub>(R)</span></td><td>SELECT DISTINCT A, B</td></tr>
+    <tr><td>Rename</td><td><span class="relop">ρ<sub>S(B1, B2)</sub>(R)</span></td><td>AS</td></tr>
+    <tr><td>Union, intersection, difference (union compatible)</td><td><span class="relop">R ∪ S, R ∩ S, R − S</span></td><td>UNION, INTERSECT, EXCEPT</td></tr>
+    <tr><td>Cartesian product</td><td><span class="relop">R × S</span></td><td>FROM R, S (no condition)</td></tr>
+    <tr><td>θ-join, equijoin, natural join</td><td><span class="relop">R ⋈<sub>condition</sub> S, R * S</span></td><td>JOIN … ON, NATURAL JOIN</td></tr>
+    <tr><td>Division ("every" questions)</td><td><span class="relop">R ÷ S</span></td><td>double NOT EXISTS</td></tr>
+    <tr><td>Grouping and aggregates</td><td><span class="relop"><sub>G</sub> ℑ <sub>F(A)</sub> (R)</span></td><td>GROUP BY G, F(A)</td></tr>
+    <tr><td>Outer join</td><td><span class="relop">R ⟕ S, R ⟖ S, R ⟗ S</span></td><td>LEFT / RIGHT / FULL OUTER JOIN</td></tr>
   </tbody>
 </table>
 <p>The complete set: {σ, π, ∪, ρ, −, ×}; the other operations can be written with them. "All" → ÷, "no … " → −.</p>

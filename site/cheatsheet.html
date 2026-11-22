@@ -197,15 +197,15 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
 <table class="simple">
   <thead><tr><th>İşlem</th><th>Gösterim</th><th>SQL karşılığı</th></tr></thead>
   <tbody>
-    <tr><td>Seçme (satırlar)</td><td>σ<sub>koşul</sub>(R)</td><td>WHERE</td></tr>
-    <tr><td>İzdüşüm (sütunlar, tekrarsız)</td><td>π<sub>A, B</sub>(R)</td><td>SELECT DISTINCT A, B</td></tr>
-    <tr><td>Yeniden adlandırma</td><td>ρ<sub>S(B1, B2)</sub>(R)</td><td>AS</td></tr>
-    <tr><td>Birleşim, kesişim, fark (union uyumlu)</td><td>R ∪ S, R ∩ S, R − S</td><td>UNION, INTERSECT, EXCEPT</td></tr>
-    <tr><td>Kartezyen çarpım</td><td>R × S</td><td>FROM R, S (koşulsuz)</td></tr>
-    <tr><td>θ-join, equijoin, natural join</td><td>R ⋈<sub>koşul</sub> S, R * S</td><td>JOIN … ON, NATURAL JOIN</td></tr>
-    <tr><td>Bölme ("her" soruları)</td><td>R ÷ S</td><td>çift NOT EXISTS</td></tr>
-    <tr><td>Gruplama ve aggregate</td><td><sub>G</sub>ℑ<sub>F A</sub>(R)</td><td>GROUP BY G, F(A)</td></tr>
-    <tr><td>Outer join</td><td>⟕ ⟖ ⟗</td><td>LEFT / RIGHT / FULL OUTER JOIN</td></tr>
+    <tr><td>Seçme (satırlar)</td><td><span class="relop">σ<sub>koşul</sub>(R)</span></td><td>WHERE</td></tr>
+    <tr><td>İzdüşüm (sütunlar, tekrarsız)</td><td><span class="relop">π<sub>A, B</sub>(R)</span></td><td>SELECT DISTINCT A, B</td></tr>
+    <tr><td>Yeniden adlandırma</td><td><span class="relop">ρ<sub>S(B1, B2)</sub>(R)</span></td><td>AS</td></tr>
+    <tr><td>Birleşim, kesişim, fark (union uyumlu)</td><td><span class="relop">R ∪ S, R ∩ S, R − S</span></td><td>UNION, INTERSECT, EXCEPT</td></tr>
+    <tr><td>Kartezyen çarpım</td><td><span class="relop">R × S</span></td><td>FROM R, S (koşulsuz)</td></tr>
+    <tr><td>θ-join, equijoin, natural join</td><td><span class="relop">R ⋈<sub>koşul</sub> S, R * S</span></td><td>JOIN … ON, NATURAL JOIN</td></tr>
+    <tr><td>Bölme ("her" soruları)</td><td><span class="relop">R ÷ S</span></td><td>çift NOT EXISTS</td></tr>
+    <tr><td>Gruplama ve aggregate</td><td><span class="relop"><sub>G</sub> ℑ <sub>F(A)</sub> (R)</span></td><td>GROUP BY G, F(A)</td></tr>
+    <tr><td>Outer join</td><td><span class="relop">R ⟕ S, R ⟖ S, R ⟗ S</span></td><td>LEFT / RIGHT / FULL OUTER JOIN</td></tr>
   </tbody>
 </table>
 <p>Tam işlem kümesi: {σ, π, ∪, ρ, −, ×}; diğer işlemler bunlarla yazılabilir. "Hepsi" → ÷, "hiç … olmayan" → −.</p>

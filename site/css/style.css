@@ -1139,3 +1139,9 @@ table.jt tr.drop td { background: var(--err-wash); color: var(--critical); }
 .jt-anom li.ok { background: var(--ok-wash); }
 .jt-anom li.bad { background: var(--err-wash); }
 .lab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; margin: 8px 0; }
+
+/* Ch 14: the three-question ladder for one dependency */
+.ladder li.skip { opacity: .45; }
+.ladder li.here .step-title { color: var(--accent); }
+/* relational algebra symbols: a font that has ⟕ ⟖ ⟗ ℑ ⋈ at text size */
+.relop { font-family: "Cambria Math", "STIX Two Math", "Noto Sans Math", "Segoe UI Symbol", "DejaVu Sans", serif; font-size: 1.08em; white-space: nowrap; }

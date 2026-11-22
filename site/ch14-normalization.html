@@ -29,13 +29,28 @@
   <p><strong>Kapsam.</strong> Bu sayfa, müfredatta 9. haftaya yazılan Ch 14 slaytlarının 1–55 aralığını kapsar (BCNF'e kadar). Slaytların geri kalanı (56–60) çok değerli bağımlılıklar ve 4NF ile join bağımlılıkları ve 5NF konularıdır; müfredat bu kısmı içermediği için burada anlatılmıyor.</p>
 </div>
 
+<h2>Büyük resim: tek kural</h2>
+<p>Normalizasyonun bütün tanımları tek bir soruya iner: <strong>her bağımlılığın sol tarafı bir anahtar mı?</strong> X → A bağımlılığında X bir anahtarsa, X'in her değeri tabloda bir kez geçer ve A da bir kez yazılır. X anahtar değilse aynı X değeri birçok satırda tekrar eder ve A her seferinde yeniden yazılır. Anomalilerin kaynağı bu tekrardır. Çözüm de hep aynıdır: X ile A'yı kendi tablolarına çıkarmak.</p>
+<p class="small"><strong>Üç terim yeter</strong> (ayrıntısı aşağıda): <strong>X → A</strong>, X'in değeri bilinince A'nın değerinin de belli olması demektir (Ssn → Ename). <strong>Anahtar</strong>, değeri her satırda farklı olan minimal öznitelik kümesidir. <strong>Asal öznitelik</strong>, bir aday anahtarın parçası olan özniteliktir.</p>
+<table>
+  <thead><tr><th>Normal form</th><th>Neyi yasaklar?</th><th>COMPANY'den örnek</th></tr></thead>
+  <tbody>
+    <tr><td>1NF</td><td>Bir hücrede birden çok değer</td><td>Dlocations = "Bellaire, Houston, Sugarland"</td></tr>
+    <tr><td>2NF</td><td>Anahtarın bir <em>parçası</em> → asal olmayan öznitelik</td><td>Ssn → Ename, anahtar {Ssn, Pnumber} iken</td></tr>
+    <tr><td>3NF</td><td>Anahtar <em>olmayan</em> → asal olmayan öznitelik</td><td>Dnumber → Dname, anahtar Ssn iken</td></tr>
+    <tr><td>BCNF</td><td>Anahtar olmayan → <em>herhangi</em> bir öznitelik (asal olan da)</td><td>Instructor → Course (TEACH)</td></tr>
+  </tbody>
+</table>
+<p>Aşağıda bir tablo ve bir bağımlılık seçin. Üç soru sırayla cevaplanır; sonunda bağımlılığın hangi normal formu bozduğu ve tablonun nasıl bölüneceği görünür. Sayfanın geri kalanı bu üç sorunun ayrıntısıdır: önce anomaliler ve gerçek veride normalizasyon, sonra FD, anahtar ve kapanış, sonra normal formlar tek tek.</p>
+<div id="fd-ladder"></div>
+
 <h2>İyi tasarım için gayriresmî kurallar</h2>
-<p>İlişkisel veritabanı tasarımı, öznitelikleri "iyi" ilişki şemaları oluşturacak biçimde gruplamaktır. Kitap, biçimsel kavramlardan önce dört gayriresmî kural verir.</p>
+<p>Kitap biçimsel kavramlardan önce dört kural verir:</p>
 <ol>
-  <li><strong>Anlamı açık tutun.</strong> Bir ilişkinin her satırı tek bir varlığı ya da tek bir ilişki örneğini temsil etmelidir. Farklı varlıkların (çalışanlar, departmanlar, projeler) öznitelikleri aynı ilişkide karıştırılmamalıdır; başka varlıklara yalnızca foreign key ile referans verilmelidir. Şemayı ilişki ilişki kolayca açıklayabiliyorsanız tasarım iyidir.</li>
-  <li><strong>Güncelleme anomalilerinden kaçının.</strong> Aynı bilgiyi birden çok satırda tekrar saklamak hem yer israfıdır hem de ekleme, silme ve değiştirme anomalilerine yol açar.</li>
-  <li><strong>NULL değerleri azaltın.</strong> Çoğu satırda NULL kalacak öznitelikler, primary key ile birlikte ayrı bir ilişkiye taşınabilir. NULL'un birden çok anlamı vardır (uygulanamaz, bilinmiyor, var ama elde değil) ve bu anlamlar karışabilir.</li>
-  <li><strong>Sahte satırlar üretmeyin.</strong> İlişkiler, natural join ile birleştirildiklerinde sahte (spurious) satırlar oluşmayacak, yani join kayıpsız (lossless, non-additive) olacak biçimde tasarlanmalıdır. Bir ayrıştırmanın iki önemli özelliği vardır: kayıpsız join (bundan asla vazgeçilemez) ve fonksiyonel bağımlılıkların korunması (gerekirse vazgeçilebilir).</li>
+  <li><strong>Anlamı açık tutun.</strong> Her satır tek bir varlığı ya da tek bir ilişki örneğini temsil etsin; çalışan, departman ve proje öznitelikleri aynı tabloda karışmasın, başka varlıklara foreign key ile referans verilsin.</li>
+  <li><strong>Tekrardan kaçının.</strong> Aynı bilgiyi birçok satırda saklamak yer israfıdır ve aşağıdaki üç anomaliye yol açar.</li>
+  <li><strong>NULL'ları azaltın.</strong> Çoğu satırda boş kalacak öznitelikler, primary key ile birlikte ayrı bir tabloya taşınır.</li>
+  <li><strong>Sahte satır üretmeyin.</strong> Tablolar natural join ile birleştirildiğinde orijinalde olmayan satırlar çıkmamalı (kayıpsız join). Bağımlılıkların korunmasından gerekirse vazgeçilir, kayıpsız join'den asla.</li>
 </ol>
 <h3>Anomaliler</h3>
 <p>Kitaptaki EMP_PROJ(Ssn, Pnumber, Hours, Ename, Pname, Plocation) ilişkisi, çalışanların ve projelerin bilgilerini her (çalışan, proje) satırında tekrar saklar. Bu tasarımda üç tür anomali vardır:</p>
@@ -44,7 +59,7 @@
   <li><strong>Ekleme anomalisi:</strong> henüz kimsenin çalışmadığı bir proje eklenemez, çünkü satırın primary key'inin bir parçası (Ssn) boş kalırdı. Aynı şekilde, henüz bir projeye atanmamış bir çalışan da eklenemez.</li>
   <li><strong>Silme anomalisi:</strong> bir projede çalışan tek kişinin satırı silinirse, projenin bilgisi de kaybolur.</li>
 </ul>
-<p>Aşağıdaki laboratuvarda üç anomaliyi kendiniz tetikleyebilirsiniz. Bir düğmeye bastığınızda, EMP_DEPT tablosunun işlemden önceki hâli üstte, sonraki hâli altta görünür; sorunlu satırlar ve hücreler işaretlenir ve altında anomalinin neden oluştuğu yazar.</p>
+<p>Laboratuvarda üç anomaliyi kendiniz tetikleyin: tablo işlemden önce üstte, sonra altta görünür ve sorunlu hücreler işaretlenir.</p>
 <div id="anomaly-lab"></div>
 <p>Aşağıdaki kutu, COMPANY'den EMP_DEPT(Ename, Ssn, Bdate, Address, Dnumber, Dname, Dmgr_ssn) tablosunu bir join ile oluşturur (kitaptaki Figure 14.4). Research departmanının adı ve yöneticisi dört satırda tekrar ediyor. Departmanın adını yalnızca bir satırda değiştirmek tutarsızlığa yol açar: aynı departman numarası iki farklı adla görünür.</p>
 <pre class="sql run" data-title="Güncelleme anomalisi: EMP_DEPT'te tekrar eden departman bilgisi">
@@ -59,6 +74,10 @@ UPDATE demo.EMP_DEPT SET Dname = 'R&amp;D' WHERE Ssn = '123456789';
 SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- department 5 now has two names
 </pre>
 
+<h2>Normalizasyon yolculuğu: aynı tablo, adım adım</h2>
+<p>Tanımlardan önce normalizasyonun ne kazandırdığını gerçek veride görün. Tablo COMPANY'den kuruldu: her çalışan, departmanı ve projeleri. Adımları ilerletin: tekrar eden hücreler sarı, bir sonraki adımda çözülecek bağımlılık kırmızıdır; üç anomali testi ve parçaların join'inin orijinali geri verip vermediği her adımda kontrol edilir. Aşağıdaki 1NF, 2NF ve 3NF bölümleri bu adımların biçimsel tanımlarıdır.</p>
+<div id="nf-journey"></div>
+
 <h2>Fonksiyonel bağımlılıklar</h2>
 <p>Fonksiyonel bağımlılıklar (FD), bir tasarımın ne kadar iyi olduğunu biçimsel olarak ölçmeye yarar. <strong>X → Y</strong> ("X, Y'yi fonksiyonel olarak belirler") şu anlama gelir: ilişkinin herhangi bir durumunda, X değerleri aynı olan iki satırın Y değerleri de aynı olmak zorundadır. Biçimsel olarak, her t1 ve t2 satırı için t1[X] = t2[X] ise t1[Y] = t2[Y]'dir.</p>
 <ul>
@@ -70,23 +89,18 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
 <div class="callout key">
   <p><strong>Veriden FD çıkarılamaz, ancak FD'ler elenebilir.</strong> Bir ilişkinin bir durumuna bakarak bir FD'nin <em>olabileceğini</em> söyleyebiliriz, ama var olduğunu kanıtlayamayız. Kesin olarak söyleyebileceğimiz şey, bir FD'yi bozan iki satır varsa o FD'nin <em>olmadığıdır</em>.</p>
 </div>
-<p>Aşağıdaki araçta bir tablo ve bir X → Y bağımlılığı seçin. Araç, X değerleri aynı ama Y değerleri farklı iki satır arar. Bulursa bu iki satırı kırmızıyla işaretler ve FD elenir; bulamazsa FD bu duruma göre <em>olabilir</em>. Kitaptaki Figure 14.7'de TEACH ilişkisinin durumuna bakarak Text → Course olabilir, ama Teacher → Course, Teacher → Text ve Course → Text elenir. Figure 14.8'deki R(A, B, C, D) ilişkisinde hangi FD'lerin olabileceğini kendiniz deneyin.</p>
+<p>Araçta bir tablo ve bir X → Y seçin: X'i aynı, Y'si farklı iki satır bulunursa kırmızıyla işaretlenir ve FD elenir; bulunmazsa FD bu veride <em>olabilir</em>. Kitaptaki TEACH durumunda (Figure 14.7) Text → Course olabilir, Teacher → Course elenir.</p>
 <div id="fd-check"></div>
 
-<h2>Normalizasyon ve anahtarlar</h2>
-<p><strong>Normalizasyon</strong>, "kötü" ilişkileri özniteliklerini daha küçük ilişkilere bölerek ayrıştırma işlemidir. <strong>Normal form</strong>, bir ilişki şemasının belirli bir düzeyde olduğunu anahtarları ve FD'leri kullanarak gösteren bir koşuldur. 2NF, 3NF ve BCNF anahtarlara ve FD'lere dayanır. Uygulamada genellikle 3NF ya da BCNF'e kadar normalize edilir. Daha yüksek normal formdaki ilişkilerin join'ini performans için temel ilişki olarak saklamaya <strong>denormalizasyon</strong> denir; bu durumda ortaya çıkan anomaliler bilinçli olarak kabul edilir.</p>
+<h2>Anahtarlar ve kapanış</h2>
+<p>Normal formlar anahtarlarla tanımlanır. <strong>Normalizasyon</strong>, kötü bir tabloyu bu tanımlara uyan küçük tablolara bölmektir; uygulamada genellikle 3NF ya da BCNF'e kadar gidilir. Performans için bölünmüş tabloların join'ini bilerek tek tablo olarak saklamaya <strong>denormalizasyon</strong> denir.</p>
 <ul>
   <li><strong>Süper anahtar</strong>: hiçbir geçerli durumda iki satırın değerlerinin aynı olamayacağı öznitelik kümesi.</li>
   <li><strong>Anahtar</strong>: herhangi bir özniteliği çıkarıldığında süper anahtar olmaktan çıkan, yani minimal olan süper anahtar. Birden çok anahtar varsa her biri bir <strong>aday anahtardır</strong>; biri primary key seçilir, diğerleri ikincil anahtar olur.</li>
   <li><strong>Asal (prime) öznitelik</strong>: herhangi bir aday anahtarın üyesi olan öznitelik. <strong>Asal olmayan (nonprime) öznitelik</strong>: hiçbir aday anahtarın üyesi olmayan öznitelik.</li>
 </ul>
-<p>Bir öznitelik kümesi X'in <strong>kapanışı</strong> X<sup>+</sup>, X'in FD'ler aracılığıyla belirlediği bütün özniteliklerdir. X<sup>+</sup> ilişkinin bütün özniteliklerini içeriyorsa X bir süper anahtardır. Aşağıdaki araç kapanışları bu şekilde hesaplayarak aday anahtarları bulur.</p>
-<p>Kapanış adım adım hesaplanır: X ile başlanır; sol tarafı kümede olan her bağımlılığın sağ tarafı kümeye eklenir ve hiçbir bağımlılık yeni bir şey eklemeyene kadar devam edilir. Aşağıda bir örnek ve bir X seçin. Her adımda hangi bağımlılığın uygulandığını ve kümenin önceki ile sonraki hâlini görürsünüz. Üstteki şekil, kitaptaki gibi bir <strong>bağımlılık diyagramıdır</strong>: öznitelikler kutularda, her bağımlılık altta bir çizgidir; çizgi sol taraftaki özniteliklerden iner ve oklarla sağ taraftaki özniteliklere çıkar. Anahtar öznitelikler altı çizili gösterilir.</p>
+<p>Bir öznitelik kümesi X'in <strong>kapanışı</strong> X<sup>+</sup>, X'in bağımlılıklar aracılığıyla belirlediği bütün özniteliklerdir. Hesabı basittir: X ile başlayın, sol tarafı kümede olan her bağımlılığın sağ tarafını ekleyin ve yeni bir şey eklenmeyene kadar sürdürün. X<sup>+</sup> bütün öznitelikleri içeriyorsa X bir süper anahtardır. Aşağıda bir örnek ve bir X seçin; her adımda uygulanan bağımlılık ve kümenin önceki ve sonraki hâli görünür. Üstteki <strong>bağımlılık diyagramında</strong> her bağımlılık bir çizgidir: sol taraftan iner, oklarla sağ tarafa çıkar; anahtar altı çizilidir.</p>
 <div id="closure-steps"></div>
-
-<h2>Normalizasyon yolculuğu: aynı tablo, adım adım</h2>
-<p>Tanımlara geçmeden önce normalizasyonun ne kazandırdığını veride görelim. Aşağıdaki tablo COMPANY'nin gerçek verisinden kuruldu: her çalışan, departmanı ve çalıştığı projeler. Adımları sırayla ilerletin; her adımda tabloların satırları, tekrar eden hücreler (sarı), bir sonraki adımda çözülecek bağımlılık (diyagramda kırmızı) ve üç anomali testinin sonucu görünür. Parçalara ayrılan adımlarda, parçaların natural join'inin orijinal satırları eksiksiz ve fazlasız geri verip vermediği de kontrol edilir. Aşağıdaki 1NF, 2NF ve 3NF bölümleri bu adımların biçimsel tanımlarıdır.</p>
-<div id="nf-journey"></div>
 
 <h2>Birinci normal form (1NF)</h2>
 <p>Yolculuğun UNF → 1NF adımı tam olarak budur. 1NF; bileşik öznitelikleri, çok değerli öznitelikleri ve iç içe ilişkileri, yani bir satırdaki değeri atomik olmayan öznitelikleri yasaklar. 1NF, ilişki tanımının bir parçası sayılır ve ilişkisel DBMS'lerin çoğu yalnızca 1NF'teki ilişkilerin tanımlanmasına izin verir.</p>
@@ -143,20 +157,20 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div id="nf-teach"></div>
 
 <h2>Ayrıştırma laboratuvarı</h2>
-<p>Normalizasyonun en önemli kuralı ayrıştırmanın kayıpsız olmasıdır. Bunu kendiniz deneyin: bir tablo seçin ve iki parçaya hangi özniteliklerin gideceğini işaretleyin. Laboratuvar iki parçanın satırlarını, parçaların natural join'ini ve orijinalde olmayan <strong>sahte satırları</strong> (kırmızı) gösterir; NJB testinin kararını, her parçanın normal formunu ve kaybolan bağımlılıkları yazar. Önce hazır düğmelerle iyi ve kötü bir bölmeyi karşılaştırın, sonra kendi bölmelerinizi deneyin. TEACH'te D1 ve D2'nin sahte satır ürettiğini, D3'ün üretmediğini görebilirsiniz.</p>
+<p>Kayıpsız join'i kendiniz deneyin: bir tablo seçip özniteliklerini iki parçaya dağıtın. Laboratuvar parçaların join'ini, orijinalde olmayan <strong>sahte satırları</strong> (kırmızı), NJB kararını, parçaların normal formlarını ve kaybolan bağımlılıkları gösterir. Hazır düğmelerle iyi ve kötü bir bölmeyi karşılaştırarak başlayın.</p>
 <div id="decomp-lab"></div>
 
 <h2>Adım adım normalizasyon</h2>
-<p>Bu oynatıcı bir ilişkiyi hedef normal forma adım adım götürür. İlk adımda aday anahtar kapanışla bulunur. Sonraki her adımda ihlal eden bağımlılık bağımlılık diyagramında kırmızıyla gösterilir ve ilişki ikiye ayrılır: solda (ya da üstte) ilişkilerin önceki hâli, yanında sonraki hâli durur, altında da NJB testiyle ayrıştırmanın kayıpsız olduğu gösterilir. Son adım, ortaya çıkan ilişkileri ve korunamayan bağımlılık varsa onu söyler. Tahmin modunu açarsanız her ayrıştırmadan önce hangi bağımlılığın ihlal ettiğini siz seçersiniz. Örnek listesinden kitaptaki ilişkileri, hedef listesinden 2NF, 3NF ya da BCNF'i seçebilirsiniz.</p>
+<p>Oynatıcı bir ilişkiyi seçtiğiniz normal forma adım adım götürür: her adımda bozan bağımlılık kırmızı, ilişkilerin önceki ve sonraki hâli yan yana ve altında NJB testi. Tahmin modunda bozan bağımlılığı önce siz seçersiniz.</p>
 <div id="nf-player"></div>
 
 <h2>Normalizasyon aracı</h2>
-<p>Bir ilişki şeması ve fonksiyonel bağımlılıklarını yazın ya da hazır örneklerden birini seçin. Araç her bağımlılığın sol tarafının kapanışını, aday anahtarları ve asal öznitelikleri hesaplar; ilişkinin hangi normal formda olduğunu ve bir sonrakini hangi bağımlılığın bozduğunu cümleyle açıklar. Sonra seçtiğiniz normal forma kadar adım adım ayrıştırır; her adımda ilişkinin önceki hâli solda, ondan çıkan ilişkiler sağdadır ve ayrıştırmanın NJB testine göre kayıpsız olup olmadığı yazar.</p>
+<p>Kendi ilişkinizi ve bağımlılıklarınızı yazın (ya da bir örnek seçin): araç aday anahtarları, normal formu ve bir sonrakini bozan bağımlılığı cümleyle söyler, sonra seçtiğiniz normal forma kadar adım adım ayrıştırır.</p>
 <p class="small muted">Yazım: öznitelikleri boşluk ya da virgülle ayırın; her bağımlılığı ayrı bir satıra <code>A, B -&gt; C, D</code> biçiminde yazın. En fazla 12 öznitelik kullanılabilir.</p>
 <div id="nf-tool"></div>
 
 <h2>Sen karar ver</h2>
-<p>Bu sorularda normal formları ve anahtarları siz belirliyorsunuz. Bir seçeneği işaretlediğinizde, her seçeneğin neden doğru ya da yanlış olduğu açıklanır ve altında adım adım çözüm görünür: bağımlılık diyagramı, aday anahtar ve ayrıştırmanın her adımı önceki ve sonraki hâliyle. Yanlış cevapladıysanız ya da yeniden denemek istiyorsanız "Cevabı sıfırla" düğmesini kullanın.</p>
+<p>Normal formu ve anahtarı siz belirleyin; her cevaptan sonra her seçeneğin gerekçesi ve adım adım çözüm görünür. "Cevabı sıfırla" ile yeniden deneyebilirsiniz.</p>
 <div id="nf-decide"></div>
 
 <h2>Kendinizi sınayın</h2>
