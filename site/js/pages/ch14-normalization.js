@@ -835,8 +835,8 @@ function factTable(attrs, rows, F, { mark = null, noRep = false } = {}) {
       [tl("Fonksiyonel bağımlılık (FD)", "Functional dependency (FD)"), ["Ssn"], ["Ename"], tl("X → Y: X'i aynı olan iki satırın Y'si de aynı olmak zorunda.", "X → Y: two rows with the same X must have the same Y."), "Ssn → Ename"],
       [tl("Süper anahtar", "Superkey"), ["Ssn", "Pnumber", "Hours"], [], tl("Değeri iki satırda asla aynı olmayan öznitelik kümesi; fazlalık içerebilir.", "A set of attributes whose value is never the same in two rows; it may contain extras."), "{Ssn, Pnumber, Hours}"],
       [tl("Aday anahtar (anahtar)", "Candidate key (key)"), ["Ssn", "Pnumber"], [], tl("Minimal süper anahtar: bir özniteliği çıkarınca artık satırları ayırt edemez. Biri primary key seçilir.", "A minimal superkey: remove any attribute and it no longer tells rows apart. One is chosen as the primary key."), "{Ssn, Pnumber}"],
-      [tl("Asal (prime) öznitelik", "Prime attribute"), ["Ssn", "Pnumber"], [], tl("Herhangi bir aday anahtarın içinde geçen öznitelik.", "An attribute that appears in some candidate key."), "Ssn, Pnumber"],
-      [tl("Asal olmayan (nonprime) öznitelik", "Nonprime attribute"), [], ["Ename", "Dnumber", "Dname", "Pname", "Hours"], tl("Hiçbir aday anahtarda geçmeyen öznitelik. 2NF ve 3NF bunları korur.", "An attribute in no candidate key. 2NF and 3NF protect these."), "Ename, Dnumber, Dname, Pname, Hours"],
+      [tl("Asal (prime) öznitelik", "Prime attribute"), ["Ssn", "Pnumber"], [], tl("Anahtara ait öznitelik: herhangi bir aday anahtarın içinde geçer. Buradaki 'asal' kelimesinin asal sayılarla ilgisi yoktur; 'anahtarın bir parçası' demektir.", "An attribute that belongs to a key: it appears in some candidate key. 'Prime' here has nothing to do with prime numbers; it means 'part of a key'."), "Ssn, Pnumber"],
+      [tl("Asal olmayan (nonprime) öznitelik", "Nonprime attribute"), [], ["Ename", "Dnumber", "Dname", "Pname", "Hours"], tl("Hiçbir anahtarın parçası olmayan öznitelik: tablodaki asıl bilgi (ad, saat, departman adı). 2NF ve 3NF bunların yalnızca anahtara bağlı olmasını ister.", "An attribute that is part of no key: the actual information in the table (name, hours, department name). 2NF and 3NF require these to depend only on the key."), "Ename, Dnumber, Dname, Pname, Hours"],
       [tl("Kapanış X⁺", "Closure X⁺"), ["Ssn"], ["Ename", "Dnumber", "Dname"], tl("X'ten bağımlılıklar zinciriyle ulaşılan bütün öznitelikler. X⁺ her şeyi içeriyorsa X süper anahtardır.", "Every attribute reachable from X by chaining dependencies. If X⁺ contains everything, X is a superkey."), "Ssn⁺ = {Ssn, Ename, Dnumber, Dname}"],
       [tl("Tam bağımlılık", "Full dependency"), ["Ssn", "Pnumber"], ["Hours"], tl("Sol taraftan bir öznitelik çıkarınca bozulan bağımlılık: Hours için hem çalışan hem proje gerekir.", "A dependency that breaks if any attribute leaves the left side: Hours needs both the employee and the project."), "{Ssn, Pnumber} → Hours"],
       [tl("Kısmi bağımlılık", "Partial dependency"), ["Ssn"], ["Ename"], tl("Asal olmayan bir özniteliğin anahtarın yalnızca bir parçasına bağlı olması. 2NF bunu yasaklar.", "A nonprime attribute depending on only part of the key. 2NF forbids it."), tl("Ssn → Ename (anahtar {Ssn, Pnumber})", "Ssn → Ename (key {Ssn, Pnumber})")],
@@ -858,8 +858,17 @@ function factTable(attrs, rows, F, { mark = null, noRep = false } = {}) {
     };
     const list = h("div", { class: "term-list" }, ...T.map(([name, , , def], i) => h("button", { type: "button", class: "term-row", onmouseenter: () => { sel = i; paintStrip(); }, onfocus: () => { sel = i; paintStrip(); }, onclick: () => { sel = i; paintStrip(); } },
       h("span", { class: "term-name" }, name), h("span", { class: "term-def" }, def))));
-    host.append(h("div", { class: "stepper term-box" }, h("div", { class: "term-top" }, strip, cap,
-      h("div", { class: "small muted" }, h("span", { class: "term-attr l mini" }, tl("sol taraf", "left side")), " ", h("span", { class: "term-attr r mini" }, tl("sağ taraf / ilgili", "right side / concerned")), " ", h("span", { class: "term-attr k mini" }, tl("anahtar", "key")))), list));
+    const termTop = h("div", { class: "term-top" });
+    // the strip sticks under the header, and under the "on this page" bar when that bar is showing (phones, narrow windows)
+    const place = () => {
+      const tocBar = document.querySelector(".toc-bar"); // built by layout.js, possibly after this script ran
+      const shown = tocBar && tocBar.classList.contains("show") && getComputedStyle(tocBar).display !== "none";
+      termTop.style.top = shown ? `calc(var(--header-h) + ${tocBar.offsetHeight}px)` : "";
+    };
+    addEventListener("scroll", place, { passive: true }); addEventListener("resize", place);
+    new MutationObserver(place).observe(document.body, { attributes: true, subtree: true, attributeFilter: ["class"] });
+    host.append(h("div", { class: "stepper term-box" }, (termTop.append(strip, cap,
+      h("div", { class: "small muted" }, h("span", { class: "term-attr l mini" }, tl("sol taraf", "left side")), " ", h("span", { class: "term-attr r mini" }, tl("sağ taraf / ilgili", "right side / concerned")), " ", h("span", { class: "term-attr k mini" }, tl("anahtar", "key")))), termTop), list));
     paintStrip();
   }
 }
