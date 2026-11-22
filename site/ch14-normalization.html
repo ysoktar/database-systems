@@ -29,9 +29,16 @@
   <p><strong>Kapsam.</strong> Bu sayfa, müfredatta 9. haftaya yazılan Ch 14 slaytlarının 1–55 aralığını kapsar (BCNF'e kadar). Slaytların geri kalanı (56–60) çok değerli bağımlılıklar ve 4NF ile join bağımlılıkları ve 5NF konularıdır; müfredat bu kısmı içermediği için burada anlatılmıyor.</p>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki bütün terimler aynı tablo üzerinde: COMPANY'nin (çalışan, proje) tablosu EMP_PROJ. Bir terimin üstüne gelin ya da tıklayın; tablonun hangi sütunlarından söz ettiği renklenir ve bir örnek görünür.</p>
+<div id="nf-terms"></div>
+
 <h2>Büyük resim: tek kural</h2>
 <p>Normalizasyonun bütün tanımları tek bir soruya iner: <strong>her bağımlılığın sol tarafı bir anahtar mı?</strong> X → A bağımlılığında X bir anahtarsa, X'in her değeri tabloda bir kez geçer ve A da bir kez yazılır. X anahtar değilse aynı X değeri birçok satırda tekrar eder ve A her seferinde yeniden yazılır. Anomalilerin kaynağı bu tekrardır. Çözüm de hep aynıdır: X ile A'yı kendi tablolarına çıkarmak.</p>
-<p class="small"><strong>Üç terim yeter</strong> (ayrıntısı aşağıda): <strong>X → A</strong>, X'in değeri bilinince A'nın değerinin de belli olması demektir (Ssn → Ename). <strong>Anahtar</strong>, değeri her satırda farklı olan minimal öznitelik kümesidir. <strong>Asal öznitelik</strong>, bir aday anahtarın parçası olan özniteliktir.</p>
+<h3>Kendiniz bölün</h3>
+<p>Aşağıdaki tablo COMPANY'nin gerçek verisi: her satır bir (çalışan, proje) çifti. Renkli hücreler, aynı tabloda zaten yazılı olan bilgilerin tekrarıdır. Bir bağımlılığa tıklayın: o bilgi kendi tablosuna taşınır, tekrar sayacı düşer ve parçaların join'inin orijinal satırları geri verip vermediği kontrol edilir. Sırayı siz seçin: hangi sırayla bölerseniz bölün, sonunda aynı dört tabloya varırsınız.</p>
+<div id="nf-split"></div>
+<h3>Dört normal form tek tabloda</h3>
 <table>
   <thead><tr><th>Normal form</th><th>Neyi yasaklar?</th><th>COMPANY'den örnek</th></tr></thead>
   <tbody>
@@ -41,6 +48,7 @@
     <tr><td>BCNF</td><td>Anahtar olmayan → <em>herhangi</em> bir öznitelik (asal olan da)</td><td>Instructor → Course (TEACH)</td></tr>
   </tbody>
 </table>
+<h3>Bir bağımlılığı sınıflandırın</h3>
 <p>Aşağıda bir tablo ve bir bağımlılık seçin. Üç soru sırayla cevaplanır; sonunda bağımlılığın hangi normal formu bozduğu ve tablonun nasıl bölüneceği görünür. Sayfanın geri kalanı bu üç sorunun ayrıntısıdır: önce anomaliler ve gerçek veride normalizasyon, sonra FD, anahtar ve kapanış, sonra normal formlar tek tek.</p>
 <div id="fd-ladder"></div>
 

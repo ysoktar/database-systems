@@ -741,3 +741,125 @@ function factTable(attrs, rows, F, { mark = null, noRep = false } = {}) {
     paint();
   }
 }
+
+// ---- split it yourself: the journey's 1NF table with every repeated fact coloured by the dependency that causes it.
+// Clicking a dependency moves X ∪ A to a table of its own; the repeat counter, each table's normal form, the lossless
+// check and any lost dependency update at once. Any order is allowed.
+{
+  const host = $("#nf-split");
+  if (host) {
+    const flat = journeyData();
+    const A1 = ["Ssn", "Pnumber", "Ename", "Dnumber", "Dname", "Pname", "Hours"];
+    const COLOR = { Ename: 0, Dnumber: 0, Dname: 1, Pname: 2 }; // the FD each attribute comes from: Ssn →, Dnumber →, Pnumber →
+    const NAME = { Ssn: "EMP", Dnumber: "DEPT", Pnumber: "PROJ" };
+    const start = () => [{ name: "EMP_PROJ", attrs: A1 }];
+    let tables = start(), history = [], last = null;
+    const start0 = repeatsOf(tables);
+    function badFDs(T) {
+      return analyze(T.attrs, JF).fds.filter((f) => !T.attrs.every((x) => closure(f.lhs, JF).includes(x)));
+    }
+    function cellsOf(T) { // repeated cells of one table: "row|col" → colour
+      const rows = project(flat, T.attrs), rep = new Map();
+      for (const f of badFDs(T)) {
+        const seen = new Set();
+        rows.forEach((r, i) => { const k = rowKey(r, f.lhs); if (seen.has(k)) for (const c of f.rhs) rep.set(`${i}|${c}`, COLOR[c] ?? 3); seen.add(k); });
+      }
+      return { rows, rep };
+    }
+    function repeatsOf(ts) { return ts.reduce((n, T) => n + cellsOf(T).rep.size, 0); }
+    function joinAll(ts) {
+      let parts = ts.map((T) => project(flat, T.attrs)), acc = parts.shift();
+      while (parts.length) { // join next a part that shares attributes, so no accidental cross product
+        let i = parts.findIndex((p) => Object.keys(p[0]).some((k) => k in acc[0]));
+        if (i < 0) i = 0;
+        acc = natJoin(acc, parts.splice(i, 1)[0]);
+      }
+      return acc;
+    }
+    const meter = h("div"), body = h("div"), ctrl = h("div", { class: "btn-row" }), msg = h("div");
+    const split = (T, f) => {
+      history.push(tables);
+      const A = f.rhs, X = f.lhs;
+      let nm = X.length === 1 && NAME[X[0]] || `${T.name}_${X.join("_")}`;
+      while (tables.some((t) => t.name === nm)) nm += "2";
+      const before = repeatsOf(tables);
+      tables = tables.flatMap((t) => t === T ? [{ name: t.name, attrs: t.attrs.filter((x) => !A.includes(x)) }, { name: nm, attrs: [...X, ...A] }] : [t]);
+      last = { f, nm, from: T.name, before, after: repeatsOf(tables) };
+      paint();
+    };
+    const paint = () => {
+      const total = repeatsOf(tables), joined = joinAll(tables);
+      const lossless = joined.length === flat.length && joined.every((r) => flat.some((o) => A1.every((a) => o[a] === r[a])));
+      const lost = lostFDs(JF, tables.map((t) => t.attrs));
+      meter.replaceChildren(h("div", { class: "split-meter" },
+        h("div", { class: "split-bar" }, h("span", { style: { width: `${(100 * total) / start0}%` } })),
+        h("span", { class: "small" }, h("strong", {}, tl(`${total} gereksiz tekrar`, `${total} needless repeats`)), tl(` (başta ${start0})`, ` (${start0} at the start)`), " · ",
+          lossless ? h("span", { class: "ok-text" }, tl(`join ${flat.length} satırı eksiksiz geri veriyor ✓`, `the join gives back all ${flat.length} rows ✓`)) : h("span", { class: "bad-text" }, tl(`join ${joined.length} satır veriyor ✗`, `the join gives ${joined.length} rows ✗`)),
+          lost.length ? [" · ", h("span", { class: "bad-text" }, tl(`kaybolan bağımlılık: ${lost.map(fmtFD).join(", ")}`, `lost dependency: ${lost.map(fmtFD).join(", ")}`))] : "")));
+      const all = tables.flatMap((T) => badFDs(T).map((f) => [T, f]));
+      ctrl.replaceChildren(...(all.length ? [h("span", { class: "small muted" }, tl("Ayırmak için bir bağımlılığa tıklayın:", "Click a dependency to split it off:"))] : []),
+        ...all.map(([T, f]) => h("button", { type: "button", class: `split-fd c${COLOR[f.rhs[0]] ?? 3}`, onclick: () => split(T, f) }, `${fmtFD(f)}`, h("span", { class: "small muted" }, ` (${T.name})`))),
+        button(tl("↶ Geri al", "↶ Undo"), () => { tables = history.pop() || start(); last = null; paint(); }), button(tl("Baştan", "Start over"), () => { tables = start(); history = []; last = null; paint(); }));
+      ctrl.lastChild.previousSibling.disabled = !history.length;
+      body.replaceChildren(h("div", { class: "split-tables" }, ...tables.map((T) => {
+        const { rows, rep } = cellsOf(T), a = analyze(T.attrs, JF), key = a.keys[0] || [];
+        return h("div", { class: "split-t" + (last && (T.name === last.nm) ? " fresh" : "") },
+          h("div", { class: "split-h" }, h("strong", {}, T.name), " ", h("span", { class: `nf-badge nf${a.nf}` }, NF_NAME[a.nf]), h("span", { class: "small muted" }, tl(` ${rows.length} satır`, ` ${rows.length} rows`))),
+          h("div", { class: "table-wrap" }, h("table", { class: "simple jt" },
+            h("thead", {}, h("tr", {}, ...T.attrs.map((c) => h("th", { class: COLOR[c] != null && !key.includes(c) ? `c${COLOR[c]}` : null }, key.includes(c) ? h("u", {}, c) : c)))),
+            h("tbody", {}, ...rows.map((r, i) => h("tr", {}, ...T.attrs.map((c) => { const k = rep.get(`${i}|${c}`); return h("td", { class: k != null ? `dup c${k}` : null, title: k != null ? tl("Bu bilgi bu tabloda zaten yazılı: gereksiz tekrar", "This fact is already written in this table: a needless repeat") : null }, String(r[c])); })))))));
+      })));
+      const out = [];
+      if (!last) out.push(tl("Renkli hücreler gereksiz tekrarlardır; rengi, tekrara yol açan bağımlılığı gösterir (mavi Ssn →, turuncu Dnumber →, yeşil Pnumber →). Bir bağımlılığa tıklayın ve tekrarların nereye gittiğini izleyin.", "Coloured cells are needless repeats; the colour shows the dependency causing them (blue Ssn →, orange Dnumber →, green Pnumber →). Click a dependency and watch where the repeats go."));
+      else out.push(tl(`${fmtFD(last.f)} ayrıldı: ${last.from}'tan ${last.f.rhs.join(", ")} çıktı, ${last.nm}(${[...last.f.lhs, ...last.f.rhs].join(", ")}) oluştu. ${fmt(last.f.lhs)} yeni tablonun anahtarı olduğu için ${last.f.rhs.join(", ")} her ${fmt(last.f.lhs)} için bir kez yazılıyor: tekrar ${last.before} → ${last.after}.`,
+        `${fmtFD(last.f)} split off: ${last.f.rhs.join(", ")} left ${last.from} and ${last.nm}(${[...last.f.lhs, ...last.f.rhs].join(", ")}) was formed. ${fmt(last.f.lhs)} is the new table's key, so ${last.f.rhs.join(", ")} is written once per ${fmt(last.f.lhs)}: repeats ${last.before} → ${last.after}.`));
+      if (lost.length) out.push(tl(`Dikkat: ${lost.map(fmtFD).join(", ")} artık tek bir tablonun içinde değil; DBMS onu bir anahtarla zorlayamaz. Bu sırayla bölmek bağımlılığı kaybettirdi. Geri alıp önce ${fmt(lost[0].lhs)} → ${lost[0].rhs.join(", ")}'ı ayırmayı deneyin.`,
+        `Note: ${lost.map(fmtFD).join(", ")} is no longer inside a single table; the DBMS cannot enforce it with a key. Splitting in this order lost the dependency. Undo and try splitting ${fmt(lost[0].lhs)} → ${lost[0].rhs.join(", ")} first.`));
+      if (!all.length) out.push(tl(`Bitti: ${tables.length} tablonun hepsi BCNF'te, hiçbir bilgi iki kez yazılmıyor ve join orijinal ${flat.length} satırı geri veriyor. Aşağıdaki yolculuk aynı sonuca 1NF → 2NF → 3NF sırasıyla varır.`,
+        `Done: all ${tables.length} tables are in BCNF, no fact is written twice and the join gives back the original ${flat.length} rows. The journey below reaches the same result in the order 1NF → 2NF → 3NF.`));
+      msg.replaceChildren(...out.map((t, i) => h("div", { class: `res-msg ${i === 0 && !all.length ? "ok" : lost.length && i === 1 ? "warn" : "status"}`, style: { fontFamily: "inherit" } }, t)));
+    };
+    host.append(h("div", { class: "stepper" }, meter, ctrl, msg, body));
+    paint();
+  }
+}
+
+// ---- every term on one table: the journey's EMP_PROJ as a strip of attribute boxes; hovering or clicking a term
+// lights up the attributes it talks about (left side blue, right side orange, key underlined).
+{
+  const host = $("#nf-terms");
+  if (host) {
+    const R = ["Ssn", "Pnumber", "Ename", "Dnumber", "Dname", "Pname", "Hours"];
+    // [term, left/role attrs, right attrs, definition, example]
+    const T = [
+      [tl("Fonksiyonel bağımlılık (FD)", "Functional dependency (FD)"), ["Ssn"], ["Ename"], tl("X → Y: X'i aynı olan iki satırın Y'si de aynı olmak zorunda.", "X → Y: two rows with the same X must have the same Y."), "Ssn → Ename"],
+      [tl("Süper anahtar", "Superkey"), ["Ssn", "Pnumber", "Hours"], [], tl("Değeri iki satırda asla aynı olmayan öznitelik kümesi; fazlalık içerebilir.", "A set of attributes whose value is never the same in two rows; it may contain extras."), "{Ssn, Pnumber, Hours}"],
+      [tl("Aday anahtar (anahtar)", "Candidate key (key)"), ["Ssn", "Pnumber"], [], tl("Minimal süper anahtar: bir özniteliği çıkarınca artık satırları ayırt edemez. Biri primary key seçilir.", "A minimal superkey: remove any attribute and it no longer tells rows apart. One is chosen as the primary key."), "{Ssn, Pnumber}"],
+      [tl("Asal (prime) öznitelik", "Prime attribute"), ["Ssn", "Pnumber"], [], tl("Herhangi bir aday anahtarın içinde geçen öznitelik.", "An attribute that appears in some candidate key."), "Ssn, Pnumber"],
+      [tl("Asal olmayan (nonprime) öznitelik", "Nonprime attribute"), [], ["Ename", "Dnumber", "Dname", "Pname", "Hours"], tl("Hiçbir aday anahtarda geçmeyen öznitelik. 2NF ve 3NF bunları korur.", "An attribute in no candidate key. 2NF and 3NF protect these."), "Ename, Dnumber, Dname, Pname, Hours"],
+      [tl("Kapanış X⁺", "Closure X⁺"), ["Ssn"], ["Ename", "Dnumber", "Dname"], tl("X'ten bağımlılıklar zinciriyle ulaşılan bütün öznitelikler. X⁺ her şeyi içeriyorsa X süper anahtardır.", "Every attribute reachable from X by chaining dependencies. If X⁺ contains everything, X is a superkey."), "Ssn⁺ = {Ssn, Ename, Dnumber, Dname}"],
+      [tl("Tam bağımlılık", "Full dependency"), ["Ssn", "Pnumber"], ["Hours"], tl("Sol taraftan bir öznitelik çıkarınca bozulan bağımlılık: Hours için hem çalışan hem proje gerekir.", "A dependency that breaks if any attribute leaves the left side: Hours needs both the employee and the project."), "{Ssn, Pnumber} → Hours"],
+      [tl("Kısmi bağımlılık", "Partial dependency"), ["Ssn"], ["Ename"], tl("Asal olmayan bir özniteliğin anahtarın yalnızca bir parçasına bağlı olması. 2NF bunu yasaklar.", "A nonprime attribute depending on only part of the key. 2NF forbids it."), tl("Ssn → Ename (anahtar {Ssn, Pnumber})", "Ssn → Ename (key {Ssn, Pnumber})")],
+      [tl("Geçişli bağımlılık", "Transitive dependency"), ["Dnumber"], ["Dname"], tl("Asal olmayan bir özniteliğin anahtara başka bir anahtar olmayan öznitelik üzerinden bağlı olması. 3NF bunu yasaklar.", "A nonprime attribute depending on the key through another non-key attribute. 3NF forbids it."), "Ssn → Dnumber → Dname"],
+      [tl("Anomali", "Anomaly"), [], ["Dname"], tl("Tekrardan doğan güncelleme, ekleme ve silme sorunları: bir adı bir satırda değiştirip ötekinde unutmak gibi.", "Update, insertion and deletion problems caused by repetition, such as renaming in one row and forgetting another."), tl("'Research' 4 satırda yazılı", "'Research' written in 4 rows")],
+      [tl("Ayrıştırma (decomposition)", "Decomposition"), ["Dnumber"], ["Dname"], tl("Tabloyu sütunlarına göre küçük tablolara bölmek; ortak sütun parçaları birbirine bağlar.", "Splitting a table by its columns into smaller tables; a shared column links the parts."), "DEPT(Dnumber, Dname) + EMP_PROJ − Dname"],
+      [tl("Kayıpsız join / NJB testi", "Lossless join / NJB test"), ["Dnumber"], [], tl("Parçaların join'i orijinali eksiksiz ve fazlasız verir. Test: ortak öznitelikler parçalardan birinin anahtarı olmalı.", "The join of the parts gives back the original, nothing missing, nothing extra. Test: the shared attributes must be a key of one part."), tl("ortak Dnumber, DEPT'in anahtarı", "shared Dnumber is DEPT's key")],
+      [tl("Sahte satır (spurious tuple)", "Spurious tuple"), ["Dname"], [], tl("Kötü bölünmüş parçaların join'inde çıkan, orijinalde olmayan satır.", "A row produced by joining badly split parts that was never in the original."), tl("ortak sütun yalnızca Dname olursa", "if the only shared column is Dname")],
+      [tl("Bağımlılığın korunması", "Dependency preservation"), ["Dnumber"], ["Dname"], tl("Her bağımlılığın bölmeden sonra tek bir tablonun içinde kalması; böylece bir anahtarla zorlanabilir. Gerekirse vazgeçilir, kayıpsız join'den asla.", "Every dependency stays inside a single table after the split, so a key can enforce it. It may be given up; a lossless join never."), tl("Dnumber → Dname, DEPT'in içinde", "Dnumber → Dname, inside DEPT")],
+    ];
+    let sel = 0;
+    const strip = h("div", { class: "term-strip" }), cap = h("div", { class: "small term-cap" });
+    const paintStrip = () => {
+      const [name, L, Rr, , ex] = T[sel];
+      strip.replaceChildren(h("span", { class: "term-rel" }, "EMP_PROJ("), ...R.flatMap((a, i) => [i ? h("span", { class: "term-sep" }, ",") : "",
+        h("span", { class: "term-attr" + (L.includes(a) ? " l" : "") + (Rr.includes(a) ? " r" : "") + (a === "Ssn" || a === "Pnumber" ? " k" : "") }, a)]), h("span", { class: "term-rel" }, ")"));
+      cap.replaceChildren(h("strong", {}, name), ": ", ex);
+      for (const [i, tr] of [...list.children].entries()) tr.classList.toggle("on", i === sel);
+    };
+    const list = h("div", { class: "term-list" }, ...T.map(([name, , , def], i) => h("button", { type: "button", class: "term-row", onmouseenter: () => { sel = i; paintStrip(); }, onfocus: () => { sel = i; paintStrip(); }, onclick: () => { sel = i; paintStrip(); } },
+      h("span", { class: "term-name" }, name), h("span", { class: "term-def" }, def))));
+    host.append(h("div", { class: "stepper term-box" }, h("div", { class: "term-top" }, strip, cap,
+      h("div", { class: "small muted" }, h("span", { class: "term-attr l mini" }, tl("sol taraf", "left side")), " ", h("span", { class: "term-attr r mini" }, tl("sağ taraf / ilgili", "right side / concerned")), " ", h("span", { class: "term-attr k mini" }, tl("anahtar", "key")))), list));
+    paintStrip();
+  }
+}
