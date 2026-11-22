@@ -219,6 +219,10 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
   <li>Some of the constraints (FDs, normalization) are in Ch 14–15, triggers and assertions in Ch 7.</li>
 </ul>
 
+<h2>You decide</h2>
+<p>Each question has an INSERT, DELETE or UPDATE, and you decide which constraint it violates. After you answer, the statement really runs on the page's MySQL inside a transaction: the table before is on the left, the table after (or the DBMS's error message) on the right, and then the transaction is rolled back so your data does not change.</p>
+<div id="con-decide"></div>
+
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="2" data-tables="WORKS_ON">
   <p>In COMPANY's starting data, what are the degree and the cardinality of the relation WORKS_ON(Essn, Pno, Hours)?</p>

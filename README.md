@@ -18,12 +18,17 @@ dünya düğmesi dili değiştirir ve okuyucuyu aynı bölümde tutar.
   sırası, join türleri, ilişkisel cebirin her işlemi (atılan satırlar kırmızı, NULL ile kalanlar sarı), ER'den tablolara
   eşlemenin her adımı (tablonun önceki ve sonraki hâli) ve tablolardan ER'e geri dönüş.
 - **Etkileşimli oynatıcılar.** Ch 9'da Adım 1–9'u tek şemada gösteren ve diyagramda o adımın yapısını vurgulayan oynatıcı
-  (tahmin modu, büyütme ve tam ekran); Ch 14'te bağımlılık diyagramları, adım adım kapanış, anomali laboratuvarı ve
-  normalizasyon oynatıcısı; Ch 16'da tampon değiştirme, bloklama, hashing ve RAID simülasyonları; Ch 17'de indeks türleri,
+  (tahmin modu, büyütme ve tam ekran); Ch 14'te bağımlılık diyagramları, adım adım kapanış, anomali laboratuvarı,
+  COMPANY'nin gerçek satırlarıyla UNF → 1NF → 2NF → 3NF/BCNF yolculuğu (her adımda tekrar eden hücreler, anomali testleri ve
+  kayıpsız join kontrolü) ve serbest ayrıştırma laboratuvarı (sahte satırlar, NJB, normal formlar, kaybolan bağımlılıklar); Ch 16'da tampon değiştirme, bloklama, hashing ve RAID simülasyonları; Ch 17'de indeks türleri,
   maliyet hesaplayıcısı ve B+/B-ağacı ekleme oynatıcısı. Ch 20'de eşzamanlılık sorunları oynatıcısı, durum
   diyagramı ve öncelik grafını adım adım kuran çizelge analizcisi; Ch 11'de üç katmanlı istek oynatıcısı,
-  gerçek veritabanında çalışan fetchRow döngüsü ve SQL injection'ı gösteren placeholder laboratuvarı. "Sen karar ver" bölümleri her cevaptan sonra adım adım çözümü
-  gösterir ve cevap sıfırlanabilir.
+  gerçek veritabanında çalışan fetchRow döngüsü ve SQL injection'ı gösteren placeholder laboratuvarı. "Sen karar ver" bölümleri (Ch 5, 6, 7, 8, 9, 14, 16, 17, 20) her
+  cevaptan sonra adım adım çözümü gösterir ve cevap sıfırlanabilir: sorgular MySQL'de adım adım çalışır (önceki adımın sonucu
+  solda, bu adımınki sağda); veri değiştiren komutlar bir transaction içinde gerçekten çalışır, tablonun önceki ve sonraki hâli
+  (ya da DBMS'in hata mesajı) gösterilir ve transaction geri alınır.
+- **Kısa sayfa girişleri.** Sayfanın hedefleri ve kapsadığı slayt aralığı başlığın altında katlanmış bir "Bu sayfa hakkında"
+  kutusunda durur; konu ilk ekranda başlar. Kutunun açık ya da kapalı olması hatırlanır.
 - **Notebook alıştırmaları**: notebook'taki 10 SQL alıştırması, notebook'takiyle aynı kontrolcüyle (aynı hash'ler; Python
   kontrolcüsü `site/js/lib/sqlcore.js`'e taşındı). İpuçları, doğrulanmış çözümler ve alternatifler.
 - **Çalışma rehberi (Ch 1–7)**: bölüm bölüm bilinmesi gerekenler, çözümlü ER/kısıt/anahtar problemleri, otomatik kontrol
@@ -92,6 +97,7 @@ notebook'un parmak izleriyle karşılaştırır.
 | `site/js/lib/sqllinks.js`, `errhelp.js` | bir kelimeye ait olanı bulma ve açıklama; MySQL biçiminde hatalar ve ad önerileri |
 | `site/js/lib/fd.js` | fonksiyonel bağımlılıklar: kapanış, aday anahtarlar, 2NF/3NF/BCNF testleri, ayrıştırma, NJB, bağımlılıkların korunması |
 | `site/js/lib/schedule.js` | transaction çizelgeleri: çakışmalar, öncelik grafı, serileştirilebilirlik, kurtarılabilirlik sınıfları |
+| `site/js/lib/decide.js` | "Sen karar ver" oynatıcısı; adım adım SQL çözümleri ve geri alınan transaction içinde önce → sonra gösterimi |
 | `site/js/lib/stepper.js` | önce → sonra gösterimli adım adım sorgu görünümleri |
 | `site/js/lib/i18n.js`, `site/en/` | Türkçe/İngilizce metinler; her sayfanın İngilizce eşi |
 | `site/js/lib/sqlcore.js` | komut ayırma ve notebook'un kontrolcüsü (DOM'suz; testler de kullanır) |

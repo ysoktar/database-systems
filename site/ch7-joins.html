@@ -211,6 +211,10 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
 </pre>
 <p class="small muted">Kitaptaki Q29'da base sorguda <code>IS NOT NULL</code> yoktur; Borg'un NULL amiri sonuçta bir (NULL, Borg) satırı üretir. Seviye bilgisini de tutan bir sürüm için <a href="notebook.html#ex10">notebook Alıştırma 10</a>.</p>
 
+<h2>Sen karar ver</h2>
+<p>Join türü, COUNT ve gruplama üzerine dört karar. Her cevaptan sonra sorgu adım adım çalışır: hangi satırın neden kaldığını ya da düştüğünü önce ve sonra tablolarında görürsünüz.</p>
+<div id="join-decide"></div>
+
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="2" data-tables="EMPLOYEE">
   <p><code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE Salary &gt;= 30000 GROUP BY Dno HAVING COUNT(*) &gt;= 2;</code> kaç satır döndürür? (Maaşlar: dept 5'te 30000, 40000, 38000, 25000; dept 4'te 25000, 43000, 25000; dept 1'de 55000.)</p>

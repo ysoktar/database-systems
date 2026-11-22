@@ -1,4 +1,5 @@
 import "../layout.js";
+import "./sql-decide.js";
 import { h, $, $$, button } from "../lib/ui.js";
 import { schemaCards, COMPANY_SCHEMA } from "../lib/schema.js";
 import { runSQL } from "../lib/db.js";

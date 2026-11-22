@@ -227,6 +227,10 @@ FROM   EMPLOYEE AS E, EMPLOYEE AS S
 WHERE  E.Super_ssn = S.Ssn;
 </pre>
 
+<h2>You decide</h2>
+<p>Four traps about NULL, NOT IN, ALL and correlated NOT EXISTS. After each answer the subquery runs first, then the outer query, and the corrected form is shown next to it.</p>
+<div id="nested-decide"></div>
+
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="1" data-tables="EMPLOYEE">
   <p>What does <code>SELECT Lname FROM EMPLOYEE WHERE Salary &gt; ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 7)</code> return? (There is no department 7.)</p>
