@@ -293,6 +293,7 @@ function init() {
   document.body.prepend(h("a", { class: "skip-link", href: "#content" }, tl("İçeriğe geç", "Skip to content")), buildHeader(), scrim);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.body.classList.remove("nav-open"); });
 
+  foldIntro(content);
   enhanceCallouts(content);
   enhanceQuizzes(content);
   enhanceSQL(content);
@@ -305,6 +306,30 @@ function init() {
   else setTimeout(nav, 0);
   const cur = $(".sidebar [aria-current]"), side = $(".sidebar");
   if (cur && side) side.scrollTop = Math.max(0, cur.offsetTop - side.clientHeight / 2);
+}
+
+/**
+ * The goals and the scope note at the top of a page are useful but stand between the reader and the topic: fold them
+ * into one closed line ("Goals (4) · Scope: slides 1–41") right under the lead. The reader's choice is remembered.
+ */
+function foldIntro(content) {
+  const firstH2 = $("h2", content);
+  const before = (el) => !firstH2 || (el.compareDocumentPosition(firstH2) & Node.DOCUMENT_POSITION_FOLLOWING);
+  const goals = $$(".callout.goals", content).filter(before);
+  const scope = $$(".callout.note", content).filter(before).filter((c) => /^\s*(Kapsam|Scope)\b/.test(c.textContent));
+  const parts = [...goals, ...scope];
+  if (!parts.length) return;
+  const n = goals.reduce((s, g) => s + $$("li", g).length, 0);
+  const slides = scope.map((c) => (c.textContent.match(/(\d+\s*[–-]\s*\d+)/) || [])[1]).find(Boolean);
+  const KEY = "intro-open";
+  let open = false;
+  try { open = localStorage.getItem(KEY) === "1"; } catch { /* storage may be unavailable */ }
+  const d = h("details", { class: "page-intro", open: open || null },
+    h("summary", {}, h("span", { class: "pi-title" }, tl("Bu sayfa hakkında", "About this page")),
+      h("span", { class: "pi-meta" }, [n ? tl(`${n} hedef`, `${n} goals`) : "", scope.length ? (slides ? tl(`kapsam: slaytlar ${slides}`, `scope: slides ${slides}`) : tl("kapsam", "scope")) : ""].filter(Boolean).join(" · "))));
+  parts[0].before(d);
+  d.append(...parts);
+  d.addEventListener("toggle", () => { try { localStorage.setItem(KEY, d.open ? "1" : "0"); } catch { /* ignore */ } });
 }
 
 /** On phones, tables become stacked cards: every cell carries its column name (CSS shows it). */
@@ -352,7 +377,13 @@ function buildPageNav(content, id) {
   if (id !== "index" && !$(".page-toc", content)) {
     const toc = h("nav", { class: "page-toc", "aria-label": tl("Bu sayfada", "On this page") }, h("div", { class: "page-toc-title" }, tl("Bu sayfada", "On this page")),
       h("ol", {}, ...tree.map((t) => h("li", {}, link(t.hd)))));
-    ($(":scope > .lead", content) || $(":scope > h1", content)).after(toc);
+    // with a folded intro the list goes inside it (one closed line instead of a block); otherwise under the lead
+    const intro = $(":scope > details.page-intro", content);
+    if (intro) {
+      intro.querySelector("summary").after(toc);
+      const meta = intro.querySelector(".pi-meta");
+      meta.textContent = [tl(`${tree.length} bölüm`, `${tree.length} sections`), meta.textContent].filter(Boolean).join(" · ");
+    } else ($(":scope > .lead", content) || $(":scope > h1", content)).after(toc);
   }
   // "Bu bölümde" at the start of long sections
   for (const t of tree) {

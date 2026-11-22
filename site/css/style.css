@@ -1110,3 +1110,16 @@ table.rel tr.dim td { color: var(--muted); }
 :root[data-theme="dark"] .er.focus g[data-id]:not(.hl):not(.done) { opacity: 0.6; }
 :root[data-theme="dark"] .er.focus g.done { opacity: 0.85; }
 :root[data-theme="dark"] .er.focus .link { opacity: 0.55; }
+
+/* ---- folded page intro: goals and scope behind one line */
+details.page-intro { margin: 0.4rem 0 1.4rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+details.page-intro > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 12px; font-size: 0.9rem; }
+details.page-intro > summary::-webkit-details-marker { display: none; }
+details.page-intro > summary::before { content: "▸"; color: var(--accent); font-weight: 700; transition: transform 0.15s; }
+details.page-intro[open] > summary::before { transform: rotate(90deg); }
+details.page-intro .pi-title { font-weight: 650; }
+details.page-intro .pi-meta { color: var(--muted); font-size: 0.85rem; }
+details.page-intro > .callout { margin: 0 10px 10px; }
+details.page-intro > .page-toc { margin: 0 10px 10px; border: 0; padding: 4px 4px 0; }
+/* with the contents column on the right, the in-page list would only repeat it */
+@media (min-aspect-ratio: 1/1) and (min-width: 760px) { .main.has-rail .page-toc { display: none; } }
