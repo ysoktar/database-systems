@@ -2,6 +2,7 @@
 // PHP string output with "guess first", the Figure 11.3 array statements step by step, a placeholder vs concatenation
 // lab that runs both queries on the page's MySQL, and a fetchRow / getAll loop player on real query results.
 import "../layout.js";
+import "./concept-decide.js";
 import { $, h, button } from "../lib/ui.js";
 import { runSQL } from "../lib/db.js";
 import { relationTable } from "../lib/sqlbox.js";

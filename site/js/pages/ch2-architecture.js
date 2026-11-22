@@ -1,4 +1,5 @@
 import "../layout.js";
+import "./concept-decide.js";
 import { $ } from "../lib/ui.js";
 import { t as tl, tx, EN } from "../lib/i18n.js";
 

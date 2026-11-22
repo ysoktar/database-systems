@@ -74,21 +74,29 @@ export function calcSteps(steps) {
 
 /** A worked solution for data changes: each step's statement runs inside a transaction that is always rolled back,
  *  so the page's data never changes. Before: `show` on the current data; after: `show` once the statement ran, or the
- *  error MySQL gave (then the data is unchanged). steps: [{ label, sql, show, note? }] */
+ *  error MySQL gave (then the data is unchanged). A step without sql only shows its query and result; cleanup undoes
+ *  DDL, which ROLLBACK does not. steps: [{ label, sql?, show, note?, cleanup? }] */
 export async function changeSteps(steps) {
   const ol = h("ol", { class: "map-steps" });
   const tableOf = (r) => h("div", {}, relationTable(r.cols, r.types, r.rows), h("div", { class: "small muted" }, tl(`${r.rows.length} satır`, `${r.rows.length} rows`)));
   for (const s of steps) {
+    if (!s.sql) { // a step that only looks: the query and its result
+      const r = await runSQL(s.show);
+      ol.append(h("li", {}, h("div", { class: "step-title" }, s.label), h("pre", { class: "tx-inline" }, s.show),
+        r.error ? h("div", { class: "res-msg error" }, r.error.message) : tableOf(r.last), s.note ? h("p", { class: "small" }, s.note) : ""));
+      continue;
+    }
     const before = await runSQL(s.show);
     const r = await runSQL(`START TRANSACTION;\n${s.sql}\n${s.show}`);
     const after = r.error ? null : r.last;
     await runSQL("ROLLBACK");
+    if (s.cleanup) await runSQL(s.cleanup); // DDL is not undone by ROLLBACK in MySQL
     const err = r.error ? h("div", {}, h("div", { class: "res-msg error" }, `${tl("HATA", "ERROR")} ${r.error.code ?? ""} (${r.error.state ?? ""}): ${r.error.message}`), h("p", { class: "small" }, tl("DBMS işlemi reddetti; tablo değişmedi.", "The DBMS rejected the statement; the table did not change."))) : null;
     ol.append(h("li", {}, h("div", { class: "step-title" }, s.label), h("pre", { class: "tx-inline" }, s.sql),
       h("div", { class: "ba" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), before.last ? tableOf(before.last) : "—"), h("div", { class: "ba-arrow", "aria-hidden": "true" }),
         h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), err || tableOf(after))),
       s.note ? h("p", { class: "small" }, s.note) : ""));
   }
-  ol.append(h("p", { class: "small muted" }, tl("Her adım bir transaction içinde çalıştı ve geri alındı (ROLLBACK); sayfanın verisi değişmedi.", "Each step ran inside a transaction that was rolled back (ROLLBACK); the page's data did not change.")));
+  if (steps.some((s) => s.sql)) ol.append(h("p", { class: "small muted" }, tl("Her adım bir transaction içinde çalıştı ve geri alındı (ROLLBACK); sayfanın verisi değişmedi.", "Each step ran inside a transaction that was rolled back (ROLLBACK); the page's data did not change.")));
   return ol;
 }

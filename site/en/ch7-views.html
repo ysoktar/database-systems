@@ -8,7 +8,7 @@
 <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../css/style.css">
 <script src="../js/theme-init.js"></script>
-<script type="module" src="../js/layout.js"></script>
+<script type="module" src="../js/pages/concept-decide.js"></script>
 </head>
 <body data-page="ch7-views">
 <main><div class="content">
@@ -234,6 +234,10 @@ SELECT COLUMN_NAME FROM information_schema.COLUMNS
 WHERE  TABLE_SCHEMA = 'company' AND TABLE_NAME = 'EMPLOYEE' ORDER BY ORDINAL_POSITION;
 </pre>
 <p>In the book, for <code>DROP COLUMN</code> either <code>CASCADE</code> (the constraints and views that refer to the column are deleted too) or <code>RESTRICT</code> (deleted only if nothing refers to it) must be chosen; MySQL does not use these words. To be able to drop a constraint it <em>must have a name</em>: that is why constraints are named in Ch 6. (MySQL writes <code>DROP FOREIGN KEY name</code> for a foreign key, and <code>DROP CONSTRAINT name</code> or <code>DROP CHECK name</code> for other constraints.)</p>
+
+<h2>You decide</h2>
+<p>Four decisions on a view's freshness, its updatability, assertions and triggers. After you answer, the change really runs inside a transaction: the view query's result before and after is shown side by side, then the transaction is rolled back.</p>
+<div id="views-decide"></div>
 
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="3">
