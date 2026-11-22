@@ -8,7 +8,7 @@
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
-<script type="module" src="js/layout.js"></script>
+<script type="module" src="js/pages/sql-decide.js"></script>
 </head>
 <body data-page="ch6-sql">
 <main><div class="content">
@@ -303,6 +303,10 @@ WHERE  Dno = 5;
 SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
 </pre>
 <p>Research'teki dört maaş 30000, 40000, 38000, 25000'den 33000, 44000, 41800, 27500'e çıkar. Atamanın sağ tarafındaki <code>Salary</code> eski değerdir, sol taraf yeni değeri alır. <code>SET</code> NULL ya da <code>DEFAULT</code> atayabilir. UPDATE bir seferde tek bir tabloyu değiştirir; PK değişirse FK'lar için <code>ON UPDATE</code> eylemleri tetiklenir.</p>
+
+<h2>Sen karar ver</h2>
+<p>Her soruda bir komutun ne yapacağını tahmin ediyorsunuz. Cevaptan sonra sorgu kavramsal değerlendirme sırasıyla adım adım çalışır (önceki adımın sonucu solda, bu adımınki sağda); veri değiştiren komutlar bir transaction içinde çalışıp geri alınır.</p>
+<div id="sql-decide"></div>
 
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="3" data-tables="EMPLOYEE WORKS_ON PROJECT">

@@ -8,7 +8,7 @@
 <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../css/style.css">
 <script src="../js/theme-init.js"></script>
-<script type="module" src="../js/layout.js"></script>
+<script type="module" src="../js/pages/sql-decide.js"></script>
 </head>
 <body data-page="ch6-sql">
 <main><div class="content">
@@ -303,6 +303,10 @@ WHERE  Dno = 5;
 SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
 </pre>
 <p>The four salaries in Research go from 30000, 40000, 38000, 25000 to 33000, 44000, 41800, 27500. The <code>Salary</code> on the right of the assignment is the old value; the left side gets the new value. <code>SET</code> can assign NULL or <code>DEFAULT</code>. UPDATE changes one table at a time; if a PK changes, the <code>ON UPDATE</code> actions of the FKs are triggered.</p>
+
+<h2>You decide</h2>
+<p>Each question asks you to predict what a statement does. After you answer, the query runs step by step in its conceptual evaluation order (the previous step's result on the left, this step's on the right); statements that change data run inside a transaction and are rolled back.</p>
+<div id="sql-decide"></div>
 
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="3" data-tables="EMPLOYEE WORKS_ON PROJECT">

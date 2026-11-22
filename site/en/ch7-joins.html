@@ -211,6 +211,10 @@ SELECT * FROM SUP_EMP ORDER BY SupSsn, EmpSsn;
 </pre>
 <p class="small muted">The book's Q29 has no <code>IS NOT NULL</code> in the base query; Borg's NULL supervisor produces a (NULL, Borg) row in the result. For a version that also keeps the level, see <a href="notebook.html#ex10">notebook Exercise 10</a>.</p>
 
+<h2>You decide</h2>
+<p>Four decisions about join types, COUNT and grouping. After each answer the query runs step by step, and the before and after tables show which rows stay or drop out and why.</p>
+<div id="join-decide"></div>
+
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="2" data-tables="EMPLOYEE">
   <p>How many rows does <code>SELECT Dno, COUNT(*) FROM EMPLOYEE WHERE Salary &gt;= 30000 GROUP BY Dno HAVING COUNT(*) &gt;= 2;</code> return? (Salaries: in dept 5, 30000, 40000, 38000, 25000; in dept 4, 25000, 43000, 25000; in dept 1, 55000.)</p>

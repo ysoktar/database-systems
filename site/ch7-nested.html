@@ -227,6 +227,10 @@ FROM   EMPLOYEE AS E, EMPLOYEE AS S
 WHERE  E.Super_ssn = S.Ssn;
 </pre>
 
+<h2>Sen karar ver</h2>
+<p>NULL, NOT IN, ALL ve correlated NOT EXISTS üzerine dört tuzak. Her cevaptan sonra önce alt sorgu, sonra dış sorgu çalışır; düzeltilmiş hâli de yanında görünür.</p>
+<div id="nested-decide"></div>
+
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="1" data-tables="EMPLOYEE">
   <p><code>SELECT Lname FROM EMPLOYEE WHERE Salary &gt; ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 7)</code> ne döndürür? (7 numaralı departman yok.)</p>

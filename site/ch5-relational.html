@@ -219,6 +219,10 @@ SELECT Lname, Super_ssn FROM EMPLOYEE WHERE Lname IN ('Wong', 'Wallace');
   <li>Kısıtların bir kısmı (FD'ler, normalizasyon) Ch 14–15'te, trigger ve assertion'lar Ch 7'de.</li>
 </ul>
 
+<h2>Sen karar ver</h2>
+<p>Her soruda bir INSERT, DELETE ya da UPDATE var; hangi kısıtı ihlal ettiğine siz karar veriyorsunuz. Cevaptan sonra komut sayfanın MySQL'inde bir transaction içinde gerçekten çalışır: tablonun önceki hâli solda, sonraki hâli (ya da DBMS'in hata mesajı) sağda görünür, ardından transaction geri alınır ve verinin değişmez.</p>
+<div id="con-decide"></div>
+
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="2" data-tables="WORKS_ON">
   <p>COMPANY'nin başlangıç verisinde WORKS_ON(Essn, Pno, Hours) ilişkisinin degree'si ve cardinality'si nedir?</p>
