@@ -1,4 +1,5 @@
 import "../layout.js";
+import "./er-decide.js";
 import { mountExercise } from "../lib/er-inline.js";
 import { h, $, $$ } from "../lib/ui.js";
 import { erFigure, COMPANY_ER } from "../lib/erd.js";
