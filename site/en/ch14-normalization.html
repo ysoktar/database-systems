@@ -29,9 +29,16 @@
   <p><strong>Scope.</strong> This page covers slides 1–55 of the Ch 14 slides (up to BCNF), which the syllabus assigns to week 9. The rest of the slides (56–60) are about multivalued dependencies and 4NF, and join dependencies and 5NF; the syllabus does not include that part, so it is not covered here.</p>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>Every term on this page, on one table: COMPANY's (employee, project) table EMP_PROJ. Hover over or click a term; the columns it talks about light up and an example appears.</p>
+<div id="nf-terms"></div>
+
 <h2>The big picture: one rule</h2>
 <p>All the definitions of normalization come down to one question: <strong>is the left side of every dependency a key?</strong> In X → A, if X is a key, each value of X appears once in the table and A is written once. If X is not a key, the same X value repeats in many rows and A is written again each time. That repetition is where anomalies come from. The fix is always the same: move X and A to a table of their own.</p>
-<p class="small"><strong>Three terms are enough</strong> (details below): <strong>X → A</strong> means that once the value of X is known, the value of A is fixed too (Ssn → Ename). A <strong>key</strong> is a minimal set of attributes whose value differs in every row. A <strong>prime attribute</strong> is one that is part of a candidate key.</p>
+<h3>Split it yourself</h3>
+<p>The table below is COMPANY's real data: each row is an (employee, project) pair. Coloured cells repeat facts already written in the same table. Click a dependency: that fact moves to a table of its own, the repeat counter drops, and the join of the parts is checked against the original rows. You choose the order: whichever order you split in, you end up with the same four tables.</p>
+<div id="nf-split"></div>
+<h3>The four normal forms in one table</h3>
 <table>
   <thead><tr><th>Normal form</th><th>What does it forbid?</th><th>Example from COMPANY</th></tr></thead>
   <tbody>
@@ -41,6 +48,7 @@
     <tr><td>BCNF</td><td>A non-key → <em>any</em> attribute (a prime one too)</td><td>Instructor → Course (TEACH)</td></tr>
   </tbody>
 </table>
+<h3>Classify one dependency</h3>
 <p>Pick a table and a dependency below. Three questions are answered in turn; at the end you see which normal form the dependency breaks and how the table is split. The rest of the page is the detail of these three questions: first anomalies and normalization on real data, then FDs, keys and closure, then the normal forms one by one.</p>
 <div id="fd-ladder"></div>
 
