@@ -1179,3 +1179,14 @@ table.jt th.c0, table.jt th.c1, table.jt th.c2, table.jt th.c3 { background-clip
 .term-name { font-weight: 650; }
 .term-def { font-size: .92rem; }
 @media (max-width: 560px) { .term-row { grid-template-columns: 1fr; gap: 0; } }
+
+/* Ch 14: one card per normal form, and the nested normal forms */
+.nf-card { border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 6px; margin: 10px 0 14px; }
+.nf-row { display: grid; grid-template-columns: minmax(120px, 11rem) 1fr; gap: 12px; padding: 8px 12px; }
+.nf-row + .nf-row { border-top: 1px solid var(--border); }
+.nf-k { font-weight: 700; color: var(--text-2); font-size: .9rem; }
+.nf-row:first-child .nf-v { font-weight: 650; }
+@media (max-width: 560px) { .nf-row { grid-template-columns: 1fr; gap: 2px; } }
+.nf-nest { border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 10px 10px; margin: 6px 0 0; background: rgba(127, 127, 127, .05); }
+.nf-nest > .nf-nest { margin-top: 6px; }
+.nf-nest-l { display: block; font-size: .9rem; }

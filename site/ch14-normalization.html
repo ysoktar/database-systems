@@ -33,26 +33,8 @@
 <p>Sayfadaki bütün terimler aynı tablo üzerinde: COMPANY'nin (çalışan, proje) tablosu EMP_PROJ. Bir terimin üstüne gelin ya da tıklayın; tablonun hangi sütunlarından söz ettiği renklenir ve bir örnek görünür.</p>
 <div id="nf-terms"></div>
 
-<h2>Büyük resim: tek kural</h2>
-<p>Normalizasyonun bütün tanımları tek bir soruya iner: <strong>her bağımlılığın sol tarafı bir anahtar mı?</strong> X → A bağımlılığında X bir anahtarsa, X'in her değeri tabloda bir kez geçer ve A da bir kez yazılır. X anahtar değilse aynı X değeri birçok satırda tekrar eder ve A her seferinde yeniden yazılır. Anomalilerin kaynağı bu tekrardır. Çözüm de hep aynıdır: X ile A'yı kendi tablolarına çıkarmak.</p>
-<h3>Kendiniz bölün</h3>
-<p>Aşağıdaki tablo COMPANY'nin gerçek verisi: her satır bir (çalışan, proje) çifti. Renkli hücreler, aynı tabloda zaten yazılı olan bilgilerin tekrarıdır. Bir bağımlılığa tıklayın: o bilgi kendi tablosuna taşınır, tekrar sayacı düşer ve parçaların join'inin orijinal satırları geri verip vermediği kontrol edilir. Sırayı siz seçin: hangi sırayla bölerseniz bölün, sonunda aynı dört tabloya varırsınız.</p>
-<div id="nf-split"></div>
-<h3>Dört normal form tek tabloda</h3>
-<table>
-  <thead><tr><th>Normal form</th><th>Neyi yasaklar?</th><th>COMPANY'den örnek</th></tr></thead>
-  <tbody>
-    <tr><td>1NF</td><td>Bir hücrede birden çok değer</td><td>Dlocations = "Bellaire, Houston, Sugarland"</td></tr>
-    <tr><td>2NF</td><td>Anahtarın bir <em>parçası</em> → asal olmayan öznitelik</td><td>Ssn → Ename, anahtar {Ssn, Pnumber} iken</td></tr>
-    <tr><td>3NF</td><td>Anahtar <em>olmayan</em> → asal olmayan öznitelik</td><td>Dnumber → Dname, anahtar Ssn iken</td></tr>
-    <tr><td>BCNF</td><td>Anahtar olmayan → <em>herhangi</em> bir öznitelik (asal olan da)</td><td>Instructor → Course (TEACH)</td></tr>
-  </tbody>
-</table>
-<h3>Bir bağımlılığı sınıflandırın</h3>
-<p>Aşağıda bir tablo ve bir bağımlılık seçin. Üç soru sırayla cevaplanır; sonunda bağımlılığın hangi normal formu bozduğu ve tablonun nasıl bölüneceği görünür. Sayfanın geri kalanı bu üç sorunun ayrıntısıdır: önce anomaliler ve gerçek veride normalizasyon, sonra FD, anahtar ve kapanış, sonra normal formlar tek tek.</p>
-<div id="fd-ladder"></div>
-
-<h2>İyi tasarım için gayriresmî kurallar</h2>
+<h2>Sorun: tekrar ve anomaliler</h2>
+<p>Normalizasyonun amacı tek bir şeydir: <strong>aynı bilgiyi iki kez yazmamak</strong>. Bir bilgi birçok satırda tekrar edince, onu değiştirirken, eklerken ya da silerken tablo kendisiyle çelişebilir. Bu bölüm sorunu gösterir; sonraki bölümler onu ölçmeye (bağımlılıklar, anahtarlar) ve gidermeye (normal formlar) yarayan araçlardır.</p>
 <p>Kitap biçimsel kavramlardan önce dört kural verir:</p>
 <ol>
   <li><strong>Anlamı açık tutun.</strong> Her satır tek bir varlığı ya da tek bir ilişki örneğini temsil etsin; çalışan, departman ve proje öznitelikleri aynı tabloda karışmasın, başka varlıklara foreign key ile referans verilsin.</li>
@@ -82,9 +64,9 @@ UPDATE demo.EMP_DEPT SET Dname = 'R&amp;D' WHERE Ssn = '123456789';
 SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- department 5 now has two names
 </pre>
 
-<h2>Normalizasyon yolculuğu: aynı tablo, adım adım</h2>
-<p>Tanımlardan önce normalizasyonun ne kazandırdığını gerçek veride görün. Tablo COMPANY'den kuruldu: her çalışan, departmanı ve projeleri. Adımları ilerletin: tekrar eden hücreler sarı, bir sonraki adımda çözülecek bağımlılık kırmızıdır; üç anomali testi ve parçaların join'inin orijinali geri verip vermediği her adımda kontrol edilir. Aşağıdaki 1NF, 2NF ve 3NF bölümleri bu adımların biçimsel tanımlarıdır.</p>
-<div id="nf-journey"></div>
+<h3>Tekrarı görün ve kendiniz giderin</h3>
+<p>Aşağıdaki tablo COMPANY'nin gerçek verisi: her satır bir (çalışan, proje) çifti. Renkli hücreler, aynı tabloda zaten yazılı olan bilgilerin tekrarıdır. Bir bağımlılığa tıklayın: o bilgi kendi tablosuna taşınır, tekrar sayacı düşer ve parçaların join'inin orijinal satırları geri verip vermediği kontrol edilir. Sırayı siz seçin: hangi sırayla bölerseniz bölün, sonunda aynı dört tabloya varırsınız.</p>
+<div id="nf-split"></div>
 
 <h2>Fonksiyonel bağımlılıklar</h2>
 <p>Fonksiyonel bağımlılıklar (FD), bir tasarımın ne kadar iyi olduğunu biçimsel olarak ölçmeye yarar. <strong>X → Y</strong> ("X, Y'yi fonksiyonel olarak belirler") şu anlama gelir: ilişkinin herhangi bir durumunda, X değerleri aynı olan iki satırın Y değerleri de aynı olmak zorundadır. Biçimsel olarak, her t1 ve t2 satırı için t1[X] = t2[X] ise t1[Y] = t2[Y]'dir.</p>
@@ -110,10 +92,37 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
 <p>Bir öznitelik kümesi X'in <strong>kapanışı</strong> X<sup>+</sup>, X'in bağımlılıklar aracılığıyla belirlediği bütün özniteliklerdir. Hesabı basittir: X ile başlayın, sol tarafı kümede olan her bağımlılığın sağ tarafını ekleyin ve yeni bir şey eklenmeyene kadar sürdürün. X<sup>+</sup> bütün öznitelikleri içeriyorsa X bir süper anahtardır. Aşağıda bir örnek ve bir X seçin; her adımda uygulanan bağımlılık ve kümenin önceki ve sonraki hâli görünür. Üstteki <strong>bağımlılık diyagramında</strong> her bağımlılık bir çizgidir: sol taraftan iner, oklarla sağ tarafa çıkar; anahtar altı çizilidir.</p>
 <div id="closure-steps"></div>
 
+<h2>Tek kural ve dört normal form</h2>
+<p>Bağımlılıkları ve anahtarları tanıdıktan sonra bütün normal formlar tek bir soruya iner: <strong>her bağımlılığın sol tarafı bir anahtar mı?</strong> X → A'da X bir anahtarsa, X'in her değeri tabloda bir kez geçer ve A da bir kez yazılır. X anahtar değilse aynı X değeri birçok satırda tekrar eder ve A her seferinde yeniden yazılır. Düzeltme de hep aynıdır: X ile A kendi tablosuna taşınır, A asıl tablodan çıkarılır.</p>
+<p>Normal formlar bu kuralı adım adım sıkılaştırır. Her biri bir öncekinin bütün koşullarını içerir ve bir tür tekrarı daha yasaklar:</p>
+<div class="nf-nest"><span class="nf-nest-l"><strong>1NF</strong> her hücrede tek değer</span><div class="nf-nest"><span class="nf-nest-l"><strong>2NF</strong> + anahtarın parçasına bağımlılık yok</span><div class="nf-nest"><span class="nf-nest-l"><strong>3NF</strong> + anahtar olmayana bağımlılık yok</span><div class="nf-nest"><span class="nf-nest-l"><strong>BCNF</strong> + istisnasız: her sol taraf süper anahtar</span></div></div></div></div>
+<table>
+  <thead><tr><th>Normal form</th><th>Neyi yasaklar?</th><th>COMPANY'den örnek</th></tr></thead>
+  <tbody>
+    <tr><td>1NF</td><td>Bir hücrede birden çok değer</td><td>Dlocations = "Bellaire, Houston, Sugarland"</td></tr>
+    <tr><td>2NF</td><td>Anahtarın bir <em>parçası</em> → asal olmayan öznitelik</td><td>Ssn → Ename, anahtar {Ssn, Pnumber} iken</td></tr>
+    <tr><td>3NF</td><td>Anahtar <em>olmayan</em> → asal olmayan öznitelik</td><td>Dnumber → Dname, anahtar Ssn iken</td></tr>
+    <tr><td>BCNF</td><td>Anahtar olmayan → <em>herhangi</em> bir öznitelik (asal olan da)</td><td>Instructor → Course (TEACH)</td></tr>
+  </tbody>
+</table>
+<p>Bir bağımlılığın hangi normal formu bozduğunu üç soru söyler:</p>
+<ol>
+  <li><strong>Sol taraf X bir süper anahtar mı?</strong> Evetse sorun yok; bu bağımlılık hiçbir normal formu bozmaz.</li>
+  <li><strong>Sağ taraf A asal mı?</strong> Evetse yalnızca BCNF bozulur; 3NF buna izin verir.</li>
+  <li><strong>X bir aday anahtarın parçası mı?</strong> Evetse kısmi bağımlılıktır ve 2NF bozulur; hayırsa geçişli bağımlılıktır ve 3NF bozulur.</li>
+</ol>
+<h3>Bir bağımlılığı sınıflandırın</h3>
+<p>Bir tablo ve bir bağımlılık seçin. Araç yukarıdaki üç soruyu sırayla cevaplar ve bağımlılığın hangi normal formu bozduğunu, tablonun nasıl bölüneceğini gösterir. Sonraki bölümler her normal formu aynı kalıpla anlatır: tek cümle, çözdüğü sorun, test, düzeltme ve bir örnek.</p>
+<div id="fd-ladder"></div>
+
 <h2>Birinci normal form (1NF)</h2>
-<p>Yolculuğun UNF → 1NF adımı tam olarak budur. 1NF; bileşik öznitelikleri, çok değerli öznitelikleri ve iç içe ilişkileri, yani bir satırdaki değeri atomik olmayan öznitelikleri yasaklar. 1NF, ilişki tanımının bir parçası sayılır ve ilişkisel DBMS'lerin çoğu yalnızca 1NF'teki ilişkilerin tanımlanmasına izin verir.</p>
-<p>Kitaptaki Figure 14.9'da DEPARTMENT(Dname, Dnumber, Dmgr_ssn, Dlocations) ilişkisinin Dlocations özniteliği çok değerlidir: Research departmanının Bellaire, Sugarland ve Houston olmak üzere üç yeri vardır. Bunu 1NF'e getirmenin en iyi yolu, Dlocations'ı primary key ile birlikte ayrı bir ilişkiye taşımaktır: DEPT_LOCATIONS(Dnumber, Dlocation). COMPANY'de yapılan da budur. Diğer seçenekler (her yer için departman bilgisini tekrar eden satırlar ya da Dlocation1, Dlocation2, … gibi sabit sayıda sütun) tekrar ve NULL üretir.</p>
-<p>Figure 14.10'da EMP_PROJ ilişkisinin her satırı, çalışanın projelerinden oluşan iç içe bir PROJS ilişkisi içerir. Bunu 1NF'e getirmek için iç içe ilişki, primary key'i yanına alınarak ayrı bir ilişkiye taşınır: EMP_PROJ1(Ssn, Ename) ve EMP_PROJ2(Ssn, Pnumber, Hours).</p>
+<div class="nf-card">
+  <div class="nf-row"><div class="nf-k">Tek cümleyle</div><div class="nf-v">Her hücrede tek, bölünmez (atomik) bir değer bulunur.</div></div>
+  <div class="nf-row"><div class="nf-k">Hangi sorunu çözer?</div><div class="nf-v">Bir hücrede liste olunca (Dlocations = "Bellaire, Houston, Sugarland") o değere göre arama, güncelleme ve foreign key tanımlama ancak metin parçalayarak yapılabilir.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl test edilir?</div><div class="nf-v">Herhangi bir hücrede birden çok değer, bileşik bir değer ya da iç içe bir tablo var mı?</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl düzeltilir?</div><div class="nf-v">Çok değerli özniteliği, satırın anahtarıyla birlikte ayrı bir tabloya taşıyın: DEPARTMENT ve DEPT_LOCATIONS(Dnumber, Dlocation). Her yer için departman satırını tekrarlamak ya da Dlocation1, Dlocation2 gibi sütunlar açmak tekrar ve NULL üretir.</div></div>
+</div>
+<p>Kitaptaki iki örnek: Figure 14.9'da DEPARTMENT'ın Dlocations'ı yukarıdaki gibi DEPT_LOCATIONS'a taşınır. Figure 14.10'da her çalışan satırının içinde iç içe bir proje tablosu vardır; o da anahtarıyla birlikte ayrılır: EMP_PROJ1(Ssn, Ename) ve EMP_PROJ2(Ssn, Pnumber, Hours). 1NF ilişki tanımının parçası sayılır; ilişkisel DBMS'ler zaten yalnızca 1NF tablolara izin verir.</p>
 <pre class="sql run" data-title="1NF: Dlocations'ı tek bir sütunda değil, ayrı satırlarda tutmak">
 -- not in 1NF: one value holding a set of locations
 SELECT Dnumber, GROUP_CONCAT(Dlocation ORDER BY Dlocation SEPARATOR ', ') AS Dlocations
@@ -123,24 +132,27 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 </pre>
 
 <h2>İkinci normal form (2NF)</h2>
-<p>X → Y bağımlılığında X'ten herhangi bir öznitelik çıkarıldığında bağımlılık artık sağlanmıyorsa bu bir <strong>tam fonksiyonel bağımlılıktır</strong>. Örneğin {Ssn, Pnumber} → Hours tamdır, çünkü ne Ssn → Hours ne de Pnumber → Hours sağlanır. {Ssn, Pnumber} → Ename ise tam değildir, çünkü Ssn → Ename de sağlanır; buna <strong>kısmi bağımlılık</strong> denir.</p>
-<div class="callout key">
-  <p><strong>2NF:</strong> bir ilişki şemasındaki asal olmayan her öznitelik primary key'e <em>tam</em> fonksiyonel bağımlıysa şema 2NF'tedir. Yani asal olmayan hiçbir öznitelik anahtarın yalnızca bir <em>parçasına</em> bağlı olmamalıdır.</p>
+<div class="nf-card">
+  <div class="nf-row"><div class="nf-k">Tek cümleyle</div><div class="nf-v">Asal olmayan her öznitelik anahtarın <em>tamamına</em> bağlıdır, bir parçasına değil.</div></div>
+  <div class="nf-row"><div class="nf-k">Hangi sorunu çözer?</div><div class="nf-v">Anahtar {Ssn, Pnumber} iken Ssn → Ename: çalışanın adı, çalıştığı her proje için bir kez daha yazılır. Pnumber → Pname: projenin adı, her çalışanı için tekrar eder.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl test edilir?</div><div class="nf-v">Anahtarın bir parçası tek başına asal olmayan bir özniteliği belirliyor mu? Belirliyorsa bu bir <strong>kısmi bağımlılıktır</strong>. Anahtar tek öznitelikliyse parçası olmadığından 1NF tablo zaten 2NF'tedir.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl düzeltilir?</div><div class="nf-v">Her kısmi bağımlılık X → A için (X, A) ayrı tablo olur ve A asıl tablodan çıkar. Asıl tabloda yalnızca anahtarın tamamına bağlı olanlar kalır.</div></div>
 </div>
-<p>Yolculuğun 1NF → 2NF adımında Ename ve Pname'in tekrar etmesinin nedeni kısmi bağımlılıklardı. Kitaptaki örnek de aynıdır. EMP_PROJ 2NF'te değildir: Ename yalnızca Ssn'e, Pname ve Plocation yalnızca Pnumber'a bağlıdır. 2NF normalizasyonu, her kısmi bağımlılığı kendi ilişkisine taşır. Aşağıdaki gösterimde her ayrıştırma adımında ilişkinin önceki hâli solda, ondan çıkan iki ilişki sağdadır; altı çizili öznitelikler her ilişkinin anahtarıdır. Sonuç kitaptaki Figure 14.11a ile aynıdır: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename) ve EP3(Pnumber, Pname, Plocation).</p>
+<p>Sol tarafından bir öznitelik çıkarınca bozulan bağımlılık <strong>tamdır</strong>: {Ssn, Pnumber} → Hours tamdır, çünkü saat için hem çalışan hem proje gerekir. {Ssn, Pnumber} → Ename ise tam değildir, çünkü Ssn tek başına yeter. Aşağıda kitaptaki EMP_PROJ adım adım 2NF'e götürülür; her adımda önceki ilişki solda, ondan çıkan iki ilişki sağdadır. Sonuç Figure 14.11a ile aynıdır: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename), EP3(Pnumber, Pname, Plocation).</p>
 <div id="nf-emp-proj"></div>
 
 <h2>Üçüncü normal form (3NF)</h2>
-<p>X → Y ve Y → Z bağımlılıklarından türetilebilen X → Z bağımlılığına <strong>geçişli (transitive) bağımlılık</strong> denir. Örneğin Ssn → Dmgr_ssn geçişlidir, çünkü Ssn → Dnumber ve Dnumber → Dmgr_ssn sağlanır. Ssn → Ename ise geçişli değildir, çünkü Ssn → X ve X → Ename olan bir X yoktur.</p>
-<div class="callout key">
-  <p><strong>3NF:</strong> bir ilişki şeması 2NF'teyse ve asal olmayan hiçbir öznitelik primary key'e geçişli olarak bağlı değilse 3NF'tedir. Not: X → Y → Z'de Y bir aday anahtarsa bu bir sorun değildir. Örneğin EMP(Ssn, Emp#, Salary)'de Ssn → Emp# → Salary geçişlidir, ama Emp# bir aday anahtar olduğu için ilişki 3NF'tedir.</p>
+<div class="nf-card">
+  <div class="nf-row"><div class="nf-k">Tek cümleyle</div><div class="nf-v">Asal olmayan hiçbir öznitelik başka bir asal olmayan özniteliğe bağlı değildir; her biri yalnızca anahtara bağlıdır.</div></div>
+  <div class="nf-row"><div class="nf-k">Hangi sorunu çözer?</div><div class="nf-v">EMP_DEPT'te Ssn → Dnumber → Dname: departmanın adı, o departmandaki her çalışan için tekrar yazılır. Research dört kez.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl test edilir?</div><div class="nf-v">Anahtar olmayan bir X, asal olmayan bir A'yı belirliyor mu? Belirliyorsa anahtar → X → A zinciri vardır: <strong>geçişli bağımlılık</strong>.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl düzeltilir?</div><div class="nf-v">(X, A) ayrı tablo olur, A asıl tablodan çıkar; X asıl tabloda foreign key olarak kalır: ED1(Ename, Ssn, Bdate, Address, Dnumber) ve ED2(Dnumber, Dname, Dmgr_ssn).</div></div>
 </div>
-<p>Yolculuğun 2NF → 3NF adımında departman adının tekrar etmesinin nedeni geçişli bağımlılıktı. EMP_DEPT 2NF'tedir (anahtarı tek öznitelikli olduğu için kısmi bağımlılık olamaz) ama 3NF'te değildir: Dname ve Dmgr_ssn, primary key Ssn'e Dnumber üzerinden geçişli olarak bağlıdır. 3NF normalizasyonu bu bağımlılığı ayrı bir ilişkiye taşır ve kitaptaki Figure 14.11b'nin sonucunu verir: ED1(Ename, Ssn, Bdate, Address, Dnumber) ve ED2(Dnumber, Dname, Dmgr_ssn).</p>
+<p>Bir istisna: zincirin ortasındaki X bir aday anahtarsa sorun yoktur. EMP(Ssn, Emp#, Salary)'de Ssn → Emp# → Salary geçişli görünür, ama Emp# de satırı tek başına belirlediği için Salary tekrar etmez. Aşağıda EMP_DEPT 3NF'e götürülür (Figure 14.11b). Üç normal formun hafızada kalan özeti: her öznitelik <em>anahtara</em> (1NF), <em>anahtarın tamamına</em> (2NF) ve <em>anahtardan başka hiçbir şeye</em> (3NF) bağlıdır.</p>
 <div id="nf-emp-dept"></div>
-<p>Üç normal formun gayriresmî özeti şöyledir: 1NF'te bütün öznitelikler anahtara bağlıdır; 2NF'te bütün öznitelikler anahtarın <em>tamamına</em> bağlıdır; 3NF'te bütün öznitelikler anahtar <em>dışında hiçbir şeye</em> bağlı değildir.</p>
 
 <h2>Birden çok aday anahtar için genel tanımlar</h2>
-<p>Yukarıdaki tanımlar yalnızca primary key'i dikkate alır. Genel tanımlar bütün aday anahtarları hesaba katar; herhangi bir aday anahtarın üyesi olan her öznitelik asaldır.</p>
+<p>Buraya kadar yalnızca primary key'e baktık. Bir tablonun birden çok aday anahtarı olabilir; genel tanımlar hepsini hesaba katar ve herhangi bir aday anahtarda geçen her öznitelik asaldır.</p>
 <ul>
   <li><strong>Genel 2NF:</strong> asal olmayan her öznitelik R'nin <em>her</em> anahtarına tam fonksiyonel bağımlıysa R 2NF'tedir.</li>
   <li><strong>Genel 3NF:</strong> R'de sağlanan her X → A bağımlılığı için ya (a) X, R'nin bir süper anahtarıdır, ya da (b) A, R'nin asal bir özniteliğidir. Koşul (a), iki tür ihlali yakalar: asal bir özniteliğin (anahtarın bir parçasının) asal olmayan bir özniteliği belirlemesi (2NF ihlali) ve asal olmayan bir özniteliğin asal olmayan bir özniteliği belirlemesi (geçişli bağımlılık). Koşul (b) ise 3NF'in izin verdiği, ama BCNF'in yakaladığı bağımlılıklardır.</li>
@@ -149,20 +161,26 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div id="nf-lots"></div>
 
 <h2>Boyce-Codd normal formu (BCNF)</h2>
-<div class="callout key">
-  <p><strong>BCNF:</strong> R'de sağlanan her X → A bağımlılığında X, R'nin bir süper anahtarıysa R BCNF'tedir. Bu, 3NF'in tanımından (b) koşulunun çıkarılmış hâlidir; bu yüzden her BCNF ilişkisi 3NF'tedir, her 3NF ilişkisi 2NF'tedir, her 2NF ilişkisi 1NF'tedir. Ama 3NF'te olup BCNF'te olmayan ilişkiler vardır.</p>
+<div class="nf-card">
+  <div class="nf-row"><div class="nf-k">Tek cümleyle</div><div class="nf-v">Her bağımlılığın sol tarafı bir süper anahtardır; istisna yoktur.</div></div>
+  <div class="nf-row"><div class="nf-k">Hangi sorunu çözer?</div><div class="nf-v">TEACH(Student, Course, Instructor)'da Instructor → Course: bir hocanın verdiği ders, hocanın her öğrencisi için tekrar yazılır. 3NF bunu yakalamaz, çünkü Course asaldır.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl test edilir?</div><div class="nf-v">Süper anahtar olmayan bir sol taraf var mı? Sağ tarafın asal olup olmadığına bakılmaz. Fark yalnızca birden çok, örtüşen aday anahtar olduğunda ortaya çıkar.</div></div>
+  <div class="nf-row"><div class="nf-k">Nasıl düzeltilir?</div><div class="nf-v">Bozan X → A için R, (R − A) ve (X ∪ A) olarak bölünür: TEACH → (Student, Instructor) ve (Instructor, Course). Bedeli: {Student, Course} → Instructor artık tek bir tablonun içinde değildir, yani bir anahtarla zorlanamaz.</div></div>
 </div>
-<p>Kitaptaki TEACH(Student, Course, Instructor) ilişkisinde iki bağımlılık vardır: {Student, Course} → Instructor ve Instructor → Course (her öğretim üyesi tek bir ders verir). {Student, Course} bir aday anahtardır. Instructor → Course'da Instructor bir süper anahtar değildir, ama Course asal bir öznitelik olduğu için 3NF'in (b) koşulu sağlanır: TEACH 3NF'tedir ama BCNF'te değildir.</p>
-<p>BCNF'te olmayan bir ilişki, gerekirse bazı bağımlılıkların korunmasından vazgeçilerek ayrıştırılır. TEACH için üç olası ayrıştırma vardır ve üçü de {Student, Course} → Instructor bağımlılığını kaybeder:</p>
+<p>3NF'in genel tanımı "X süper anahtar <em>ya da</em> A asal" der; BCNF ikinci seçeneği kaldırır. Bu yüzden her BCNF tablo 3NF'tedir, ama TEACH gibi 3NF'te olup BCNF'te olmayan tablolar vardır. TEACH'in iki parçaya bölünmesinin üç yolu vardır ve üçü de {Student, Course} → Instructor'ı kaybeder:</p>
 <ul>
   <li>D1: {Student, Instructor} ve {Student, Course}</li>
   <li>D2: {Course, Instructor} ve {Course, Student}</li>
   <li>D3: {Instructor, Course} ve {Instructor, Student}</li>
 </ul>
-<p>Bağımlılıkların korunmasından vazgeçilebilir, ama kayıpsız join'den vazgeçilemez. Bir ikili ayrıştırmanın kayıpsız olup olmadığını <strong>NJB testi</strong> söyler: D = {R1, R2} ayrıştırması, ancak ve ancak (R1 ∩ R2) → (R1 − R2) ya da (R1 ∩ R2) → (R2 − R1) bağımlılıklarından biri F<sup>+</sup>'ta ise kayıpsızdır. Yani iki parçanın ortak öznitelikleri, parçalardan birinin geri kalanını belirlemelidir. Aşağıda üç ayrıştırmayı test edebilirsiniz: yalnızca D3'te ortak öznitelik Instructor, Course'u belirler.</p>
+<p>Bağımlılığın korunmasından vazgeçilebilir, kayıpsız join'den vazgeçilemez. <strong>NJB testi:</strong> {R1, R2} ancak ve ancak ortak öznitelikler (R1 ∩ R2) parçalardan birinin geri kalanını belirliyorsa kayıpsızdır. Aşağıda üçünü test edin: yalnızca D3'te ortak öznitelik Instructor, Course'u belirler.</p>
 <div id="njb-teach"></div>
-<p><strong>Genel yöntem:</strong> R, BCNF'te değilse ve X → A bağımlılığı bu ihlale yol açıyorsa, R iki ilişkiye ayrıştırılır: (i) R − A ve (ii) X ∪ A. Bunlardan biri BCNF'te değilse işlem tekrarlanır. TEACH'te ihlal Instructor → Course olduğu için ayrıştırma (TEACH − Course) ve (Instructor ∪ Course), yani D3'tür. LOTS1A'ya Area → County_name bağımlılığı eklendiğinde de aynı yöntem kitaptaki Figure 14.13a'nın sonucunu verir.</p>
+<p><strong>Genel yöntem:</strong> R BCNF'te değilse ve X → A bozuyorsa R'yi (R − A) ve (X ∪ A) olarak bölün; parçalardan biri BCNF'te değilse tekrarlayın. TEACH'te bu D3'ü verir. LOTS1A'ya Area → County_name eklenince aynı yöntem Figure 14.13a'yı verir.</p>
 <div id="nf-teach"></div>
+
+<h2>Hepsi bir arada: aynı tablo 1NF'ten BCNF'e</h2>
+<p>Şimdi dört normal formu tek bir tabloda art arda uygulayın. Tablo COMPANY'nin gerçek verisinden kuruldu. Her adımda tekrar eden hücreler sarı, bir sonraki adımın çözeceği bağımlılık kırmızıdır; üç anomali testi ve parçaların join'inin orijinali geri verip vermediği her adımda kontrol edilir.</p>
+<div id="nf-journey"></div>
 
 <h2>Ayrıştırma laboratuvarı</h2>
 <p>Kayıpsız join'i kendiniz deneyin: bir tablo seçip özniteliklerini iki parçaya dağıtın. Laboratuvar parçaların join'ini, orijinalde olmayan <strong>sahte satırları</strong> (kırmızı), NJB kararını, parçaların normal formlarını ve kaybolan bağımlılıkları gösterir. Hazır düğmelerle iyi ve kötü bir bölmeyi karşılaştırarak başlayın.</p>
