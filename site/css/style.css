@@ -1190,3 +1190,6 @@ table.jt th.c0, table.jt th.c1, table.jt th.c2, table.jt th.c3 { background-clip
 .nf-nest { border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 10px 10px; margin: 6px 0 0; background: rgba(127, 127, 127, .05); }
 .nf-nest > .nf-nest { margin-top: 6px; }
 .nf-nest-l { display: block; font-size: .9rem; }
+.story-t { margin: 6px 0 12px; }
+.story-t .split-h { margin: 0; }
+.story-t table, .story-t .table-wrap { margin: 2px 0 0; }
