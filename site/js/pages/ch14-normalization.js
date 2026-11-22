@@ -500,3 +500,181 @@ const ND = [
     show();
   }
 }
+
+// ================================================================ normalization journey on real data
+// One table built from COMPANY's data goes UNF → 1NF → 2NF → 3NF (= BCNF here). Every stage shows its relations with
+// their rows, the repeated facts highlighted, the dependency that causes them, three anomaly tests, and whether
+// joining the parts gives back the 1NF rows exactly (lossless).
+import { companyData } from "../lib/companydata.js";
+
+const JF = parseFDs("Ssn -> Ename, Dnumber\nDnumber -> Dname\nPnumber -> Pname\nSsn, Pnumber -> Hours");
+function journeyData() {
+  const C = companyData(), col = (t, c) => C[t].cols.indexOf(c);
+  const emp = C.EMPLOYEE.rows, dep = C.DEPARTMENT.rows, prj = C.PROJECT.rows, won = C.WORKS_ON.rows;
+  const dname = (n) => dep.find((d) => d[col("DEPARTMENT", "Dnumber")] === n)[col("DEPARTMENT", "Dname")];
+  const pname = (n) => prj.find((p) => p[col("PROJECT", "Pnumber")] === n)[col("PROJECT", "Pname")];
+  const ename = (e) => `${e[col("EMPLOYEE", "Fname")]} ${e[col("EMPLOYEE", "Lname")]}`;
+  const flat = [];
+  for (const e of emp) for (const w of won.filter((w) => w[0] === e[col("EMPLOYEE", "Ssn")]))
+    flat.push({ Ssn: e[col("EMPLOYEE", "Ssn")], Pnumber: w[1], Ename: ename(e), Dnumber: e[col("EMPLOYEE", "Dno")], Dname: dname(e[col("EMPLOYEE", "Dno")]), Pname: pname(w[1]), Hours: w[2] ?? "NULL" });
+  return flat;
+}
+const project = (rows, attrs) => { const seen = new Map(); for (const r of rows) { const o = Object.fromEntries(attrs.map((a) => [a, r[a]])); seen.set(attrs.map((a) => o[a]).join(""), o); } return [...seen.values()]; };
+const natJoin = (A, B) => { const common = Object.keys(A[0] || {}).filter((k) => k in (B[0] || {})); const out = []; for (const a of A) for (const b of B) if (common.every((k) => a[k] === b[k])) out.push({ ...a, ...b }); return out; };
+const rowKey = (r, attrs) => attrs.map((a) => r[a]).join("");
+
+/** A relation's rows as a table; cells that repeat a fact (same left side of a non-key FD) are highlighted. */
+function factTable(attrs, rows, F, { mark = null, noRep = false } = {}) {
+  const a = analyze(attrs, F);
+  const rep = new Set();
+  let repeats = 0;
+  for (const f of noRep ? [] : a.fds) {
+    if (attrs.every((x) => closure(f.lhs, F).includes(x))) continue; // left side is a superkey: no repetition
+    const groups = new Map();
+    rows.forEach((r, i) => { const k = rowKey(r, f.lhs); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); });
+    for (const g of groups.values()) if (g.length > 1) for (const i of g.slice(1)) for (const c of f.rhs) { if (!rep.has(`${i}|${c}`)) repeats++; rep.add(`${i}|${c}`); }
+  }
+  const key = a.keys[0] || [];
+  const t = h("table", { class: "simple jt" }, h("thead", {}, h("tr", {}, ...attrs.map((c) => h("th", {}, key.includes(c) ? h("u", {}, c) : c)))),
+    h("tbody", {}, ...rows.map((r, i) => h("tr", { class: mark?.(r) || null }, ...attrs.map((c) => h("td", { class: rep.has(`${i}|${c}`) ? "rep" : null, title: rep.has(`${i}|${c}`) ? tl("Bu bilgi başka bir satırda zaten var", "This fact is already stored in another row") : null }, String(r[c])))))));
+  return { el: h("div", { class: "table-wrap" }, t), repeats, cells: attrs.length * rows.length };
+}
+
+{
+  const host = $("#nf-journey");
+  if (host) {
+    const flat = journeyData();
+    const A1 = ["Ssn", "Pnumber", "Ename", "Dnumber", "Dname", "Pname", "Hours"];
+    const STAGES = [
+      { id: "UNF", rels: null },
+      { id: "1NF", rels: [["EMP_PROJ", A1]] },
+      { id: "2NF", rels: [["WORKS_ON", ["Ssn", "Pnumber", "Hours"]], ["EMP", ["Ssn", "Ename", "Dnumber", "Dname"]], ["PROJ", ["Pnumber", "Pname"]]] },
+      { id: "3NF / BCNF", rels: [["WORKS_ON", ["Ssn", "Pnumber", "Hours"]], ["EMP", ["Ssn", "Ename", "Dnumber"]], ["DEPT", ["Dnumber", "Dname"]], ["PROJ", ["Pnumber", "Pname"]]] },
+    ];
+    const TEXT = [
+      tl("Başlangıç: her çalışan tek satır, projeleri tek bir hücrede liste olarak duruyor. Bir hücrede birden çok değer var; 'ProductX'te kim çalışıyor?' sorusu bile metin aramasına döner. Bu tablo 1NF'te değildir.",
+        "Start: one row per employee, their projects as a list in one cell. A cell holds several values; even 'who works on ProductX?' becomes a text search. This table is not in 1NF."),
+      tl("1NF: liste hücresi açılır, her (çalışan, proje) çifti bir satır olur. Değerler artık atomik, ama anahtar {Ssn, Pnumber} olunca Ssn → Ename, Dnumber ve Pnumber → Pname bağımlılıkları anahtarın yalnızca bir parçasına bağlı: kısmi bağımlılık. Bu yüzden çalışanın adı her projesi için, projenin adı her çalışanı için tekrar ediyor (sarı hücreler).",
+        "1NF: the list cell is opened up; each (employee, project) pair becomes a row. Values are atomic now, but with the key {Ssn, Pnumber}, Ssn → Ename, Dnumber and Pnumber → Pname depend on only part of the key: partial dependencies. So an employee's name repeats for each project and a project's name for each employee (yellow cells)."),
+      tl("2NF: her kısmi bağımlılık kendi tablosuna alındı. EMP(Ssn, …) ve PROJ(Pnumber, Pname) ayrıldı, WORKS_ON'da yalnızca tam bağımlı Hours kaldı. Proje adları artık bir kez saklanıyor. Ama EMP'de Ssn → Dnumber → Dname zinciri var: geçişli bağımlılık. Departman adı, departmandaki her çalışan için tekrar ediyor.",
+        "2NF: each partial dependency went into its own table. EMP(Ssn, …) and PROJ(Pnumber, Pname) were split off; WORKS_ON keeps only the fully dependent Hours. Project names are stored once now. But EMP has the chain Ssn → Dnumber → Dname: a transitive dependency. A department's name repeats for each employee in it."),
+      tl("3NF: geçişli bağımlılık DEPT(Dnumber, Dname) tablosuna alındı. Artık her bilginin tek bir yeri var: hiçbir hücre tekrar etmiyor ve her bağımlılığın sol tarafı kendi tablosunun anahtarı, yani tablolar BCNF'te de. Bunlar COMPANY'nin kendi tablolarıdır: iyi bir ER tasarımı ve eşleme bu sonucu baştan verir.",
+        "3NF: the transitive dependency went into DEPT(Dnumber, Dname). Now every fact has one place: no cell repeats and the left side of every dependency is its table's key, so the tables are in BCNF too. These are COMPANY's own tables: a good ER design and mapping give this result from the start."),
+    ];
+    let i = 0;
+    const seg = h("div", { class: "stepper-steps", role: "group" }), body = h("div");
+    const unf = () => {
+      const byEmp = new Map();
+      for (const r of flat) { if (!byEmp.has(r.Ssn)) byEmp.set(r.Ssn, { ...r, Projects: [] }); byEmp.get(r.Ssn).Projects.push(`${r.Pnumber} ${r.Pname} (${r.Hours})`); }
+      const rows = [...byEmp.values()];
+      return h("div", { class: "table-wrap" }, h("table", { class: "simple jt" }, h("thead", {}, h("tr", {}, ...["Ssn", "Ename", "Dnumber", "Dname", "Projects"].map((c) => h("th", {}, c)))),
+        h("tbody", {}, ...rows.map((r) => h("tr", {}, h("td", {}, r.Ssn), h("td", {}, r.Ename), h("td", {}, String(r.Dnumber)), h("td", {}, r.Dname), h("td", { class: "multi" }, r.Projects.join("; ")))))));
+    };
+    const relRows = (attrs) => project(flat, attrs);
+    const stageRels = (s) => s.rels.map(([n, attrs]) => ({ n, attrs, rows: relRows(attrs) }));
+    // the three anomaly tests, computed from the stage's relations
+    const anomalies = (s) => {
+      if (!s.rels) return [[tl("ProductX'in adını değiştir", "Rename ProductX"), false, tl("Liste hücrelerinin içindeki metin tek tek düzenlenmeli", "The text inside list cells must be edited one by one")],
+        [tl("Henüz kimsenin çalışmadığı bir proje ekle", "Add a project nobody works on yet"), false, tl("Proje ancak bir çalışanın listesine yazılabilir", "A project can only be written into an employee's list")],
+        [tl("Borg'u sil (Headquarters'ın tek çalışanı)", "Delete Borg (Headquarters' only employee)"), false, tl("Headquarters'ın adı da kaybolur", "Headquarters' name is lost too")]];
+      const R = stageRels(s);
+      const holder = (attr) => R.filter((r) => r.attrs.includes(attr));
+      const pn = holder("Pname"), rowsP = pn.reduce((n, r) => n + r.rows.filter((x) => x.Pnumber === 1).length, 0);
+      const projAlone = pn.some((r) => (analyze(r.attrs, JF).keys[0] || []).join() === "Pnumber");
+      const deptAlone = holder("Dname").some((r) => (analyze(r.attrs, JF).keys[0] || []).join() === "Dnumber");
+      return [[tl("ProductX'in adını değiştir", "Rename ProductX"), rowsP === 1, rowsP === 1 ? tl("Tek satır güncellenir", "One row is updated") : tl(`${rowsP} satır güncellenmeli; biri unutulursa veri tutarsız olur`, `${rowsP} rows must be updated; forgetting one leaves the data inconsistent`)],
+        [tl("Henüz kimsenin çalışmadığı bir proje ekle", "Add a project nobody works on yet"), projAlone, projAlone ? tl("PROJ'a bir satır eklenir", "A row is added to PROJ") : tl("Anahtarın parçası Ssn NULL kalır: entity integrity reddeder", "The key part Ssn would be NULL: entity integrity rejects it")],
+        [tl("Borg'u sil (Headquarters'ın tek çalışanı)", "Delete Borg (Headquarters' only employee)"), deptAlone, deptAlone ? tl("Headquarters'ın adı DEPT'te kalır", "Headquarters' name stays in DEPT") : tl("Headquarters'ın adı yalnızca Borg'un satırındaydı; o da kaybolur", "Headquarters' name was only in Borg's row; it is lost too")]];
+    };
+    const draw = () => {
+      [...seg.children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+      prev.disabled = i === 0; next.disabled = i === STAGES.length - 1;
+      const s = STAGES[i], kids = [h("p", {}, TEXT[i])];
+      if (s.rels) {
+        const R = stageRels(s);
+        const prevRels = STAGES[i - 1]?.rels;
+        // the dependency that is removed in the next step, in red
+        const nextBad = { "1NF": parseFDs("Pnumber -> Pname")[0], "2NF": parseFDs("Dnumber -> Dname")[0] }[s.id];
+        kids.push(h("div", { class: "ba-label" }, tl("Şemalar ve bağımlılıklar", "Schemas and dependencies") + (nextBad ? tl(" (kırmızı: bir sonraki adımda çözülecek sorun)", " (red: the problem the next step solves)") : "")),
+          h("div", { class: "nf-stack" }, ...R.map((r) => fdDiagram(r.n, r.attrs, JF, nextBad && r.attrs.includes(nextBad.rhs[0]) && r.attrs.includes(nextBad.lhs[0]) && r.attrs.length > 2 ? { hl: nextBad, bad: true } : {}))));
+        let repeats = 0, cells = 0;
+        const tables = R.map((r) => { const t = factTable(r.attrs, r.rows, JF); repeats += t.repeats; cells += t.cells; return h("div", {}, h("div", { class: "jt-name" }, `${r.n} (${r.rows.length} ${tl("satır", "rows")})`), t.el); });
+        kids.push(h("div", { class: "jt-metrics" }, h("span", { class: repeats ? "bad" : "ok" }, tl(`${repeats} tekrar eden hücre`, `${repeats} repeated cells`)), h("span", {}, tl(`${cells} hücre toplam`, `${cells} cells in all`)), h("span", {}, tl(`${R.length} tablo`, `${R.length} tables`))),
+          h("div", { class: "jt-tables" }, ...tables));
+        if (R.length > 1) {
+          const joined = R.slice(1).reduce((acc, r) => natJoin(acc, r.rows), R[0].rows);
+          const orig = new Set(flat.map((r) => rowKey(r, A1))), back = new Set(joined.map((r) => rowKey(r, A1)));
+          const same = joined.length === flat.length && [...orig].every((k) => back.has(k));
+          kids.push(h("div", { class: `res-msg ${same ? "ok" : "warn"}`, style: { fontFamily: "inherit" } }, same
+            ? tl(`Kayıpsız: ${R.map((r) => r.n).join(" * ")} natural join'i 1NF tablonun ${flat.length} satırını eksiksiz ve fazlasız geri veriyor.`, `Lossless: the natural join ${R.map((r) => r.n).join(" * ")} gives back the ${flat.length} rows of the 1NF table, none missing, none extra.`)
+            : tl(`Join ${joined.length} satır veriyor; orijinal ${flat.length} satırdı.`, `The join gives ${joined.length} rows; the original had ${flat.length}.`)));
+        }
+        if (prevRels) kids.unshift(h("div", { class: "small muted" }, tl(`Önceki adım: ${prevRels.map(([n, a]) => `${n}(${a.join(", ")})`).join(", ")}`, `Previous step: ${prevRels.map(([n, a]) => `${n}(${a.join(", ")})`).join(", ")}`)));
+      } else kids.push(unf());
+      const an = anomalies(s);
+      kids.push(h("div", { class: "ba-label" }, tl("Anomali testi", "Anomaly test")), h("ul", { class: "jt-anom" }, ...an.map(([what, ok, why]) => h("li", { class: ok ? "ok" : "bad" }, h("strong", {}, (ok ? "✓ " : "✗ ") + what), ": ", why))));
+      body.replaceChildren(...kids);
+    };
+    const prev = button(tl("◀ Önceki adım", "◀ Previous step"), () => { i--; draw(); });
+    const next = button(tl("Sonraki adım ▶", "Next step ▶"), () => { i++; draw(); }, { kind: "primary" });
+    STAGES.forEach((s, j) => seg.append(h("button", { type: "button", onclick: () => { i = j; draw(); } }, s.id)));
+    host.append(h("div", { class: "player" }, h("div", { class: "pl-bar" }, prev, next, seg), body));
+    draw();
+  }
+}
+
+// ================================================================ free decomposition lab
+// Split a table into two parts of your choice: the parts' rows, their join, spurious rows in red, the NJB verdict,
+// each part's normal form and the dependencies that are lost.
+{
+  const host = $("#decomp-lab");
+  if (host) {
+    const TEACH_ROWS = [["Narayan", "Database", "Mark"], ["Smith", "Database", "Navathe"], ["Smith", "Operating Systems", "Ammar"], ["Smith", "Theory", "Schulman"], ["Wallace", "Database", "Mark"], ["Wallace", "Operating Systems", "Ahamad"], ["Wong", "Database", "Omiecinski"], ["Zelaya", "Database", "Navathe"], ["Narayan", "Operating Systems", "Ammar"]];
+    const BASES = {
+      emp: { label: tl("EMP_PROJ (yolculuktaki 1NF tablo)", "EMP_PROJ (the 1NF table of the journey)"), attrs: ["Ssn", "Pnumber", "Ename", "Dnumber", "Dname", "Pname", "Hours"], F: JF, rows: () => journeyData(),
+        presets: [[tl("İyi: Ssn ile böl", "Good: split on Ssn"), ["Ssn", "Ename", "Dnumber", "Dname"], ["Ssn", "Pnumber", "Pname", "Hours"]], [tl("Kötü: ortak öznitelik Dname", "Bad: common attribute Dname"), ["Ssn", "Ename", "Dnumber", "Dname"], ["Dname", "Pnumber", "Pname", "Hours"]], [tl("Kötü: ortak öznitelik yok", "Bad: no common attribute"), ["Ssn", "Ename", "Dnumber", "Dname"], ["Pnumber", "Pname", "Hours"]]] },
+      teach: { label: tl("TEACH (Figure 14.14)", "TEACH (Figure 14.14)"), attrs: ["Student", "Course", "Instructor"], F: parseFDs("Student, Course -> Instructor\nInstructor -> Course"), rows: () => TEACH_ROWS.map(([Student, Course, Instructor]) => ({ Student, Course, Instructor })),
+        presets: [["D1", ["Student", "Instructor"], ["Student", "Course"]], ["D2", ["Course", "Instructor"], ["Course", "Student"]], ["D3", ["Instructor", "Course"], ["Instructor", "Student"]]] },
+    };
+    let base = "emp";
+    const sel = h("select", {}, ...Object.entries(BASES).map(([k, b]) => h("option", { value: k }, b.label)));
+    const pick1 = h("div", { class: "nf-picks" }), pick2 = h("div", { class: "nf-picks" }), presets = h("div", { class: "btn-row" }), out = h("div");
+    const boxes = (host2, attrs, on) => host2.replaceChildren(...attrs.map((a) => h("label", { class: "nf-pick" }, h("input", { type: "checkbox", value: a, checked: on.includes(a) || null, onchange: run }), a)));
+    const chosen = (el) => [...el.querySelectorAll("input:checked")].map((x) => x.value);
+    function run() {
+      const B = BASES[base], rows = B.rows(), R1 = chosen(pick1), R2 = chosen(pick2);
+      const missing = B.attrs.filter((a) => !R1.includes(a) && !R2.includes(a));
+      if (!R1.length || !R2.length) { out.replaceChildren(h("p", { class: "small muted" }, tl("İki parçanın her birine en az bir öznitelik seçin.", "Choose at least one attribute for each of the two parts."))); return; }
+      const P1 = project(rows, R1), P2 = project(rows, R2), J = natJoin(P1, P2);
+      const all = B.attrs.filter((a) => R1.includes(a) || R2.includes(a));
+      const orig = new Set(rows.map((r) => rowKey(r, all)));
+      const spurious = J.filter((r) => !orig.has(rowKey(r, all))).length;
+      const jn = njb(R1, R2, B.F), common = R1.filter((a) => R2.includes(a));
+      const lost = lostFDs(B.F, [R1, R2]);
+      const t1 = factTable(R1, P1, B.F), t2 = factTable(R2, P2, B.F);
+      // the join: spurious rows first (red), the genuine ones folded below
+      const bad = J.filter((r) => !orig.has(rowKey(r, all))), good = J.filter((r) => orig.has(rowKey(r, all)));
+      const tj = h("div", {}, bad.length ? factTable(all, bad.slice(0, 15), B.F, { noRep: true, mark: () => "drop" }).el : "",
+        bad.length > 15 ? h("p", { class: "small muted" }, tl(`… ve ${bad.length - 15} sahte satır daha`, `… and ${bad.length - 15} more spurious rows`)) : "",
+        h("details", { class: "small" }, h("summary", {}, tl(`Orijinalde de olan ${good.length} satır`, `The ${good.length} rows that are also in the original`)), factTable(all, good, B.F, { noRep: true }).el));
+      out.replaceChildren(
+        missing.length ? h("div", { class: "res-msg warn", style: { fontFamily: "inherit" } }, tl(`Hiçbir parçada olmayan öznitelik: ${missing.join(", ")}. Bu bilgi tamamen kaybolur.`, `Attribute in neither part: ${missing.join(", ")}. This information is lost completely.`)) : "",
+        h("div", { class: "lab-grid" },
+          h("div", {}, relationLine("R1", R1, B.F), h("div", { class: "small muted" }, tl(`${P1.length} satır`, `${P1.length} rows`)), t1.el),
+          h("div", {}, relationLine("R2", R2, B.F), h("div", { class: "small muted" }, tl(`${P2.length} satır`, `${P2.length} rows`)), t2.el)),
+        h("div", { class: "ba-label" }, tl(`R1 * R2 (ortak: ${common.join(", ") || "yok, kartezyen çarpım"}): ${J.length} satır, orijinal ${rows.length}`, `R1 * R2 (common: ${common.join(", ") || "none, a Cartesian product"}): ${J.length} rows, original ${rows.length}`)),
+        tj,
+        h("div", { class: `res-msg ${spurious || missing.length ? "warn" : "ok"}`, style: { fontFamily: "inherit" } },
+          spurious ? tl(`${spurious} sahte satır (kırmızı): join, orijinalde olmayan satırlar üretti. NJB testi de bunu öngörüyor: ortak öznitelikler {${common.join(", ")}} iki parçanın geri kalanını da belirlemiyor.`, `${spurious} spurious rows (red): the join produced rows that were not in the original. The NJB test predicts this: the common attributes {${common.join(", ")}} determine the rest of neither part.`)
+            : jn.ok ? tl(`Kayıpsız: join orijinal satırları aynen veriyor. NJB: {${common.join(", ")}} → {${(jn.determines || []).join(", ")}}.`, `Lossless: the join gives back exactly the original rows. NJB: {${common.join(", ")}} → {${(jn.determines || []).join(", ")}}.`)
+            : tl("Bu veride sahte satır çıkmadı, ama NJB testi ayrıştırmanın kayıpsız olduğunu garanti etmiyor: başka bir veri durumunda sahte satır oluşabilir.", "No spurious rows appeared in this data, but the NJB test does not guarantee the decomposition is lossless: another data state could produce them.")),
+        h("p", { class: "small" }, lost.length ? tl(`Korunmayan bağımlılık: ${lost.map(fmtFD).join("; ")}. Bu kural artık tek bir tabloda kontrol edilemez.`, `Dependency not preserved: ${lost.map(fmtFD).join("; ")}. This rule can no longer be checked in a single table.`) : tl("Bütün bağımlılıklar korunuyor.", "Every dependency is preserved.")));
+    }
+    const load = (r1, r2) => { const B = BASES[base]; boxes(pick1, B.attrs, r1); boxes(pick2, B.attrs, r2); run(); };
+    const loadBase = () => { const B = BASES[base]; presets.replaceChildren(...B.presets.map(([n, r1, r2]) => button(n, () => load(r1, r2)))); load(B.presets[0][1], B.presets[0][2]); };
+    sel.addEventListener("change", () => { base = sel.value; loadBase(); });
+    host.append(h("div", { class: "player" }, h("div", { class: "pl-bar" }, h("label", { class: "small sim-field" }, tl("Tablo: ", "Table: "), sel)), presets,
+      h("div", { class: "small" }, h("strong", {}, "R1: "), pick1), h("div", { class: "small" }, h("strong", {}, "R2: "), pick2), out));
+    loadBase();
+  }
+}

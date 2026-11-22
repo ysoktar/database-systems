@@ -84,8 +84,12 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
 <p>Kapanış adım adım hesaplanır: X ile başlanır; sol tarafı kümede olan her bağımlılığın sağ tarafı kümeye eklenir ve hiçbir bağımlılık yeni bir şey eklemeyene kadar devam edilir. Aşağıda bir örnek ve bir X seçin. Her adımda hangi bağımlılığın uygulandığını ve kümenin önceki ile sonraki hâlini görürsünüz. Üstteki şekil, kitaptaki gibi bir <strong>bağımlılık diyagramıdır</strong>: öznitelikler kutularda, her bağımlılık altta bir çizgidir; çizgi sol taraftaki özniteliklerden iner ve oklarla sağ taraftaki özniteliklere çıkar. Anahtar öznitelikler altı çizili gösterilir.</p>
 <div id="closure-steps"></div>
 
+<h2>Normalizasyon yolculuğu: aynı tablo, adım adım</h2>
+<p>Tanımlara geçmeden önce normalizasyonun ne kazandırdığını veride görelim. Aşağıdaki tablo COMPANY'nin gerçek verisinden kuruldu: her çalışan, departmanı ve çalıştığı projeler. Adımları sırayla ilerletin; her adımda tabloların satırları, tekrar eden hücreler (sarı), bir sonraki adımda çözülecek bağımlılık (diyagramda kırmızı) ve üç anomali testinin sonucu görünür. Parçalara ayrılan adımlarda, parçaların natural join'inin orijinal satırları eksiksiz ve fazlasız geri verip vermediği de kontrol edilir. Aşağıdaki 1NF, 2NF ve 3NF bölümleri bu adımların biçimsel tanımlarıdır.</p>
+<div id="nf-journey"></div>
+
 <h2>Birinci normal form (1NF)</h2>
-<p>1NF; bileşik öznitelikleri, çok değerli öznitelikleri ve iç içe ilişkileri, yani bir satırdaki değeri atomik olmayan öznitelikleri yasaklar. 1NF, ilişki tanımının bir parçası sayılır ve ilişkisel DBMS'lerin çoğu yalnızca 1NF'teki ilişkilerin tanımlanmasına izin verir.</p>
+<p>Yolculuğun UNF → 1NF adımı tam olarak budur. 1NF; bileşik öznitelikleri, çok değerli öznitelikleri ve iç içe ilişkileri, yani bir satırdaki değeri atomik olmayan öznitelikleri yasaklar. 1NF, ilişki tanımının bir parçası sayılır ve ilişkisel DBMS'lerin çoğu yalnızca 1NF'teki ilişkilerin tanımlanmasına izin verir.</p>
 <p>Kitaptaki Figure 14.9'da DEPARTMENT(Dname, Dnumber, Dmgr_ssn, Dlocations) ilişkisinin Dlocations özniteliği çok değerlidir: Research departmanının Bellaire, Sugarland ve Houston olmak üzere üç yeri vardır. Bunu 1NF'e getirmenin en iyi yolu, Dlocations'ı primary key ile birlikte ayrı bir ilişkiye taşımaktır: DEPT_LOCATIONS(Dnumber, Dlocation). COMPANY'de yapılan da budur. Diğer seçenekler (her yer için departman bilgisini tekrar eden satırlar ya da Dlocation1, Dlocation2, … gibi sabit sayıda sütun) tekrar ve NULL üretir.</p>
 <p>Figure 14.10'da EMP_PROJ ilişkisinin her satırı, çalışanın projelerinden oluşan iç içe bir PROJS ilişkisi içerir. Bunu 1NF'e getirmek için iç içe ilişki, primary key'i yanına alınarak ayrı bir ilişkiye taşınır: EMP_PROJ1(Ssn, Ename) ve EMP_PROJ2(Ssn, Pnumber, Hours).</p>
 <pre class="sql run" data-title="1NF: Dlocations'ı tek bir sütunda değil, ayrı satırlarda tutmak">
@@ -101,7 +105,7 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div class="callout key">
   <p><strong>2NF:</strong> bir ilişki şemasındaki asal olmayan her öznitelik primary key'e <em>tam</em> fonksiyonel bağımlıysa şema 2NF'tedir. Yani asal olmayan hiçbir öznitelik anahtarın yalnızca bir <em>parçasına</em> bağlı olmamalıdır.</p>
 </div>
-<p>EMP_PROJ 2NF'te değildir: Ename yalnızca Ssn'e, Pname ve Plocation yalnızca Pnumber'a bağlıdır. 2NF normalizasyonu, her kısmi bağımlılığı kendi ilişkisine taşır. Aşağıdaki gösterimde her ayrıştırma adımında ilişkinin önceki hâli solda, ondan çıkan iki ilişki sağdadır; altı çizili öznitelikler her ilişkinin anahtarıdır. Sonuç kitaptaki Figure 14.11a ile aynıdır: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename) ve EP3(Pnumber, Pname, Plocation).</p>
+<p>Yolculuğun 1NF → 2NF adımında Ename ve Pname'in tekrar etmesinin nedeni kısmi bağımlılıklardı. Kitaptaki örnek de aynıdır. EMP_PROJ 2NF'te değildir: Ename yalnızca Ssn'e, Pname ve Plocation yalnızca Pnumber'a bağlıdır. 2NF normalizasyonu, her kısmi bağımlılığı kendi ilişkisine taşır. Aşağıdaki gösterimde her ayrıştırma adımında ilişkinin önceki hâli solda, ondan çıkan iki ilişki sağdadır; altı çizili öznitelikler her ilişkinin anahtarıdır. Sonuç kitaptaki Figure 14.11a ile aynıdır: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename) ve EP3(Pnumber, Pname, Plocation).</p>
 <div id="nf-emp-proj"></div>
 
 <h2>Üçüncü normal form (3NF)</h2>
@@ -109,7 +113,7 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div class="callout key">
   <p><strong>3NF:</strong> bir ilişki şeması 2NF'teyse ve asal olmayan hiçbir öznitelik primary key'e geçişli olarak bağlı değilse 3NF'tedir. Not: X → Y → Z'de Y bir aday anahtarsa bu bir sorun değildir. Örneğin EMP(Ssn, Emp#, Salary)'de Ssn → Emp# → Salary geçişlidir, ama Emp# bir aday anahtar olduğu için ilişki 3NF'tedir.</p>
 </div>
-<p>EMP_DEPT 2NF'tedir (anahtarı tek öznitelikli olduğu için kısmi bağımlılık olamaz) ama 3NF'te değildir: Dname ve Dmgr_ssn, primary key Ssn'e Dnumber üzerinden geçişli olarak bağlıdır. 3NF normalizasyonu bu bağımlılığı ayrı bir ilişkiye taşır ve kitaptaki Figure 14.11b'nin sonucunu verir: ED1(Ename, Ssn, Bdate, Address, Dnumber) ve ED2(Dnumber, Dname, Dmgr_ssn).</p>
+<p>Yolculuğun 2NF → 3NF adımında departman adının tekrar etmesinin nedeni geçişli bağımlılıktı. EMP_DEPT 2NF'tedir (anahtarı tek öznitelikli olduğu için kısmi bağımlılık olamaz) ama 3NF'te değildir: Dname ve Dmgr_ssn, primary key Ssn'e Dnumber üzerinden geçişli olarak bağlıdır. 3NF normalizasyonu bu bağımlılığı ayrı bir ilişkiye taşır ve kitaptaki Figure 14.11b'nin sonucunu verir: ED1(Ename, Ssn, Bdate, Address, Dnumber) ve ED2(Dnumber, Dname, Dmgr_ssn).</p>
 <div id="nf-emp-dept"></div>
 <p>Üç normal formun gayriresmî özeti şöyledir: 1NF'te bütün öznitelikler anahtara bağlıdır; 2NF'te bütün öznitelikler anahtarın <em>tamamına</em> bağlıdır; 3NF'te bütün öznitelikler anahtar <em>dışında hiçbir şeye</em> bağlı değildir.</p>
 
@@ -137,6 +141,10 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div id="njb-teach"></div>
 <p><strong>Genel yöntem:</strong> R, BCNF'te değilse ve X → A bağımlılığı bu ihlale yol açıyorsa, R iki ilişkiye ayrıştırılır: (i) R − A ve (ii) X ∪ A. Bunlardan biri BCNF'te değilse işlem tekrarlanır. TEACH'te ihlal Instructor → Course olduğu için ayrıştırma (TEACH − Course) ve (Instructor ∪ Course), yani D3'tür. LOTS1A'ya Area → County_name bağımlılığı eklendiğinde de aynı yöntem kitaptaki Figure 14.13a'nın sonucunu verir.</p>
 <div id="nf-teach"></div>
+
+<h2>Ayrıştırma laboratuvarı</h2>
+<p>Normalizasyonun en önemli kuralı ayrıştırmanın kayıpsız olmasıdır. Bunu kendiniz deneyin: bir tablo seçin ve iki parçaya hangi özniteliklerin gideceğini işaretleyin. Laboratuvar iki parçanın satırlarını, parçaların natural join'ini ve orijinalde olmayan <strong>sahte satırları</strong> (kırmızı) gösterir; NJB testinin kararını, her parçanın normal formunu ve kaybolan bağımlılıkları yazar. Önce hazır düğmelerle iyi ve kötü bir bölmeyi karşılaştırın, sonra kendi bölmelerinizi deneyin. TEACH'te D1 ve D2'nin sahte satır ürettiğini, D3'ün üretmediğini görebilirsiniz.</p>
+<div id="decomp-lab"></div>
 
 <h2>Adım adım normalizasyon</h2>
 <p>Bu oynatıcı bir ilişkiyi hedef normal forma adım adım götürür. İlk adımda aday anahtar kapanışla bulunur. Sonraki her adımda ihlal eden bağımlılık bağımlılık diyagramında kırmızıyla gösterilir ve ilişki ikiye ayrılır: solda (ya da üstte) ilişkilerin önceki hâli, yanında sonraki hâli durur, altında da NJB testiyle ayrıştırmanın kayıpsız olduğu gösterilir. Son adım, ortaya çıkan ilişkileri ve korunamayan bağımlılık varsa onu söyler. Tahmin modunu açarsanız her ayrıştırmadan önce hangi bağımlılığın ihlal ettiğini siz seçersiniz. Örnek listesinden kitaptaki ilişkileri, hedef listesinden 2NF, 3NF ya da BCNF'i seçebilirsiniz.</p>

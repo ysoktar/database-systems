@@ -1123,3 +1123,19 @@ details.page-intro > .callout { margin: 0 10px 10px; }
 details.page-intro > .page-toc { margin: 0 10px 10px; border: 0; padding: 4px 4px 0; }
 /* with the contents column on the right, the in-page list would only repeat it */
 @media (min-aspect-ratio: 1/1) and (min-width: 760px) { .main.has-rail .page-toc { display: none; } }
+
+/* ---- Ch 14 journey and decomposition lab */
+table.jt td, table.jt th { font-size: 0.8rem; padding: 3px 8px; white-space: nowrap; }
+table.jt td.rep { background: var(--warn-wash); color: #7a4b00; font-weight: 650; }
+table.jt td.multi { white-space: normal; background: var(--err-wash); }
+table.jt tr.drop td { background: var(--err-wash); color: var(--critical); }
+.jt-name { font-family: var(--mono); font-weight: 700; font-size: 0.85rem; margin: 6px 0 2px; }
+.jt-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 4px 16px; align-items: start; }
+.jt-metrics { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0; font-size: 0.85rem; }
+.jt-metrics .bad { color: #7a4b00; background: var(--warn-wash); padding: 0 6px; border-radius: 4px; font-weight: 700; }
+.jt-metrics .ok { color: var(--good-text); background: var(--ok-wash); padding: 0 6px; border-radius: 4px; font-weight: 700; }
+.jt-anom { list-style: none; padding: 0; margin: 4px 0; font-size: 0.88rem; }
+.jt-anom li { padding: 3px 8px; border-radius: 6px; margin: 2px 0; }
+.jt-anom li.ok { background: var(--ok-wash); }
+.jt-anom li.bad { background: var(--err-wash); }
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; margin: 8px 0; }

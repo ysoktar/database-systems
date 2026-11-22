@@ -84,8 +84,12 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
 <p>The closure is computed step by step: start with X; add the right side of every dependency whose left side is in the set, and continue until no dependency adds anything new. Choose an example and an X below. Each step shows which dependency was applied and the set before and after. The figure on top is a <strong>dependency diagram</strong> as in the book: the attributes are in boxes and each dependency is a line underneath; the line drops from the left-side attributes and rises with arrows to the right-side attributes. Key attributes are underlined.</p>
 <div id="closure-steps"></div>
 
+<h2>The normalization journey: one table, step by step</h2>
+<p>Before the definitions, let us see in the data what normalization gains. The table below is built from COMPANY's real data: each employee, their department and the projects they work on. Step through the stages; each shows the tables' rows, the repeated cells (yellow), the dependency the next step solves (red in the diagram) and the result of three anomaly tests. At the stages that split tables, it also checks whether the natural join of the parts gives back the original rows, none missing and none extra. The 1NF, 2NF and 3NF sections below are the formal definitions of these steps.</p>
+<div id="nf-journey"></div>
+
 <h2>First normal form (1NF)</h2>
-<p>1NF disallows composite attributes, multivalued attributes and nested relations, i.e. attributes whose value in a row is not atomic. 1NF is considered part of the definition of a relation, and most relational DBMSs allow only relations in 1NF to be defined.</p>
+<p>This is exactly the UNF → 1NF step of the journey. 1NF disallows composite attributes, multivalued attributes and nested relations, i.e. attributes whose value in a row is not atomic. 1NF is considered part of the definition of a relation, and most relational DBMSs allow only relations in 1NF to be defined.</p>
 <p>In the book's Figure 14.9, the Dlocations attribute of the relation DEPARTMENT(Dname, Dnumber, Dmgr_ssn, Dlocations) is multivalued: the Research department has three locations, Bellaire, Sugarland and Houston. The best way to bring this into 1NF is to move Dlocations to a separate relation together with the primary key: DEPT_LOCATIONS(Dnumber, Dlocation). This is what COMPANY does. The other options (rows that repeat the department's information for each location, or a fixed number of columns such as Dlocation1, Dlocation2, …) produce repetition and NULLs.</p>
 <p>In Figure 14.10, each row of the EMP_PROJ relation contains a nested relation PROJS made of the employee's projects. To bring this into 1NF, the nested relation is moved to a separate relation, taking the primary key with it: EMP_PROJ1(Ssn, Ename) and EMP_PROJ2(Ssn, Pnumber, Hours).</p>
 <pre class="sql run" data-title="1NF: keeping Dlocations in separate rows, not in one column">
@@ -101,7 +105,7 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div class="callout key">
   <p><strong>2NF:</strong> a relation schema is in 2NF if every nonprime attribute is <em>fully</em> functionally dependent on the primary key. That is, no nonprime attribute should depend on only <em>part</em> of the key.</p>
 </div>
-<p>EMP_PROJ is not in 2NF: Ename depends only on Ssn, and Pname and Plocation only on Pnumber. 2NF normalization moves each partial dependency into its own relation. In the walkthrough below, in each decomposition step the relation as it was is on the left and the two relations it gives are on the right; the underlined attributes are each relation's key. The result has the same structure as the book's Figure 14.11a: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename) and EP3(Pnumber, Pname, Plocation).</p>
+<p>In the 1NF → 2NF step of the journey, Ename and Pname repeated because of partial dependencies. The book's example is the same. EMP_PROJ is not in 2NF: Ename depends only on Ssn, and Pname and Plocation only on Pnumber. 2NF normalization moves each partial dependency into its own relation. In the walkthrough below, in each decomposition step the relation as it was is on the left and the two relations it gives are on the right; the underlined attributes are each relation's key. The result has the same structure as the book's Figure 14.11a: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename) and EP3(Pnumber, Pname, Plocation).</p>
 <div id="nf-emp-proj"></div>
 
 <h2>Third normal form (3NF)</h2>
@@ -109,7 +113,7 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div class="callout key">
   <p><strong>3NF:</strong> a relation schema is in 3NF if it is in 2NF and no nonprime attribute is transitively dependent on the primary key. Note: in X → Y → Z, if Y is a candidate key this is not a problem. For example in EMP(Ssn, Emp#, Salary), Ssn → Emp# → Salary is transitive, but since Emp# is a candidate key the relation is in 3NF.</p>
 </div>
-<p>EMP_DEPT is in 2NF (its key has a single attribute, so there can be no partial dependency) but not in 3NF: Dname and Dmgr_ssn depend on the primary key Ssn transitively, through Dnumber. 3NF normalization moves this dependency into a separate relation and gives the result of the book's Figure 14.11b: ED1(Ename, Ssn, Bdate, Address, Dnumber) and ED2(Dnumber, Dname, Dmgr_ssn).</p>
+<p>In the 2NF → 3NF step of the journey, the department name repeated because of a transitive dependency. EMP_DEPT is in 2NF (its key has a single attribute, so there can be no partial dependency) but not in 3NF: Dname and Dmgr_ssn depend on the primary key Ssn transitively, through Dnumber. 3NF normalization moves this dependency into a separate relation and gives the result of the book's Figure 14.11b: ED1(Ename, Ssn, Bdate, Address, Dnumber) and ED2(Dnumber, Dname, Dmgr_ssn).</p>
 <div id="nf-emp-dept"></div>
 <p>An informal summary of the three normal forms: in 1NF all the attributes depend on the key; in 2NF all the attributes depend on the <em>whole</em> key; in 3NF all the attributes depend on <em>nothing but</em> the key.</p>
 
@@ -137,6 +141,10 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div id="njb-teach"></div>
 <p><strong>The general procedure:</strong> if R is not in BCNF and the dependency X → A causes the violation, R is decomposed into two relations: (i) R − A and (ii) X ∪ A. If one of them is not in BCNF, the process is repeated. In TEACH the violation is Instructor → Course, so the decomposition is (TEACH − Course) and (Instructor ∪ Course), i.e. D3. When the dependency Area → County_name is added to LOTS1A, the same procedure gives the result of the book's Figure 14.13a.</p>
 <div id="nf-teach"></div>
+
+<h2>The decomposition lab</h2>
+<p>The most important rule of normalization is that a decomposition must be lossless. Try it yourself: choose a table and tick which attributes go to each of the two parts. The lab shows the rows of the two parts, their natural join and the <strong>spurious rows</strong> that were not in the original (red); it gives the NJB verdict, each part's normal form and the dependencies that are lost. First compare a good and a bad split with the preset buttons, then try your own. In TEACH you can see that D1 and D2 produce spurious rows and D3 does not.</p>
+<div id="decomp-lab"></div>
 
 <h2>Normalization step by step</h2>
 <p>This player takes a relation to the target normal form step by step. In the first step the candidate key is found with a closure. In each following step the violating dependency is shown in red in the dependency diagram and the relation is split in two: the relations before are on the left (or on top), the relations after beside them, and below, the NJB test shows that the decomposition is lossless. The last step lists the resulting relations and any dependency that could not be preserved. If you turn on predict mode, you choose the violating dependency before each split. You can pick the book's relations from the example list and 2NF, 3NF or BCNF from the target list.</p>
