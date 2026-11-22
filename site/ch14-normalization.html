@@ -33,6 +33,53 @@
 <p>Sayfadaki bütün terimler aynı tablo üzerinde: COMPANY'nin (çalışan, proje) tablosu EMP_PROJ. Bir terimin üstüne gelin ya da tıklayın; tablonun hangi sütunlarından söz ettiği renklenir ve bir örnek görünür.</p>
 <div id="nf-terms"></div>
 
+<h2>Baştan sona: konu tek bir hikâyede</h2>
+<p>Bu bölüm konuyu hiç bilmeyen biri için tek seferde okunacak biçimde anlatır. Sonraki bölümler her adımı ayrıntısıyla ve deneyerek işler; burada amaç bütün resmi bir kez görmektir.</p>
+
+<h3>1. Sorun: aynı bilgiyi iki kez yazmak</h3>
+<p>Bir şirketin her çalışanını ve çalıştığı projeleri tek bir tabloda tuttuğunu düşünün:</p>
+<table class="simple jt">
+  <thead><tr><th><u>Ssn</u></th><th><u>Pnumber</u></th><th>Ename</th><th>Dnumber</th><th>Dname</th><th>Pname</th><th>Hours</th></tr></thead>
+  <tbody>
+    <tr><td>123</td><td>1</td><td>John Smith</td><td>5</td><td>Research</td><td>ProductX</td><td>32.5</td></tr>
+    <tr><td>123</td><td>2</td><td class="rep">John Smith</td><td class="rep">5</td><td class="rep">Research</td><td>ProductY</td><td>7.5</td></tr>
+    <tr><td>333</td><td>2</td><td>Franklin Wong</td><td>5</td><td class="rep">Research</td><td class="rep">ProductY</td><td>10</td></tr>
+  </tbody>
+</table>
+<p>Sarı hücreler, tabloda zaten yazılı olan bir bilginin tekrarıdır: "John Smith" iki kez, "Research" üç kez, "ProductY" iki kez geçiyor. Bu tekrar üç soruna yol açar ve bunlara <strong>anomali</strong> denir. Research'ün adı değişirse bütün satırlarda değiştirmek gerekir; biri unutulursa aynı departmanın iki farklı adı olur (güncelleme anomalisi). Henüz kimsenin çalışmadığı bir proje eklenemez, çünkü satırın Ssn kısmı boş kalırdı (ekleme anomalisi). Bir projede çalışan tek kişinin satırı silinince projenin bilgisi de kaybolur (silme anomalisi).</p>
+<p>Normalizasyonun amacı tek cümleyle şudur: <strong>aynı bilgiyi iki kez yazmamak.</strong></p>
+
+<h3>2. Tekrar nereden gelir? Fonksiyonel bağımlılık</h3>
+<p><strong>X → Y</strong> yazımı "X'i bilirsem Y'yi de bilirim" demektir. Çalışanın numarası adını belirler: Ssn → Ename. Departman numarası departmanın adını belirler: Dnumber → Dname. Proje numarası projenin adını belirler: Pnumber → Pname. Bir çalışanın bir projede haftada kaç saat çalıştığını ise ikisi birlikte belirler: {Ssn, Pnumber} → Hours. Bu bağımlılıklar verinin kendisinden değil, sütunların gerçek dünyadaki anlamından çıkarılır.</p>
+
+<h3>3. Anahtar</h3>
+<p>Değeri her satırda farklı olan en küçük sütun kümesine <strong>anahtar</strong> denir. Bu tabloda anahtar {Ssn, Pnumber}'dır, çünkü bir çalışan bir projede yalnızca bir kez görünür. Bir anahtarın parçası olan sütunlar <strong>asal</strong>, diğerleri <strong>asal olmayan</strong> sütunlardır; burada Ssn ve Pnumber asal, Ename, Dnumber, Dname, Pname ve Hours asal değildir. Bir X'ten bağımlılıklar zinciriyle ulaşılabilen bütün sütunlara X'in <strong>kapanışı</strong> (X⁺) denir. Örneğin Ssn⁺ = {Ssn, Ename, Dnumber, Dname}'dir. X⁺ bütün sütunları içeriyorsa X bir süper anahtardır.</p>
+
+<h3>4. Tek kural</h3>
+<p>Bütün normal formlar şu kurala dayanır: <strong>her bağımlılığın sol tarafı bir anahtar olmalıdır.</strong> Nedenini Ssn → Ename üzerinden görelim. Ssn bu tabloda tek başına anahtar değildir ve bir çalışanın her projesi için bir kez, yani birçok satırda tekrar eder. Ename de onunla birlikte her seferinde yeniden yazılır. Tekrarın kaynağı tam olarak budur.</p>
+<p>Düzeltme her seferinde aynıdır: X ile Y ayrı bir tabloya taşınır ve Y asıl tablodan silinir. Ortak sütun X her iki tabloda da kaldığı için tablolar sonradan yine birleştirilebilir. Normal formlar bu kuralı adım adım sıkılaştırır.</p>
+
+<h3>5. 1NF: her hücrede tek değer</h3>
+<p>Bir hücrede "Bellaire, Houston, Sugarland" gibi bir liste varsa, o değere göre arama ya da güncelleme ancak metni parçalayarak yapılabilir. 1NF bunu yasaklar ve her hücrede tek bir değer ister. Liste, satırın anahtarıyla birlikte ayrı bir tabloya taşınır; DEPT_LOCATIONS(Dnumber, Dlocation) tablosunda her yer kendi satırında durur.</p>
+
+<h3>6. 2NF: anahtarın tamamına bağlı olmak</h3>
+<p>Anahtar {Ssn, Pnumber} iken Ssn → Ename bağımlılığı vardır. Ename anahtarın tamamına değil, yalnızca bir parçasına bağlıdır; buna <strong>kısmi bağımlılık</strong> denir ve çalışanın adının her projesi için tekrar yazılmasının nedeni budur. 2NF, asal olmayan her sütunun anahtarın tamamına bağlı olmasını ister. Düzeltmek için kısmi bağımlılıklar kendi tablolarına taşınır: EMP(Ssn, Ename, Dnumber, Dname), PROJ(Pnumber, Pname) ve WORKS_ON(Ssn, Pnumber, Hours). WORKS_ON'da yalnızca iki sütunun birlikte belirlediği Hours kalır. Anahtar tek sütunluysa parçası olmadığından, 1NF'teki bir tablo zaten 2NF'tedir.</p>
+
+<h3>7. 3NF: anahtardan başka hiçbir şeye bağlı olmamak</h3>
+<p>EMP tablosunda Ssn → Dnumber → Dname zinciri vardır. Dname anahtara doğrudan değil, anahtar olmayan Dnumber üzerinden bağlıdır; buna <strong>geçişli bağımlılık</strong> denir. Bu yüzden "Research", departmandaki her çalışan için yeniden yazılır. 3NF, asal olmayan hiçbir sütunun başka bir asal olmayan sütuna bağlı olmamasını ister. Düzeltmek için zincirin ikinci halkası ayrılır: EMP(Ssn, Ename, Dnumber) ve DEPT(Dnumber, Dname).</p>
+<p>Üç normal formu akılda tutmanın kısa yolu şudur: her sütun <em>anahtara</em> (1NF), <em>anahtarın tamamına</em> (2NF) ve <em>anahtardan başka hiçbir şeye</em> (3NF) bağlıdır.</p>
+
+<h3>8. BCNF: istisnasız kural</h3>
+<p>3NF'in bir istisnası vardır: sağ taraf asal bir sütunsa, sol taraf anahtar olmasa da bağımlılığa izin verir. BCNF bu istisnayı kaldırır ve her bağımlılığın sol tarafının bir süper anahtar olmasını ister. Fark, birden çok ve örtüşen aday anahtar olduğunda ortaya çıkar.</p>
+<p>TEACH(Student, Course, Instructor) tablosunda {Student, Course} → Instructor ve Instructor → Course bağımlılıkları vardır, çünkü her hoca tek bir ders verir. Course asal olduğu için tablo 3NF'tedir. Ama Instructor bir anahtar değildir ve bir hocanın verdiği ders, hocanın her öğrencisi için tekrar yazılır; bu yüzden tablo BCNF'te değildir. Tablo (Instructor, Course) ve (Instructor, Student) olarak bölünür. Bunun bedeli, {Student, Course} → Instructor bağımlılığının artık tek bir tabloda durmaması, yani kaybolmasıdır.</p>
+
+<h3>9. Bölmenin iki şartı</h3>
+<p>İlk şart vazgeçilmezdir: <strong>join kayıpsız olmalıdır.</strong> Parçalar yeniden birleştirildiğinde orijinal satırlar eksiksiz ve fazlasız geri gelmelidir. Yanlış bölünen parçalar birleştirilince orijinalde hiç olmayan <strong>sahte satırlar</strong> ortaya çıkar. Bunu NJB testi kontrol eder: iki parçanın ortak sütunları, parçalardan birinin anahtarı olmalıdır. DEPT ile EMP'nin ortak sütunu Dnumber, DEPT'in anahtarı olduğu için bu bölme kayıpsızdır.</p>
+<p>İkinci şart gerekirse bırakılabilir: <strong>bağımlılıklar korunmalıdır.</strong> Her bağımlılık bölmeden sonra tek bir tablonun içinde kalmalıdır ki DBMS onu bir anahtarla zorlayabilsin. BCNF'e geçerken, TEACH örneğinde olduğu gibi, bu şart bazen sağlanamaz.</p>
+
+<h3>Özet</h3>
+<p>Tekrar anomali doğurur ve tekrarın kaynağı, sol tarafı anahtar olmayan bağımlılıklardır. 1NF hücreleri tek değerli yapar. 2NF anahtarın bir parçasına bağımlılığı, 3NF anahtar olmayan bir sütuna bağımlılığı, BCNF ise sol tarafı anahtar olmayan her bağımlılığı kaldırır. Her adımda X ile Y ayrı bir tabloya çıkar ve ortak sütun, join'in kayıpsız olmasını sağlar. Aşağıdaki bölümlerde bu adımların her birini kendiniz deneyebilirsiniz.</p>
+
 <h2>Sorun: tekrar ve anomaliler</h2>
 <p>Normalizasyonun amacı tek bir şeydir: <strong>aynı bilgiyi iki kez yazmamak</strong>. Bir bilgi birçok satırda tekrar edince, onu değiştirirken, eklerken ya da silerken tablo kendisiyle çelişebilir. Bu bölüm sorunu gösterir; sonraki bölümler onu ölçmeye (bağımlılıklar, anahtarlar) ve gidermeye (normal formlar) yarayan araçlardır.</p>
 <p>Kitap biçimsel kavramlardan önce dört kural verir:</p>
