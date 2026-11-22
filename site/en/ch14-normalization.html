@@ -33,26 +33,8 @@
 <p>Every term on this page, on one table: COMPANY's (employee, project) table EMP_PROJ. Hover over or click a term; the columns it talks about light up and an example appears.</p>
 <div id="nf-terms"></div>
 
-<h2>The big picture: one rule</h2>
-<p>All the definitions of normalization come down to one question: <strong>is the left side of every dependency a key?</strong> In X → A, if X is a key, each value of X appears once in the table and A is written once. If X is not a key, the same X value repeats in many rows and A is written again each time. That repetition is where anomalies come from. The fix is always the same: move X and A to a table of their own.</p>
-<h3>Split it yourself</h3>
-<p>The table below is COMPANY's real data: each row is an (employee, project) pair. Coloured cells repeat facts already written in the same table. Click a dependency: that fact moves to a table of its own, the repeat counter drops, and the join of the parts is checked against the original rows. You choose the order: whichever order you split in, you end up with the same four tables.</p>
-<div id="nf-split"></div>
-<h3>The four normal forms in one table</h3>
-<table>
-  <thead><tr><th>Normal form</th><th>What does it forbid?</th><th>Example from COMPANY</th></tr></thead>
-  <tbody>
-    <tr><td>1NF</td><td>Several values in one cell</td><td>Dlocations = "Bellaire, Houston, Sugarland"</td></tr>
-    <tr><td>2NF</td><td><em>Part</em> of a key → a nonprime attribute</td><td>Ssn → Ename, with key {Ssn, Pnumber}</td></tr>
-    <tr><td>3NF</td><td>A <em>non-key</em> → a nonprime attribute</td><td>Dnumber → Dname, with key Ssn</td></tr>
-    <tr><td>BCNF</td><td>A non-key → <em>any</em> attribute (a prime one too)</td><td>Instructor → Course (TEACH)</td></tr>
-  </tbody>
-</table>
-<h3>Classify one dependency</h3>
-<p>Pick a table and a dependency below. Three questions are answered in turn; at the end you see which normal form the dependency breaks and how the table is split. The rest of the page is the detail of these three questions: first anomalies and normalization on real data, then FDs, keys and closure, then the normal forms one by one.</p>
-<div id="fd-ladder"></div>
-
-<h2>Informal guidelines for good design</h2>
+<h2>The problem: repetition and anomalies</h2>
+<p>Normalization has one goal: <strong>never write the same fact twice</strong>. When a fact repeats in many rows, the table can contradict itself as soon as it is changed, added to or deleted from. This section shows the problem; the next sections are the tools to measure it (dependencies, keys) and to remove it (normal forms).</p>
 <p>Before the formal concepts, the book gives four guidelines:</p>
 <ol>
   <li><strong>Keep the meaning clear.</strong> Each row should represent one entity or one relationship instance; employee, department and project attributes should not be mixed in one table, and other entities are referred to by foreign keys.</li>
@@ -82,9 +64,9 @@ UPDATE demo.EMP_DEPT SET Dname = 'R&amp;D' WHERE Ssn = '123456789';
 SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- department 5 now has two names
 </pre>
 
-<h2>The normalization journey: one table, step by step</h2>
-<p>Before the definitions, see on real data what normalization gains. The table is built from COMPANY: each employee, their department and their projects. Step through the stages: repeated cells are yellow and the dependency the next step solves is red; at every stage three anomaly tests are run and the join of the parts is checked against the original. The 1NF, 2NF and 3NF sections below are the formal definitions of these steps.</p>
-<div id="nf-journey"></div>
+<h3>See the repetition and remove it yourself</h3>
+<p>The table below is COMPANY's real data: each row is an (employee, project) pair. Coloured cells repeat facts already written in the same table. Click a dependency: that fact moves to a table of its own, the repeat counter drops, and the join of the parts is checked against the original rows. You choose the order: whichever order you split in, you end up with the same four tables.</p>
+<div id="nf-split"></div>
 
 <h2>Functional dependencies</h2>
 <p>Functional dependencies (FDs) are used to measure formally how good a design is. <strong>X → Y</strong> ("X functionally determines Y") means: in any state of the relation, two rows with the same X values must also have the same Y values. Formally, for any rows t1 and t2, if t1[X] = t2[X] then t1[Y] = t2[Y].</p>
@@ -110,10 +92,37 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
 <p>The <strong>closure</strong> X<sup>+</sup> of a set of attributes X is all the attributes X determines through the dependencies. It is simple to compute: start with X, add the right side of every dependency whose left side is in the set, and continue until nothing new is added. If X<sup>+</sup> contains every attribute, X is a superkey. Choose an example and an X below; each step shows the dependency applied and the set before and after. In the <strong>dependency diagram</strong> on top each dependency is a line: it drops from the left side and rises with arrows to the right side; the key is underlined.</p>
 <div id="closure-steps"></div>
 
+<h2>One rule and four normal forms</h2>
+<p>With dependencies and keys in hand, every normal form comes down to one question: <strong>is the left side of every dependency a key?</strong> In X → A, if X is a key, each value of X appears once in the table and A is written once. If X is not a key, the same X value repeats in many rows and A is written again each time. The fix is always the same: move X and A to a table of their own and remove A from the original.</p>
+<p>The normal forms tighten this rule step by step. Each includes all the conditions of the one before and forbids one more kind of repetition:</p>
+<div class="nf-nest"><span class="nf-nest-l"><strong>1NF</strong> one value per cell</span><div class="nf-nest"><span class="nf-nest-l"><strong>2NF</strong> + nothing depends on part of a key</span><div class="nf-nest"><span class="nf-nest-l"><strong>3NF</strong> + nothing depends on a non-key</span><div class="nf-nest"><span class="nf-nest-l"><strong>BCNF</strong> + no exceptions: every left side is a superkey</span></div></div></div></div>
+<table>
+  <thead><tr><th>Normal form</th><th>What does it forbid?</th><th>Example from COMPANY</th></tr></thead>
+  <tbody>
+    <tr><td>1NF</td><td>Several values in one cell</td><td>Dlocations = "Bellaire, Houston, Sugarland"</td></tr>
+    <tr><td>2NF</td><td><em>Part</em> of a key → a nonprime attribute</td><td>Ssn → Ename, with key {Ssn, Pnumber}</td></tr>
+    <tr><td>3NF</td><td>A <em>non-key</em> → a nonprime attribute</td><td>Dnumber → Dname, with key Ssn</td></tr>
+    <tr><td>BCNF</td><td>A non-key → <em>any</em> attribute (a prime one too)</td><td>Instructor → Course (TEACH)</td></tr>
+  </tbody>
+</table>
+<p>Three questions tell which normal form a dependency breaks:</p>
+<ol>
+  <li><strong>Is the left side X a superkey?</strong> If yes, there is no problem; this dependency breaks no normal form.</li>
+  <li><strong>Is the right side A prime?</strong> If yes, only BCNF is broken; 3NF allows it.</li>
+  <li><strong>Is X part of a candidate key?</strong> If yes, it is a partial dependency and 2NF is broken; if not, it is a transitive dependency and 3NF is broken.</li>
+</ol>
+<h3>Classify one dependency</h3>
+<p>Pick a table and a dependency. The tool answers the three questions above in turn and shows which normal form the dependency breaks and how the table is split. The following sections explain each normal form with the same pattern: one sentence, the problem it solves, the test, the fix and an example.</p>
+<div id="fd-ladder"></div>
+
 <h2>First normal form (1NF)</h2>
-<p>This is exactly the UNF → 1NF step of the journey. 1NF disallows composite attributes, multivalued attributes and nested relations, i.e. attributes whose value in a row is not atomic. 1NF is considered part of the definition of a relation, and most relational DBMSs allow only relations in 1NF to be defined.</p>
-<p>In the book's Figure 14.9, the Dlocations attribute of the relation DEPARTMENT(Dname, Dnumber, Dmgr_ssn, Dlocations) is multivalued: the Research department has three locations, Bellaire, Sugarland and Houston. The best way to bring this into 1NF is to move Dlocations to a separate relation together with the primary key: DEPT_LOCATIONS(Dnumber, Dlocation). This is what COMPANY does. The other options (rows that repeat the department's information for each location, or a fixed number of columns such as Dlocation1, Dlocation2, …) produce repetition and NULLs.</p>
-<p>In Figure 14.10, each row of the EMP_PROJ relation contains a nested relation PROJS made of the employee's projects. To bring this into 1NF, the nested relation is moved to a separate relation, taking the primary key with it: EMP_PROJ1(Ssn, Ename) and EMP_PROJ2(Ssn, Pnumber, Hours).</p>
+<div class="nf-card">
+  <div class="nf-row"><div class="nf-k">In one sentence</div><div class="nf-v">Every cell holds a single, indivisible (atomic) value.</div></div>
+  <div class="nf-row"><div class="nf-k">What problem does it solve?</div><div class="nf-v">With a list in a cell (Dlocations = "Bellaire, Houston, Sugarland"), searching, updating and defining a foreign key on that value are only possible by taking the text apart.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it tested?</div><div class="nf-v">Does any cell hold several values, a composite value or a nested table?</div></div>
+  <div class="nf-row"><div class="nf-k">How is it fixed?</div><div class="nf-v">Move the multivalued attribute, together with the row's key, to a separate table: DEPARTMENT and DEPT_LOCATIONS(Dnumber, Dlocation). Repeating the department row for each location or adding columns like Dlocation1, Dlocation2 produces repetition and NULLs.</div></div>
+</div>
+<p>The book's two examples: in Figure 14.9 DEPARTMENT's Dlocations moves to DEPT_LOCATIONS as above. In Figure 14.10 every employee row contains a nested table of projects; it too is split off with its key: EMP_PROJ1(Ssn, Ename) and EMP_PROJ2(Ssn, Pnumber, Hours). 1NF counts as part of the definition of a relation; relational DBMSs only allow 1NF tables anyway.</p>
 <pre class="sql run" data-title="1NF: keeping Dlocations in separate rows, not in one column">
 -- not in 1NF: one value holding a set of locations
 SELECT Dnumber, GROUP_CONCAT(Dlocation ORDER BY Dlocation SEPARATOR ', ') AS Dlocations
@@ -123,24 +132,27 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 </pre>
 
 <h2>Second normal form (2NF)</h2>
-<p>If a dependency X → Y no longer holds when any attribute is removed from X, it is a <strong>full functional dependency</strong>. For example {Ssn, Pnumber} → Hours is full, because neither Ssn → Hours nor Pnumber → Hours holds. {Ssn, Pnumber} → Ename is not full, because Ssn → Ename also holds; this is called a <strong>partial dependency</strong>.</p>
-<div class="callout key">
-  <p><strong>2NF:</strong> a relation schema is in 2NF if every nonprime attribute is <em>fully</em> functionally dependent on the primary key. That is, no nonprime attribute should depend on only <em>part</em> of the key.</p>
+<div class="nf-card">
+  <div class="nf-row"><div class="nf-k">In one sentence</div><div class="nf-v">Every nonprime attribute depends on the <em>whole</em> key, not on part of it.</div></div>
+  <div class="nf-row"><div class="nf-k">What problem does it solve?</div><div class="nf-v">With key {Ssn, Pnumber}, Ssn → Ename: an employee's name is written again for every project they work on. Pnumber → Pname: a project's name repeats for each of its employees.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it tested?</div><div class="nf-v">Does part of the key determine a nonprime attribute on its own? Then it is a <strong>partial dependency</strong>. With a single-attribute key there is no part, so a 1NF table is already in 2NF.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it fixed?</div><div class="nf-v">For each partial dependency X → A, (X, A) becomes a separate table and A leaves the original. Only what depends on the whole key stays in the original.</div></div>
 </div>
-<p>In the 1NF → 2NF step of the journey, Ename and Pname repeated because of partial dependencies. The book's example is the same. EMP_PROJ is not in 2NF: Ename depends only on Ssn, and Pname and Plocation only on Pnumber. 2NF normalization moves each partial dependency into its own relation. In the walkthrough below, in each decomposition step the relation as it was is on the left and the two relations it gives are on the right; the underlined attributes are each relation's key. The result has the same structure as the book's Figure 14.11a: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename) and EP3(Pnumber, Pname, Plocation).</p>
+<p>A dependency that breaks when any attribute leaves its left side is <strong>full</strong>: {Ssn, Pnumber} → Hours is full, because hours need both the employee and the project. {Ssn, Pnumber} → Ename is not full, because Ssn alone is enough. Below, the book's EMP_PROJ is taken to 2NF step by step; at each step the relation before is on the left and the two relations it becomes are on the right. The result is the same as Figure 14.11a: EP1(Ssn, Pnumber, Hours), EP2(Ssn, Ename), EP3(Pnumber, Pname, Plocation).</p>
 <div id="nf-emp-proj"></div>
 
 <h2>Third normal form (3NF)</h2>
-<p>A dependency X → Z that can be derived from the dependencies X → Y and Y → Z is called a <strong>transitive dependency</strong>. For example Ssn → Dmgr_ssn is transitive, because Ssn → Dnumber and Dnumber → Dmgr_ssn hold. Ssn → Ename is not transitive, because there is no X with Ssn → X and X → Ename.</p>
-<div class="callout key">
-  <p><strong>3NF:</strong> a relation schema is in 3NF if it is in 2NF and no nonprime attribute is transitively dependent on the primary key. Note: in X → Y → Z, if Y is a candidate key this is not a problem. For example in EMP(Ssn, Emp#, Salary), Ssn → Emp# → Salary is transitive, but since Emp# is a candidate key the relation is in 3NF.</p>
+<div class="nf-card">
+  <div class="nf-row"><div class="nf-k">In one sentence</div><div class="nf-v">No nonprime attribute depends on another nonprime attribute; each depends only on the key.</div></div>
+  <div class="nf-row"><div class="nf-k">What problem does it solve?</div><div class="nf-v">In EMP_DEPT, Ssn → Dnumber → Dname: a department's name is written again for every employee in it. Research four times.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it tested?</div><div class="nf-v">Does a non-key X determine a nonprime A? Then there is a chain key → X → A: a <strong>transitive dependency</strong>.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it fixed?</div><div class="nf-v">(X, A) becomes a separate table and A leaves the original; X stays in the original as a foreign key: ED1(Ename, Ssn, Bdate, Address, Dnumber) and ED2(Dnumber, Dname, Dmgr_ssn).</div></div>
 </div>
-<p>In the 2NF → 3NF step of the journey, the department name repeated because of a transitive dependency. EMP_DEPT is in 2NF (its key has a single attribute, so there can be no partial dependency) but not in 3NF: Dname and Dmgr_ssn depend on the primary key Ssn transitively, through Dnumber. 3NF normalization moves this dependency into a separate relation and gives the result of the book's Figure 14.11b: ED1(Ename, Ssn, Bdate, Address, Dnumber) and ED2(Dnumber, Dname, Dmgr_ssn).</p>
+<p>One exception: if the X in the middle of the chain is a candidate key, there is no problem. In EMP(Ssn, Emp#, Salary), Ssn → Emp# → Salary looks transitive, but Emp# also identifies the row on its own, so Salary does not repeat. Below, EMP_DEPT is taken to 3NF (Figure 14.11b). A summary of the three normal forms that sticks: every attribute depends on <em>the key</em> (1NF), <em>the whole key</em> (2NF) and <em>nothing but the key</em> (3NF).</p>
 <div id="nf-emp-dept"></div>
-<p>An informal summary of the three normal forms: in 1NF all the attributes depend on the key; in 2NF all the attributes depend on the <em>whole</em> key; in 3NF all the attributes depend on <em>nothing but</em> the key.</p>
 
 <h2>General definitions for several candidate keys</h2>
-<p>The definitions above consider only the primary key. The general definitions take all the candidate keys into account; every attribute that is a member of some candidate key is prime.</p>
+<p>So far we looked only at the primary key. A table may have several candidate keys; the general definitions take all of them into account, and every attribute that appears in some candidate key is prime.</p>
 <ul>
   <li><strong>General 2NF:</strong> R is in 2NF if every nonprime attribute is fully functionally dependent on <em>every</em> key of R.</li>
   <li><strong>General 3NF:</strong> for every dependency X → A that holds in R, either (a) X is a superkey of R, or (b) A is a prime attribute of R. Condition (a) catches two kinds of violation: a prime attribute (part of a key) determining a nonprime attribute (a 2NF violation), and a nonprime attribute determining a nonprime attribute (a transitive dependency). Condition (b) covers the dependencies that 3NF allows but BCNF catches.</li>
@@ -149,20 +161,26 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div id="nf-lots"></div>
 
 <h2>Boyce-Codd normal form (BCNF)</h2>
-<div class="callout key">
-  <p><strong>BCNF:</strong> R is in BCNF if, for every dependency X → A that holds in R, X is a superkey of R. This is the definition of 3NF with condition (b) removed; so every BCNF relation is in 3NF, every 3NF relation is in 2NF, every 2NF relation is in 1NF. But there are relations that are in 3NF and not in BCNF.</p>
+<div class="nf-card">
+  <div class="nf-row"><div class="nf-k">In one sentence</div><div class="nf-v">The left side of every dependency is a superkey; there are no exceptions.</div></div>
+  <div class="nf-row"><div class="nf-k">What problem does it solve?</div><div class="nf-v">In TEACH(Student, Course, Instructor), Instructor → Course: the course an instructor teaches is written again for each of the instructor's students. 3NF does not catch this, because Course is prime.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it tested?</div><div class="nf-v">Is there a left side that is not a superkey? Whether the right side is prime does not matter. The difference only shows up with several overlapping candidate keys.</div></div>
+  <div class="nf-row"><div class="nf-k">How is it fixed?</div><div class="nf-v">For the violating X → A, R is split into (R − A) and (X ∪ A): TEACH → (Student, Instructor) and (Instructor, Course). The price: {Student, Course} → Instructor is no longer inside a single table, so no key can enforce it.</div></div>
 </div>
-<p>The book's relation TEACH(Student, Course, Instructor) has two dependencies: {Student, Course} → Instructor and Instructor → Course (each instructor teaches a single course). {Student, Course} is a candidate key. In Instructor → Course, Instructor is not a superkey, but since Course is a prime attribute, condition (b) of 3NF holds: TEACH is in 3NF but not in BCNF.</p>
-<p>A relation not in BCNF is decomposed, giving up the preservation of some dependencies if necessary. There are three possible decompositions of TEACH, and all three lose the dependency {Student, Course} → Instructor:</p>
+<p>The general definition of 3NF says "X is a superkey <em>or</em> A is prime"; BCNF removes the second option. So every BCNF table is in 3NF, but there are tables like TEACH that are in 3NF and not in BCNF. There are three ways to split TEACH into two parts, and all three lose {Student, Course} → Instructor:</p>
 <ul>
   <li>D1: {Student, Instructor} and {Student, Course}</li>
   <li>D2: {Course, Instructor} and {Course, Student}</li>
   <li>D3: {Instructor, Course} and {Instructor, Student}</li>
 </ul>
-<p>The preservation of dependencies can be given up, but the lossless join cannot. The <strong>NJB test</strong> tells whether a binary decomposition is lossless: the decomposition D = {R1, R2} is lossless if and only if one of the dependencies (R1 ∩ R2) → (R1 − R2) or (R1 ∩ R2) → (R2 − R1) is in F<sup>+</sup>. That is, the common attributes of the two parts must determine the rest of one of the parts. You can test the three decompositions below: only in D3 does the common attribute Instructor determine Course.</p>
+<p>Dependency preservation can be given up, a lossless join cannot. <strong>The NJB test:</strong> {R1, R2} is lossless if and only if the shared attributes (R1 ∩ R2) determine the rest of one of the parts. Test the three below: only in D3 does the shared attribute Instructor determine Course.</p>
 <div id="njb-teach"></div>
-<p><strong>The general procedure:</strong> if R is not in BCNF and the dependency X → A causes the violation, R is decomposed into two relations: (i) R − A and (ii) X ∪ A. If one of them is not in BCNF, the process is repeated. In TEACH the violation is Instructor → Course, so the decomposition is (TEACH − Course) and (Instructor ∪ Course), i.e. D3. When the dependency Area → County_name is added to LOTS1A, the same procedure gives the result of the book's Figure 14.13a.</p>
+<p><strong>The general procedure:</strong> if R is not in BCNF and X → A violates it, split R into (R − A) and (X ∪ A); if a part is not in BCNF, repeat. For TEACH this gives D3. When Area → County_name is added to LOTS1A, the same procedure gives Figure 14.13a.</p>
 <div id="nf-teach"></div>
+
+<h2>All together: one table from 1NF to BCNF</h2>
+<p>Now apply the four normal forms one after another to a single table built from COMPANY's real data. At each step the repeated cells are yellow and the dependency the next step solves is red; three anomaly tests are run and the join of the parts is checked against the original at every step.</p>
+<div id="nf-journey"></div>
 
 <h2>The decomposition lab</h2>
 <p>Try a lossless join yourself: choose a table and distribute its attributes over two parts. The lab shows the join of the parts, the <strong>spurious tuples</strong> that were not in the original (red), the NJB verdict, each part's normal form and the lost dependencies. Start by comparing a good and a bad split with the preset buttons.</p>
