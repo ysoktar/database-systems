@@ -29,13 +29,28 @@
   <p><strong>Scope.</strong> This page covers slides 1–55 of the Ch 14 slides (up to BCNF), which the syllabus assigns to week 9. The rest of the slides (56–60) are about multivalued dependencies and 4NF, and join dependencies and 5NF; the syllabus does not include that part, so it is not covered here.</p>
 </div>
 
+<h2>The big picture: one rule</h2>
+<p>All the definitions of normalization come down to one question: <strong>is the left side of every dependency a key?</strong> In X → A, if X is a key, each value of X appears once in the table and A is written once. If X is not a key, the same X value repeats in many rows and A is written again each time. That repetition is where anomalies come from. The fix is always the same: move X and A to a table of their own.</p>
+<p class="small"><strong>Three terms are enough</strong> (details below): <strong>X → A</strong> means that once the value of X is known, the value of A is fixed too (Ssn → Ename). A <strong>key</strong> is a minimal set of attributes whose value differs in every row. A <strong>prime attribute</strong> is one that is part of a candidate key.</p>
+<table>
+  <thead><tr><th>Normal form</th><th>What does it forbid?</th><th>Example from COMPANY</th></tr></thead>
+  <tbody>
+    <tr><td>1NF</td><td>Several values in one cell</td><td>Dlocations = "Bellaire, Houston, Sugarland"</td></tr>
+    <tr><td>2NF</td><td><em>Part</em> of a key → a nonprime attribute</td><td>Ssn → Ename, with key {Ssn, Pnumber}</td></tr>
+    <tr><td>3NF</td><td>A <em>non-key</em> → a nonprime attribute</td><td>Dnumber → Dname, with key Ssn</td></tr>
+    <tr><td>BCNF</td><td>A non-key → <em>any</em> attribute (a prime one too)</td><td>Instructor → Course (TEACH)</td></tr>
+  </tbody>
+</table>
+<p>Pick a table and a dependency below. Three questions are answered in turn; at the end you see which normal form the dependency breaks and how the table is split. The rest of the page is the detail of these three questions: first anomalies and normalization on real data, then FDs, keys and closure, then the normal forms one by one.</p>
+<div id="fd-ladder"></div>
+
 <h2>Informal guidelines for good design</h2>
-<p>Relational database design is grouping attributes so that they form "good" relation schemas. Before the formal concepts, the book gives four informal guidelines.</p>
+<p>Before the formal concepts, the book gives four guidelines:</p>
 <ol>
-  <li><strong>Keep the meaning clear.</strong> Every row of a relation should represent a single entity or a single relationship instance. The attributes of different entities (employees, departments, projects) should not be mixed in the same relation; other entities should be referred to only with foreign keys. If you can explain the schema easily relation by relation, the design is good.</li>
-  <li><strong>Avoid update anomalies.</strong> Storing the same information again in several rows wastes space and leads to insertion, deletion and modification anomalies.</li>
-  <li><strong>Reduce NULL values.</strong> Attributes that would be NULL in most rows can be moved to a separate relation together with the primary key. NULL has several meanings (not applicable, unknown, exists but unavailable), and these meanings can get mixed up.</li>
-  <li><strong>Do not produce spurious tuples.</strong> Relations should be designed so that joining them with a natural join produces no spurious tuples, i.e. so that the join is lossless (non-additive). A decomposition has two important properties: a lossless join (which can never be given up) and preservation of the functional dependencies (which can be given up if necessary).</li>
+  <li><strong>Keep the meaning clear.</strong> Each row should represent one entity or one relationship instance; employee, department and project attributes should not be mixed in one table, and other entities are referred to by foreign keys.</li>
+  <li><strong>Avoid repetition.</strong> Storing the same information in many rows wastes space and leads to the three anomalies below.</li>
+  <li><strong>Reduce NULLs.</strong> Attributes that would be empty in most rows move to a separate table together with the primary key.</li>
+  <li><strong>Do not produce spurious tuples.</strong> Joining the tables with a natural join must not produce rows that were not in the original (a lossless join). Dependency preservation can be given up if necessary, a lossless join never.</li>
 </ol>
 <h3>Anomalies</h3>
 <p>The book's relation EMP_PROJ(Ssn, Pnumber, Hours, Ename, Pname, Plocation) stores the information of employees and projects again in every (employee, project) row. This design has three kinds of anomaly:</p>
@@ -44,7 +59,7 @@
   <li><strong>Insertion anomaly:</strong> a project nobody works on yet cannot be inserted, because part of the row's primary key (Ssn) would be empty. In the same way, an employee not yet assigned to a project cannot be inserted.</li>
   <li><strong>Deletion anomaly:</strong> if the row of the only person who works on a project is deleted, the project's information is lost too.</li>
 </ul>
-<p>In the lab below you can trigger the three anomalies yourself. When you press a button, the EMP_DEPT table before the operation appears on top and after it below; the problematic rows and cells are marked and the reason for the anomaly is written underneath.</p>
+<p>Trigger the three anomalies yourself in the lab: the table before the operation is on top, after it below, and the problematic cells are marked.</p>
 <div id="anomaly-lab"></div>
 <p>The box below builds the table EMP_DEPT(Ename, Ssn, Bdate, Address, Dnumber, Dname, Dmgr_ssn) from COMPANY with a join (Figure 14.4 in the book). The name and manager of the Research department repeat in four rows. Changing the department's name in only one row leads to inconsistency: the same department number appears with two different names.</p>
 <pre class="sql run" data-title="An update anomaly: repeated department information in EMP_DEPT">
@@ -59,6 +74,10 @@ UPDATE demo.EMP_DEPT SET Dname = 'R&amp;D' WHERE Ssn = '123456789';
 SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- department 5 now has two names
 </pre>
 
+<h2>The normalization journey: one table, step by step</h2>
+<p>Before the definitions, see on real data what normalization gains. The table is built from COMPANY: each employee, their department and their projects. Step through the stages: repeated cells are yellow and the dependency the next step solves is red; at every stage three anomaly tests are run and the join of the parts is checked against the original. The 1NF, 2NF and 3NF sections below are the formal definitions of these steps.</p>
+<div id="nf-journey"></div>
+
 <h2>Functional dependencies</h2>
 <p>Functional dependencies (FDs) are used to measure formally how good a design is. <strong>X → Y</strong> ("X functionally determines Y") means: in any state of the relation, two rows with the same X values must also have the same Y values. Formally, for any rows t1 and t2, if t1[X] = t2[X] then t1[Y] = t2[Y].</p>
 <ul>
@@ -70,23 +89,18 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
 <div class="callout key">
   <p><strong>FDs cannot be derived from data, but they can be ruled out.</strong> By looking at a state of a relation we can say that an FD <em>may</em> exist, but we cannot prove that it does. What we can say for certain is that if two rows break an FD, that FD does <em>not</em> exist.</p>
 </div>
-<p>In the tool below, choose a table and a dependency X → Y. The tool looks for two rows with the same X values but different Y values. If it finds them, it marks the two rows in red and the FD is ruled out; if it does not, the FD <em>may</em> exist in this state. In the book's Figure 14.7, looking at the state of the TEACH relation, Text → Course may exist, but Teacher → Course, Teacher → Text and Course → Text are ruled out. Try for yourself which FDs may exist in the relation R(A, B, C, D) of Figure 14.8.</p>
+<p>In the tool, choose a table and an X → Y: if two rows with the same X but a different Y are found, they are marked in red and the FD is ruled out; otherwise the FD <em>may</em> hold in this data. In the book's TEACH state (Figure 14.7), Text → Course may hold and Teacher → Course is ruled out.</p>
 <div id="fd-check"></div>
 
-<h2>Normalization and keys</h2>
-<p><strong>Normalization</strong> is the process of decomposing "bad" relations by splitting their attributes into smaller relations. A <strong>normal form</strong> is a condition, stated with keys and FDs, that shows a relation schema is at a certain level. 2NF, 3NF and BCNF are based on keys and FDs. In practice relations are usually normalized up to 3NF or BCNF. Storing the join of relations in a higher normal form as a base relation for performance is called <strong>denormalization</strong>; the anomalies that come with it are then accepted on purpose.</p>
+<h2>Keys and closure</h2>
+<p>Normal forms are defined with keys. <strong>Normalization</strong> is splitting a bad table into smaller tables that satisfy these definitions; in practice one usually goes up to 3NF or BCNF. Storing the join of split tables as one table on purpose, for performance, is called <strong>denormalization</strong>.</p>
 <ul>
   <li><strong>Superkey</strong>: a set of attributes whose values cannot be the same for two rows in any valid state.</li>
   <li><strong>Key</strong>: a superkey that stops being a superkey if any attribute is removed, i.e. a minimal superkey. If there are several keys, each is a <strong>candidate key</strong>; one is chosen as the primary key, the others become secondary keys.</li>
   <li><strong>Prime attribute</strong>: an attribute that is a member of some candidate key. <strong>Nonprime attribute</strong>: an attribute that is a member of no candidate key.</li>
 </ul>
-<p>The <strong>closure</strong> X<sup>+</sup> of a set of attributes X is all the attributes that X determines through the FDs. If X<sup>+</sup> contains all the attributes of the relation, X is a superkey. The tool below finds the candidate keys by computing closures in this way.</p>
-<p>The closure is computed step by step: start with X; add the right side of every dependency whose left side is in the set, and continue until no dependency adds anything new. Choose an example and an X below. Each step shows which dependency was applied and the set before and after. The figure on top is a <strong>dependency diagram</strong> as in the book: the attributes are in boxes and each dependency is a line underneath; the line drops from the left-side attributes and rises with arrows to the right-side attributes. Key attributes are underlined.</p>
+<p>The <strong>closure</strong> X<sup>+</sup> of a set of attributes X is all the attributes X determines through the dependencies. It is simple to compute: start with X, add the right side of every dependency whose left side is in the set, and continue until nothing new is added. If X<sup>+</sup> contains every attribute, X is a superkey. Choose an example and an X below; each step shows the dependency applied and the set before and after. In the <strong>dependency diagram</strong> on top each dependency is a line: it drops from the left side and rises with arrows to the right side; the key is underlined.</p>
 <div id="closure-steps"></div>
-
-<h2>The normalization journey: one table, step by step</h2>
-<p>Before the definitions, let us see in the data what normalization gains. The table below is built from COMPANY's real data: each employee, their department and the projects they work on. Step through the stages; each shows the tables' rows, the repeated cells (yellow), the dependency the next step solves (red in the diagram) and the result of three anomaly tests. At the stages that split tables, it also checks whether the natural join of the parts gives back the original rows, none missing and none extra. The 1NF, 2NF and 3NF sections below are the formal definitions of these steps.</p>
-<div id="nf-journey"></div>
 
 <h2>First normal form (1NF)</h2>
 <p>This is exactly the UNF → 1NF step of the journey. 1NF disallows composite attributes, multivalued attributes and nested relations, i.e. attributes whose value in a row is not atomic. 1NF is considered part of the definition of a relation, and most relational DBMSs allow only relations in 1NF to be defined.</p>
@@ -143,20 +157,20 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
 <div id="nf-teach"></div>
 
 <h2>The decomposition lab</h2>
-<p>The most important rule of normalization is that a decomposition must be lossless. Try it yourself: choose a table and tick which attributes go to each of the two parts. The lab shows the rows of the two parts, their natural join and the <strong>spurious rows</strong> that were not in the original (red); it gives the NJB verdict, each part's normal form and the dependencies that are lost. First compare a good and a bad split with the preset buttons, then try your own. In TEACH you can see that D1 and D2 produce spurious rows and D3 does not.</p>
+<p>Try a lossless join yourself: choose a table and distribute its attributes over two parts. The lab shows the join of the parts, the <strong>spurious tuples</strong> that were not in the original (red), the NJB verdict, each part's normal form and the lost dependencies. Start by comparing a good and a bad split with the preset buttons.</p>
 <div id="decomp-lab"></div>
 
 <h2>Normalization step by step</h2>
-<p>This player takes a relation to the target normal form step by step. In the first step the candidate key is found with a closure. In each following step the violating dependency is shown in red in the dependency diagram and the relation is split in two: the relations before are on the left (or on top), the relations after beside them, and below, the NJB test shows that the decomposition is lossless. The last step lists the resulting relations and any dependency that could not be preserved. If you turn on predict mode, you choose the violating dependency before each split. You can pick the book's relations from the example list and 2NF, 3NF or BCNF from the target list.</p>
+<p>The player takes a relation to the normal form you choose, step by step: at each step the violating dependency is red, the relations before and after are side by side, and the NJB test is underneath. In guess mode you pick the violating dependency first.</p>
 <div id="nf-player"></div>
 
 <h2>The normalization tool</h2>
-<p>Write a relation schema and its functional dependencies, or choose one of the ready-made examples. The tool computes the closure of each dependency's left side, the candidate keys and the prime attributes; it says in sentences which normal form the relation is in and which dependency breaks the next one. Then it decomposes the relation step by step up to the normal form you choose; in each step the relation as it was is on the left and the relations it gives are on the right, and it says whether the decomposition is lossless according to the NJB test.</p>
+<p>Write your own relation and dependencies (or choose an example): the tool states the candidate keys, the normal form and the dependency that breaks the next one, then decomposes step by step up to the normal form you choose.</p>
 <p class="small muted">Syntax: separate attributes with spaces or commas; write each dependency on its own line as <code>A, B -&gt; C, D</code>. At most 12 attributes can be used.</p>
 <div id="nf-tool"></div>
 
 <h2>You decide</h2>
-<p>In these questions you decide the normal forms and keys. When you pick an option, it is explained why each option is right or wrong, and the worked solution appears below: the dependency diagram, the candidate key and every step of the decomposition before and after. If you answered wrong or want to try again, use the "Reset answer" button.</p>
+<p>You determine the normal form and the key; after each answer the reason for each option and the worked solution appear. Use "Reset answer" to try again.</p>
 <div id="nf-decide"></div>
 
 <h2>Test yourself</h2>

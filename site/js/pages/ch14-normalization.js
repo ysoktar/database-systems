@@ -678,3 +678,66 @@ function factTable(attrs, rows, F, { mark = null, noRep = false } = {}) {
     loadBase();
   }
 }
+
+// ---- the one rule: pick a dependency X → A and answer three questions; the answers say which normal form it
+// breaks (or none) and how to fix it. On the journey's table the repeats it causes are counted on the real rows.
+{
+  const host = $("#fd-ladder");
+  if (host) {
+    const J = ["Ssn", "Pnumber", "Ename", "Dnumber", "Dname", "Pname", "Hours"];
+    const REL = [
+      { name: "EMP_PROJ", R: J, F: JF, rows: journeyData(), note: tl("yolculuktaki 1NF tablosu, COMPANY verisi", "the journey's 1NF table, COMPANY data") },
+      { name: "EMP_DEPT", R: parseAttrs(PRESETS.emp_dept.attrs), F: parseFDs(PRESETS.emp_dept.fds), note: "Figure 14.11b" },
+      { name: "LOTS", R: parseAttrs(PRESETS.lots.attrs), F: parseFDs(PRESETS.lots.fds), note: "Figure 14.12" },
+      { name: "TEACH", R: parseAttrs(PRESETS.teach.attrs), F: parseFDs(PRESETS.teach.fds), note: "Figure 14.14" },
+    ];
+    let rel = REL[0], fd = null;
+    const relSeg = h("div", { class: "stepper-steps", role: "group" }), fdRow = h("div", { class: "btn-row" }), diagram = h("div"), out = h("div");
+    const yes = tl("Evet", "Yes"), no = tl("Hayır", "No");
+    const paint = () => {
+      for (const b of relSeg.children) b.setAttribute("aria-pressed", String(b.dataset.name === rel.name));
+      const a = analyze(rel.R, rel.F);
+      fdRow.replaceChildren(h("span", { class: "small muted" }, tl("Bir bağımlılık seçin:", "Pick a dependency:")),
+        ...rel.F.map((f) => h("button", { type: "button", "aria-pressed": String(fd === f), onclick: () => { fd = f; paint(); } }, fmtFD(f))));
+      if (!fd) { diagram.replaceChildren(fdDiagram(rel.name, rel.R, rel.F, { keys: a.keys })); out.replaceChildren(h("p", { class: "small" }, tl(`Aday ${a.keys.length > 1 ? "anahtarlar" : "anahtar"}: ${a.keys.map(fmt).join(tl(" ve ", " and "))} (${rel.note}).`, `Candidate ${a.keys.length > 1 ? "keys" : "key"}: ${a.keys.map(fmt).join(" and ")} (${rel.note}).`))); return; }
+      const X = fd.lhs, Xp = closure(X, rel.F).filter((x) => rel.R.includes(x));
+      const sk = rel.R.every((x) => Xp.includes(x));
+      const A = fd.rhs.filter((x) => !X.includes(x)), Anp = A.filter((x) => !a.prime.includes(x));
+      const partKey = a.keys.find((k) => X.every((x) => k.includes(x)) && X.length < k.length);
+      const verdict = sk ? "ok" : !Anp.length ? "bcnf" : partKey ? "2nf" : "3nf";
+      diagram.replaceChildren(fdDiagram(rel.name, rel.R, rel.F, { keys: a.keys, hl: fd, bad: verdict !== "ok" }));
+      const step = (n, q, ans, why, reached, last) => h("li", { class: (reached ? "" : "skip ") + (last ? "here" : "") },
+        h("div", { class: "step-title" }, `${n}. ${q}`), reached ? h("div", { class: "small" }, h("strong", {}, ans ? yes : no), ". ", why) : h("div", { class: "small muted" }, tl("Bu soruya gerek kalmadı.", "Not needed.")));
+      const s1 = step(1, tl(`Sol taraf ${fmt(X)} bir süper anahtar mı?`, `Is the left side ${fmt(X)} a superkey?`), sk,
+        tl(`${fmt(X)}⁺ = {${Xp.join(", ")}}${sk ? ": ilişkinin bütün öznitelikleri." : `; ${rel.R.filter((x) => !Xp.includes(x)).join(", ")} eksik.`}`, `${fmt(X)}⁺ = {${Xp.join(", ")}}${sk ? ": every attribute of the relation." : `; ${rel.R.filter((x) => !Xp.includes(x)).join(", ")} missing.`}`), true, sk);
+      const s2 = step(2, tl(`Sağ taraf (${A.join(", ")}) asal mı, yani bir aday anahtarın parçası mı?`, `Is the right side (${A.join(", ")}) prime, i.e. part of a candidate key?`), !Anp.length,
+        tl(`Aday anahtarlar: ${a.keys.map(fmt).join(", ")}. ${Anp.length ? `${Anp.join(", ")} hiçbirinde yok.` : "Hepsi bir anahtarda geçiyor."}`, `Candidate keys: ${a.keys.map(fmt).join(", ")}. ${Anp.length ? `${Anp.join(", ")} is in none of them.` : "All of it appears in a key."}`), !sk, verdict === "bcnf");
+      const s3 = step(3, tl(`${fmt(X)} bir aday anahtarın parçası mı?`, `Is ${fmt(X)} part of a candidate key?`), !!partKey,
+        partKey ? tl(`${fmt(X)} ⊂ ${fmt(partKey)}.`, `${fmt(X)} ⊂ ${fmt(partKey)}.`) : tl(`${fmt(X)} anahtar dışı bir öznitelik; anahtar → ${fmt(X)} → ${fmt(Anp)} zinciri var.`, `${fmt(X)} is outside every key; there is a chain key → ${fmt(X)} → ${fmt(Anp)}.`), !sk && !!Anp.length, verdict === "2nf" || verdict === "3nf");
+      const MSG = {
+        ok: [tl("Sorun yok: bu bağımlılık hiçbir normal formu bozmaz.", "No problem: this dependency breaks no normal form."), "ok", tl(`${fmt(X)} her satırda farklı bir değer aldığı için ${fmt(A)} de her satırda bir kez yazılır; tekrar yok.`, `${fmt(X)} takes a different value in every row, so ${fmt(A)} is written once per row; nothing repeats.`)],
+        "2nf": [tl("Kısmi bağımlılık: 2NF'i (dolayısıyla 3NF ve BCNF'i de) bozar.", "A partial dependency: it breaks 2NF (and so 3NF and BCNF too)."), "error", tl(`Asal olmayan ${Anp.join(", ")}, anahtarın yalnızca bir parçasına bağlı.`, `The nonprime ${Anp.join(", ")} depends on only part of the key.`)],
+        "3nf": [tl("Geçişli bağımlılık: 2NF'e uyar, 3NF'i (ve BCNF'i) bozar.", "A transitive dependency: it satisfies 2NF but breaks 3NF (and BCNF)."), "error", tl(`Asal olmayan ${Anp.join(", ")}, anahtar olmayan ${fmt(X)} üzerinden anahtara bağlı.`, `The nonprime ${Anp.join(", ")} depends on the key through the non-key ${fmt(X)}.`)],
+        bcnf: [tl("3NF buna izin verir, BCNF vermez.", "3NF allows this; BCNF does not."), "warn", tl(`Sol taraf süper anahtar değil, ama sağ taraf asal olduğu için 3NF'in (b) koşulu sağlanır.`, `The left side is not a superkey, but the right side is prime, so condition (b) of 3NF holds.`)],
+      }[verdict];
+      const kids = [h("ol", { class: "map-steps ladder" }, s1, s2, s3), h("div", { class: `res-msg ${MSG[1]}`, style: { fontFamily: "inherit" } }, h("strong", {}, MSG[0]), " ", MSG[2])];
+      if (verdict !== "ok") {
+        const R1 = [...X, ...A], R2 = rel.R.filter((x) => !A.includes(x));
+        kids.push(h("p", { class: "small" }, h("strong", {}, tl("Düzeltme: ", "Fix: ")), tl(`${fmt(X)} ve ${fmt(A)} kendi tablosuna çıkar, ${fmt(A)} asıl tablodan silinir:`, `move ${fmt(X)} and ${fmt(A)} to a table of their own and remove ${fmt(A)} from the original:`)),
+          h("div", { class: "ba" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), relationLine(rel.name, rel.R, rel.F)), h("div", { class: "ba-arrow", "aria-hidden": "true" }),
+            h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra", "After")), relationLine(rel.name + "1", R1, rel.F), relationLine(rel.name + "2", R2, rel.F))),
+          h("p", { class: "small muted" }, tl(`Join kayıpsızdır: iki parçanın ortak özniteliği ${fmt(X)}, ${rel.name}1'in anahtarıdır (NJB testi).`, `The join is lossless: the parts' common attribute ${fmt(X)} is the key of ${rel.name}1 (the NJB test).`)));
+      }
+      if (rel.rows) {
+        const distinct = new Set(rel.rows.map((r) => X.map((x) => r[x]).join("|"))).size;
+        kids.push(h("p", { class: "small" }, h("strong", {}, tl("Veride: ", "In the data: ")), distinct === rel.rows.length
+          ? tl(`${fmt(X)} ${rel.rows.length} satırın hepsinde farklı; ${fmt(A)} hiç tekrar etmiyor.`, `${fmt(X)} differs in all ${rel.rows.length} rows; ${fmt(A)} never repeats.`)
+          : tl(`${fmt(X)} için ${distinct} farklı değer ${rel.rows.length} satıra dağılmış; ${fmt(A)} ${rel.rows.length - distinct} kez gereksiz yere tekrar yazılıyor. Bunlar anomalilerin kaynağıdır.`, `${fmt(X)} has ${distinct} distinct values spread over ${rel.rows.length} rows; ${fmt(A)} is needlessly written ${rel.rows.length - distinct} extra times. These repeats are where anomalies come from.`)));
+      }
+      out.replaceChildren(...kids);
+    };
+    for (const r of REL) relSeg.append(h("button", { type: "button", "data-name": r.name, onclick: () => { rel = r; fd = null; paint(); } }, r.name));
+    host.append(h("div", { class: "stepper" }, relSeg, fdRow, diagram, out));
+    paint();
+  }
+}
