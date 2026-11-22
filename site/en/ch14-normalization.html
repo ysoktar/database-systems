@@ -61,6 +61,7 @@
 
 <h3>3. What identifies a row? The key</h3>
 <p>The columns that identify each row on their own are called the <strong>key</strong>. In this table Ssn alone is not enough, because John Smith is in two rows. Pnumber alone is not enough either. The two together are enough: an employee appears only once per project. So the key is <strong>{Ssn, Pnumber}</strong>. In the tables, key columns are underlined.</p>
+<p>Columns that are part of the key are called <strong>prime</strong> columns. Here Ssn and Pnumber are prime. The other columns, the actual information in the table (Ename, Dnumber, Dname, Pname, Hours), are <strong>nonprime</strong> columns. "Prime" here has nothing to do with prime numbers; it simply means "part of a key".</p>
 
 <h3>4. The real cause of repetition</h3>
 <p>Look at the yellow cells again. Why is John Smith written twice? Because Ssn = 123 is in two rows, and Ssn → Ename. Every time Ssn repeats, the name repeats with it.</p>
@@ -90,7 +91,7 @@
 <h3>8. BCNF: the rule without exceptions</h3>
 <p>Most tables are clean once they are in 3NF. But one rare case is left. Say that at a school each instructor teaches only one course:</p>
 <div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>TEACH</strong></div><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Course</u></th><th>Instructor</th></tr></thead><tbody><tr><td>Narayan</td><td>Database</td><td>Mark</td></tr><tr><td>Wallace</td><td class="rep">Database</td><td>Mark</td></tr><tr><td>Smith</td><td>Database</td><td>Navathe</td></tr></tbody></table></div></div>
-<p>The instructor determines the course: Instructor → Course. But the instructor is not a key. Mark has two students, so "Database" is written twice for him. 3NF does not catch this, because Course is part of the key, and 3NF makes an exception for parts of the key.</p>
+<p>The instructor determines the course: Instructor → Course. But the instructor is not a key. Mark has two students, so "Database" is written twice for him. 3NF does not catch this, because Course is part of the key, that is, prime, and 3NF makes an exception for arrows whose right side is prime.</p>
 <p><strong>BCNF</strong> removes that exception: the left side of every arrow must be a key. The fix is the same as always, Instructor → Course goes to a table of its own:</p>
 <div class="split-tables story-t"><div class="split-t"><table class="simple jt"><thead><tr><th><u>Instructor</u></th><th>Course</th></tr></thead><tbody><tr><td>Mark</td><td>Database</td></tr><tr><td>Navathe</td><td>Database</td></tr></tbody></table></div><div class="split-t"><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Instructor</u></th></tr></thead><tbody><tr><td>Narayan</td><td>Mark</td></tr><tr><td>Wallace</td><td>Mark</td></tr><tr><td>Smith</td><td>Navathe</td></tr></tbody></table></div></div>
 <p>This has a small price. The rule "a student takes a course from only one instructor" no longer sits in a single table, so the database cannot check it by itself.</p>
@@ -164,7 +165,7 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
 <ul>
   <li><strong>Superkey</strong>: a set of attributes whose values cannot be the same for two rows in any valid state.</li>
   <li><strong>Key</strong>: a superkey that stops being a superkey if any attribute is removed, i.e. a minimal superkey. If there are several keys, each is a <strong>candidate key</strong>; one is chosen as the primary key, the others become secondary keys.</li>
-  <li><strong>Prime attribute</strong>: an attribute that is a member of some candidate key. <strong>Nonprime attribute</strong>: an attribute that is a member of no candidate key.</li>
+  <li><strong>Prime attribute</strong>: an attribute that is a member of some candidate key, that is, one that belongs to a key ("prime" here does not mean a prime number; it means "part of a key"). <strong>Nonprime attribute</strong>: an attribute that is a member of no candidate key.</li>
 </ul>
 <p>The <strong>closure</strong> X<sup>+</sup> of a set of attributes X is all the attributes X determines through the dependencies. It is simple to compute: start with X, add the right side of every dependency whose left side is in the set, and continue until nothing new is added. If X<sup>+</sup> contains every attribute, X is a superkey. Choose an example and an X below; each step shows the dependency applied and the set before and after. In the <strong>dependency diagram</strong> on top each dependency is a line: it drops from the left side and rises with arrows to the right side; the key is underlined.</p>
 <div id="closure-steps"></div>

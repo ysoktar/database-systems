@@ -1164,7 +1164,7 @@ table.jt td.dup { font-weight: 650; }
 table.jt th.c0, table.jt th.c1, table.jt th.c2, table.jt th.c3 { background-clip: padding-box; }
 
 /* Ch 14: the terms on one table */
-.term-top { position: sticky; top: 0; z-index: 1; background: var(--surface, var(--bg)); padding: 6px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+.term-top { position: sticky; top: var(--header-h); z-index: 1; background: var(--surface, var(--bg)); padding: 6px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
 .term-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-family: var(--mono, monospace); font-size: .9rem; }
 .term-attr { display: inline-block; padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; transition: background .15s; }
 .term-attr.k { text-decoration: underline; text-underline-offset: 3px; }

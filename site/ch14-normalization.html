@@ -61,6 +61,7 @@
 
 <h3>3. Bir satırı ne tanımlar? Anahtar</h3>
 <p>Her satırı tek başına tanımlayan sütunlara <strong>anahtar</strong> denir. Bu tabloda Ssn tek başına yetmez, çünkü John Smith iki satırda var. Pnumber da tek başına yetmez. İkisi birlikte yeter: bir çalışan bir projede yalnızca bir kez görünür. Yani anahtar <strong>{Ssn, Pnumber}</strong>'dır. Tabloda anahtar sütunların altı çizilidir.</p>
+<p>Anahtarın parçası olan sütunlara <strong>asal</strong> (prime) sütun denir. Burada Ssn ve Pnumber asaldır. Geri kalan sütunlar, yani tablodaki asıl bilgiler (Ename, Dnumber, Dname, Pname, Hours), <strong>asal olmayan</strong> (nonprime) sütunlardır. Buradaki "asal" kelimesinin asal sayılarla ilgisi yoktur; yalnızca "anahtarın bir parçası" demektir.</p>
 
 <h3>4. Tekrarın gerçek sebebi</h3>
 <p>Sarı hücrelere bir daha bakın. John Smith neden iki kez yazılmış? Çünkü Ssn = 123 iki satırda var ve Ssn → Ename. Ssn her tekrar ettiğinde adı da onunla birlikte tekrar ediyor.</p>
@@ -90,7 +91,7 @@
 <h3>8. BCNF: kuralın istisnasız hâli</h3>
 <p>Çoğu tablo 3NF'te temizlenmiş olur. Ama nadir bir durum kalır. Bir okulda her hoca yalnızca bir ders veriyor olsun:</p>
 <div class="split-tables story-t"><div class="split-t"><div class="split-h"><strong>TEACH</strong></div><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Course</u></th><th>Instructor</th></tr></thead><tbody><tr><td>Narayan</td><td>Database</td><td>Mark</td></tr><tr><td>Wallace</td><td class="rep">Database</td><td>Mark</td></tr><tr><td>Smith</td><td>Database</td><td>Navathe</td></tr></tbody></table></div></div>
-<p>Hoca dersi belirler: Instructor → Course. Ama hoca anahtar değil. Mark'ın iki öğrencisi var, bu yüzden "Database" onun için iki kez yazılıyor. 3NF bunu yakalamaz, çünkü Course anahtarın bir parçasıdır ve 3NF anahtarın parçalarına bir istisna tanır.</p>
+<p>Hoca dersi belirler: Instructor → Course. Ama hoca anahtar değil. Mark'ın iki öğrencisi var, bu yüzden "Database" onun için iki kez yazılıyor. 3NF bunu yakalamaz, çünkü Course anahtarın bir parçasıdır, yani asaldır, ve 3NF sağ tarafı asal olan oklara bir istisna tanır.</p>
 <p><strong>BCNF</strong> bu istisnayı kaldırır: her okun solu bir anahtar olmalıdır. Çözüm yine aynıdır, Instructor → Course kendi tablosuna gider:</p>
 <div class="split-tables story-t"><div class="split-t"><table class="simple jt"><thead><tr><th><u>Instructor</u></th><th>Course</th></tr></thead><tbody><tr><td>Mark</td><td>Database</td></tr><tr><td>Navathe</td><td>Database</td></tr></tbody></table></div><div class="split-t"><table class="simple jt"><thead><tr><th><u>Student</u></th><th><u>Instructor</u></th></tr></thead><tbody><tr><td>Narayan</td><td>Mark</td></tr><tr><td>Wallace</td><td>Mark</td></tr><tr><td>Smith</td><td>Navathe</td></tr></tbody></table></div></div>
 <p>Bunun küçük bir bedeli vardır. "Bir öğrenci bir dersi tek bir hocadan alır" kuralı artık tek bir tabloda durmaz, bu yüzden veritabanı onu kendiliğinden denetleyemez.</p>
@@ -164,7 +165,7 @@ SELECT DISTINCT Dnumber, Dname FROM demo.EMP_DEPT WHERE Dnumber = 5;   -- depart
 <ul>
   <li><strong>Süper anahtar</strong>: hiçbir geçerli durumda iki satırın değerlerinin aynı olamayacağı öznitelik kümesi.</li>
   <li><strong>Anahtar</strong>: herhangi bir özniteliği çıkarıldığında süper anahtar olmaktan çıkan, yani minimal olan süper anahtar. Birden çok anahtar varsa her biri bir <strong>aday anahtardır</strong>; biri primary key seçilir, diğerleri ikincil anahtar olur.</li>
-  <li><strong>Asal (prime) öznitelik</strong>: herhangi bir aday anahtarın üyesi olan öznitelik. <strong>Asal olmayan (nonprime) öznitelik</strong>: hiçbir aday anahtarın üyesi olmayan öznitelik.</li>
+  <li><strong>Asal (prime) öznitelik</strong>: herhangi bir aday anahtarın üyesi olan, yani anahtara ait öznitelik ("asal" burada asal sayı değil, "anahtarın parçası" demektir). <strong>Asal olmayan (nonprime) öznitelik</strong>: hiçbir aday anahtarın üyesi olmayan öznitelik.</li>
 </ul>
 <p>Bir öznitelik kümesi X'in <strong>kapanışı</strong> X<sup>+</sup>, X'in bağımlılıklar aracılığıyla belirlediği bütün özniteliklerdir. Hesabı basittir: X ile başlayın, sol tarafı kümede olan her bağımlılığın sağ tarafını ekleyin ve yeni bir şey eklenmeyene kadar sürdürün. X<sup>+</sup> bütün öznitelikleri içeriyorsa X bir süper anahtardır. Aşağıda bir örnek ve bir X seçin; her adımda uygulanan bağımlılık ve kümenin önceki ve sonraki hâli görünür. Üstteki <strong>bağımlılık diyagramında</strong> her bağımlılık bir çizgidir: sol taraftan iner, oklarla sağ tarafa çıkar; anahtar altı çizilidir.</p>
 <div id="closure-steps"></div>
