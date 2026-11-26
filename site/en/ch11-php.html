@@ -171,7 +171,7 @@ SELECT * FROM demo.EMPLOYEE;
 
 <h2>Collecting data from forms and inserting records</h2>
 <p>In web applications the information of the record to insert is usually collected from an HTML form. To give each new record a unique identifier PEAR DB's <code>$d-&gt;nextID</code> function is used: it generates a sequence of unique values for a particular table. The difference between the two INSERTs of Figure 11.6 matters. The first puts the values from the form directly into the SQL text. The second uses <strong>placeholders</strong>: <code>?</code> is written in the SQL text in place of the values, and the values are given as a separate array; the library puts each value in place, quoted correctly and made safe with escape characters.</p>
-<p>You can see why this matters in the lab below. Enter values into the form's fields: on the left the values are put into the SQL text with string concatenation, on the right with placeholders, and both queries really run. First try an ordinary value, then press the "Malicious input" button. The query built by concatenation changes meaning because of the quote mark the user typed and returns all records; this attack is called <strong>SQL injection</strong>. The query with placeholders sees the input only as a value.</p>
+<p>In the lab the same input goes into two queries and both really run: on the left by string concatenation, on the right with a placeholder. Try an ordinary value first, then "Malicious input". The concatenated query changes meaning because of the quote in the input and returns every record: <strong>SQL injection</strong>. The placeholder query sees the input only as a value.</p>
 <div id="placeholder-lab"></div>
 
 <h2>Retrieving query results</h2>
