@@ -25,6 +25,19 @@
   </ul>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Alt sınıf, üst sınıf, kalıtım">Üst sınıf / alt sınıf</dt><dd>Alt sınıf, üst sınıfın bir alt kümesidir ve onun her özniteliğini miras alır. <span class="ex">Örnek: ENGINEER, EMPLOYEE'nin alt sınıfı.</span></dd>
+  <dt data-sec="Özelleştirme ve genelleştirme">Özelleştirme</dt><dd>Bir üst sınıfı alt sınıflara ayırmak (yukarıdan aşağı). <span class="ex">Örnek: EMPLOYEE → SECRETARY, ENGINEER.</span></dd>
+  <dt data-sec="Özelleştirme ve genelleştirme">Genelleştirme</dt><dd>Ortak özellikli varlık tiplerinden bir üst sınıf çıkarmak (aşağıdan yukarı). <span class="ex">Örnek: CAR ve TRUCK → VEHICLE.</span></dd>
+  <dt data-sec="Üyeliği kim belirler?">Koşulla tanımlı</dt><dd>Alt sınıf üyeliği bir öznitelik değerine bağlıdır. <span class="ex">Örnek: Job_type = 'Engineer'.</span></dd>
+  <dt data-sec="Özelleştirme kısıtları">Disjoint / overlapping</dt><dd>Bir varlık en fazla bir alt sınıfta olabilir (d) ya da birden çoğunda (o).</dd>
+  <dt data-sec="Özelleştirme kısıtları">Total / partial</dt><dd>Her üst sınıf varlığı bir alt sınıfta olmak zorunda mı (çift çizgi) değil mi.</dd>
+  <dt data-sec="Hiyerarşi ve lattice">Paylaşılan alt sınıf</dt><dd>Birden çok üst sınıfı olan alt sınıf; hepsinden miras alır. <span class="ex">Örnek: STUDENT_ASSISTANT: hem STUDENT hem EMPLOYEE.</span></dd>
+  <dt data-sec="Kategoriler (union types)">Kategori (union type)</dt><dd>Farklı anahtarlı üst sınıfların birleşiminin bir alt kümesi. <span class="ex">Örnek: OWNER = PERSON ∪ BANK ∪ COMPANY.</span></dd>
+</dl>
+
 <h2>Neden EER?</h2>
 <p>COMPANY'de bütün çalışanlar tek bir EMPLOYEE tipindedir. Şimdi şirketin şunları da tutmak istediğini düşünün: sekreterlerin yazma hızı, mühendislerin mühendislik türü, saatlik çalışanların saat ücreti; ayrıca yalnızca mühendislerin projelere teknik lider olabildiği. ER ile iki kötü seçenek var:</p>
 <ul>

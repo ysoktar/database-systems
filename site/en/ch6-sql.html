@@ -29,6 +29,19 @@
   <p><strong>Matching the terms:</strong> in SQL <em>table</em> = relation, <em>row</em> = tuple, <em>column</em> = attribute. One difference: SQL tables are multisets, not sets (<a href="#tablolar-multiset-tir-all-ve-distinct">below</a>).</p>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Data definition (DDL)">CREATE TABLE</dt><dd>Defines a table with its columns, types and constraints.</dd>
+  <dt data-sec="Data definition (DDL)">PRIMARY KEY / FOREIGN KEY</dt><dd>The constraints that define the key and a reference to another table.</dd>
+  <dt data-sec="SELECT-FROM-WHERE">SELECT … FROM … WHERE</dt><dd>FROM picks the tables, WHERE the rows, SELECT the columns.</dd>
+  <dt data-sec="SELECT-FROM-WHERE">Join condition</dt><dd>The WHERE condition that matches two tables' rows; without it you get a Cartesian product. <span class="ex">Example: Dno = Dnumber.</span></dd>
+  <dt data-sec="SELECT-FROM-WHERE">Alias</dt><dd>A short name given to a table inside a query; needed when the same table is used twice. <span class="ex">Example: EMPLOYEE E, EMPLOYEE S.</span></dd>
+  <dt data-sec="SELECT-FROM-WHERE">DISTINCT</dt><dd>Removes duplicate rows from the result; SQL keeps them by default.</dd>
+  <dt data-sec="SELECT-FROM-WHERE">LIKE / BETWEEN</dt><dd>Text matching a pattern (%: any text) and a range including both ends. <span class="ex">Example: Address LIKE '%Houston%'.</span></dd>
+  <dt data-sec="Updates: INSERT, DELETE, UPDATE">INSERT / DELETE / UPDATE</dt><dd>Insert, delete and change rows; DELETE and UPDATE without WHERE apply to the whole table.</dd>
+</dl>
+
 <h2>Data definition (DDL)</h2>
 <ul>
   <li><strong>Schema</strong>: groups the tables, types, constraints and views of one application: <code>CREATE SCHEMA COMPANY AUTHORIZATION 'Jsmith';</code></li>

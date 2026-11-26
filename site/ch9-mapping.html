@@ -29,6 +29,20 @@
   <p><strong>Kapsam.</strong> Müfredatta 9. haftaya yazılan Ch 9 slaytlarının hepsi (1–38) bu sayfadadır. ER ve EER kavramlarının kendisi <a href="ch3-er.html">Ch 3</a> ve <a href="ch4-eer.html">Ch 4</a> sayfalarında anlatılıyor; burada yalnızca tablolara dönüşümleri ele alınıyor.</p>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Adım 1: Normal (güçlü) varlık tipleri">Adım 1: normal varlık</dt><dd>Her normal varlık tipi bir tablo olur; anahtarı primary key.</dd>
+  <dt data-sec="Adım 2: Zayıf varlık tipleri">Adım 2: zayıf varlık</dt><dd>Tablosu sahibin PK'sını FK olarak alır; PK = sahip PK + kısmi anahtar.</dd>
+  <dt data-sec="Adım 3: İkili 1:1 ilişki tipleri">Adım 3: 1:1 ilişki</dt><dd>FK, tercihen total katılan tarafa eklenir.</dd>
+  <dt data-sec="Adım 4: İkili 1:N ilişki tipleri">Adım 4: 1:N ilişki</dt><dd>FK, N tarafındaki tabloya eklenir. <span class="ex">Örnek: EMPLOYEE.Dno.</span></dd>
+  <dt data-sec="Adım 5: İkili M:N ilişki tipleri">Adım 5: M:N ilişki</dt><dd>İlişki kendi tablosu olur; PK iki FK'dan oluşur. <span class="ex">Örnek: WORKS_ON(Essn, Pno, Hours).</span></dd>
+  <dt data-sec="Adım 6: Çok değerli öznitelikler">Adım 6: çok değerli öznitelik</dt><dd>Ayrı bir tablo olur; PK = sahibin PK'sı + öznitelik. <span class="ex">Örnek: DEPT_LOCATIONS.</span></dd>
+  <dt data-sec="Adım 7: n-li (n &gt; 2) ilişki tipleri">Adım 7: n-li ilişki</dt><dd>Kendi tablosu olur; katılan her varlığın PK'sı FK olarak gelir.</dd>
+  <dt data-sec="EER yapılarının eşlenmesi: Adım 8">Adım 8 (8A–8D)</dt><dd>Özelleştirme için dört seçenek: ayrı tablolar, yalnız alt sınıflar, tek tablo + tip sütunu, tek tablo + bayraklar.</dd>
+  <dt data-sec="Adım 9: Kategoriler (union types)">Adım 9: kategori</dt><dd>Farklı anahtarlı üst sınıflar için yapay bir anahtar (surrogate key) eklenir.</dd>
+</dl>
+
 <h2>Eşlemenin amaçları</h2>
 <p>Eşleme yaparken üç amaç gözetilir. Birincisi, <strong>bütün bilgiyi korumaktır</strong>: diyagramdaki her öznitelik bir tabloda bir sütun olarak yer almalıdır. İkincisi, <strong>kısıtları mümkün olduğunca korumaktır</strong>: anahtarlar primary key, ilişkiler foreign key olur. Ancak ilişkisel model bütün ER kısıtlarını ifade edemez; örneğin "bir departmanda en fazla 10 çalışan olabilir" gibi bir üst sınır ya da "her öğrenci yerli ya da yabancıdır" gibi tam bir sınıflandırma tablolarla zorlanamaz. Üçüncüsü, <strong>NULL değerleri azaltmaktır</strong>: çoğu satırda boş kalacak sütunlar tasarımı kötüleştirir.</p>
 <p>Buradaki algoritma ticari tasarım araçlarının çoğunda uygulanmıştır. Sitedeki <a href="er-studio.html">ER stüdyosu</a> da aynı algoritmayı kullanır: kendi diyagramınızı çizip tablolara dönüşümünü adım adım görebilirsiniz.</p>

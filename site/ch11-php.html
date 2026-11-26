@@ -29,6 +29,19 @@
   <p><strong>Kapsam.</strong> Müfredatta Ch 11 slaytlarının hepsi (1–35) bu sayfadadır. Kod örnekleri kitabın Figure 11.1–11.7'sine dayanır. Tarayıcıda PHP çalışmadığı için PHP kodları gösterilir; bu kodların veritabanına gönderdiği SQL komutları ise sayfadaki gerçek MySQL motorunda çalıştırılır.</p>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Web veritabanı programlama ve PHP">Üç katmanlı mimari</dt><dd>Tarayıcı (istemci), web sunucusu (PHP) ve veritabanı sunucusu.</dd>
+  <dt data-sec="Basit bir PHP örneği">PHP</dt><dd>Sunucuda çalışıp HTML üreten betik dili.</dd>
+  <dt data-sec="Diziler">Dizi (array)</dt><dd>Sayısal ya da metin anahtarlı değer listesi. <span class="ex">Örnek: $r['Lname'].</span></dd>
+  <dt data-sec="Sunucu değişkenleri ve formlar">$_POST / $_GET</dt><dd>Formdan gelen değerler. <span class="ex">Örnek: $_POST['emp_name'].</span></dd>
+  <dt data-sec="PHP ile veritabanı programlama">PEAR DB</dt><dd>PHP'den veritabanına bağlanan kütüphane: connect, query, fetchRow.</dd>
+  <dt data-sec="PHP ile veritabanı programlama">Placeholder (?)</dt><dd>Değeri SQL metninden ayrı gönderir; SQL injection'ı önler.</dd>
+  <dt data-sec="PHP ile veritabanı programlama">SQL injection</dt><dd>Kullanıcı girdisinin SQL komutunun parçası olması. <span class="ex">Örnek: ' OR '1'='1.</span></dd>
+  <dt data-sec="Sorgu sonuçlarını almak">fetchRow / getAll</dt><dd>Sonucun satırlarını tek tek ya da hepsini birden alır.</dd>
+</dl>
+
 <h2>Web veritabanı programlama ve PHP</h2>
 <p>Web sayfalarına dinamik özellikler eklemek için çeşitli programlama teknikleri vardır. <strong>PHP</strong>, bunlardan en yaygın olanlardan biridir: açık kaynaklı, genel amaçlı bir betik (scripting) dilidir; yorumlayıcıları ücretsizdir ve neredeyse bütün platformlarda bulunur (UNIX sistemlerinde genellikle kurulu gelir).</p>
 <p>Kitabın örneklerindeki mimari üç katmanlıdır:</p>

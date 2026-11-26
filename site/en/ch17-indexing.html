@@ -30,6 +30,19 @@
   <p><strong>Scope.</strong> All Ch 17 slides (1–41), listed for week 11 in the syllabus, are on this page. For the calculations and the B+-tree algorithms the examples and definitions of the same chapter of the book are used.</p>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Single-level ordered indexes">Index</dt><dd>An extra file that speeds up search on a field: (key, block address) pairs.</dd>
+  <dt data-sec="Single-level ordered indexes">Primary / clustering / secondary</dt><dd>An index on the ordering key field, on an ordering non-key field, and on a non-ordering field.</dd>
+  <dt data-sec="Single-level ordered indexes">Dense / sparse</dt><dd>One entry per record, or one entry per block.</dd>
+  <dt data-sec="Multilevel indexes">Multilevel index</dt><dd>An index on the index; each level narrows the search by the fan-out.</dd>
+  <dt data-sec="Multilevel indexes">Fan-out (fo)</dt><dd>The number of entries that fit in one index block.</dd>
+  <dt data-sec="Search trees and B-trees">B-tree</dt><dd>A balanced search tree; data pointers in every node.</dd>
+  <dt data-sec="B+-trees">B+-tree</dt><dd>Data pointers only in the leaves; the leaves are linked, so range search is easy.</dd>
+  <dt data-sec="Other types of indexes">Hash / bitmap index</dt><dd>Hash: equality search; bitmap: bit arrays for columns with few distinct values.</dd>
+</dl>
+
 <h2>Single-level ordered indexes</h2>
 <p>An <strong>index</strong> is an additional access structure used to reach records faster for certain search conditions; it does not change where the records of the data file are on disk, it provides a <strong>secondary access path</strong> to them. An index can be built on any field, and a file can have several indexes. The field the index is built on is the <strong>indexing field</strong>. An ordered index stores each value (or some values) of the indexing field with pointers to the disk blocks that contain that value, sorted by value. Because the index file is much smaller than the data file, a binary search on it reads far fewer blocks.</p>
 <p>There are three kinds of single-level ordered indexes:</p>

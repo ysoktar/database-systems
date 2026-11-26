@@ -25,6 +25,18 @@
   </ul>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Assertions: general constraints (7.2.1)">Assertion</dt><dd>A general constraint over several rows and tables; holds when no violating row exists. <span class="ex">Example: no salary above the manager's.</span></dd>
+  <dt data-sec="Triggers (7.2.2)">Trigger</dt><dd>A rule that runs by itself when an event happens (INSERT, UPDATE, DELETE): event, condition, action.</dd>
+  <dt data-sec="Triggers (7.2.2)">BEFORE / AFTER</dt><dd>Whether a trigger runs before or after the row is written; BEFORE for rejecting.</dd>
+  <dt data-sec="Views (7.3)">View</dt><dd>A named, stored query; used like a virtual table and always up to date. <span class="ex">Example: DEPT_INFO.</span></dd>
+  <dt data-sec="Views (7.3)">Materialized view</dt><dd>A view whose result is stored physically; the DBMS keeps it current.</dd>
+  <dt data-sec="Views (7.3)">Updatable view</dt><dd>A view over one table, without aggregates, containing the key; translates unambiguously to the base table.</dd>
+  <dt data-sec="Schema change (7.4)">ALTER / DROP</dt><dd>Changes or removes a table; DROP … RESTRICT refuses if something depends on it.</dd>
+</dl>
+
 <h2>Assertions: general constraints (7.2.1)</h2>
 <p><code>CREATE ASSERTION</code> is a declarative constraint not tied to a single table. It takes a name and a <code>CHECK</code> condition; the condition must be TRUE in <em>every</em> state of the database. The pattern: "write a query that finds the violating rows, and put <code>NOT EXISTS</code> in front of it."</p>
 <pre class="sql">

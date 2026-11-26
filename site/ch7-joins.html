@@ -25,6 +25,19 @@
   </ul>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Joined tables (açık join)">INNER JOIN</dt><dd>Yalnızca eşleşen satır çiftlerini verir.</dd>
+  <dt data-sec="Joined tables (açık join)">LEFT / RIGHT / FULL OUTER JOIN</dt><dd>Eşleşmeyen satırları da tutar; karşı tarafın sütunları NULL olur. <span class="ex">Örnek: amiri olmayan Borg da listelenir.</span></dd>
+  <dt data-sec="Joined tables (açık join)">NATURAL JOIN</dt><dd>Aynı adlı bütün sütunlarda eşler.</dd>
+  <dt data-sec="Aggregate fonksiyonlar">Aggregate</dt><dd>Bir sütunu tek değere indirir: COUNT, SUM, AVG, MIN, MAX; NULL'ları atlar. <span class="ex">Örnek: COUNT(*) satırları, COUNT(Super_ssn) NULL olmayanları sayar.</span></dd>
+  <dt data-sec="GROUP BY ve HAVING">GROUP BY</dt><dd>Satırları gruplara ayırır; aggregate her grup için ayrı hesaplanır. <span class="ex">Örnek: GROUP BY Dno.</span></dd>
+  <dt data-sec="GROUP BY ve HAVING">HAVING</dt><dd>Grupları süzer; WHERE ise gruplamadan önce satırları süzer. <span class="ex">Örnek: HAVING COUNT(*) > 2.</span></dd>
+  <dt data-sec="WITH ve CASE">WITH / CASE</dt><dd>WITH bir ara sonuca ad verir; CASE koşula göre değer seçer.</dd>
+  <dt data-sec="Recursive sorgular">Recursive sorgu</dt><dd>Kendi sonucunu tekrar kullanan WITH RECURSIVE; hiyerarşileri gezer. <span class="ex">Örnek: bir amirin bütün astları.</span></dd>
+</dl>
+
 <h2>Joined tables (açık join)</h2>
 <p>Join koşulunu <code>WHERE</code>'e karıştırmak yerine FROM'da yazmak sorguyu okunur kılar ve dış join'leri mümkün kılar.</p>
 <pre class="sql run" data-title="Q1A · Research'te çalışanlar, JOIN … ON ile">

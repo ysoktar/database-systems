@@ -25,6 +25,21 @@
   </ul>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Data models">Data model</dt><dd>The concepts describing data's structure, constraints and operations. <span class="ex">Example: the relational model: tables and rows.</span></dd>
+  <dt data-sec="Schema, state, instance">Schema</dt><dd>The description of the database; it rarely changes. <span class="ex">Example: EMPLOYEE(Fname, Lname, Ssn, …).</span></dd>
+  <dt data-sec="Schema, state, instance">State (instance)</dt><dd>The data itself at a given moment; it changes with every update. <span class="ex">Example: EMPLOYEE's 8 rows today.</span></dd>
+  <dt data-sec="The three-schema architecture">Internal level</dt><dd>How the data is stored on disk: files, indexes.</dd>
+  <dt data-sec="The three-schema architecture">Conceptual level</dt><dd>The structure of the whole database: tables, columns, constraints.</dd>
+  <dt data-sec="The three-schema architecture">External level (view)</dt><dd>The part a group of users sees. <span class="ex">Example: the payroll office seeing names and salaries.</span></dd>
+  <dt data-sec="Data independence">Logical data independence</dt><dd>Changing the conceptual schema without changing external schemas or programs. <span class="ex">Example: adding Email to EMPLOYEE.</span></dd>
+  <dt data-sec="Data independence">Physical data independence</dt><dd>Changing the internal schema without changing the conceptual schema. <span class="ex">Example: adding an index on Lname.</span></dd>
+  <dt data-sec="DBMS languages">DDL / DML</dt><dd>DDL defines the schema (CREATE, ALTER); DML queries and changes data (SELECT, INSERT).</dd>
+  <dt data-sec="Centralized and client/server architectu">Client/server architecture</dt><dd>The user's program (client) and the DBMS (server) run on separate machines. <span class="ex">Example: three tiers: browser, web server, database.</span></dd>
+</dl>
+
 <h2>Data models</h2>
 <p><strong>Data model</strong>: a collection of concepts used to describe the structure of a database: data types, relationships and constraints. Most models also include <em>basic operations</em> and user-defined operations (the <em>dynamic aspect / behavior</em>).</p>
 <table class="simple">

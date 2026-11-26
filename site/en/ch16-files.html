@@ -29,6 +29,20 @@
   <p><strong>Scope.</strong> All Ch 16 slides (1–41), listed for week 10 in the syllabus, are on this page. The slides list the topics as headings; for the calculations the definitions and formulas of the same chapter of the book are used.</p>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="The storage hierarchy">Primary / secondary storage</dt><dd>Memory is fast but volatile; disk is slow but persistent.</dd>
+  <dt data-sec="Disks and SSDs">Block</dt><dd>The smallest unit moved between disk and memory. <span class="ex">Example: 4 KB.</span></dd>
+  <dt data-sec="Disks and SSDs">Seek / rotational delay</dt><dd>The time for the head to reach the track, and for the block to come under it.</dd>
+  <dt data-sec="Buffering of blocks">Buffer</dt><dd>Memory holding blocks read from disk; when full, emptied by a rule such as LRU.</dd>
+  <dt data-sec="Placing records in blocks">Blocking factor (bfr)</dt><dd>The number of records that fit in a block: ⌊B / R⌋. <span class="ex">Example: 4096 / 100 → 40.</span></dd>
+  <dt data-sec="Unordered (heap) files">Heap file</dt><dd>Records are appended in arrival order; inserting is fast, searching slow (b/2 blocks on average).</dd>
+  <dt data-sec="Sorted files">Ordered file</dt><dd>Records sorted on a field; binary search takes log₂ b blocks.</dd>
+  <dt data-sec="Hashing">Hashing</dt><dd>A function computes the bucket a record goes to; an equality search takes one block.</dd>
+  <dt data-sec="RAID">RAID</dt><dd>Using several disks together for speed (striping) and safety (mirroring, parity).</dd>
+</dl>
+
 <h2>The storage hierarchy</h2>
 <p>Databases are usually stored on magnetic disks and accessed through physical file structures. Storage media come in three levels. <strong>Primary storage</strong> is the main memory and cache the CPU works on directly (cache: static RAM; main memory: DRAM); it is fast but expensive and limited. <strong>Secondary storage</strong> is magnetic disks, flash memory and SSDs; it is large and persistent, but much slower to access. <strong>Tertiary storage</strong> is removable media such as tape, CDs and DVDs; it is used for backup and archiving.</p>
 <p>Most data is <strong>persistent</strong>: it is kept after programs end. <strong>Transient</strong> data exists only while a program runs. The <strong>file organization</strong> determines how records are physically placed on disk and therefore how they can be accessed.</p>

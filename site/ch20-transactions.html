@@ -30,6 +30,21 @@
   <p><strong>Kapsam.</strong> Müfredatta 12. haftaya yazılan Ch 20 slaytlarının hepsi (1–44) bu sayfadadır. Örnekler kitabın aynı bölümündeki şekillerden alınmıştır.</p>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Transaction işlemeye giriş">Transaction</dt><dd>Bir bütün olarak ya tamamen uygulanan ya da hiç uygulanmayan işlemler dizisi. <span class="ex">Örnek: A'dan B'ye para transferi.</span></dd>
+  <dt data-sec="Eşzamanlılık kontrolü neden gerekli?">Lost update</dt><dd>İki transaction aynı değeri okuyup yazınca birinin güncellemesi kaybolur.</dd>
+  <dt data-sec="Eşzamanlılık kontrolü neden gerekli?">Dirty read</dt><dd>Henüz commit edilmemiş, belki geri alınacak bir değeri okumak.</dd>
+  <dt data-sec="Transaction ve sistem kavramları">Commit / rollback</dt><dd>Transaction'ın değişikliklerini kalıcı yapmak ya da geri almak.</dd>
+  <dt data-sec="Transaction&#x27;ların istenen özellikleri: A">ACID</dt><dd>Atomicity, Consistency, Isolation, Durability: hepsi ya da hiçbiri, tutarlı, birbirinden yalıtılmış, kalıcı.</dd>
+  <dt data-sec="Kurtarılabilirliğe göre çizelgeler">Çizelge (schedule)</dt><dd>Birden çok transaction'ın işlemlerinin iç içe geçmiş sırası.</dd>
+  <dt data-sec="Kurtarılabilirliğe göre çizelgeler">Kurtarılabilir çizelge</dt><dd>Bir transaction, okuduğu verinin yazarı commit etmeden commit etmez.</dd>
+  <dt data-sec="Serileştirilebilirliğe göre çizelgeler">Çakışan işlemler</dt><dd>Farklı transaction'lardan, aynı öğeye, en az biri yazma olan iki işlem.</dd>
+  <dt data-sec="Serileştirilebilirliğe göre çizelgeler">Serileştirilebilir</dt><dd>Sonucu bir seri (tek tek) çalıştırmayla aynı olan çizelge; öncelik grafında döngü yoksa.</dd>
+  <dt data-sec="SQL&#x27;de transaction desteği">İzolasyon seviyesi</dt><dd>Hangi sorunlara izin verildiği: READ UNCOMMITTED … SERIALIZABLE.</dd>
+</dl>
+
 <h2>Transaction işlemeye giriş</h2>
 <p>Bir <strong>transaction</strong>, veritabanı işlemenin mantıksal bir birimi olan, çalışmakta olan bir programdır. Transaction işleme sistemleri, büyük veritabanları ve yüzlerce eşzamanlı kullanıcısı olan, yüksek erişilebilirlik ve hızlı yanıt gerektiren sistemlerdir; uçak rezervasyonu, bankacılık ve borsa gibi. <strong>Tek kullanıcılı</strong> bir DBMS'i aynı anda en fazla bir kullanıcı kullanır (örneğin bir ev bilgisayarı); <strong>çok kullanıcılı</strong> bir DBMS'e birçok kullanıcı aynı anda erişir.</p>
 <p><strong>Çok programlama</strong> (multiprogramming), işletim sisteminin birden çok süreci eşzamanlı çalıştırmasıdır: bir sürecin komutlarını çalıştırır, onu askıya alır, başka bir sürecin komutlarını çalıştırır. Tek CPU'da bu, işlemlerin <strong>iç içe geçmesi</strong> (interleaved processing) demektir; birden çok CPU varsa süreçler gerçekten <strong>paralel</strong> çalışabilir (kitaptaki Figure 20.1). Bu sayfadaki teori iç içe geçmiş çalışmayı esas alır.</p>

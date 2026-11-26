@@ -113,7 +113,7 @@ function buildHeader() {
   });
   const brand = h("a", { class: "brand", href: "index.html" });
   brand.innerHTML = LOGO;
-  brand.append(h("span", { class: "brand-title" }, tl("Veritabanı Sistemleri", "Database Systems")), h("span", { class: "brand-sub" }, tl("BIL372/BIL071 · arasınav", "BIL372/BIL071 · midterm")));
+  brand.append(h("span", { class: "brand-title" }, tl("Veritabanı Sistemleri", "Database Systems")), h("span", { class: "brand-sub" }, tl("BIL372/BIL071 · Elmasri & Navathe", "BIL372/BIL071 · Elmasri & Navathe")));
   const nb = h("a", { class: "icon-btn", href: NOTEBOOK_URL, target: "_blank", rel: "noopener", title: tl("Ders notebook'unu Google Colab'da aç", "Open the class notebook in Google Colab") });
   nb.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="1.5" width="11" height="13" rx="1.5"/><path d="M5 5h6M5 8h6M5 11h3"/></svg><span class="label">Notebook</span>';
   const gh = h("a", { class: "icon-btn", href: REPO, target: "_blank", rel: "noopener", title: tl("GitHub'daki kaynak kod", "Source code on GitHub"), "aria-label": tl("GitHub'daki kaynak kod", "Source code on GitHub") });
@@ -294,6 +294,7 @@ function init() {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.body.classList.remove("nav-open"); });
 
   foldIntro(content);
+  enhanceTerms(content);
   enhanceCallouts(content);
   enhanceQuizzes(content);
   enhanceSQL(content);
@@ -312,6 +313,34 @@ function init() {
  * The goals and the scope note at the top of a page are useful but stand between the reader and the topic: fold them
  * into one closed line ("Goals (4) · Scope: slides 1–41") right under the lead. The reader's choice is remembered.
  */
+/** "Terms at a glance": a <dl class="term-glance"> written in the page (dt = term, dd = plain definition with an
+ *  example; dt[data-sec] = the start of the heading where the term is explained) becomes a filterable list. Clicking a
+ *  term with a section jumps there and briefly marks the heading. Without JavaScript the plain list still reads well. */
+function enhanceTerms(content) {
+  for (const dl of content.querySelectorAll("dl.term-glance")) {
+    const heads = [...content.querySelectorAll("h2, h3")];
+    const rows = [...dl.querySelectorAll("dt")].map((dt) => {
+      const dd = dt.nextElementSibling;
+      const target = dt.dataset.sec ? heads.find((x) => x.textContent.trim().startsWith(dt.dataset.sec)) : null;
+      const go = target ? h("a", { class: "term-go", href: `#${target.id || ""}`, onclick: (e) => {
+        e.preventDefault(); target.scrollIntoView({ behavior: "smooth", block: "start" });
+        target.classList.add("term-flash"); setTimeout(() => target.classList.remove("term-flash"), 1600);
+      } }, tl("bölüme git →", "go to section →")) : "";
+      const r = h("div", { class: "term-row static" }, h("span", { class: "term-name" }, dt.textContent), h("span", { class: "term-def" }, ...[...dd.childNodes].map((n) => n.cloneNode(true)), go ? " " : "", go));
+      r.dataset.q = (dt.textContent + " " + dd.textContent).toLocaleLowerCase();
+      return r;
+    });
+    const list = h("div", { class: "term-list" }, ...rows);
+    const none = h("p", { class: "small muted", hidden: true }, tl("Eşleşen terim yok.", "No matching term."));
+    const q = h("input", { type: "search", class: "term-filter", placeholder: tl("Terim ara…", "Search terms…"), "aria-label": tl("Terim ara", "Search terms"), oninput: () => {
+      const v = q.value.trim().toLocaleLowerCase(); let n = 0;
+      for (const r of rows) { const on = !v || r.dataset.q.includes(v); r.hidden = !on; n += on; }
+      none.hidden = n > 0;
+    } });
+    dl.replaceWith(h("div", { class: "stepper term-box" }, q, list, none));
+  }
+}
+
 function foldIntro(content) {
   const firstH2 = $("h2", content);
   const before = (el) => !firstH2 || (el.compareDocumentPosition(firstH2) & Node.DOCUMENT_POSITION_FOLLOWING);

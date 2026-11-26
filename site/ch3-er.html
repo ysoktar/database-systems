@@ -25,6 +25,21 @@
   </ul>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Varlıklar ve öznitelikler">Varlık (entity)</dt><dd>Kendi başına var olan bir nesne; dikdörtgenle çizilir. <span class="ex">Örnek: bir çalışan, bir departman.</span></dd>
+  <dt data-sec="Varlıklar ve öznitelikler">Öznitelik</dt><dd>Bir varlığın özelliği; elipsle çizilir. <span class="ex">Örnek: Salary, Bdate.</span></dd>
+  <dt data-sec="Varlıklar ve öznitelikler">Anahtar öznitelik</dt><dd>Değeri her varlıkta farklı olan öznitelik; altı çizilir. <span class="ex">Örnek: Ssn.</span></dd>
+  <dt data-sec="Varlıklar ve öznitelikler">Bileşik / çok değerli / türetilmiş</dt><dd>Parçalardan oluşan (Name), birden çok değer alan (Locations, çift elips) ya da başkasından hesaplanan (Age, kesik elips) öznitelik.</dd>
+  <dt data-sec="İlişki tipleri">İlişki (relationship)</dt><dd>Varlıkları birbirine bağlar; eşkenar dörtgenle çizilir. <span class="ex">Örnek: WORKS_FOR: çalışan, departmanda çalışır.</span></dd>
+  <dt data-sec="İkili ilişkilerde yapısal kısıtlar">Kardinalite oranı</dt><dd>Bir varlığın karşı taraftan en fazla kaç varlıkla ilişkili olabileceği: 1:1, 1:N, M:N. <span class="ex">Örnek: bir departmanda N çalışan.</span></dd>
+  <dt data-sec="İkili ilişkilerde yapısal kısıtlar">Katılım (participation)</dt><dd>Her varlığın ilişkiye katılmak zorunda olup olmadığı: total (çift çizgi) ya da partial. <span class="ex">Örnek: her çalışan bir departmanda olmak zorunda.</span></dd>
+  <dt data-sec="Zayıf varlıklar (weak entity types)">Zayıf varlık</dt><dd>Kendi anahtarı olmayan, sahibi üzerinden tanınan varlık; çift dikdörtgen. <span class="ex">Örnek: DEPENDENT, çalışanı üzerinden.</span></dd>
+  <dt data-sec="Zayıf varlıklar (weak entity types)">Kısmi anahtar</dt><dd>Zayıf varlığı sahibinin içinde ayırt eden öznitelik; kesik altı çizili. <span class="ex">Örnek: Dependent_name.</span></dd>
+  <dt data-sec="Daha yüksek dereceli ilişkiler">Derece</dt><dd>Bir ilişkiye katılan varlık tipi sayısı: ikili, üçlü … <span class="ex">Örnek: SUPPLY(SUPPLIER, PART, PROJECT) üçlü.</span></dd>
+</dl>
+
 <h2>Veritabanı tasarım süreci</h2>
 <ol>
   <li><strong>Requirements collection and analysis</strong>: veri gereksinimleri ve fonksiyonel gereksinimler (kullanıcı işlemleri).</li>

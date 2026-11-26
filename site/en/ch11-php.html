@@ -29,6 +29,19 @@
   <p><strong>Scope.</strong> All Ch 11 slides (1–35) in the syllabus are on this page. The code examples are based on the book's Figures 11.1–11.7. Since PHP does not run in the browser, the PHP code is shown; the SQL commands this code sends to the database are run on the page's real MySQL engine.</p>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Web database programming and PHP">Three-tier architecture</dt><dd>Browser (client), web server (PHP) and database server.</dd>
+  <dt data-sec="A simple PHP example">PHP</dt><dd>A scripting language that runs on the server and produces HTML.</dd>
+  <dt data-sec="Arrays">Array</dt><dd>A list of values with numeric or text keys. <span class="ex">Example: $r['Lname'].</span></dd>
+  <dt data-sec="Server variables and forms">$_POST / $_GET</dt><dd>The values coming from a form. <span class="ex">Example: $_POST['emp_name'].</span></dd>
+  <dt data-sec="Database programming with PHP">PEAR DB</dt><dd>The library that connects PHP to a database: connect, query, fetchRow.</dd>
+  <dt data-sec="Database programming with PHP">Placeholder (?)</dt><dd>Sends a value separately from the SQL text; prevents SQL injection.</dd>
+  <dt data-sec="Database programming with PHP">SQL injection</dt><dd>User input becoming part of an SQL command. <span class="ex">Example: ' OR '1'='1.</span></dd>
+  <dt data-sec="Retrieving query results">fetchRow / getAll</dt><dd>Takes the result's rows one at a time, or all at once.</dd>
+</dl>
+
 <h2>Web database programming and PHP</h2>
 <p>There are various programming techniques for adding dynamic features to web pages. <strong>PHP</strong> is one of the most widely used: an open source, general-purpose scripting language; its interpreters are free and available on almost every platform (on UNIX systems it usually comes installed).</p>
 <p>The architecture of the book's examples has three tiers:</p>

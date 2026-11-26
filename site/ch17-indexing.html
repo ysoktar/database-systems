@@ -30,6 +30,19 @@
   <p><strong>Kapsam.</strong> Müfredatta 11. haftaya yazılan Ch 17 slaytlarının hepsi (1–41) bu sayfadadır. Hesaplamalar ve B+-ağacı algoritmaları için kitabın aynı bölümündeki örnekler ve tanımlar kullanılmıştır.</p>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Tek seviyeli sıralı indeksler">İndeks</dt><dd>Bir alana göre aramayı hızlandıran ek dosya: (anahtar, blok adresi) çiftleri.</dd>
+  <dt data-sec="Tek seviyeli sıralı indeksler">Primary / clustering / secondary</dt><dd>Sıralı anahtar alanda, sıralı anahtar olmayan alanda ve sırasız bir alanda indeks.</dd>
+  <dt data-sec="Tek seviyeli sıralı indeksler">Dense / sparse</dt><dd>Her kayıt için bir girdi ya da her blok için bir girdi.</dd>
+  <dt data-sec="Çok seviyeli indeksler">Çok seviyeli indeks</dt><dd>İndeksin indeksi; her seviye aramayı fan-out kadar daraltır.</dd>
+  <dt data-sec="Çok seviyeli indeksler">Fan-out (fo)</dt><dd>Bir indeks bloğuna sığan girdi sayısı.</dd>
+  <dt data-sec="Arama ağaçları ve B-ağaçları">B-ağacı</dt><dd>Dengeli arama ağacı; veri işaretçileri her düğümde.</dd>
+  <dt data-sec="B+-ağaçları">B+-ağacı</dt><dd>Veri işaretçileri yalnızca yapraklarda; yapraklar birbirine bağlı, aralık araması kolay.</dd>
+  <dt data-sec="Diğer indeks türleri">Hash / bitmap indeks</dt><dd>Hash: eşitlik araması; bitmap: az farklı değerli sütunlar için bit dizileri.</dd>
+</dl>
+
 <h2>Tek seviyeli sıralı indeksler</h2>
 <p>Bir <strong>indeks</strong>, belirli arama koşullarına karşılık kayıtlara daha hızlı ulaşmak için kullanılan ek bir erişim yapısıdır; veri dosyasının kayıtlarının diskteki yerini değiştirmez, onlara <strong>ikincil bir erişim yolu</strong> sağlar. Herhangi bir alan üzerinde indeks kurulabilir ve aynı dosyada birden çok indeks olabilir. İndeksin kurulduğu alana <strong>indeksleme alanı</strong> denir. Sıralı bir indeks, indeksleme alanının her değerini (ya da bazı değerlerini) o değerin bulunduğu disk bloklarını gösteren işaretçilerle birlikte, değere göre sıralı olarak saklar. İndeks dosyası veri dosyasından çok daha küçük olduğu için üzerinde ikili arama çok daha az blok okur.</p>
 <p>Üç tür tek seviyeli sıralı indeks vardır:</p>

@@ -25,6 +25,19 @@
   </ul>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Joined tables (explicit joins)">INNER JOIN</dt><dd>Returns only the matching pairs of rows.</dd>
+  <dt data-sec="Joined tables (explicit joins)">LEFT / RIGHT / FULL OUTER JOIN</dt><dd>Keeps the unmatched rows too; the other side's columns become NULL. <span class="ex">Example: Borg, who has no supervisor, is listed too.</span></dd>
+  <dt data-sec="Joined tables (explicit joins)">NATURAL JOIN</dt><dd>Matches on every column with the same name.</dd>
+  <dt data-sec="Aggregate functions">Aggregate</dt><dd>Reduces a column to one value: COUNT, SUM, AVG, MIN, MAX; skips NULLs. <span class="ex">Example: COUNT(*) counts rows, COUNT(Super_ssn) non-NULL values.</span></dd>
+  <dt data-sec="GROUP BY and HAVING">GROUP BY</dt><dd>Splits rows into groups; aggregates are computed per group. <span class="ex">Example: GROUP BY Dno.</span></dd>
+  <dt data-sec="GROUP BY and HAVING">HAVING</dt><dd>Filters groups; WHERE filters rows before grouping. <span class="ex">Example: HAVING COUNT(*) > 2.</span></dd>
+  <dt data-sec="WITH and CASE">WITH / CASE</dt><dd>WITH names an intermediate result; CASE picks a value by condition.</dd>
+  <dt data-sec="Recursive queries">Recursive query</dt><dd>A WITH RECURSIVE that reuses its own result; walks hierarchies. <span class="ex">Example: all the people under a supervisor.</span></dd>
+</dl>
+
 <h2>Joined tables (explicit joins)</h2>
 <p>Writing the join condition in FROM instead of mixing it into <code>WHERE</code> makes the query readable and makes outer joins possible.</p>
 <pre class="sql run" data-title="Q1A · The employees in Research, with JOIN … ON">
