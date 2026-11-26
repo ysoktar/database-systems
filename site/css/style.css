@@ -1236,3 +1236,25 @@ svg.ix-links path.on { stroke: var(--accent); stroke-width: 2.2; opacity: 1; }
 .node-cap { min-height: 1.4em; margin-top: 6px; font-weight: 600; }
 .nd-legend { margin-top: 4px; }
 .ix-levels { background: var(--surface-2); border-left: 3px solid var(--accent); padding: 6px 10px; border-radius: 4px; }
+
+/* Ch 16: disk geometry and double buffering */
+.disk-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.disk-svg { max-width: 100%; height: auto; }
+.dk-cell { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: .6; transition: fill .3s; }
+.dk-cell.on { fill: rgba(56, 132, 255, .45); }
+.dk-cell.xfer { fill: var(--good, #1a7f37); }
+.dk-spindle { fill: var(--text-2); }
+.dk-arm { stroke: var(--text); stroke-width: 3; stroke-linecap: round; transition: all .6s; }
+.dk-head { fill: var(--critical); transition: all .6s; }
+.dk-platter { fill: var(--surface-2); stroke: var(--border-strong); }
+.dk-cyl { fill: rgba(56, 132, 255, .55); }
+.disk-info { flex: 1 1 260px; min-width: 0; }
+.disk-cap { font-weight: 600; min-height: 2.6em; }
+.disk-steps li { opacity: .5; margin-bottom: 4px; }
+.disk-steps li.done { opacity: 1; }
+.db-chart { margin: 6px 0 12px; }
+.db-row { display: grid; grid-template-columns: 7.5em 1fr; align-items: center; gap: 8px; margin: 3px 0; }
+.db-track { position: relative; height: 24px; background: var(--surface-2); border-radius: 4px; }
+.db-bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; font-size: .75rem; text-align: center; line-height: 20px; color: #fff; overflow: hidden; }
+.db-bar.A { background: #3b7fe0; }
+.db-bar.B { background: #e0862b; }

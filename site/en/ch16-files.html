@@ -52,6 +52,8 @@
 
 <h2>Disks and SSDs</h2>
 <p>A hard disk stores data as bits (ones and zeros), grouped into bytes. A disk may be single- or double-sided. The concentric circles on a surface are called <strong>tracks</strong>, and tracks are divided into <strong>blocks</strong> or sectors. In a disk pack of several disks, the tracks with the same radius on all surfaces form a <strong>cylinder</strong>. <strong>Formatting</strong> divides the tracks into equal-sized disk blocks, separated by interblock gaps.</p>
+<p>Choose a part, or follow the steps of a read with <em>Read the block</em>: the arm moves to the track (seek), the block turns under the head, then it is transferred.</p>
+<div id="disk-geom"></div>
 <p>Data is always transferred between disk and main memory in <strong>units of blocks</strong>: the hardware address of a block is given to the disk I/O hardware and the block is read into or written from a <strong>buffer</strong>. A read/write head does the reading and writing; the disk controller connects the disk to the computer through standard interfaces such as SCSI, SATA or SAS. The time to access a block has three parts: moving the head to the right track (<strong>seek time</strong>), the disk rotating until the block is under the head (<strong>rotational delay</strong>), and transferring the block (<strong>block transfer time</strong>). The first two take milliseconds and are most of the cost, so reading consecutive blocks together is much cheaper than reading them one by one.</p>
 <p>The techniques used for efficient access are: buffering data, organizing data on disk properly, reading ahead before data is requested, scheduling I/O requests in a good order, temporarily keeping writes on a log disk, and using SSDs or flash memory for recovery.</p>
 <ul>
@@ -61,6 +63,8 @@
 
 <h2>Buffering of blocks</h2>
 <p>If several blocks of a file are to be read, several buffers can be reserved in main memory. While one block is being read, the CPU can process the previous one; this helps when the CPU and disk I/O can work in parallel. In <strong>double buffering</strong> two buffers (A and B) are used in turn: while the disk reads into A, the CPU processes B, then they swap. Consecutive blocks are then read without waiting.</p>
+<p>Change the times and compare the two timelines (Figure 16.4). Blue blocks are read into buffer A, orange ones into buffer B.</p>
+<div id="double-buf"></div>
 <p>The DBMS <strong>buffer manager</strong> manages a limited number of buffers (frames) in main memory. Two pieces of information are kept for each frame: the <strong>pin count</strong> (how many processes are using the page right now; if it is not zero the page cannot be evicted) and the <strong>dirty bit</strong> (whether the page was modified; if so, it must be written to disk before it is evicted). If the requested page is not in the buffer and no frame is free, a page is chosen and evicted by a <strong>replacement strategy</strong>:</p>
 <ul>
   <li><strong>LRU</strong> (least recently used): the page that has not been used for the longest time is evicted.</li>
