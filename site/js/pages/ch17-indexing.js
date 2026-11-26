@@ -191,7 +191,7 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
 // Node: { leaf, keys, kids } (kids only for internal nodes). B+-tree convention of the book: in an internal node the
 // subtree under pointer i holds keys K(i-1) < X ≤ K(i); a leaf split copies its last left key up, an internal split moves
 // the middle key up. B-tree: a node holds at most p − 1 keys; an overflowing node splits and its middle key moves up.
-function cloneTree(n) { return n && { leaf: n.leaf, keys: [...n.keys], kids: n.kids ? n.kids.map(cloneTree) : null, id: n.id }; }
+function cloneTree(n) { return n && { leaf: n.leaf, keys: [...n.keys], kids: n.kids ? n.kids.map((c) => cloneTree(c)) : null, id: n.id }; }
 let nodeId = 0;
 const mk = (leaf, keys, kids = null) => ({ leaf, keys, kids, id: ++nodeId });
 function childIndex(node, k, bplus) {
@@ -200,7 +200,7 @@ function childIndex(node, k, bplus) {
 }
 function searchPath(root, k, bplus) {
   const path = []; let n = root;
-  while (n) { path.push(n.id); if (n.leaf) break; if (!bplus && n.keys.includes(k)) break; n = n.kids[childIndex(n, k, bplus)]; }
+  while (n) { path.push(n.id); if (n.leaf) break; if (!bplus && n.keys.includes(k)) break; const c = n.kids[childIndex(n, k, bplus)]; if (!c) break; n = c; }
   return { path, found: n ? n.keys.includes(k) : false };
 }
 function insert(root, k, { p, pleaf, bplus }) {
@@ -243,49 +243,115 @@ function insert(root, k, { p, pleaf, bplus }) {
   return { root, log, touched, split };
 }
 
-/** Draw a tree as SVG: levels top to bottom, children under their parent, leaves linked (B+-tree). */
-function drawTree(root, { bplus, hl = new Set(), split = new Set(), path = [], newKey = null } = {}) {
+/** A search tree of order p without balancing (Figure 17.9): a value goes into the first node on its path that has
+ *  room; a full node sends it down the pointer for its interval, creating a new node there if the pointer is empty. */
+function insertST(root, k, { p }) {
+  const log = [], touched = new Set(), split = new Set();
+  if (!root) { const r = mk(true, [k]); r.kids = [null, null]; touched.add(r.id); log.push(tl(`Ağaç boş: ${k} ile kök oluşur.`, `The tree is empty: the root is created with ${k}.`)); return { root: r, log, touched, split }; }
+  if (searchPath(root, k, false).found) return { root, log: [tl(`${k} ağaçta zaten var.`, `${k} is already in the tree.`)], touched, split, dup: true };
+  let n = root;
+  for (;;) {
+    touched.add(n.id);
+    if (n.keys.length < p - 1 && n.kids.every((c) => !c)) {
+      n.keys.push(k); n.keys.sort((x, y) => x - y); n.kids = Array(n.keys.length + 1).fill(null);
+      log.push(tl(`${k}, yer olan [${n.keys.join(", ")}] düğümüne eklendi.`, `${k} was added to the node [${n.keys.join(", ")}], which had room.`)); break;
+    }
+    const i = childIndex(n, k, false);
+    if (!n.kids[i]) { const c = mk(true, [k]); c.kids = [null, null]; n.kids[i] = c; n.leaf = false; touched.add(c.id);
+      log.push(tl(`[${n.keys.join(", ")}] dolu; ${k} ${i + 1}. işaretçinin aralığında ve işaretçi boş, bu yüzden orada yeni bir düğüm açılır. Ağaç dengelenmez: yeni düğüm bir seviye aşağıda.`, `[${n.keys.join(", ")}] is full; ${k} falls in pointer ${i + 1}'s interval and that pointer is empty, so a new node is opened there. The tree is not rebalanced: the new node is one level down.`)); break; }
+    n = n.kids[i];
+  }
+  return { root, log, touched, split };
+}
+
+/** Draw a tree as the book does: every node is a row of cells. Search trees and B-trees: P K P K … P, with a data
+ *  pointer Pr under each key of a B-tree; B+-tree internal nodes: P K … P; B+-tree leaves: ⟨K, Pr⟩ … P_next.
+ *  Edges leave from the pointer cells; an empty pointer is drawn hollow. terms: level labels and node roles;
+ *  sel: a node whose subtree is highlighted; onPick(id): called when a node is clicked. */
+function drawTree(root, { bplus, kind = bplus ? "bplus" : "btree", hl = new Set(), split = new Set(), path = [], newKey = null, terms = false, sel = null, onPick = null } = {}) {
   if (!root) return h("div", { class: "ba-empty" }, tl("Ağaç boş", "The tree is empty"));
-  const KW = 30, NH = 28, GAP = 16, LV = 70;
-  const w = (n) => Math.max(1, n.keys.length) * KW + 8;
-  let x = 10;
+  const KW = 30, PW = 12, NH = 30, GAP = 18, LV = 74, LM = terms ? 92 : 10;
+  const isLeaf = (n) => n.leaf || !n.kids || n.kids.every((c) => !c);
+  const bpLeaf = (n) => kind === "bplus" && isLeaf(n);
+  const w = (n) => bpLeaf(n) ? Math.max(1, n.keys.length) * KW + PW + 4 : Math.max(1, n.keys.length) * KW + (n.keys.length + 1) * PW + 4;
+  // x of pointer cell i's centre, and of key cell i's left edge
+  const px = (q, i) => q.x + 2 + i * (KW + PW) + PW / 2, kx = (q, i) => bpLeaf(q.n) ? q.x + 2 + i * KW : q.x + 2 + PW + i * (KW + PW);
+  let x = LM;
   const pos = new Map(), leaves = [];
+  let depthMax = 0;
   const place = (n, d) => {
-    if (n.leaf) { pos.set(n.id, { x, y: 14 + d * LV, n }); leaves.push(n); x += w(n) + GAP; return; }
-    n.kids.forEach((c) => place(c, d + 1));
-    const a = pos.get(n.kids[0].id), b = pos.get(n.kids[n.kids.length - 1].id);
-    pos.set(n.id, { x: (a.x + b.x + w(n.kids[n.kids.length - 1])) / 2 - w(n) / 2, y: 14 + d * LV, n });
+    depthMax = Math.max(depthMax, d);
+    const kids = (n.kids || []).filter(Boolean);
+    if (!kids.length) { pos.set(n.id, { x, y: 16 + d * LV, n, d }); leaves.push(n); x += w(n) + GAP; return; }
+    kids.forEach((c) => place(c, d + 1));
+    const a = pos.get(kids[0].id), b = pos.get(kids[kids.length - 1].id);
+    pos.set(n.id, { x: Math.max(LM, (a.x + b.x + w(kids[kids.length - 1].n || kids[kids.length - 1])) / 2 - w(n) / 2), y: 16 + d * LV, n, d });
   };
   place(root, 0);
-  const W = Math.max(x, ...[...pos.values()].map((q) => q.x + w(q.n) + 10)), H = Math.max(...[...pos.values()].map((q) => q.y)) + NH + 14;
+  const W = Math.max(x, ...[...pos.values()].map((q) => q.x + w(q.n) + 10)), H = 16 + depthMax * LV + NH + 16;
   const NS = "http://www.w3.org/2000/svg";
   const s = (tag, a = {}, t) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) if (v != null) e.setAttribute(k, v); if (t != null) e.textContent = t; return e; };
   const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: "bt-svg" });
-  for (const q of pos.values()) if (!q.n.leaf) q.n.kids.forEach((c, i) => {
-    const cq = pos.get(c.id);
-    svg.append(s("line", { x1: q.x + 4 + i * KW, y1: q.y + NH, x2: cq.x + w(c) / 2, y2: cq.y, class: "bt-edge" + (path.includes(q.n.id) && path.includes(c.id) ? " on" : "") }));
-  });
-  if (bplus) for (let i = 0; i + 1 < leaves.length; i++) {
-    const a = pos.get(leaves[i].id), b = pos.get(leaves[i + 1].id);
-    svg.append(s("line", { x1: a.x + w(leaves[i]), y1: a.y + NH / 2, x2: b.x, y2: b.y + NH / 2, class: "bt-chain", "marker-end": "url(#bt-ar)" }));
-  }
   const defs = s("defs"), m = s("marker", { id: "bt-ar", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto" });
-  m.append(s("path", { d: "M0,0 L10,5 L0,10 z", class: "bt-arhead" })); defs.append(m); svg.prepend(defs);
+  m.append(s("path", { d: "M0,0 L10,5 L0,10 z", class: "bt-arhead" })); defs.append(m); svg.append(defs);
+  // the subtree of the selected node
+  const sub = new Set(); const mark = (n) => { if (!n) return; sub.add(n.id); (n.kids || []).forEach(mark); };
+  if (sel != null) { const find = (n) => (!n ? null : n.id === sel ? n : (n.kids || []).map(find).find(Boolean)); mark(find(root)); }
+  if (terms) for (let d = 0; d <= depthMax; d++) {
+    const role = d === 0 ? tl("kök", "root") : d === depthMax ? tl("yapraklar", "leaves") : tl("iç düğümler", "internal");
+    svg.append(s("text", { x: 4, y: 16 + d * LV + NH / 2 - 4, class: "bt-level" }, tl(`Seviye ${d}`, `Level ${d}`)), s("text", { x: 4, y: 16 + d * LV + NH / 2 + 10, class: "bt-level role" }, role));
+  }
+  for (const q of pos.values()) if (!isLeaf(q.n)) q.n.kids.forEach((c, i) => {
+    if (!c) return;
+    const cq = pos.get(c.id);
+    svg.append(s("line", { x1: px(q, i), y1: q.y + NH - 4, x2: cq.x + w(c) / 2, y2: cq.y, class: "bt-edge" + (path.includes(q.n.id) && path.includes(c.id) ? " on" : "") + (sub.has(c.id) ? " sub" : "") }));
+  });
+  if (kind === "bplus") for (let i = 0; i + 1 < leaves.length; i++) {
+    const a = pos.get(leaves[i].id), b = pos.get(leaves[i + 1].id);
+    svg.append(s("line", { x1: a.x + w(leaves[i]) - PW / 2, y1: a.y + NH / 2, x2: b.x, y2: b.y + NH / 2, class: "bt-chain", "marker-end": "url(#bt-ar)" }));
+  }
   for (const q of pos.values()) {
-    const cls = "bt-node" + (q.n.leaf ? " leaf" : "") + (split.has(q.n.id) ? " split" : hl.has(q.n.id) ? " touched" : "") + (path.includes(q.n.id) ? " path" : "");
+    const n = q.n, leafNode = isLeaf(n);
+    const cls = "bt-node" + (leafNode ? " leaf" : "") + (split.has(n.id) ? " split" : hl.has(n.id) ? " touched" : "") + (path.includes(n.id) ? " path" : "") + (sub.has(n.id) ? " sub" : "") + (onPick ? " pick" : "");
     const g = s("g", { class: cls });
-    g.append(s("rect", { x: q.x, y: q.y, width: w(q.n), height: NH, rx: 4 }));
-    q.n.keys.forEach((k, i) => {
-      if (i) g.append(s("line", { x1: q.x + 4 + i * KW, x2: q.x + 4 + i * KW, y1: q.y + 4, y2: q.y + NH - 4, class: "bt-sep" }));
-      g.append(s("text", { x: q.x + 4 + i * KW + KW / 2, y: q.y + NH / 2 + 1, class: "bt-key" + (k === newKey ? " new" : "") }, String(k)));
-    });
+    g.append(s("rect", { x: q.x, y: q.y, width: w(n), height: NH, rx: 4 }));
+    const dataPtr = kind === "btree" || bpLeaf(n);
+    if (bpLeaf(n)) {
+      n.keys.forEach((k, i) => {
+        if (i) g.append(s("line", { x1: kx(q, i), x2: kx(q, i), y1: q.y + 3, y2: q.y + NH - 3, class: "bt-sep" }));
+        g.append(s("text", { x: kx(q, i) + KW / 2, y: q.y + NH / 2, class: "bt-key" + (k === newKey ? " new" : "") }, String(k)));
+        g.append(s("circle", { cx: kx(q, i) + KW / 2, cy: q.y + NH - 5, r: 2.4, class: "bt-pr" }));
+      });
+      const xn = q.x + w(n) - PW - 2;
+      g.append(s("rect", { x: xn, y: q.y + 2, width: PW, height: NH - 4, class: "bt-pcell" }), s("circle", { cx: xn + PW / 2, cy: q.y + NH / 2, r: 2.6, class: "bt-pdot" + (leaves.indexOf(n) < leaves.length - 1 ? "" : " null") }));
+    } else {
+      for (let i = 0; i <= n.keys.length; i++) {
+        const has = n.kids && n.kids[i];
+        g.append(s("rect", { x: px(q, i) - PW / 2, y: q.y + 2, width: PW, height: NH - 4, class: "bt-pcell" }), s("circle", { cx: px(q, i), cy: q.y + NH / 2, r: 2.6, class: "bt-pdot" + (has ? "" : " null") }));
+      }
+      n.keys.forEach((k, i) => {
+        g.append(s("text", { x: kx(q, i) + KW / 2, y: q.y + NH / 2 - (dataPtr ? 2 : 0), class: "bt-key" + (k === newKey ? " new" : "") }, String(k)));
+        if (dataPtr) g.append(s("circle", { cx: kx(q, i) + KW / 2, cy: q.y + NH - 5, r: 2.4, class: "bt-pr" }));
+      });
+    }
+    const kidsN = (n.kids || []).filter(Boolean).length;
+    g.append(s("title", {}, tl(`Seviye ${q.d} · ${q.d === 0 ? "kök" : leafNode ? "yaprak" : "iç düğüm"} · ${n.keys.length} değer · ${kidsN} çocuk${dataPtr ? " · her değerin yanında veri işaretçisi Pr (turuncu nokta)" : ""}`, `Level ${q.d} · ${q.d === 0 ? "root" : leafNode ? "leaf" : "internal node"} · ${n.keys.length} value(s) · ${kidsN} child(ren)${dataPtr ? " · a data pointer Pr next to each value (orange dot)" : ""}`)));
+    if (onPick) g.addEventListener("click", () => onPick(n.id));
     svg.append(g);
   }
-  return h("div", { class: "bt-wrap" }, svg);
+  // balance: the levels where a search can end (a leaf, or an empty pointer of a node that has some children)
+  const ends = new Set();
+  for (const q of pos.values()) { if (isLeaf(q.n)) ends.add(q.d); else if (q.n.kids.some((c) => !c)) ends.add(q.d); }
+  const lv = [...ends].sort((a, b) => a - b);
+  const info = h("p", { class: "small bt-info" }, tl(`Yükseklik: ${depthMax + 1} seviye. ${lv.length === 1 ? `Bütün yapraklar ${lv[0]}. seviyede: ağaç dengeli.` : `Aramalar ${lv.join(", ")}. seviyelerde bitebilir: ağaç dengesiz, bazı aramalar diğerlerinden uzun sürer.`}`,
+    `Height: ${depthMax + 1} level(s). ${lv.length === 1 ? `All the leaves are on level ${lv[0]}: the tree is balanced.` : `Searches can end on levels ${lv.join(", ")}: the tree is unbalanced, some searches take longer than others.`}`));
+  return h("div", {}, h("div", { class: "bt-wrap" }, svg), info);
 }
 {
   const host = $("#bptree");
-  const kind = h("select", {}, h("option", { value: "bplus" }, tl("B+-ağacı (Figure 17.12)", "B+-tree (Figure 17.12)")), h("option", { value: "btree" }, tl("B-ağacı (Figure 17.10)", "B-tree (Figure 17.10)")));
+  const kind = h("select", {}, h("option", { value: "bplus" }, tl("B+-ağacı (Figure 17.12)", "B+-tree (Figure 17.12)")), h("option", { value: "btree" }, tl("B-ağacı (Figure 17.10)", "B-tree (Figure 17.10)")), h("option", { value: "search" }, tl("Dengelenmeyen arama ağacı (Figure 17.9)", "Unbalanced search tree (Figure 17.9)")));
+  const termsBox = h("input", { type: "checkbox", checked: true });
+  let sel = null;
   const valsIn = h("input", { type: "text", value: "8 5 1 7 3 12 9 6", size: 24 });
   const pIn = h("input", { type: "number", value: 3, min: 3, max: 6, style: { width: "4em" } });
   const plIn = h("input", { type: "number", value: 2, min: 1, max: 6, style: { width: "4em" } });
@@ -296,12 +362,13 @@ function drawTree(root, { bplus, hl = new Set(), split = new Set(), path = [], n
   const build = () => {
     vals = valsIn.value.split(/[\s,]+/).map(Number).filter(Number.isFinite).slice(0, 30);
     const bplus = kind.value === "bplus";
-    opts = { p: Math.max(3, Math.min(6, num(pIn.value, 3))), pleaf: Math.max(1, Math.min(6, num(plIn.value, 2))), bplus };
+    opts = { p: Math.max(3, Math.min(6, num(pIn.value, 3))), pleaf: Math.max(1, Math.min(6, num(plIn.value, 2))), bplus, kind: kind.value };
+    sel = null;
     plIn.disabled = !bplus;
     nodeId = 0;
     let root = null;
     states = [{ root: null }];
-    for (const v of vals) { const r = insert(cloneTree(root), v, opts); root = r.root; states.push({ root: cloneTree(root), log: r.log, touched: r.touched, split: r.split, key: v }); }
+    for (const v of vals) { const r = (opts.kind === "search" ? insertST : insert)(cloneTree(root), v, opts); root = r.root; states.push({ root: cloneTree(root), log: r.log, touched: r.touched, split: r.split, key: v }); }
     i = Math.min(i, vals.length);
   };
   const show = () => {
@@ -312,9 +379,9 @@ function drawTree(root, { bplus, hl = new Set(), split = new Set(), path = [], n
       const st = states[i];
       body.replaceChildren(h("div", { class: "step-title" }, tl(`${st.key} ekleniyor`, `Inserting ${st.key}`)),
         h("ol", { class: "small bt-log" }, ...st.log.map((l) => h("li", {}, l))),
-        h("div", { class: "ba ba-stack" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), drawTree(states[i - 1].root, { bplus: opts.bplus })),
+        h("div", { class: "ba ba-stack" }, h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Önce", "Before")), drawTree(states[i - 1].root, { bplus: opts.bplus, kind: opts.kind })),
           h("div", { class: "ba-arrow", "aria-hidden": "true" }),
-          h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra: değerin girdiği düğümler vurgulu, bölünenler kırmızı kenarlı", "After: nodes the value went through highlighted, split nodes outlined in red")), drawTree(st.root, { bplus: opts.bplus, hl: st.touched, split: st.split, newKey: st.key }))));
+          h("div", { class: "ba-side" }, h("div", { class: "ba-label" }, tl("Sonra: değerin girdiği düğümler vurgulu, bölünenler kırmızı kenarlı", "After: nodes the value went through highlighted, split nodes outlined in red")), drawTree(st.root, { bplus: opts.bplus, kind: opts.kind, hl: st.touched, split: st.split, newKey: st.key, terms: termsBox.checked, sel, onPick: (id) => { sel = sel === id ? null : id; show(); } }))));
     }
     find();
   };
@@ -324,18 +391,21 @@ function drawTree(root, { bplus, hl = new Set(), split = new Set(), path = [], n
     const { path, found } = searchPath(root, k, opts.bplus);
     findOut.replaceChildren(h("p", { class: "small" }, tl(`${k} aranırken kökten ${path.length} düğüm okunur (yol vurgulu). ${found ? "Değer bulundu." : "Değer ağaçta yok."}${opts.bplus ? " B+-ağacında arama her zaman yaprakta biter; iç düğümdeki değerler yalnızca yön gösterir." : " B-ağacında değer bir iç düğümde bulunursa arama orada biter."}`,
       `Searching for ${k} reads ${path.length} node(s) from the root (the path is highlighted). ${found ? "The value was found." : "The value is not in the tree."}${opts.bplus ? " In a B+-tree a search always ends in a leaf; values in internal nodes only show the way." : " In a B-tree the search stops at an internal node if the value is found there."}`)),
-      drawTree(root, { bplus: opts.bplus, path }));
+      drawTree(root, { bplus: opts.bplus, kind: opts.kind, path }));
   };
   const prevB = button(tl("◀ Önceki", "◀ Previous"), () => { i--; show(); });
   const nextB = button(tl("Sonraki ▶", "Next ▶"), () => { i++; show(); }, { kind: "primary" });
   const allB = button(tl("Hepsini ekle", "Insert all"), () => { i = vals.length; show(); });
   const reset = () => { i = 0; build(); show(); };
-  kind.addEventListener("change", () => { if (kind.value === "btree") { pIn.value = 3; } reset(); });
+  kind.addEventListener("change", () => { if (kind.value !== "bplus") { pIn.value = 3; } if (kind.value === "search") valsIn.value = "1 2 3 4 5 6 7 8"; else if (valsIn.value === "1 2 3 4 5 6 7 8") valsIn.value = "8 5 1 7 3 12 9 6"; reset(); });
+  termsBox.addEventListener("change", () => show());
   [valsIn, pIn, plIn].forEach((x) => x.addEventListener("input", reset));
   findIn.addEventListener("input", find);
   host.append(h("div", { class: "player" },
     h("div", { class: "pl-bar" }, field(tl("Ağaç: ", "Tree: "), kind), field(tl("Değerler: ", "Values: "), valsIn), field("p = ", pIn), field("p_leaf = ", plIn)),
-    h("div", { class: "pl-bar" }, prevB, nextB, allB, counter), body,
+    h("div", { class: "pl-bar" }, prevB, nextB, allB, counter, h("label", { class: "small sim-field" }, termsBox, tl(" Seviyeleri ve rolleri göster", " Show levels and roles"))),
+    h("p", { class: "small muted" }, tl("Mavi kutular ağaç işaretçileri (P), turuncu noktalar veri işaretçileri (Pr); içi boş nokta boş bir işaretçidir. Bir düğüme tıklayın: alt ağacı vurgulanır. Bir düğümün üstünde durun: seviyesi, rolü ve çocuk sayısı yazar.", "Blue boxes are tree pointers (P), orange dots data pointers (Pr); a hollow dot is an empty pointer. Click a node to highlight its subtree. Hover over a node for its level, role and number of children.")),
+    body,
     h("h4", {}, tl("Arama", "Search")), h("div", { class: "pl-bar" }, field(tl("Aranan değer: ", "Find: "), findIn)), findOut));
   build(); show();
 }

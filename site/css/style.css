@@ -1258,3 +1258,15 @@ svg.ix-links path.on { stroke: var(--accent); stroke-width: 2.2; opacity: 1; }
 .db-bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; font-size: .75rem; text-align: center; line-height: 20px; color: #fff; overflow: hidden; }
 .db-bar.A { background: #3b7fe0; }
 .db-bar.B { background: #e0862b; }
+
+/* Ch 17: trees drawn with pointer cells */
+.bt-node rect.bt-pcell { fill: rgba(56, 132, 255, .16); stroke: var(--border-strong); stroke-width: .6; }
+.bt-pdot { fill: var(--text); }
+.bt-pdot.null { fill: none; stroke: var(--text-2); stroke-width: 1; }
+.bt-pr { fill: #e0862b; }
+.bt-level { font-size: 11px; font-weight: 700; fill: var(--text-2); }
+.bt-level.role { font-weight: 500; font-style: italic; }
+.bt-node.sub rect:first-child { stroke: #8a4fd8; stroke-width: 2.5; }
+.bt-edge.sub { stroke: #8a4fd8; stroke-width: 2.2; }
+.bt-node.pick { cursor: pointer; }
+.bt-info { margin: 4px 0 0; }
