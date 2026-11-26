@@ -522,3 +522,37 @@ import { decidePlayer, calcSteps } from "../lib/decide.js";
       cap));
   }
 }
+
+// ---------------------------------------------------------------- Bloom filter (not in the slides)
+{
+  const host = $("#bloom");
+  if (host) {
+    const M = 16, K = 3;
+    // k simple, deterministic hash functions over the characters of the value
+    const hk = (x, i) => { let v = 7 + i * 101; for (const c of x) v = (v * (31 + 2 * i) + c.charCodeAt(0)) % 100003; return v % M; };
+    const pos = (x) => [...new Set([0, 1, 2].map((i) => hk(x, i)))];
+    let set = ["Smith", "Wong", "Zelaya"], bits = Array(M).fill(0);
+    const rebuild = () => { bits = Array(M).fill(0); for (const x of set) for (const p of pos(x)) bits[p] = 1; };
+    const addIn = h("input", { type: "text", size: 10, value: "Wallace", "aria-label": tl("Eklenecek değer", "Value to insert") });
+    const qIn = h("input", { type: "text", size: 10, value: "Borg", "aria-label": tl("Sorgulanacak değer", "Value to query") });
+    const out = h("div");
+    const draw = () => {
+      const q = qIn.value.trim(), qp = q ? pos(q) : [];
+      const all = q && qp.every((p) => bits[p]), inSet = set.includes(q);
+      const n = set.length, fp = Math.pow(1 - Math.exp((-K * n) / M), K);
+      out.replaceChildren(
+        h("div", { class: "bloom-bits" }, ...bits.map((b, i) => h("span", { class: "bloom-bit" + (b ? " one" : "") + (qp.includes(i) ? " q" : "") }, h("span", { class: "bloom-i" }, String(i)), String(b)))),
+        h("p", { class: "small" }, tl(`Kümede (${n}): ${set.join(", ")}. m = ${M} bit, k = ${K}. Yanlış pozitif olasılığı ≈ (1 − e^(−${K}·${n}/${M}))^${K} = %${(100 * fp).toFixed(1)}.`, `In the set (${n}): ${set.join(", ")}. m = ${M} bits, k = ${K}. False positive rate ≈ (1 − e^(−${K}·${n}/${M}))^${K} = ${(100 * fp).toFixed(1)}%.`)),
+        q ? h("div", { class: `res-msg ${!all ? "ok" : inSet ? "ok" : "warn"}`, style: { fontFamily: "inherit" } },
+          tl(`h(${q}) → bitler ${qp.join(", ")}: ${qp.map((p) => bits[p]).join(", ")}. `, `h(${q}) → bits ${qp.join(", ")}: ${qp.map((p) => bits[p]).join(", ")}. `),
+          !all ? tl("En az bir bit 0: kesinlikle yok; disk okunmaz.", "At least one bit is 0: definitely not there; the disk is not read.")
+            : inSet ? tl("Bütün bitler 1: muhtemelen var (ve gerçekten var).", "All bits are 1: probably there (and it really is).")
+              : tl("Bütün bitler 1 ama bu değer hiç eklenmedi: yanlış pozitif! Bitleri başka değerler 1 yapmış; disk boşuna okunur.", "All bits are 1 but this value was never inserted: a false positive! Other values set those bits; the disk is read for nothing.")) : "");
+    };
+    const add = button(tl("Ekle", "Insert"), () => { const v = addIn.value.trim(); if (v && !set.includes(v)) { set.push(v); rebuild(); draw(); } }, { kind: "primary" });
+    const clear = button(tl("Boşalt", "Clear"), () => { set = []; rebuild(); draw(); });
+    qIn.addEventListener("input", draw);
+    host.append(h("div", { class: "stepper" }, h("div", { class: "pl-bar" }, field(tl("Değer: ", "Value: "), addIn), add, clear, field(tl("Sorgu: ", "Query: "), qIn)), out));
+    rebuild(); draw();
+  }
+}
