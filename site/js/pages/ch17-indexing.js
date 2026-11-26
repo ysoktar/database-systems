@@ -14,6 +14,7 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
 {
   const host = $("#index-types");
   const BFR = 3;
+  const hashOf = (name) => name.length % 4; // the hash index's h(K): the number of letters mod 4
   const TYPES = {
     primary: { label: tl("Birincil (Ssn)", "Primary (Ssn)"), order: 0, field: 0, def: "666884444",
       note: tl("Dosya Ssn'e göre sıralı ve Ssn bir anahtar. Her giriş ⟨K(i), P(i)⟩: K(i), i. bloğun ilk kaydının Ssn'i (blok çapası); P(i), o bloğun adresi. Her blok için bir giriş olduğundan indeks seyrektir: 8 kayıt, 3 giriş.", "The file is sorted on Ssn, a key. Each entry is ⟨K(i), P(i)⟩: K(i) is the Ssn of block i's first record (the block anchor); P(i) is that block's address. One entry per block makes the index sparse: 8 records, 3 entries.") },
@@ -21,24 +22,28 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
       note: tl("Dosya Dno'ya göre sıralı ama Dno bir anahtar değil: aynı değer birçok kayıtta var. Her farklı Dno için bir giriş var: K(i) bir Dno değeri, P(i) o değerin ilk göründüğü blok.", "The file is sorted on Dno, which is not a key: a value repeats in many records. There is one entry per distinct Dno: K(i) is a Dno value, P(i) the first block where it appears.") },
     secondary: { label: tl("İkincil (Lname)", "Secondary (Lname)"), order: 0, field: 1, def: "Wallace",
       note: tl("Dosya Ssn'e göre sıralı; Lname'e göre değil. Lname'ler bloklara dağınık olduğu için her kayıt için bir giriş gerekir: K(i) bir Lname, P(i) kaydın bulunduğu blok (blok işaretçisi, Figure 17.4; kayıt işaretçisi de olabilir). İndeks yoğun: 8 kayıt, 8 giriş.", "The file is sorted on Ssn, not on Lname. Last names are scattered over the blocks, so every record needs an entry: K(i) is a Lname, P(i) the block holding the record (a block pointer, Figure 17.4; it could also be a record pointer). The index is dense: 8 records, 8 entries.") },
+    hash: { label: tl("Hash indeks (Lname)", "Hash index (Lname)"), order: 0, field: 1, def: "Wallace",
+      note: tl("Dosya Ssn'e göre düzenli; indeks Lname üzerinde hashing kullanır (Figure 17.15). Girişler ⟨K, P⟩ biçiminde, h(K) = harf sayısı mod 4 ile seçilen kovalarda durur. Arama: h(K) hesaplanır, o kova okunur, girişin P'si izlenir. İndeks sıralı değildir; yalnızca eşitlik araması içindir.", "The file is organized on Ssn; the index uses hashing on Lname (Figure 17.15). The ⟨K, P⟩ entries sit in buckets chosen by h(K) = number of letters mod 4. Search: compute h(K), read that bucket, follow the entry's P. The index is not ordered; it serves equality searches only.") },
   };
   let type = "primary";
   const seg = h("div", { class: "stepper-steps", role: "group" });
   const q = h("input", { type: "text", size: 12, "aria-label": tl("Aranan değer", "Value to find") });
+  const foSel = h("select", { "aria-label": "fo", onchange: () => draw() }, ...[2, 3, 4].map((v) => h("option", { value: v, selected: v === 4 ? true : null }, String(v))));
   const out = h("div");
-  const two = h("input", { type: "checkbox", onchange: () => draw() });
   const cmp = (a, b) => (typeof a === "number" ? a - b : String(a).localeCompare(String(b)));
+  const foBox = h("label", { class: "small sim-field" }, tl("İndeks bloğuna sığan giriş (fo): ", "Entries per index block (fo): "), foSel);
   const draw = () => {
     const T = TYPES[type];
     for (const b of seg.children) b.setAttribute("aria-pressed", String(b.dataset.t === type));
-    twoBox.style.display = type === "primary" ? "" : "none";
+    foBox.style.display = type === "hash" ? "none" : "";
+    const fo = Number(foSel.value);
     const rows = [...EMP].sort((a, b) => cmp(a[T.order], b[T.order]));
     const blocks = []; for (let i = 0; i < rows.length; i += BFR) blocks.push(rows.slice(i, i + BFR));
     let entries;
     if (type === "primary") entries = blocks.map((b, i) => [b[0][0], i]);
     else if (type === "clustering") { entries = []; blocks.forEach((b, i) => b.forEach((r) => { if (!entries.some((e) => e[0] === r[2])) entries.push([r[2], i]); })); }
     else entries = rows.map((r) => [r[1], blocks.findIndex((b) => b.includes(r))]).sort((a, b) => cmp(a[0], b[0]));
-    // search
+    // search on level 1 (the walk down the upper levels follows from the hit)
     const raw = q.value.trim();
     const key = T.field === 2 ? Number(raw) : raw;
     let hit = -1, read = [], msg = "";
@@ -49,8 +54,8 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
         else {
           read = [entries[hit][1]];
           const found = blocks[read[0]].some((r) => r[0] === raw);
-          msg = tl(`İndekste ${raw}'den küçük ya da ona eşit en büyük çapa ${entries[hit][0]}; bu yüzden blok ${read[0] + 1} okunur. ${found ? "Kayıt orada bulunur." : "Kayıt orada yok, dosyada da yok."} Üç veri bloğundan yalnızca biri okundu; büyük bir dosyada indeksin kendisi de ikili aramayla taranır.`,
-            `In the index the largest anchor less than or equal to ${raw} is ${entries[hit][0]}, so block ${read[0] + 1} is read. ${found ? "The record is found there." : "The record is not there, so it is not in the file."} Only one of the three data blocks was read; in a large file the index itself is searched with binary search.`);
+          msg = tl(`${raw}'den küçük ya da ona eşit en büyük çapa ${entries[hit][0]}; bu yüzden blok ${read[0] + 1} okunur. ${found ? "Kayıt orada bulunur." : "Kayıt orada yok, dosyada da yok."}`,
+            `The largest anchor less than or equal to ${raw} is ${entries[hit][0]}, so block ${read[0] + 1} is read. ${found ? "The record is found there." : "The record is not there, so it is not in the file."}`);
         }
       } else {
         hit = entries.findIndex((e) => e[0] === key);
@@ -58,52 +63,66 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
         else if (type === "clustering") {
           let b = entries[hit][1];
           while (b < blocks.length && blocks[b].some((r) => r[2] === key)) read.push(b++);
-          msg = tl(`Giriş ${raw}, blok ${read[0] + 1}'i gösteriyor. Dosya Dno'ya göre sıralı olduğu için Dno = ${raw} olan bütün kayıtlar oradan başlayarak ardışık durur: ${read.map((x) => x + 1).join(" ve ")}. blok okunur.`,
-            `The entry ${raw} points to block ${read[0] + 1}. The file is sorted on Dno, so all records with Dno = ${raw} follow each other from there: block${read.length > 1 ? "s" : ""} ${read.map((x) => x + 1).join(" and ")} ${read.length > 1 ? "are" : "is"} read.`);
+          msg = tl(`Giriş ${raw}, ${read[0] + 1}. bloğu gösteriyor. Dosya Dno'ya göre sıralı olduğu için Dno = ${raw} olan kayıtlar oradan başlayarak ardışık durur: ${read.map((x) => x + 1).join(" ve ")}. blok okunur.`,
+            `The entry ${raw} points to block ${read[0] + 1}. The file is sorted on Dno, so the records with Dno = ${raw} follow each other from there: block${read.length > 1 ? "s" : ""} ${read.map((x) => x + 1).join(" and ")} ${read.length > 1 ? "are" : "is"} read.`);
+        } else if (type === "hash") {
+          read = [entries[hit][1]];
+          msg = tl(`h(${raw}) = ${raw.length} mod 4 = ${hashOf(raw)}: kova ${hashOf(raw)} okunur, ${raw} girişi ${read[0] + 1}. bloğu gösterir. Toplam 2 blok: kova ve veri bloğu.`, `h(${raw}) = ${raw.length} mod 4 = ${hashOf(raw)}: bucket ${hashOf(raw)} is read, and the entry ${raw} points to block ${read[0] + 1}. Two blocks in all: the bucket and the data block.`);
         } else {
           read = [entries[hit][1]];
-          msg = tl(`Yoğun indekste ${raw} girişi doğrudan blok ${read[0] + 1}'i gösteriyor. İndeks olmasaydı dosya Lname'e göre sıralı olmadığı için bütün bloklar taranırdı.`, `In the dense index the entry ${raw} points straight to block ${read[0] + 1}. Without the index the file, not sorted on Lname, would have to be scanned block by block.`);
+          msg = tl(`${raw} girişi doğrudan ${read[0] + 1}. bloğu gösteriyor. İndeks olmasaydı dosya Lname'e göre sıralı olmadığı için bütün bloklar taranırdı.`, `The entry ${raw} points straight to block ${read[0] + 1}. Without the index the file, not sorted on Lname, would have to be scanned block by block.`);
         }
       }
     }
-    const blockEls = blocks.map((b, i) => h("div", { class: "ix-block" + (read.includes(i) ? " read" : ""), "data-b": i },
+    const blockEls = blocks.map((b, i) => h("div", { class: "ix-block" + (read.includes(i) ? " read" : "") },
       h("div", { class: "ix-bno" }, tl(`Blok ${i + 1}`, `Block ${i + 1}`)),
       ...b.map((r) => h("div", { class: "ix-rec" + (raw && (r[T.field] === key) ? " match" : "") }, h("span", { class: T.order === 0 ? "ord" : null }, r[0]), " ", h("span", { class: T.field === 1 ? "ord" : null }, r[1]), " ", h("span", { class: T.order === 2 ? "ord" : null }, String(r[2]))))));
-    // an index entry as the book draws it: <K(i), P(i)>, the pointer a dot that an arrow leaves from
-    const entryRow = (i, K, P, hitRow, onHover) => {
+    const links = []; // [dot, target element, highlighted]
+    const entryRow = (i, K, P, on, target) => {
       const dot = h("span", { class: "ix-dot" });
-      const el = h("div", { class: "ix-entry" + (hitRow ? " hit" : "") }, h("span", { class: "ix-i" }, String(i)), h("span", { class: "ix-k" }, String(K)), h("span", { class: "ix-p" }, P, " ", dot));
-      if (onHover) { el.addEventListener("mouseenter", () => onHover(true)); el.addEventListener("mouseleave", () => onHover(false)); }
-      return { el, dot };
+      const el = h("div", { class: "ix-entry" + (on ? " hit" : "") }, h("span", { class: "ix-i" }, String(i)), h("span", { class: "ix-k" }, String(K)), h("span", { class: "ix-p" }, P, " ", dot));
+      el.addEventListener("mouseenter", () => target.classList.add("hover"));
+      el.addEventListener("mouseleave", () => target.classList.remove("hover"));
+      links.push([dot, target, on]);
+      return el;
     };
     const head = () => h("div", { class: "ix-entry ix-head" }, h("span", { class: "ix-i" }, "i"), h("span", { class: "ix-k" }, "K(i)"), h("span", { class: "ix-p" }, "P(i)"));
-    const links = []; // [dot, target element, highlighted]
-    const rows1 = entries.map((e, i) => {
-      const r = entryRow(i + 1, e[0], tl(`blok ${e[1] + 1}`, `block ${e[1] + 1}`), i === hit, (on) => blockEls[e[1]].classList.toggle("hover", on));
-      links.push([r.dot, blockEls[e[1]], i === hit]);
-      return r.el;
-    });
-    let level1, level2 = null;
-    if (type === "primary" && two.checked) {
-      // Figure 17.6: the first level is itself an ordered file of blocks (here 2 entries per index block);
-      // the second level has one entry per first-level block: that block's first K(i)
-      const FO = 2, iblocks = [];
-      for (let i = 0; i < rows1.length; i += FO) iblocks.push(h("div", { class: "ix-block ix-iblock" + (hit >= i && hit < i + FO ? " read" : "") }, h("div", { class: "ix-bno" }, tl(`İndeks bloğu ${i / FO + 1}`, `Index block ${i / FO + 1}`)), ...rows1.slice(i, i + FO)));
-      level1 = h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl("1. seviye (taban)", "Level 1 (base)")), head(), ...iblocks);
-      const top = iblocks.map((ib, k) => {
-        const r = entryRow(k + 1, entries[k * FO][0], tl(`ind. bl. ${k + 1}`, `idx bl. ${k + 1}`), hit >= k * FO && hit < (k + 1) * FO);
-        links.push([r.dot, ib, hit >= k * FO && hit < (k + 1) * FO]);
-        return r.el;
-      });
-      level2 = h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl("2. seviye", "Level 2")), head(), ...top);
-    } else level1 = h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl(`İndeks (${entries.length} giriş)`, `Index (${entries.length} entries)`)), head(), ...rows1);
+    const cols = [];
+    let levelInfo = "";
+    if (type === "hash") {
+      const buckets = [0, 1, 2, 3].map((k) => ({ k, items: entries.map((e, i) => [e, i]).filter(([e]) => hashOf(e[0]) === k) }));
+      const els = buckets.map((bk) => h("div", { class: "ix-block ix-iblock" + (hit >= 0 && hashOf(entries[hit][0]) === bk.k ? " read" : "") },
+        h("div", { class: "ix-bno" }, tl(`Kova ${bk.k}`, `Bucket ${bk.k}`)),
+        ...bk.items.map(([e, i]) => entryRow("", e[0], tl(`blok ${e[1] + 1}`, `block ${e[1] + 1}`), i === hit, blockEls[e[1]]))));
+      cols.push(h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl("Hash indeks: h(K) = harf sayısı mod 4", "Hash index: h(K) = letters mod 4")), ...els));
+    } else {
+      // levels: level 1 holds the entries in index blocks of fo; a new level gets one entry per block of the level
+      // below (that block's first K), until the top level fits in a single block
+      let lvl = entries.map((e, i) => ({ K: e[0], target: blockEls[e[1]], label: tl(`blok ${e[1] + 1}`, `block ${e[1] + 1}`), on: i === hit }));
+      const levels = [];
+      for (let n = 1; ; n++) {
+        const blks = [];
+        for (let i = 0; i < lvl.length; i += fo) blks.push(lvl.slice(i, i + fo));
+        const els = blks.map((bl, b) => h("div", { class: "ix-block ix-iblock" + (bl.some((x) => x.on) ? " read" : "") },
+          h("div", { class: "ix-bno" }, tl(`${n}. seviye, blok ${b + 1}`, `Level ${n}, block ${b + 1}`)),
+          ...bl.map((x, j) => entryRow(b * fo + j + 1, x.K, x.label, x.on, x.target))));
+        levels.push({ n, els, count: blks.length });
+        if (blks.length === 1) break;
+        lvl = blks.map((bl, b) => ({ K: bl[0].K, target: els[b], label: tl(`blok ${b + 1}`, `block ${b + 1}`), on: bl.some((x) => x.on) }));
+      }
+      for (const L of [...levels].reverse()) cols.push(h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, L.n === 1 ? tl("1. seviye (taban)", "Level 1 (base)") : tl(`${L.n}. seviye`, `Level ${L.n}`)), head(), ...L.els));
+      const t = levels.length;
+      levelInfo = t === 1
+        ? tl(`${entries.length} giriş fo = ${fo} ile tek bir indeks bloğuna sığıyor: tek seviye yeter, üst seviyeye gerek yok.`, `${entries.length} entries fit in a single index block with fo = ${fo}: one level is enough, no upper level is needed.`)
+        : tl(`${entries.length} giriş fo = ${fo} ile ${levels[0].count} bloğa yayılıyor; bu yüzden üstüne bir seviye daha kuruluyor. En üst seviye tek bloğa sığınca durulur: t = ⌈log${fo}(${entries.length})⌉ = ${t} seviye. Arama her seviyeden bir blok, sonra veri bloğu okur: ${t + 1} blok.`,
+            `${entries.length} entries spread over ${levels[0].count} blocks with fo = ${fo}, so another level is built on top. It stops once the top level fits in one block: t = ⌈log${fo}(${entries.length})⌉ = ${t} levels. A search reads one block per level, then the data block: ${t + 1} blocks.`);
+    }
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "ix-links"); svg.setAttribute("aria-hidden", "true");
-    const grid = h("div", { class: "ix-grid" + (level2 ? " three" : "") }, ...(level2 ? [level2] : []), level1,
+    const grid = h("div", { class: "ix-grid", style: { gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr)) minmax(0, 1.25fr)` } }, ...cols,
       h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl("Veri dosyası (Ssn, Lname, Dno; blok başına 3 kayıt)", "Data file (Ssn, Lname, Dno; 3 records per block)")), h("div", { class: "ix-blocks" }, ...blockEls)), svg);
-    out.replaceChildren(h("p", { class: "small" }, T.note), grid,
+    out.replaceChildren(h("p", { class: "small" }, T.note), levelInfo ? h("p", { class: "small ix-levels" }, levelInfo) : "", grid,
       msg ? h("div", { class: `res-msg ${hit >= 0 ? "ok" : "warn"}`, style: { fontFamily: "inherit" } }, msg) : "");
-    // arrows from each P(i) to the block it points to (only when the columns sit side by side)
     requestAnimationFrame(() => {
       const g = grid.getBoundingClientRect();
       svg.setAttribute("width", g.width); svg.setAttribute("height", g.height); svg.replaceChildren();
@@ -113,15 +132,14 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
         const x1 = a.left + a.width / 2 - g.left, y1 = a.top + a.height / 2 - g.top, x2 = b.left - g.left - 2, y2 = b.top + 12 - g.top, mx = (x1 + x2) / 2;
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
-        path.setAttribute("class", on ? "on" : "");
+        if (on) path.setAttribute("class", "on");
         svg.append(path);
       }
     });
   };
   for (const [k, T] of Object.entries(TYPES)) seg.append(h("button", { type: "button", "data-t": k, onclick: () => { type = k; q.value = T.def; draw(); } }, T.label));
   q.addEventListener("input", draw);
-  const twoBox = h("label", { class: "small sim-field" }, two, tl(" 2. seviye ekle (Figure 17.6)", " Add a second level (Figure 17.6)"));
-  host.append(h("div", { class: "player" }, seg, h("div", { class: "pl-bar" }, field(tl("Aranan değer: ", "Find: "), q), twoBox), out));
+  host.append(h("div", { class: "player" }, seg, h("div", { class: "pl-bar" }, field(tl("Aranan değer: ", "Find: "), q), foBox), out));
   addEventListener("resize", () => draw());
   q.value = TYPES.primary.def; draw();
 }
