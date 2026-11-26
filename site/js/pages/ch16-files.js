@@ -268,3 +268,107 @@ import { decidePlayer, calcSteps } from "../lib/decide.js";
         [tl("Kapasite", "Capacity"), tl("3 / 4 = %75. Sayfadaki RAID şeklinde bir diske tıklayarak bozulmayı deneyebilirsiniz.", "3 / 4 = 75%. You can try a failure by clicking a disk in the RAID figure on the page.")]]) },
   ]);
 }
+
+// ---------------------------------------------------------------- disk geometry (Figures 16.1, 16.2) and access time
+{
+  const host = $("#disk-geom");
+  if (host) {
+    const NS = "http://www.w3.org/2000/svg";
+    const S = (tag, a = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
+    const TR = 5, SEC = 8, cx = 130, cy = 130, R0 = 30, DR = 18;
+    const parts = {
+      track: tl("İz (track): yüzeydeki eş merkezli bir daire. Vurgulanan, dışarıdan ikinci iz.", "Track: a concentric circle on the surface. The highlighted one is the second track from the outside."),
+      sector: tl("Sektör: bir izin yay şeklindeki parçası; biçimlendirme izleri eşit boyutlu bloklara böler.", "Sector: an arc-shaped part of a track; formatting divides tracks into equal-sized blocks."),
+      block: tl("Blok: bir izin bir sektörü. Disk ile bellek arasında her zaman blok birimiyle veri aktarılır.", "Block: one sector of one track. Data always moves between disk and memory one block at a time."),
+      cylinder: tl("Silindir: bütün yüzeylerde aynı yarıçaptaki izler. Aynı silindirdeki bloklar kol hareket etmeden okunur.", "Cylinder: the tracks with the same radius on every surface. Blocks in one cylinder are read without moving the arm."),
+    };
+    let sel = "block", step = -1, timer = null;
+    const top = S("svg", { viewBox: "0 0 260 260", width: 260, height: 260, class: "disk-svg", role: "img" });
+    const side = S("svg", { viewBox: "0 0 220 260", width: 220, height: 260, class: "disk-svg", role: "img" });
+    const cap = h("p", { class: "small disk-cap" });
+    const steps = h("ol", { class: "small disk-steps" });
+    const arc = (r1, r2, a1, a2) => {
+      const p = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+      const [x1, y1] = p(r2, a1), [x2, y2] = p(r2, a2), [x3, y3] = p(r1, a2), [x4, y4] = p(r1, a1);
+      return `M${x1},${y1} A${r2},${r2} 0 0 1 ${x2},${y2} L${x3},${y3} A${r1},${r1} 0 0 0 ${x4},${y4} Z`;
+    };
+    const paint = () => {
+      top.replaceChildren(); side.replaceChildren();
+      const hlTrack = TR - 2, hlSec = 2;
+      // the head sits over track 0 until a read moves it (seek), then the block turns under it (rotation)
+      const under = -((hlSec + 0.5) / SEC) * 2 * Math.PI; // the rotation that brings the block under the head (top)
+      const armTrack = step >= 1 ? hlTrack : 0, rot = step >= 2 ? under : under + 2.2;
+      for (let t = 0; t < TR; t++) for (let s = 0; s < SEC; s++) {
+        const a1 = (s / SEC) * 2 * Math.PI + rot - Math.PI / 2, a2 = a1 + (2 * Math.PI) / SEC - 0.03;
+        const r1 = R0 + t * DR, r2 = r1 + DR - 2;
+        const on = (sel === "track" || sel === "cylinder") ? t === hlTrack : sel === "sector" ? s === hlSec : t === hlTrack && s === hlSec;
+        top.append(S("path", { d: arc(r1, r2, a1, a2), class: "dk-cell" + (on ? " on" : "") + (step >= 3 && t === hlTrack && s === hlSec ? " xfer" : "") }));
+      }
+      top.append(S("circle", { cx, cy, r: R0 - 4, class: "dk-spindle" }));
+      const hr = R0 + armTrack * DR + DR / 2;
+      top.append(S("line", { x1: 250, y1: 250, x2: cx, y2: cy - hr, class: "dk-arm" }), S("circle", { cx, cy: cy - hr, r: 5, class: "dk-head" }));
+      // side view: three platters, the cylinder is the same track on every surface
+      for (let p = 0; p < 3; p++) {
+        const y = 50 + p * 70;
+        side.append(S("rect", { x: 20, y, width: 180, height: 8, rx: 3, class: "dk-platter" }));
+        if (sel === "cylinder") for (const x of [20 + 18, 200 - 18 - 14]) side.append(S("rect", { x, y: y - 3, width: 14, height: 14, class: "dk-cyl" }));
+        side.append(S("line", { x1: 210, y1: y - 10, x2: 60, y2: y - 10, class: "dk-arm" }), S("line", { x1: 210, y1: y + 18, x2: 60, y2: y + 18, class: "dk-arm" }));
+      }
+      side.append(S("rect", { x: 106, y: 30, width: 8, height: 200, class: "dk-spindle" }));
+      cap.textContent = parts[sel];
+      const ST = [
+        [tl("İstek", "Request"), tl("DBMS bloğun donanım adresini verir: yüzey, iz, blok.", "The DBMS gives the block's hardware address: surface, track, block.")],
+        [tl("Arama süresi (seek)", "Seek time"), tl("Kol kafayı doğru ize taşır; tipik olarak 5–10 ms.", "The arm moves the head to the right track; typically 5–10 ms.")],
+        [tl("Dönme gecikmesi", "Rotational delay"), tl("Blok kafanın altına gelene kadar disk döner; ortalama yarım tur (7200 rpm'de ≈ 4 ms).", "The disk turns until the block is under the head; half a turn on average (≈ 4 ms at 7200 rpm).")],
+        [tl("Blok aktarımı", "Block transfer"), tl("Blok tampona okunur; çok kısa sürer. Toplamı arama ve dönme belirler; bu yüzden ardışık bloklar çok daha hızlı okunur.", "The block is read into a buffer; it is very short. Seek and rotation dominate, which is why consecutive blocks read much faster.")],
+      ];
+      steps.replaceChildren(...ST.map(([a, b], i) => h("li", { class: i <= step ? "done" : "" }, h("strong", {}, a), ": ", b)));
+    };
+    const seg = h("div", { class: "stepper-steps", role: "group" }, ...Object.keys(parts).map((k) => h("button", { type: "button", "aria-pressed": String(k === sel), onclick: (e) => { sel = k; for (const b of seg.children) b.setAttribute("aria-pressed", String(b === e.currentTarget)); paint(); } },
+      { track: tl("İz", "Track"), sector: tl("Sektör", "Sector"), block: tl("Blok", "Block"), cylinder: tl("Silindir", "Cylinder") }[k])));
+    const readBtn = button(tl("Bloğu oku ▶", "Read the block ▶"), () => {
+      clearInterval(timer); step = -1; sel = "block"; for (const b of seg.children) b.setAttribute("aria-pressed", String(b.textContent === tl("Blok", "Block")));
+      timer = setInterval(() => { step++; paint(); if (step >= 3) clearInterval(timer); }, 900);
+    }, { kind: "primary" });
+    host.append(h("div", { class: "stepper" }, seg, h("div", { class: "disk-row" }, h("div", {}, h("div", { class: "ba-label" }, tl("Üstten (bir yüzey)", "Top view (one surface)")), top), h("div", {}, h("div", { class: "ba-label" }, tl("Yandan (disk paketi)", "Side view (disk pack)")), side),
+      h("div", { class: "disk-info" }, cap, h("div", { class: "btn-row" }, readBtn), steps))));
+    paint();
+  }
+}
+
+// ---------------------------------------------------------------- double buffering (Figure 16.4)
+{
+  const host = $("#double-buf");
+  if (host) {
+    const io = h("input", { type: "number", min: 1, max: 9, value: 3, style: { width: "4em" } });
+    const pr = h("input", { type: "number", min: 1, max: 9, value: 2, style: { width: "4em" } });
+    const nb = h("input", { type: "number", min: 2, max: 8, value: 5, style: { width: "4em" } });
+    const out = h("div");
+    const draw = () => {
+      const I = Math.max(1, num(io.value, 3)), P = Math.max(1, num(pr.value, 2)), N = Math.min(8, Math.max(2, num(nb.value, 5)));
+      // single buffer: read i, then process i, strictly one after the other
+      const single = []; let t = 0;
+      for (let i = 0; i < N; i++) { single.push({ row: 0, s: t, e: t + I, lab: `${i + 1}`, buf: "A" }); t += I; single.push({ row: 1, s: t, e: t + P, lab: `${i + 1}`, buf: "A" }); t += P; }
+      const T1 = t;
+      // double buffer: block i+1 is read into the other buffer while block i is processed
+      const dbl = []; let ioEnd = 0, prEnd = 0;
+      for (let i = 0; i < N; i++) {
+        const buf = i % 2 ? "B" : "A";
+        // a buffer can be refilled only after its previous block (i−2) has been processed
+        const free = i >= 2 ? dbl.filter((x) => x.row === 1 && x.lab === `${i - 1}`)[0].e : 0;
+        const s = Math.max(ioEnd, free); ioEnd = s + I; dbl.push({ row: 0, s, e: ioEnd, lab: `${i + 1}`, buf });
+        const ps = Math.max(ioEnd, prEnd); prEnd = ps + P; dbl.push({ row: 1, s: ps, e: prEnd, lab: `${i + 1}`, buf });
+      }
+      const T2 = prEnd, max = Math.max(T1, T2);
+      const chart = (bars, total, title) => h("div", { class: "db-chart" }, h("div", { class: "ba-label" }, `${title}: ${total} ${tl("birim", "units")}`),
+        ...[tl("Disk G/Ç", "Disk I/O"), tl("CPU işleme", "CPU processing")].map((name, r) => h("div", { class: "db-row" }, h("span", { class: "db-name small" }, name),
+          h("div", { class: "db-track" }, ...bars.filter((b) => b.row === r).map((b) => h("span", { class: `db-bar ${b.buf}`, style: { left: `${(100 * b.s) / max}%`, width: `${(100 * (b.e - b.s)) / max}%` }, title: `${tl("blok", "block")} ${b.lab} · ${tl("tampon", "buffer")} ${b.buf}` }, b.lab))))));
+      out.replaceChildren(chart(single, T1, tl("Tek tampon", "Single buffer")), chart(dbl, T2, tl("Çift tampon (A ve B dönüşümlü)", "Double buffer (A and B in turn)")),
+        h("p", { class: "small" }, tl(`Tek tamponda okuma ve işleme sırayla yapılır: ${N} × (${I} + ${P}) = ${T1}. Çift tamponda bir blok işlenirken sıradaki diğer tampona okunur: ${T2} birim, yani %${Math.round((100 * (T1 - T2)) / T1)} daha kısa. Okuma işlemeden uzun sürerse CPU bekler; işleme uzun sürerse disk bekler.`,
+          `With one buffer, reading and processing take turns: ${N} × (${I} + ${P}) = ${T1}. With two, the next block is read into the other buffer while one is processed: ${T2} units, ${Math.round((100 * (T1 - T2)) / T1)}% shorter. If reading takes longer than processing the CPU waits; otherwise the disk waits.`)));
+    };
+    for (const x of [io, pr, nb]) x.addEventListener("input", draw);
+    host.append(h("div", { class: "stepper" }, h("div", { class: "pl-bar" }, field(tl("Blok okuma süresi: ", "Block read time: "), io), field(tl("İşleme süresi: ", "Processing time: "), pr), field(tl("Blok sayısı: ", "Blocks: "), nb)), out));
+    draw();
+  }
+}

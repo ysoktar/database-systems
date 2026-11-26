@@ -52,6 +52,8 @@
 
 <h2>Diskler ve SSD'ler</h2>
 <p>Bir sabit disk, verileri bitler (bir ve sıfırlar) olarak saklar; bitler byte'lara gruplanır. Disk tek ya da çift yüzlü olabilir. Yüzeydeki eş merkezli dairelere <strong>iz</strong> (track) denir ve izler <strong>bloklara</strong> ya da sektörlere bölünür. Birden çok diskten oluşan bir disk paketinde, bütün yüzeylerde aynı yarıçaptaki izler bir <strong>silindir</strong> oluşturur. <strong>Biçimlendirme</strong> (formatting) izleri eşit boyutlu disk bloklarına böler; bloklar aralarındaki boşluklarla (interblock gap) ayrılır.</p>
+<p>Bir bileşen seçin ya da <em>Bloğu oku</em> ile bir okumanın adımlarını izleyin: kol doğru ize gider (seek), blok kafanın altına döner, sonra aktarılır.</p>
+<div id="disk-geom"></div>
 <p>Disk ile ana bellek arasında veri her zaman <strong>blok birimiyle</strong> aktarılır: bir bloğun donanım adresi disk G/Ç donanımına verilir ve blok bir <strong>tampona</strong> (buffer) okunur ya da tampondan yazılır. Okuma ve yazmayı bir okuma/yazma kafası yapar; disk denetleyicisi (disk controller) diski bilgisayara SCSI, SATA ya da SAS gibi standart arayüzlerle bağlar. Bir bloğa erişim süresi üç parçadan oluşur: kafanın doğru ize gitmesi (<strong>seek time</strong>), bloğun kafanın altına gelmesi için diskin dönmesi (<strong>rotational delay</strong>) ve bloğun aktarılması (<strong>block transfer time</strong>). İlk ikisi milisaniyeler sürer ve maliyetin büyük kısmıdır; bu yüzden ardışık blokları birlikte okumak tek tek okumaktan çok daha ucuzdur.</p>
 <p>Verimli erişim için kullanılan teknikler şunlardır: verileri tamponlamak, verileri diskte uygun düzenlemek, istenmeden önce ileriyi okumak (read ahead), G/Ç isteklerini uygun sırayla planlamak, yazmaları geçici olarak bir log diskinde tutmak ve kurtarma için SSD ya da flash bellek kullanmak.</p>
 <ul>
@@ -61,6 +63,8 @@
 
 <h2>Blokların tamponlanması</h2>
 <p>Bir dosyanın birkaç bloğu okunacaksa, ana bellekte birden çok tampon ayrılabilir. Bir blok okunurken CPU bir önceki bloğu işleyebilir; bu, CPU ile disk G/Ç'sinin paralel çalışabildiği durumlarda işe yarar. <strong>Çift tamponlamada</strong> (double buffering) iki tampon (A ve B) dönüşümlü kullanılır: disk A'ya okurken CPU B'yi işler, sonra roller değişir. Böylece ardışık bloklar beklemeden okunur.</p>
+<p>Süreleri değiştirin ve iki zaman çizelgesini karşılaştırın (Figure 16.4). Mavi bloklar A tamponuna, turuncular B tamponuna okunur.</p>
+<div id="double-buf"></div>
 <p>DBMS'in <strong>tampon yöneticisi</strong>, ana bellekteki sınırlı sayıda tamponu (frame) yönetir. Her tampon için iki bilgi tutulur: <strong>pin count</strong> (o anda bu sayfayı kaç işlemin kullandığı; sıfır değilse sayfa tampondan çıkarılamaz) ve <strong>dirty bit</strong> (sayfa değiştirildi mi; değiştirildiyse çıkarılmadan önce diske yazılmalıdır). İstenen sayfa tamponda yoksa ve boş tampon kalmadıysa, bir sayfa bir <strong>değiştirme stratejisiyle</strong> seçilip çıkarılır:</p>
 <ul>
   <li><strong>LRU</strong> (least recently used): en uzun süredir kullanılmayan sayfa çıkarılır.</li>
