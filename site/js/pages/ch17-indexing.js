@@ -16,20 +16,22 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
   const BFR = 3;
   const TYPES = {
     primary: { label: tl("Birincil (Ssn)", "Primary (Ssn)"), order: 0, field: 0, def: "666884444",
-      note: tl("Dosya Ssn'e göre sıralı ve Ssn bir anahtar. İndekste her blok için bir giriş var: bloğun ilk Ssn'i (blok çapası). İndeks seyrek: 8 kayıt, 3 giriş.", "The file is sorted on Ssn, a key. The index has one entry per block: the block's first Ssn (the block anchor). The index is sparse: 8 records, 3 entries.") },
+      note: tl("Dosya Ssn'e göre sıralı ve Ssn bir anahtar. Her giriş ⟨K(i), P(i)⟩: K(i), i. bloğun ilk kaydının Ssn'i (blok çapası); P(i), o bloğun adresi. Her blok için bir giriş olduğundan indeks seyrektir: 8 kayıt, 3 giriş.", "The file is sorted on Ssn, a key. Each entry is ⟨K(i), P(i)⟩: K(i) is the Ssn of block i's first record (the block anchor); P(i) is that block's address. One entry per block makes the index sparse: 8 records, 3 entries.") },
     clustering: { label: tl("Kümeleme (Dno)", "Clustering (Dno)"), order: 2, field: 2, def: "4",
-      note: tl("Dosya Dno'ya göre sıralı ama Dno bir anahtar değil: aynı değer birçok kayıtta var. İndekste her farklı Dno için bir giriş var ve giriş o değerin ilk göründüğü bloğu gösterir.", "The file is sorted on Dno, which is not a key: a value repeats in many records. The index has one entry per distinct Dno, pointing to the first block where it appears.") },
+      note: tl("Dosya Dno'ya göre sıralı ama Dno bir anahtar değil: aynı değer birçok kayıtta var. Her farklı Dno için bir giriş var: K(i) bir Dno değeri, P(i) o değerin ilk göründüğü blok.", "The file is sorted on Dno, which is not a key: a value repeats in many records. There is one entry per distinct Dno: K(i) is a Dno value, P(i) the first block where it appears.") },
     secondary: { label: tl("İkincil (Lname)", "Secondary (Lname)"), order: 0, field: 1, def: "Wallace",
-      note: tl("Dosya Ssn'e göre sıralı; Lname'e göre değil. Lname'ler bloklara dağınık olduğu için indekste her kayıt için bir giriş var. İndeks yoğun: 8 kayıt, 8 giriş.", "The file is sorted on Ssn, not on Lname. Last names are scattered over the blocks, so the index has one entry per record. The index is dense: 8 records, 8 entries.") },
+      note: tl("Dosya Ssn'e göre sıralı; Lname'e göre değil. Lname'ler bloklara dağınık olduğu için her kayıt için bir giriş gerekir: K(i) bir Lname, P(i) kaydın bulunduğu blok (blok işaretçisi, Figure 17.4; kayıt işaretçisi de olabilir). İndeks yoğun: 8 kayıt, 8 giriş.", "The file is sorted on Ssn, not on Lname. Last names are scattered over the blocks, so every record needs an entry: K(i) is a Lname, P(i) the block holding the record (a block pointer, Figure 17.4; it could also be a record pointer). The index is dense: 8 records, 8 entries.") },
   };
   let type = "primary";
   const seg = h("div", { class: "stepper-steps", role: "group" });
   const q = h("input", { type: "text", size: 12, "aria-label": tl("Aranan değer", "Value to find") });
   const out = h("div");
+  const two = h("input", { type: "checkbox", onchange: () => draw() });
   const cmp = (a, b) => (typeof a === "number" ? a - b : String(a).localeCompare(String(b)));
   const draw = () => {
     const T = TYPES[type];
     for (const b of seg.children) b.setAttribute("aria-pressed", String(b.dataset.t === type));
+    twoBox.style.display = type === "primary" ? "" : "none";
     const rows = [...EMP].sort((a, b) => cmp(a[T.order], b[T.order]));
     const blocks = []; for (let i = 0; i < rows.length; i += BFR) blocks.push(rows.slice(i, i + BFR));
     let entries;
@@ -67,21 +69,60 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
     const blockEls = blocks.map((b, i) => h("div", { class: "ix-block" + (read.includes(i) ? " read" : ""), "data-b": i },
       h("div", { class: "ix-bno" }, tl(`Blok ${i + 1}`, `Block ${i + 1}`)),
       ...b.map((r) => h("div", { class: "ix-rec" + (raw && (r[T.field] === key) ? " match" : "") }, h("span", { class: T.order === 0 ? "ord" : null }, r[0]), " ", h("span", { class: T.field === 1 ? "ord" : null }, r[1]), " ", h("span", { class: T.order === 2 ? "ord" : null }, String(r[2]))))));
-    const entryEls = entries.map((e, i) => {
-      const el = h("div", { class: "ix-entry" + (i === hit ? " hit" : "") }, h("span", {}, String(e[0])), h("span", { class: "muted" }, ` → ${tl("blok", "block")} ${e[1] + 1}`));
-      el.addEventListener("mouseenter", () => blockEls[e[1]].classList.add("hover"));
-      el.addEventListener("mouseleave", () => blockEls[e[1]].classList.remove("hover"));
-      return el;
+    // an index entry as the book draws it: <K(i), P(i)>, the pointer a dot that an arrow leaves from
+    const entryRow = (i, K, P, hitRow, onHover) => {
+      const dot = h("span", { class: "ix-dot" });
+      const el = h("div", { class: "ix-entry" + (hitRow ? " hit" : "") }, h("span", { class: "ix-i" }, String(i)), h("span", { class: "ix-k" }, String(K)), h("span", { class: "ix-p" }, P, " ", dot));
+      if (onHover) { el.addEventListener("mouseenter", () => onHover(true)); el.addEventListener("mouseleave", () => onHover(false)); }
+      return { el, dot };
+    };
+    const head = () => h("div", { class: "ix-entry ix-head" }, h("span", { class: "ix-i" }, "i"), h("span", { class: "ix-k" }, "K(i)"), h("span", { class: "ix-p" }, "P(i)"));
+    const links = []; // [dot, target element, highlighted]
+    const rows1 = entries.map((e, i) => {
+      const r = entryRow(i + 1, e[0], tl(`blok ${e[1] + 1}`, `block ${e[1] + 1}`), i === hit, (on) => blockEls[e[1]].classList.toggle("hover", on));
+      links.push([r.dot, blockEls[e[1]], i === hit]);
+      return r.el;
     });
-    out.replaceChildren(h("p", { class: "small" }, T.note),
-      h("div", { class: "ix-grid" }, h("div", {}, h("div", { class: "ba-label" }, tl(`İndeks (${entries.length} giriş)`, `Index (${entries.length} entries)`)), ...entryEls),
-        h("div", { class: "ix-arrow", "aria-hidden": "true" }, "→"),
-        h("div", {}, h("div", { class: "ba-label" }, tl("Veri dosyası (Ssn, Lname, Dno; blok başına 3 kayıt)", "Data file (Ssn, Lname, Dno; 3 records per block)")), h("div", { class: "ix-blocks" }, ...blockEls))),
+    let level1, level2 = null;
+    if (type === "primary" && two.checked) {
+      // Figure 17.6: the first level is itself an ordered file of blocks (here 2 entries per index block);
+      // the second level has one entry per first-level block: that block's first K(i)
+      const FO = 2, iblocks = [];
+      for (let i = 0; i < rows1.length; i += FO) iblocks.push(h("div", { class: "ix-block ix-iblock" + (hit >= i && hit < i + FO ? " read" : "") }, h("div", { class: "ix-bno" }, tl(`İndeks bloğu ${i / FO + 1}`, `Index block ${i / FO + 1}`)), ...rows1.slice(i, i + FO)));
+      level1 = h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl("1. seviye (taban)", "Level 1 (base)")), head(), ...iblocks);
+      const top = iblocks.map((ib, k) => {
+        const r = entryRow(k + 1, entries[k * FO][0], tl(`ind. bl. ${k + 1}`, `idx bl. ${k + 1}`), hit >= k * FO && hit < (k + 1) * FO);
+        links.push([r.dot, ib, hit >= k * FO && hit < (k + 1) * FO]);
+        return r.el;
+      });
+      level2 = h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl("2. seviye", "Level 2")), head(), ...top);
+    } else level1 = h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl(`İndeks (${entries.length} giriş)`, `Index (${entries.length} entries)`)), head(), ...rows1);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "ix-links"); svg.setAttribute("aria-hidden", "true");
+    const grid = h("div", { class: "ix-grid" + (level2 ? " three" : "") }, ...(level2 ? [level2] : []), level1,
+      h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl("Veri dosyası (Ssn, Lname, Dno; blok başına 3 kayıt)", "Data file (Ssn, Lname, Dno; 3 records per block)")), h("div", { class: "ix-blocks" }, ...blockEls)), svg);
+    out.replaceChildren(h("p", { class: "small" }, T.note), grid,
       msg ? h("div", { class: `res-msg ${hit >= 0 ? "ok" : "warn"}`, style: { fontFamily: "inherit" } }, msg) : "");
+    // arrows from each P(i) to the block it points to (only when the columns sit side by side)
+    requestAnimationFrame(() => {
+      const g = grid.getBoundingClientRect();
+      svg.setAttribute("width", g.width); svg.setAttribute("height", g.height); svg.replaceChildren();
+      for (const [dot, target, on] of links) {
+        const a = dot.getBoundingClientRect(), b = target.getBoundingClientRect();
+        if (b.left <= a.right) continue;
+        const x1 = a.left + a.width / 2 - g.left, y1 = a.top + a.height / 2 - g.top, x2 = b.left - g.left - 2, y2 = b.top + 12 - g.top, mx = (x1 + x2) / 2;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+        path.setAttribute("class", on ? "on" : "");
+        svg.append(path);
+      }
+    });
   };
   for (const [k, T] of Object.entries(TYPES)) seg.append(h("button", { type: "button", "data-t": k, onclick: () => { type = k; q.value = T.def; draw(); } }, T.label));
   q.addEventListener("input", draw);
-  host.append(h("div", { class: "player" }, seg, h("div", { class: "pl-bar" }, field(tl("Aranan değer: ", "Find: "), q)), out));
+  const twoBox = h("label", { class: "small sim-field" }, two, tl(" 2. seviye ekle (Figure 17.6)", " Add a second level (Figure 17.6)"));
+  host.append(h("div", { class: "player" }, seg, h("div", { class: "pl-bar" }, field(tl("Aranan değer: ", "Find: "), q), twoBox), out));
+  addEventListener("resize", () => draw());
   q.value = TYPES.primary.def; draw();
 }
 
@@ -353,4 +394,43 @@ import { decidePlayer, calcSteps } from "../lib/decide.js";
         [tl("Kök bölünür", "The root splits"), false, tl("Kök ancak bir alt düğüm bölünüp değer yukarı gönderildiğinde değişir.", "The root changes only when a child splits and sends a value up.")]],
       detail: () => bpStep([10, 20, 15], 25) },
   ]);
+}
+
+// ---------------------------------------------------------------- node structures (Figures 17.8, 17.10a, 17.11)
+{
+  const host = $("#node-structs");
+  if (host) {
+    const P = (i) => ["P", i, "tree"], K = (i) => ["K", i, "key"], PR = (i) => ["Pr", i, "data"];
+    const pair = (i) => ["pair", i, "pair"];
+    const NODES = [
+      { name: tl("Arama ağacı düğümü (Figure 17.8)", "Search tree node (Figure 17.8)"), cells: [P(1), K(1), P(2), K(2), ["…"], K("q−1"), P("q")],
+        rule: tl("q ≤ p. Değerler sıralıdır; P(i)'nin gösterdiği alt ağaçtaki her X için K(i−1) < X < K(i).", "q ≤ p. The values are sorted; every X in the subtree P(i) points to has K(i−1) < X < K(i).") },
+      { name: tl("B-ağacı düğümü (Figure 17.10a)", "B-tree node (Figure 17.10a)"), cells: [P(1), pair(1), P(2), pair(2), ["…"], pair("q−1"), P("q")],
+        rule: tl("Her değerin yanında kaydını gösteren bir veri işaretçisi Pr vardır. Kök dışındaki her düğümde en az ⌈p/2⌉ ağaç işaretçisi bulunur.", "Every value comes with a data pointer Pr to its record. Every node except the root has at least ⌈p/2⌉ tree pointers.") },
+      { name: tl("B+-ağacı iç düğümü (Figure 17.11a)", "B+-tree internal node (Figure 17.11a)"), cells: [P(1), K(1), P(2), K(2), ["…"], K("q−1"), P("q")],
+        rule: tl("Veri işaretçisi yok, yalnızca aramayı yönlendirir; bu yüzden düğüme daha çok değer sığar (p daha büyük).", "No data pointers; it only guides the search, so more values fit in a node (larger p).") },
+      { name: tl("B+-ağacı yaprağı (Figure 17.11b)", "B+-tree leaf node (Figure 17.11b)"), cells: [pair(1), pair(2), ["…"], pair("q−1"), ["Pnext", "", "next"]],
+        rule: tl("Her değer için ⟨K, Pr⟩; sondaki P<sub>next</sub> bir sonraki yaprağı gösterir, aralık araması yapraklar boyunca ilerler.", "A ⟨K, Pr⟩ per value; the final P<sub>next</sub> points to the next leaf, so a range search walks along the leaves.") },
+    ];
+    const WHAT = {
+      tree: (i) => tl(`P${i}: ağaç işaretçisi. Bir alt düğümü (alt ağacı) gösterir.`, `P${i}: a tree pointer. It points to a child node (a subtree).`),
+      key: (i) => tl(`K${i}: arama değeri. Düğümdeki değerler sıralıdır.`, `K${i}: a search value. The values in a node are sorted.`),
+      pair: (i) => tl(`⟨K${i}, Pr${i}⟩: arama değeri ve o değerin kaydını (ya da kayıt bloğunu) gösteren veri işaretçisi.`, `⟨K${i}, Pr${i}⟩: a search value and the data pointer to its record (or the record's block).`),
+      next: () => tl("P_next: aynı seviyedeki bir sonraki yaprağı gösterir.", "P_next: points to the next leaf on the same level."),
+    };
+    const cap = h("div", { class: "small node-cap" }, tl("Bir hücrenin üstüne gelin ya da dokunun.", "Hover over or tap a cell."));
+    const sub = (i) => (i === "" ? "" : h("sub", {}, String(i)));
+    const cell = ([kind, i, cls]) => {
+      if (!cls) return h("span", { class: "nd-gap" }, "…");
+      const label = kind === "pair" ? h("span", {}, "K", sub(i), ", Pr", sub(i)) : kind === "Pnext" ? h("span", {}, "P", h("sub", {}, "next")) : h("span", {}, kind, sub(i));
+      const el = h("button", { type: "button", class: `nd-cell ${cls}` }, label);
+      const show = () => { cap.textContent = WHAT[cls](i); for (const c of host.querySelectorAll(".nd-cell.on")) c.classList.remove("on"); el.classList.add("on"); };
+      el.addEventListener("mouseenter", show); el.addEventListener("focus", show); el.addEventListener("click", show);
+      return el;
+    };
+    host.append(h("div", { class: "stepper node-structs" },
+      ...NODES.map((n) => h("div", { class: "nd-row" }, h("div", { class: "nd-name" }, n.name), h("div", { class: "nd-node" }, ...n.cells.map(cell)), h("div", { class: "small muted", html: n.rule }))),
+      h("div", { class: "small muted nd-legend" }, h("span", { class: "nd-cell tree mini" }, "P"), tl(" ağaç işaretçisi  ", " tree pointer  "), h("span", { class: "nd-cell key mini" }, "K"), tl(" arama değeri  ", " search value  "), h("span", { class: "nd-cell data mini" }, "Pr"), tl(" veri işaretçisi", " data pointer")),
+      cap));
+  }
 }
