@@ -29,6 +29,21 @@
   <p><strong>Kapsam.</strong> Bu sayfa, müfredatta 8. haftaya yazılan Ch 8 slaytlarının 1–67 aralığını kapsar. Slaytların geri kalanı (68–96) ilişkisel hesap (tuple ve domain relational calculus) ve QBE konularıdır; müfredat bu kısmı içermediği için burada anlatılmıyor.</p>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="SELECT (σ): satırları süzmek">σ (seçme)</dt><dd>Koşulu sağlayan satırları bırakır. <span class="ex">Örnek: σ Dno=5 (EMPLOYEE).</span></dd>
+  <dt data-sec="PROJECT (π): sütunları seçmek">π (izdüşüm)</dt><dd>İstenen sütunları bırakır ve tekrarları siler. <span class="ex">Örnek: π Lname, Salary (EMPLOYEE).</span></dd>
+  <dt data-sec="İfadeler ve RENAME">ρ (yeniden adlandırma)</dt><dd>Bir ilişkiye ya da sütunlarına yeni ad verir.</dd>
+  <dt data-sec="Küme işlemleri">∪ ∩ − (küme işlemleri)</dt><dd>Union uyumlu (aynı sütunlu) iki ilişkinin birleşimi, kesişimi, farkı.</dd>
+  <dt data-sec="Kartezyen çarpım (×)">× (kartezyen çarpım)</dt><dd>Her satırı karşı taraftaki her satırla eşler. <span class="ex">Örnek: 8 × 3 = 24 satır.</span></dd>
+  <dt data-sec="JOIN (⋈)">⋈ (join) / * (natural join)</dt><dd>Koşulu sağlayan satır çiftleri; natural join aynı adlı sütunlarda eşler.</dd>
+  <dt data-sec="Bölme (DIVISION)">÷ (bölme)</dt><dd>"Her … ile eşleşen" soruları için.</dd>
+  <dt data-sec="Sorgu ağacı">Sorgu ağacı</dt><dd>Bir cebir ifadesinin ağaç hâli; yapraklar tablolar, iç düğümler işlemler.</dd>
+  <dt data-sec="Aggregate fonksiyonları ve gruplama (ℑ)">ℑ (gruplama)</dt><dd>Gruplara ayırıp COUNT, AVERAGE gibi fonksiyonları hesaplar. <span class="ex">Örnek: Dno ℑ COUNT Ssn (EMPLOYEE).</span></dd>
+  <dt data-sec="Outer join">⟕ ⟖ ⟗ (outer join)</dt><dd>Eşleşmeyen satırları da NULL'larla tutan join.</dd>
+</dl>
+
 <h2>Genel bakış</h2>
 <p>İlişkisel cebirdeki her işlemin sonucu yine bir ilişkidir. Bu özelliğe <strong>kapalılık</strong> (closure) denir ve işlemleri iç içe yazabilmemizi sağlar: bir işlemin sonucu bir sonrakinin girdisi olur. Bir dizi işlemden oluşan yapıya <strong>ilişkisel cebir ifadesi</strong> denir ve onun sonucu da bir sorgunun cevabı olan bir ilişkidir.</p>
 <p>Cebir <em>prosedüreldir</em>: sonucun nasıl elde edileceğini adım adım söyler. SQL ise <em>bildirimseldir</em>: ne istendiğini söyler, nasıl bulunacağını DBMS'e bırakır. DBMS bir SQL sorgusunu çalıştırmadan önce onu içeride bir cebir ifadesine (bir sorgu ağacına) çevirir. Cebir ilişkileri <em>küme</em> olarak ele alır, bu yüzden bir sonuçta aynı satır iki kez bulunmaz; SQL ise tekrarları ancak <code>DISTINCT</code> yazılırsa siler.</p>

@@ -25,6 +25,20 @@
   </ul>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Concepts">Relation</dt><dd>A table of rows and columns. <span class="ex">Example: EMPLOYEE.</span></dd>
+  <dt data-sec="Concepts">Tuple / attribute</dt><dd>A tuple is a row, an attribute is a column.</dd>
+  <dt data-sec="Concepts">Domain</dt><dd>The set of values an attribute may take. <span class="ex">Example: Salary: DECIMAL(10,2).</span></dd>
+  <dt data-sec="Concepts">Degree / cardinality</dt><dd>Degree is the number of columns, cardinality the number of rows. <span class="ex">Example: WORKS_ON: degree 3, cardinality 16.</span></dd>
+  <dt data-sec="Constraints">Superkey / key</dt><dd>A superkey tells rows apart; a key is one with no extra columns. <span class="ex">Example: {Ssn} is a key, {Ssn, Lname} a superkey.</span></dd>
+  <dt data-sec="Constraints">Entity integrity</dt><dd>A primary key cannot be NULL.</dd>
+  <dt data-sec="Constraints">Referential integrity</dt><dd>A foreign key must point to a value that exists in the referenced table (or be NULL). <span class="ex">Example: EMPLOYEE.Dno cannot be 7; there is no department 7.</span></dd>
+  <dt data-sec="Constraints">Foreign key</dt><dd>A column pointing to another table's primary key. <span class="ex">Example: EMPLOYEE.Dno → DEPARTMENT.Dnumber.</span></dd>
+  <dt data-sec="Update operations and constraint violati">Restrict / cascade / set null</dt><dd>When a referenced row is deleted: reject, delete the referring rows too, or set them to NULL.</dd>
+</dl>
+
 <h2>Concepts</h2>
 <table class="simple">
   <thead><tr><th>Formal term</th><th>Informal (table) equivalent</th><th>Definition</th></tr></thead>

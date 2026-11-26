@@ -25,6 +25,20 @@
   </ul>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Kavramlar">İlişki (relation)</dt><dd>Satır ve sütunlardan oluşan tablo. <span class="ex">Örnek: EMPLOYEE.</span></dd>
+  <dt data-sec="Kavramlar">Tuple / öznitelik</dt><dd>Tuple bir satır, öznitelik bir sütundur.</dd>
+  <dt data-sec="Kavramlar">Domain</dt><dd>Bir özniteliğin alabileceği değerler kümesi. <span class="ex">Örnek: Salary: DECIMAL(10,2).</span></dd>
+  <dt data-sec="Kavramlar">Degree / cardinality</dt><dd>Degree sütun sayısı, cardinality satır sayısıdır. <span class="ex">Örnek: WORKS_ON: degree 3, cardinality 16.</span></dd>
+  <dt data-sec="Kısıtlar (constraints)">Süper anahtar / anahtar</dt><dd>Süper anahtar satırları ayırt eden sütun kümesi; anahtar bunun fazlası olmayan hâli. <span class="ex">Örnek: {Ssn} anahtar, {Ssn, Lname} süper anahtar.</span></dd>
+  <dt data-sec="Kısıtlar (constraints)">Entity integrity</dt><dd>Primary key NULL olamaz.</dd>
+  <dt data-sec="Kısıtlar (constraints)">Referential integrity</dt><dd>Bir foreign key, referans verdiği tabloda var olan bir değeri göstermeli (ya da NULL olmalı). <span class="ex">Örnek: EMPLOYEE.Dno = 7 olamaz, departman 7 yok.</span></dd>
+  <dt data-sec="Kısıtlar (constraints)">Foreign key</dt><dd>Başka bir tablonun primary key'ini gösteren sütun. <span class="ex">Örnek: EMPLOYEE.Dno → DEPARTMENT.Dnumber.</span></dd>
+  <dt data-sec="Güncelleme işlemleri ve kısıt ihlalleri">Restrict / cascade / set null</dt><dd>Referans verilen satır silinince: reddet, referans verenleri de sil ya da onları NULL yap.</dd>
+</dl>
+
 <h2>Kavramlar</h2>
 <table class="simple">
   <thead><tr><th>Biçimsel terim</th><th>Gayriresmî (tablo) karşılığı</th><th>Tanım</th></tr></thead>

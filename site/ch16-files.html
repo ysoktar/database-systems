@@ -29,6 +29,20 @@
   <p><strong>Kapsam.</strong> Müfredatta 10. haftaya yazılan Ch 16 slaytlarının hepsi (1–41) bu sayfadadır. Slaytlar konuları başlık olarak sayar; hesaplamalar için kitabın aynı bölümündeki tanımlar ve formüller kullanılmıştır.</p>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Depolama hiyerarşisi">Birincil / ikincil depolama</dt><dd>Bellek hızlı ama geçici; disk yavaş ama kalıcı.</dd>
+  <dt data-sec="Diskler ve SSD&#x27;ler">Blok</dt><dd>Disk ile bellek arasında taşınan en küçük birim. <span class="ex">Örnek: 4 KB.</span></dd>
+  <dt data-sec="Diskler ve SSD&#x27;ler">Seek / rotational delay</dt><dd>Kafanın doğru izi bulma süresi ve bloğun kafanın altına gelme süresi.</dd>
+  <dt data-sec="Blokların tamponlanması">Tampon (buffer)</dt><dd>Diskten okunan blokların bellekte tutulduğu alan; dolunca LRU gibi bir kuralla boşaltılır.</dd>
+  <dt data-sec="Kayıtların bloklara yerleşimi">Blocking factor (bfr)</dt><dd>Bir bloğa sığan kayıt sayısı: ⌊B / R⌋. <span class="ex">Örnek: 4096 / 100 → 40.</span></dd>
+  <dt data-sec="Sırasız (heap) dosyalar">Heap dosya</dt><dd>Kayıtlar geldiği sırayla eklenir; ekleme hızlı, arama yavaş (ortalama b/2 blok).</dd>
+  <dt data-sec="Sıralı dosyalar">Sıralı dosya</dt><dd>Kayıtlar bir alana göre sıralı; ikili arama log₂ b blok.</dd>
+  <dt data-sec="Hashing">Hashing</dt><dd>Bir fonksiyon kaydın hangi kovaya gideceğini hesaplar; eşitlik araması tek blok.</dd>
+  <dt data-sec="RAID">RAID</dt><dd>Birden çok diski hız (striping) ve güvenlik (mirroring, parity) için birlikte kullanmak.</dd>
+</dl>
+
 <h2>Depolama hiyerarşisi</h2>
 <p>Veritabanları genellikle manyetik disklerde saklanır ve fiziksel dosya yapılarıyla erişilir. Depolama ortamları üç düzeyde sıralanır. <strong>Birincil depolama</strong> (primary storage) CPU'nun doğrudan çalıştığı ana bellek ve önbellektir (cache: static RAM; ana bellek: DRAM); hızlıdır ama pahalıdır ve sınırlıdır. <strong>İkincil depolama</strong> (secondary storage) manyetik diskler, flash bellek ve SSD'lerdir; büyüktür ve kalıcıdır, ama erişimi çok daha yavaştır. <strong>Üçüncül depolama</strong> (tertiary storage) teyp, CD ve DVD gibi çıkarılabilir ortamlardır; yedekleme ve arşiv için kullanılır.</p>
 <p>Verilerin çoğu <strong>kalıcıdır</strong> (persistent): programlar bittikten sonra da saklanır. <strong>Geçici</strong> (transient) veri yalnızca bir program çalışırken vardır. <strong>Dosya organizasyonu</strong>, kayıtların diske fiziksel olarak nasıl yerleştirildiğini ve bu yüzden nasıl erişilebileceğini belirler.</p>

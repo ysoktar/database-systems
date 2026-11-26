@@ -29,6 +29,20 @@
   <p><strong>Scope.</strong> All the Ch 9 slides (1–38), which the syllabus assigns to week 9, are on this page. The ER and EER concepts themselves are explained on the <a href="ch3-er.html">Ch 3</a> and <a href="ch4-eer.html">Ch 4</a> pages; here only their translation into tables is covered.</p>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Step 1: Regular (strong) entity types">Step 1: regular entity</dt><dd>Each regular entity type becomes a table; its key is the primary key.</dd>
+  <dt data-sec="Step 2: Weak entity types">Step 2: weak entity</dt><dd>Its table takes the owner's PK as an FK; PK = owner's PK + partial key.</dd>
+  <dt data-sec="Step 3: Binary 1:1 relationship types">Step 3: 1:1 relationship</dt><dd>The FK goes to one side, preferably the side with total participation.</dd>
+  <dt data-sec="Step 4: Binary 1:N relationship types">Step 4: 1:N relationship</dt><dd>The FK goes into the table on the N side. <span class="ex">Example: EMPLOYEE.Dno.</span></dd>
+  <dt data-sec="Step 5: Binary M:N relationship types">Step 5: M:N relationship</dt><dd>The relationship becomes its own table; its PK is the two FKs. <span class="ex">Example: WORKS_ON(Essn, Pno, Hours).</span></dd>
+  <dt data-sec="Step 6: Multivalued attributes">Step 6: multivalued attribute</dt><dd>It becomes a separate table; PK = owner's PK + the attribute. <span class="ex">Example: DEPT_LOCATIONS.</span></dd>
+  <dt data-sec="Step 7: n-ary (n &gt; 2) relationship types">Step 7: n-ary relationship</dt><dd>It becomes its own table; each participant's PK comes as an FK.</dd>
+  <dt data-sec="Mapping EER constructs: Step 8">Step 8 (8A–8D)</dt><dd>Four options for specialization: separate tables, subclasses only, one table + type column, one table + flags.</dd>
+  <dt data-sec="Step 9: Categories (union types)">Step 9: category</dt><dd>A surrogate key is added for superclasses with different keys.</dd>
+</dl>
+
 <h2>Goals of the mapping</h2>
 <p>Three goals are kept in mind during mapping. The first is to <strong>preserve all the information</strong>: every attribute of the diagram must appear as a column in a table. The second is to <strong>preserve the constraints as far as possible</strong>: keys become primary keys, relationships become foreign keys. But the relational model cannot express every ER constraint; for example, an upper bound such as "a department can have at most 10 employees", or a complete classification such as "every student is either domestic or foreign", cannot be enforced with tables. The third is to <strong>minimize NULL values</strong>: columns that would stay empty in most rows make the design worse.</p>
 <p>The algorithm here is implemented in most commercial design tools. The site's <a href="er-studio.html">ER studio</a> uses the same algorithm too: you can draw your own diagram and see its translation into tables step by step.</p>

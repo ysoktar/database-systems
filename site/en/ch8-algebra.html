@@ -29,6 +29,21 @@
   <p><strong>Scope.</strong> This page covers slides 1–67 of the Ch 8 slides, which the syllabus assigns to week 8. The rest of the slides (68–96) are about relational calculus (tuple and domain relational calculus) and QBE; the syllabus does not include that part, so it is not covered here.</p>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="SELECT (σ): filtering rows">σ (select)</dt><dd>Keeps the rows satisfying a condition. <span class="ex">Example: σ Dno=5 (EMPLOYEE).</span></dd>
+  <dt data-sec="PROJECT (π): choosing columns">π (project)</dt><dd>Keeps the wanted columns and removes duplicates. <span class="ex">Example: π Lname, Salary (EMPLOYEE).</span></dd>
+  <dt data-sec="Expressions and RENAME">ρ (rename)</dt><dd>Gives a relation or its columns new names.</dd>
+  <dt data-sec="Set operations">∪ ∩ − (set operations)</dt><dd>Union, intersection, difference of two union-compatible (same columns) relations.</dd>
+  <dt data-sec="Cartesian product (×)">× (Cartesian product)</dt><dd>Pairs every row with every row on the other side. <span class="ex">Example: 8 × 3 = 24 rows.</span></dd>
+  <dt data-sec="JOIN (⋈)">⋈ (join) / * (natural join)</dt><dd>The pairs of rows satisfying a condition; a natural join matches same-named columns.</dd>
+  <dt data-sec="DIVISION">÷ (division)</dt><dd>For "matches every …" questions.</dd>
+  <dt data-sec="Query trees">Query tree</dt><dd>A relational algebra expression as a tree; leaves are tables, inner nodes operations.</dd>
+  <dt data-sec="Aggregate functions and grouping (ℑ)">ℑ (grouping)</dt><dd>Groups rows and computes functions such as COUNT, AVERAGE. <span class="ex">Example: Dno ℑ COUNT Ssn (EMPLOYEE).</span></dd>
+  <dt data-sec="Outer join">⟕ ⟖ ⟗ (outer join)</dt><dd>A join that also keeps unmatched rows, with NULLs.</dd>
+</dl>
+
 <h2>Overview</h2>
 <p>The result of every operation of relational algebra is again a relation. This property is called <strong>closure</strong>, and it lets us nest operations: the result of one operation becomes the input of the next. A sequence of operations forms a <strong>relational algebra expression</strong>, and its result is also a relation, the answer to a query.</p>
 <p>The algebra is <em>procedural</em>: it says step by step how the result is obtained. SQL is <em>declarative</em>: it says what is wanted and leaves how to find it to the DBMS. Before running an SQL query, the DBMS internally translates it into an algebra expression (a query tree). The algebra treats relations as <em>sets</em>, so the same row never appears twice in a result; SQL removes duplicates only when <code>DISTINCT</code> is written.</p>

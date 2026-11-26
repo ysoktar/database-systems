@@ -29,6 +29,19 @@
   <p><strong>Terim eşlemesi:</strong> SQL'de <em>table</em> = ilişki, <em>row</em> = tuple, <em>column</em> = öznitelik. Bir fark: SQL tabloları küme değil multiset'tir (<a href="#tablolar-multiset-tir-all-ve-distinct">aşağıda</a>).</p>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Veri tanımlama (DDL)">CREATE TABLE</dt><dd>Bir tabloyu sütunları, tipleri ve kısıtlarıyla tanımlar.</dd>
+  <dt data-sec="Veri tanımlama (DDL)">PRIMARY KEY / FOREIGN KEY</dt><dd>Anahtarı ve başka tabloya referansı tanımlayan kısıtlar.</dd>
+  <dt data-sec="SELECT-FROM-WHERE">SELECT … FROM … WHERE</dt><dd>FROM tabloları, WHERE satırları, SELECT sütunları seçer.</dd>
+  <dt data-sec="SELECT-FROM-WHERE">Join koşulu</dt><dd>İki tablonun satırlarını eşleyen WHERE koşulu; yazılmazsa kartezyen çarpım çıkar. <span class="ex">Örnek: Dno = Dnumber.</span></dd>
+  <dt data-sec="SELECT-FROM-WHERE">Takma ad (alias)</dt><dd>Bir tabloya sorgu içinde verilen kısa ad; aynı tablo iki kez kullanılınca gerekir. <span class="ex">Örnek: EMPLOYEE E, EMPLOYEE S.</span></dd>
+  <dt data-sec="SELECT-FROM-WHERE">DISTINCT</dt><dd>Sonuçtaki tekrar eden satırları siler; SQL varsayılan olarak tekrarları tutar.</dd>
+  <dt data-sec="SELECT-FROM-WHERE">LIKE / BETWEEN</dt><dd>Kalıba uyan metin (%: herhangi bir metin) ve iki sınır dahil aralık. <span class="ex">Örnek: Address LIKE '%Houston%'.</span></dd>
+  <dt data-sec="Güncelleme: INSERT, DELETE, UPDATE">INSERT / DELETE / UPDATE</dt><dd>Satır ekler, siler, değiştirir; WHERE'siz DELETE ve UPDATE bütün tabloya uygulanır.</dd>
+</dl>
+
 <h2>Veri tanımlama (DDL)</h2>
 <ul>
   <li><strong>Schema</strong>: bir uygulamaya ait tabloları, tipleri, kısıtları, view'ları gruplar: <code>CREATE SCHEMA COMPANY AUTHORIZATION 'Jsmith';</code></li>

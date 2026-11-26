@@ -25,6 +25,21 @@
   </ul>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Entities and attributes">Entity</dt><dd>An object that exists on its own; drawn as a rectangle. <span class="ex">Example: an employee, a department.</span></dd>
+  <dt data-sec="Entities and attributes">Attribute</dt><dd>A property of an entity; drawn as an ellipse. <span class="ex">Example: Salary, Bdate.</span></dd>
+  <dt data-sec="Entities and attributes">Key attribute</dt><dd>An attribute whose value differs for every entity; underlined. <span class="ex">Example: Ssn.</span></dd>
+  <dt data-sec="Entities and attributes">Composite / multivalued / derived</dt><dd>An attribute made of parts (Name), with several values (Locations, double ellipse) or computed from another (Age, dashed ellipse).</dd>
+  <dt data-sec="Relationship types">Relationship</dt><dd>Links entities; drawn as a diamond. <span class="ex">Example: WORKS_FOR: an employee works for a department.</span></dd>
+  <dt data-sec="Structural constraints of binary relatio">Cardinality ratio</dt><dd>The most entities on the other side one entity can relate to: 1:1, 1:N, M:N. <span class="ex">Example: N employees in a department.</span></dd>
+  <dt data-sec="Structural constraints of binary relatio">Participation</dt><dd>Whether every entity must take part in the relationship: total (double line) or partial. <span class="ex">Example: every employee must be in a department.</span></dd>
+  <dt data-sec="Weak entity types">Weak entity</dt><dd>An entity without its own key, identified through its owner; double rectangle. <span class="ex">Example: DEPENDENT, through its employee.</span></dd>
+  <dt data-sec="Weak entity types">Partial key</dt><dd>The attribute that tells a weak entity apart within its owner; dashed underline. <span class="ex">Example: Dependent_name.</span></dd>
+  <dt data-sec="Relationships of higher degree">Degree</dt><dd>The number of entity types in a relationship: binary, ternary … <span class="ex">Example: SUPPLY(SUPPLIER, PART, PROJECT) is ternary.</span></dd>
+</dl>
+
 <h2>The database design process</h2>
 <ol>
   <li><strong>Requirements collection and analysis</strong>: data requirements and functional requirements (user operations).</li>

@@ -25,6 +25,18 @@
   </ul>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Assertion: genel kısıtlar (7.2.1)">Assertion</dt><dd>Birden çok satır ve tabloya bakan genel kısıt; ihlal eden satır yoksa sağlanır. <span class="ex">Örnek: maaş yöneticininkinden fazla olamaz.</span></dd>
+  <dt data-sec="Trigger&#x27;lar (7.2.2)">Trigger</dt><dd>Bir olay olunca (INSERT, UPDATE, DELETE) kendiliğinden çalışan kural: olay, koşul, eylem.</dd>
+  <dt data-sec="Trigger&#x27;lar (7.2.2)">BEFORE / AFTER</dt><dd>Trigger'ın satır yazılmadan önce mi sonra mı çalıştığı; reddetmek için BEFORE.</dd>
+  <dt data-sec="View&#x27;lar (7.3)">View</dt><dd>Adı olan, saklanan bir sorgu; sanal tablo gibi kullanılır ve her zaman günceldir. <span class="ex">Örnek: DEPT_INFO.</span></dd>
+  <dt data-sec="View&#x27;lar (7.3)">Materialized view</dt><dd>Sonucu fiziksel olarak saklanan view; DBMS onu güncel tutar.</dd>
+  <dt data-sec="View&#x27;lar (7.3)">Güncellenebilir view</dt><dd>Tek tablodan, aggregate'siz, anahtarı içeren view; temel tabloya tek anlamlı çevrilir.</dd>
+  <dt data-sec="Şema değişikliği (7.4)">ALTER / DROP</dt><dd>Bir tabloyu değiştirir ya da siler; DROP … RESTRICT ona dayanan nesne varsa reddeder.</dd>
+</dl>
+
 <h2>Assertion: genel kısıtlar (7.2.1)</h2>
 <p><code>CREATE ASSERTION</code>, tek bir tabloya bağlı olmayan, deklaratif bir kısıttır. Bir ad ve bir <code>CHECK</code> koşulu alır; koşul, veritabanının <em>her</em> durumunda TRUE olmalıdır. Kalıp: "ihlal eden satırları bulan bir sorgu yaz, başına <code>NOT EXISTS</code> koy."</p>
 <pre class="sql">

@@ -25,6 +25,21 @@
   </ul>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="Veri modelleri">Veri modeli</dt><dd>Verinin yapısını, kısıtlarını ve işlemlerini anlatan kavramlar. <span class="ex">Örnek: ilişkisel model: tablolar ve satırlar.</span></dd>
+  <dt data-sec="Şema, durum (state), örnek (instance)">Şema</dt><dd>Veritabanının tanımı; seyrek değişir. <span class="ex">Örnek: EMPLOYEE(Fname, Lname, Ssn, …).</span></dd>
+  <dt data-sec="Şema, durum (state), örnek (instance)">Durum (state, instance)</dt><dd>Belirli bir andaki verinin kendisi; her güncellemeyle değişir. <span class="ex">Örnek: EMPLOYEE'nin bugünkü 8 satırı.</span></dd>
+  <dt data-sec="Üç-şema mimarisi (three-schema architect">İç seviye</dt><dd>Verinin diskte nasıl saklandığı: dosyalar, indeksler.</dd>
+  <dt data-sec="Üç-şema mimarisi (three-schema architect">Kavramsal seviye</dt><dd>Bütün veritabanının yapısı: tablolar, sütunlar, kısıtlar.</dd>
+  <dt data-sec="Üç-şema mimarisi (three-schema architect">Dış seviye (view)</dt><dd>Bir kullanıcı grubunun gördüğü kısım. <span class="ex">Örnek: bordro biriminin gördüğü ad ve maaş.</span></dd>
+  <dt data-sec="Veri bağımsızlığı (data independence)">Mantıksal veri bağımsızlığı</dt><dd>Kavramsal şema değişince dış şemanın ve programların değişmemesi. <span class="ex">Örnek: EMPLOYEE'ye Email eklemek.</span></dd>
+  <dt data-sec="Veri bağımsızlığı (data independence)">Fiziksel veri bağımsızlığı</dt><dd>İç şema değişince kavramsal şemanın değişmemesi. <span class="ex">Örnek: Lname'e indeks eklemek.</span></dd>
+  <dt data-sec="DBMS dilleri">DDL / DML</dt><dd>DDL şemayı tanımlar (CREATE, ALTER); DML veriyi sorgular ve değiştirir (SELECT, INSERT).</dd>
+  <dt data-sec="Merkezi ve istemci/sunucu mimariler">İstemci/sunucu mimarisi</dt><dd>Kullanıcı programı (istemci) ile DBMS (sunucu) ayrı makinelerde çalışır. <span class="ex">Örnek: üç katman: tarayıcı, web sunucusu, veritabanı.</span></dd>
+</dl>
+
 <h2>Veri modelleri</h2>
 <p><strong>Data model</strong> (veri modeli): bir veritabanının yapısını tanımlamak için kullanılan kavramlar topluluğu: veri tipleri, ilişkiler ve kısıtlar. Çoğu model ayrıca temel işlemleri (<em>basic operations</em>) ve kullanıcı tanımlı işlemleri (<em>dynamic aspect / behavior</em>) içerir.</p>
 <table class="simple">

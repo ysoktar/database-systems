@@ -25,6 +25,20 @@
   </ul>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Basic definitions">Database</dt><dd>A collection of related data stored persistently. <span class="ex">Example: a company's employee, department and project data.</span></dd>
+  <dt data-sec="Basic definitions">DBMS</dt><dd>The software for defining, building, querying and sharing a database. <span class="ex">Example: MySQL, PostgreSQL, Oracle.</span></dd>
+  <dt data-sec="Basic definitions">Meta-data (catalog)</dt><dd>Not the data itself but its structure: tables, columns, types, constraints. <span class="ex">Example: EMPLOYEE's Salary column is DECIMAL(10,2).</span></dd>
+  <dt data-sec="Characteristics of the database approach">Self-describing</dt><dd>The database keeps its structure in the catalog alongside the data; programs read it from there.</dd>
+  <dt data-sec="Characteristics of the database approach">Program-data independence</dt><dd>Changing the data's structure does not force the programs that use it to change. <span class="ex">Example: adding a column does not break old queries.</span></dd>
+  <dt data-sec="Characteristics of the database approach">Redundancy</dt><dd>The same fact stored in several places; it leads to inconsistency. <span class="ex">Example: a student's address in three offices' files.</span></dd>
+  <dt data-sec="Characteristics of the database approach">Concurrent access</dt><dd>Many users using the same data at the same time without interfering. <span class="ex">Example: two desks selling the last seat on the same flight.</span></dd>
+  <dt data-sec="Actors: who does what?">DBA</dt><dd>The database administrator: access rights, backups, performance.</dd>
+  <dt data-sec="Actors: who does what?">End user</dt><dd>A person who queries and updates the database. <span class="ex">Example: a registrar's clerk using the enrollment screen.</span></dd>
+</dl>
+
 <h2>Basic definitions</h2>
 <table class="simple">
   <thead><tr><th>Term</th><th>Definition</th></tr></thead>

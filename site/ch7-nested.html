@@ -25,6 +25,19 @@
   </ul>
 </div>
 
+<h2>Terimler tek bakışta</h2>
+<p>Sayfadaki terimler, birer cümleyle. Bir terimin yanındaki bağlantı, anlatıldığı bölüme götürür.</p>
+<dl class="term-glance">
+  <dt data-sec="NULL ve üç değerli mantık">NULL</dt><dd>Bilinmeyen ya da uygulanamayan değer; hiçbir şeye eşit değildir, kendisine bile.</dd>
+  <dt data-sec="NULL ve üç değerli mantık">UNKNOWN</dt><dd>NULL ile yapılan karşılaştırmanın sonucu; WHERE yalnızca TRUE satırları tutar. <span class="ex">Örnek: Super_ssn = NULL hiçbir satır seçmez.</span></dd>
+  <dt data-sec="NULL ve üç değerli mantık">IS NULL</dt><dd>Bir değerin NULL olup olmadığını sınamanın tek yolu.</dd>
+  <dt data-sec="İç içe sorgular (nested queries)">İç içe sorgu (subquery)</dt><dd>Başka bir sorgunun içindeki sorgu; sonucu IN, ALL, EXISTS ile kullanılır.</dd>
+  <dt data-sec="İç içe sorgular (nested queries)">IN / ALL / ANY</dt><dd>Bir değer listede var mı; hepsinden mi, en az birinden mi büyük. <span class="ex">Örnek: Salary > ALL (…).</span></dd>
+  <dt data-sec="Correlated nested queries">Correlated alt sorgu</dt><dd>Dış sorgunun satırına bakan alt sorgu; her dış satır için yeniden değerlendirilir. <span class="ex">Örnek: WHERE D.Essn = E.Ssn.</span></dd>
+  <dt data-sec="EXISTS ve NOT EXISTS">EXISTS / NOT EXISTS</dt><dd>Alt sorgu en az bir satır döndürüyor mu; NULL'dan etkilenmez.</dd>
+  <dt data-sec="Bölme (division): &quot;her ... için&quot;">Bölme ("her … için")</dt><dd>"Her X ile eşleşenler" soruları; çift NOT EXISTS ile yazılır. <span class="ex">Örnek: Smith'in her projesinde çalışanlar.</span></dd>
+</dl>
+
 <h2>NULL ve üç değerli mantık</h2>
 <p>NULL'un üç anlamı vardır: <strong>unknown value</strong> (değer var ama bilinmiyor: doğum tarihi bilinmiyor), <strong>unavailable / withheld value</strong> (var ama saklanıyor: ev telefonu gizli), <strong>not applicable attribute</strong> (uygulanamaz: üniversite mezunu olmayanın <code>LastCollegeDegree</code>'si). SQL bunları ayırt etmez.</p>
 <p>Her NULL farklı kabul edilir; bu yüzden NULL içeren bir karşılaştırmanın sonucu ne TRUE ne FALSE'tur: <strong>UNKNOWN</strong>. SQL bu nedenle üç değerli bir mantık kullanır:</p>

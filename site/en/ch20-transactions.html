@@ -30,6 +30,21 @@
   <p><strong>Scope.</strong> All Ch 20 slides (1–44), listed for week 12 in the syllabus, are on this page. The examples come from the figures of the same chapter of the book.</p>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Introduction to transaction processing">Transaction</dt><dd>A sequence of operations applied completely or not at all. <span class="ex">Example: a transfer from A to B.</span></dd>
+  <dt data-sec="Why concurrency control is needed">Lost update</dt><dd>Two transactions read and write the same value, and one update is lost.</dd>
+  <dt data-sec="Why concurrency control is needed">Dirty read</dt><dd>Reading a value not yet committed, which may be rolled back.</dd>
+  <dt data-sec="Transaction and system concepts">Commit / rollback</dt><dd>Making a transaction's changes permanent, or undoing them.</dd>
+  <dt data-sec="Desirable properties of transactions: AC">ACID</dt><dd>Atomicity, Consistency, Isolation, Durability: all or nothing, consistent, isolated, permanent.</dd>
+  <dt data-sec="Characterizing schedules by recoverabili">Schedule</dt><dd>The interleaved order of several transactions' operations.</dd>
+  <dt data-sec="Characterizing schedules by recoverabili">Recoverable schedule</dt><dd>A transaction does not commit before the writer of the data it read commits.</dd>
+  <dt data-sec="Characterizing schedules by serializabil">Conflicting operations</dt><dd>Two operations from different transactions, on the same item, at least one a write.</dd>
+  <dt data-sec="Characterizing schedules by serializabil">Serializable</dt><dd>A schedule with the same effect as some serial run; when the precedence graph has no cycle.</dd>
+  <dt data-sec="Transaction support in SQL">Isolation level</dt><dd>Which problems are allowed: READ UNCOMMITTED … SERIALIZABLE.</dd>
+</dl>
+
 <h2>Introduction to transaction processing</h2>
 <p>A <strong>transaction</strong> is an executing program that forms a logical unit of database processing. Transaction processing systems are systems with large databases and hundreds of concurrent users that require high availability and fast response, such as airline reservations, banking and stock markets. A <strong>single-user</strong> DBMS is used by at most one user at a time (for example a home computer); a <strong>multiuser</strong> DBMS is accessed by many users concurrently.</p>
 <p><strong>Multiprogramming</strong> means the operating system executes several processes concurrently: it runs commands of one process, suspends it, and runs commands of another. On a single CPU this means <strong>interleaved processing</strong>; with several CPUs processes can run truly in <strong>parallel</strong> (the book's Figure 20.1). The theory on this page assumes interleaved execution.</p>

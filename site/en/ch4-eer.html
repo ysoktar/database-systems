@@ -25,6 +25,19 @@
   </ul>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="Subclass, superclass, inheritance">Superclass / subclass</dt><dd>A subclass is a subset of the superclass and inherits all its attributes. <span class="ex">Example: ENGINEER is a subclass of EMPLOYEE.</span></dd>
+  <dt data-sec="Specialization and generalization">Specialization</dt><dd>Splitting a superclass into subclasses (top down). <span class="ex">Example: EMPLOYEE → SECRETARY, ENGINEER.</span></dd>
+  <dt data-sec="Specialization and generalization">Generalization</dt><dd>Deriving a superclass from entity types with shared features (bottom up). <span class="ex">Example: CAR and TRUCK → VEHICLE.</span></dd>
+  <dt data-sec="Who decides membership?">Predicate-defined</dt><dd>Subclass membership depends on an attribute value. <span class="ex">Example: Job_type = 'Engineer'.</span></dd>
+  <dt data-sec="Constraints on specialization">Disjoint / overlapping</dt><dd>An entity can be in at most one subclass (d) or in several (o).</dd>
+  <dt data-sec="Constraints on specialization">Total / partial</dt><dd>Whether every superclass entity must be in some subclass (double line) or not.</dd>
+  <dt data-sec="Hierarchies and lattices">Shared subclass</dt><dd>A subclass with several superclasses; it inherits from all. <span class="ex">Example: STUDENT_ASSISTANT: both STUDENT and EMPLOYEE.</span></dd>
+  <dt data-sec="Categories (union types)">Category (union type)</dt><dd>A subset of the union of superclasses with different keys. <span class="ex">Example: OWNER = PERSON ∪ BANK ∪ COMPANY.</span></dd>
+</dl>
+
 <h2>Why EER?</h2>
 <p>In COMPANY all employees are of a single type, EMPLOYEE. Now suppose the company also wants to keep: the typing speed of secretaries, the engineering type of engineers, the pay rate of hourly employees; and that only engineers can be technical leads of projects. With ER there are two bad options:</p>
 <ul>

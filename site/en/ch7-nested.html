@@ -25,6 +25,19 @@
   </ul>
 </div>
 
+<h2>The terms at a glance</h2>
+<p>The terms on this page, one sentence each. The link next to a term takes you to the section that explains it.</p>
+<dl class="term-glance">
+  <dt data-sec="NULL and three-valued logic">NULL</dt><dd>An unknown or inapplicable value; it equals nothing, not even itself.</dd>
+  <dt data-sec="NULL and three-valued logic">UNKNOWN</dt><dd>The result of comparing with NULL; WHERE keeps only TRUE rows. <span class="ex">Example: Super_ssn = NULL selects no row.</span></dd>
+  <dt data-sec="NULL and three-valued logic">IS NULL</dt><dd>The only way to test whether a value is NULL.</dd>
+  <dt data-sec="Nested queries">Nested query (subquery)</dt><dd>A query inside another query; its result is used with IN, ALL, EXISTS.</dd>
+  <dt data-sec="Nested queries">IN / ALL / ANY</dt><dd>Is a value in the list; is it larger than all, or than at least one. <span class="ex">Example: Salary > ALL (…).</span></dd>
+  <dt data-sec="Correlated nested queries">Correlated subquery</dt><dd>A subquery that looks at the outer query's row; evaluated again for each outer row. <span class="ex">Example: WHERE D.Essn = E.Ssn.</span></dd>
+  <dt data-sec="EXISTS and NOT EXISTS">EXISTS / NOT EXISTS</dt><dd>Does the subquery return at least one row; not affected by NULL.</dd>
+  <dt data-sec="Division: &quot;for every …&quot;">Division ("for every …")</dt><dd>"Those matching every X" questions; written with a double NOT EXISTS. <span class="ex">Example: those on every one of Smith's projects.</span></dd>
+</dl>
+
 <h2>NULL and three-valued logic</h2>
 <p>NULL has three meanings: an <strong>unknown value</strong> (the value exists but is not known: the birth date is unknown), an <strong>unavailable / withheld value</strong> (it exists but is withheld: an unlisted home phone), a <strong>not applicable attribute</strong> (the <code>LastCollegeDegree</code> of someone with no college degree). SQL does not distinguish them.</p>
 <p>Each NULL is considered different from every other; so the result of a comparison involving NULL is neither TRUE nor FALSE: <strong>UNKNOWN</strong>. That is why SQL uses a three-valued logic:</p>

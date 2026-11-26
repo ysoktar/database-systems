@@ -1196,3 +1196,12 @@ table.jt th.c0, table.jt th.c1, table.jt th.c2, table.jt th.c3 { background-clip
 table.nf-cmp { margin: 8px 0 12px; }
 table.nf-cmp td.no { color: var(--critical); font-weight: 650; }
 table.nf-cmp td.yes { color: var(--ok, #1a7f37); font-weight: 650; }
+
+/* "Terms at a glance" on every chapter page */
+dl.term-glance dt { font-weight: 650; margin-top: 6px; }
+dl.term-glance dd { margin: 0 0 4px 0; }
+.term-filter { width: min(100%, 320px); margin: 0 0 8px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); color: var(--text); font: inherit; font-size: .92rem; }
+.term-row.static { cursor: default; }
+.term-go { font-size: .82rem; white-space: nowrap; }
+.term-def .ex { color: var(--text-2); }
+h2.term-flash, h3.term-flash { background: var(--accent-wash, rgba(255, 200, 0, .25)); transition: background .4s; }
