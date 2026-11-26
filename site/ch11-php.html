@@ -169,7 +169,7 @@ SELECT * FROM demo.EMPLOYEE;
 
 <h2>Formdan veri toplama ve kayıt ekleme</h2>
 <p>Web uygulamalarında eklenecek kaydın bilgileri genellikle bir HTML formundan toplanır. Her yeni kayda benzersiz bir tanımlayıcı vermek için PEAR DB'nin <code>$d-&gt;nextID</code> fonksiyonu kullanılır: belirli bir tablo için benzersiz değerlerden oluşan bir dizi (sequence) üretir. Figure 11.6'daki iki INSERT arasındaki fark önemlidir. Birincisi formdan gelen değerleri doğrudan SQL metninin içine yerleştirir. İkincisi <strong>placeholder</strong> kullanır: SQL metninde değerlerin yerine <code>?</code> yazılır ve değerler ayrı bir dizi olarak verilir; kütüphane her değeri doğru biçimde tırnaklayıp kaçış karakterleriyle güvenli hâle getirerek yerine koyar.</p>
-<p>Bunun neden önemli olduğunu aşağıdaki laboratuvarda görebilirsiniz. Formun alanlarına değer girin: sol tarafta değerler SQL metnine string birleştirmeyle, sağ tarafta placeholder'larla konur ve iki sorgu da gerçekten çalıştırılır. Önce normal bir değer deneyin, sonra "Saldırgan girdi" düğmesine basın. Birleştirmeyle oluşturulan sorgu, kullanıcının yazdığı tırnak işareti yüzünden anlamını değiştirir ve bütün kayıtları döndürür; bu saldırıya <strong>SQL injection</strong> denir. Placeholder'lı sorgu ise girdiyi yalnızca bir değer olarak görür.</p>
+<p>Laboratuvarda aynı girdi iki sorguya konur ve ikisi de gerçekten çalışır: solda metin birleştirmeyle, sağda placeholder'la. Önce normal bir değer, sonra "Saldırgan girdi" deneyin. Birleştirilen sorgu girdideki tırnak yüzünden anlam değiştirir ve bütün kayıtları döndürür: <strong>SQL injection</strong>. Placeholder'lı sorgu girdiyi yalnızca bir değer olarak görür.</p>
 <div id="placeholder-lab"></div>
 
 <h2>Sorgu sonuçlarını almak</h2>

@@ -94,7 +94,7 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber;
 <h2>COMPANY şemasının eşlenmesi</h2>
 <p>Aşağıda solda COMPANY'nin ER diyagramı (kitapta Figure 9.1), altında da algoritmanın her adımı var. Her adımda, adımın değiştirdiği tablonun önceki hâli solda, sonraki hâli sağdadır; o adımda eklenen sütunlar ve foreign key'ler vurgulanmıştır. Sitenin ürettiği tablolar kitaptaki Figure 9.2 ile aynı yapıdadır; yalnızca bazı sütun adları farklıdır (örneğin kitap WORKS_FOR'un foreign key'ine Dno adını verir, burada DEPARTMENT_Number olarak görünür).</p>
 <h3>Adım adım oynatıcı</h3>
-<p>Oynatıcıda Sonraki düğmesine her bastığınızda algoritma tek bir yapıyı eşler. Diyagramda o adımda eşlenen yapı vurgulanır, önceki adımlarda eşlenenler soluk kenarlıkla işaretlenir. Sağda uygulanan kuralı, adımın açıklamasını ve değişen tablonun önceki ve sonraki hâlini görürsünüz; altta da şemanın o ana kadarki hâli büyür. Tahmin modunu açarsanız her adımdan önce hangi tablonun değişeceğini siz tahmin edersiniz; bu, kuralları ezberlemek yerine uygulamayı alıştırır. Üstteki numaralı düğmeler adım numarasını gösterir ve istediğiniz adıma atlamanızı sağlar. Oynatıcı, bütün yapıları içeren tek bir şemayla açılır ve Adım 1'den Adım 9'a kadar kesintisiz gider: normal ve zayıf varlıklar, 1:1, 1:N ve M:N ilişkiler, çok değerli öznitelik, üçlü ilişki, özelleştirme ve kategori sırayla eşlenir. Aynı adımları kitabın kendi örnekleriyle görmek isterseniz en üstteki <strong>Örnek</strong> listesinden COMPANY'yi (Adım 1–6), SUPPLY'yi (Adım 7), EER örneklerini (Adım 8; 8A–8D seçeneklerinden birini de seçebilirsiniz) ve araç sahipleri örneğini (Adım 9, kategoriler) seçerek bütün adımları aynı şekilde izleyebilirsiniz. Diyagram küçük görünürse üzerine gelin, büyür; tıklarsanız tam ekran açılır ve Esc ya da ikinci bir tıklama onu kapatır.</p>
+<p>Her <em>Sonraki</em> tıklaması tek bir yapıyı eşler: diyagramda o yapı vurgulanır, yanında uygulanan kural ve değişen tablonun önceki ve sonraki hâli görünür. Oynatıcı bütün yapıları içeren tek bir şemayla Adım 1'den 9'a kesintisiz gider. Tahmin modunda değişecek tabloyu önce siz seçersiniz. Kitabın kendi örnekleri <strong>Örnek</strong> listesinde: COMPANY (Adım 1–6), SUPPLY (7), EER örnekleri (8, 8A–8D seçilebilir) ve araç sahipleri (9). Diyagram üzerine gelince büyür, tıklayınca tam ekran açılır.</p>
 <div id="company-player"></div>
 <details class="disclosure"><summary>Bütün adımlar tek listede ve DDL</summary><div class="disclosure-body">
 <div id="company-map"></div>
@@ -159,11 +159,11 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber;
 <div id="category-map"></div>
 
 <h2>Sen karar ver</h2>
-<p>Bu bölümde algoritmayı siz uyguluyorsunuz. Her soruda küçük bir ER parçası ve bir tasarım kararı var: foreign key'in nereye gideceği, primary key'in ne olacağı ya da hangi Adım 8 seçeneğinin uygun olduğu. Bir seçeneği işaretlediğinizde neden doğru ya da yanlış olduğu açıklanır ve algoritmanın o parça için ürettiği tablolar gösterilir. Yanlış seçeneklerin açıklamaları da önemlidir, çünkü çoğu yanlış seçenek gerçek tasarımlarda sık yapılan bir hatadır.</p>
+<p>Algoritmayı siz uygulayın: her soruda küçük bir ER parçası ve bir karar var (foreign key nereye, primary key ne, hangi Adım 8 seçeneği). Cevaptan sonra gerekçe ve algoritmanın ürettiği tablolar görünür; yanlış seçeneklerin çoğu gerçek tasarımlarda sık yapılan hatalardır.</p>
 <div id="decide"></div>
 
 <h2>Kendiniz deneyin</h2>
-<p>Bir örnek ve özelleştirme seçeneği seçin; diyagram ve eşleme adımları güncellenir. Seçtiğiniz seçenek bir özelleştirme için uygun değilse (örneğin partial bir özelleştirme için 8B), algoritma uygun bir seçeneğe döner ve nedenini sonuçtaki notlarda yazar. Slaytların 36–37'sindeki alıştırma şemalarını (SHIP_TRACKING ve araba satıcısı) <a href="er-studio.html">ER stüdyosunda</a> çizip aynı şekilde eşleyebilirsiniz.</p>
+<p>Bir örnek ve bir özelleştirme seçeneği seçin; diyagram ve eşleme güncellenir. Seçenek uygun değilse (partial özelleştirme için 8B gibi) algoritma uygun olana döner ve nedenini yazar. Slayt 36–37'deki alıştırma şemalarını <a href="er-studio.html">ER stüdyosunda</a> çizip aynı şekilde eşleyebilirsiniz.</p>
 <div id="explorer"></div>
 
 <h2>Kendinizi sınayın</h2>
