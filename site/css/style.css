@@ -1279,3 +1279,83 @@ table.bcmp td:first-child { font-weight: 650; }
 .bloom-bit.one { background: rgba(56, 132, 255, .28); font-weight: 700; }
 .bloom-bit.q { outline: 2.5px solid #e0862b; outline-offset: -1px; }
 .bloom-i { position: absolute; top: 1px; left: 3px; font-size: .62rem; color: var(--text-2); font-weight: 400; }
+
+/* ---------- explanatory figures (figs.js) ---------- */
+.vz-cap { font-size: 0.78rem; color: var(--muted); }
+.vz-verdict { font-size: 0.9rem; color: var(--text-2); margin: 8px 0 0; min-height: 1.4em; }
+.vz-old { color: var(--muted); }
+.vz-new, .vz-good { color: var(--good-text); }
+.vz-bad { color: var(--critical); }
+.vz-fvd { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+@media (max-width: 640px) { .vz-fvd { grid-template-columns: 1fr; } }
+.vz-panel { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 10px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; text-align: center; }
+.vz-ttl { font-weight: 700; font-size: 0.85rem; }
+.vz-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vz-app { border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px; background: var(--surface-2); font-size: 0.85rem; }
+.vz-file { border: 1px dashed var(--axis); border-radius: 6px; padding: 6px; font-size: 0.82rem; }
+.vz-file code, .vz-dbms code { background: none; }
+.vz-app.bad, .vz-file.bad { border-color: var(--critical); background: var(--err-wash); }
+.vz-file.good { border-color: var(--good); background: var(--ok-wash); }
+.vz-down { color: var(--muted); line-height: 1.2; }
+.vz-dbms { border: 1.5px solid var(--text-2); border-radius: 8px; padding: 6px; display: grid; gap: 6px; }
+.vz-actors { display: grid; gap: 6px; margin: 10px 0; }
+.vz-band { border-radius: var(--radius); padding: 8px 10px; display: grid; gap: 6px; }
+.vz-band.on { background: var(--accent-wash); }
+.vz-band.behind { background: var(--surface-2); }
+.vz-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.vz-chips .chip { cursor: help; }
+.vz-db { justify-self: center; min-width: 60%; text-align: center; padding: 8px 14px; border: 1.5px solid var(--text-2); border-radius: 50% / 18px; display: flex; gap: 8px; justify-content: center; align-items: baseline; font-weight: 600; }
+.vz-db.sw { border-radius: 6px; font-weight: 500; background: var(--surface-2); }
+svg.vz-comp { width: 100%; height: auto; }
+.vz-comp .vz-n rect, .vz-comp .vz-n path, .vz-comp .vz-n ellipse { fill: var(--surface); stroke: var(--text-2); stroke-width: 1.1; }
+.vz-comp .vz-n.user rect { fill: var(--surface-2); }
+.vz-comp .vz-n text { fill: var(--text); font-size: 11.5px; text-anchor: middle; dominant-baseline: middle; }
+.vz-comp .vz-n.hl rect, .vz-comp .vz-n.hl path, .vz-comp .vz-n.hl ellipse { stroke: var(--accent); stroke-width: 2; fill: var(--accent-wash); }
+.vz-comp .vz-n.dim { opacity: .35; }
+.vz-e { stroke: var(--text-2); stroke-width: 1.1; fill: none; }
+.vz-e.dash { stroke-dasharray: 4 3; }
+.vz-e.hl { stroke: var(--accent); stroke-width: 2.2; }
+.vz-e.dim { opacity: .25; }
+.vz-lvl { text-anchor: start; fill: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .03em; }
+.vz-flow { display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; }
+.vz-step { flex: 1 1 130px; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px 10px; background: var(--surface); display: grid; gap: 3px; align-content: start; font-size: 0.88rem; }
+.vz-step.here { border-color: var(--accent); background: var(--accent-wash); }
+.vz-num { width: 20px; height: 20px; border-radius: 50%; background: var(--text-2); color: var(--surface); font-size: 0.75rem; font-weight: 700; display: grid; place-items: center; }
+.vz-step.here .vz-num { background: var(--accent); }
+.vz-tag { font-size: 0.75rem; font-weight: 700; color: var(--accent); }
+.vz-arrow { align-self: center; color: var(--muted); font-size: 1.1rem; }
+.vz-brackets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; font-size: 0.78rem; color: var(--muted); text-align: center; }
+.vz-brackets span { border-top: 2px solid var(--axis); padding-top: 3px; }
+@media (max-width: 640px) { .vz-flow .vz-arrow { display: none; } .vz-brackets { display: none; } }
+.vz-weak { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+@media (max-width: 520px) { .vz-weak { grid-template-columns: 1fr; } }
+.vz-owner { border: 1.5px solid var(--text-2); border-radius: var(--radius); padding: 8px 10px; display: grid; gap: 6px; transition: opacity .3s; }
+.vz-owner.gone { opacity: .3; border-style: dashed; text-decoration: line-through; }
+.vz-deps { display: flex; flex-wrap: wrap; gap: 6px; }
+.vz-dep { border: 2px double var(--text-2); border-radius: 4px; padding: 2px 8px; font-size: 0.85rem; }
+.vz-dep.amb { border-color: var(--warning); background: var(--warn-wash); }
+.vz-dep.hit { border-color: var(--good); background: var(--ok-wash); font-weight: 700; }
+svg.vz-gantt { width: 100%; height: auto; }
+.vz-glbl { fill: var(--text-2); font-size: 11px; font-weight: 600; }
+.vz-gcap { fill: var(--muted); font-size: 10.5px; }
+.vz-grid { stroke: var(--grid); }
+.vz-rw { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.vz-mem { flex: 1; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px; text-align: center; background: var(--surface); transition: background .3s; }
+.vz-mem.changed { border-color: var(--accent); background: var(--accent-wash); }
+.vz-mem.dirty { box-shadow: inset 0 0 0 1px var(--critical); }
+.vz-val { font: 600 1.15rem var(--mono); }
+.vz-ops { display: flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; }
+.vz-ops code { opacity: .5; }
+.vz-ops code.done { opacity: .8; }
+.vz-ops code.on { opacity: 1; outline: 1.5px solid var(--accent); }
+svg.vz-sets { width: 100%; height: auto; }
+.vz-set { stroke: var(--border-strong); }
+.vz-set.l0 { fill: var(--surface-2); } .vz-set.l1 { fill: var(--surface-3); } .vz-set.l2 { fill: var(--accent-wash); } .vz-set.l3 { fill: var(--ok-wash); stroke: var(--good); }
+.vz-dot { cursor: pointer; }
+.vz-dot circle { fill: var(--surface); stroke: var(--text-2); stroke-width: 1.4; }
+.vz-dot text { fill: var(--text); font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+.vz-dot.on circle, .vz-dot:focus-visible circle { stroke: var(--accent); stroke-width: 3; }
+.vz-dot:focus { outline: none; }
+table.vz-sched { width: auto; min-width: 200px; font-family: var(--mono); font-size: 0.85rem; }
+table.vz-sched td.bad { background: var(--err-wash); color: var(--critical); font-weight: 700; }
+.vz-actors figcaption { font-size: 0.8rem; color: var(--muted); }

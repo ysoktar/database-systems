@@ -48,12 +48,14 @@
 <h2>Transaction işlemeye giriş</h2>
 <p>Bir <strong>transaction</strong>, veritabanı işlemenin mantıksal bir birimi olan, çalışmakta olan bir programdır. Transaction işleme sistemleri, büyük veritabanları ve yüzlerce eşzamanlı kullanıcısı olan, yüksek erişilebilirlik ve hızlı yanıt gerektiren sistemlerdir; uçak rezervasyonu, bankacılık ve borsa gibi. <strong>Tek kullanıcılı</strong> bir DBMS'i aynı anda en fazla bir kullanıcı kullanır (örneğin bir ev bilgisayarı); <strong>çok kullanıcılı</strong> bir DBMS'e birçok kullanıcı aynı anda erişir.</p>
 <p><strong>Çok programlama</strong> (multiprogramming), işletim sisteminin birden çok süreci eşzamanlı çalıştırmasıdır: bir sürecin komutlarını çalıştırır, onu askıya alır, başka bir sürecin komutlarını çalıştırır. Tek CPU'da bu, işlemlerin <strong>iç içe geçmesi</strong> (interleaved processing) demektir; birden çok CPU varsa süreçler gerçekten <strong>paralel</strong> çalışabilir (kitaptaki Figure 20.1). Bu sayfadaki teori iç içe geçmiş çalışmayı esas alır.</p>
+<div id="interleave"></div>
 <p>Transaction'ın sınırları <code>begin transaction</code> ve <code>end transaction</code> ifadeleriyle belirtilir. Veritabanını değiştirmeyen transaction'a <strong>salt okunur</strong> (read-only), değiştirene <strong>okuma-yazma</strong> (read-write) transaction denir. Veritabanı adlandırılmış <strong>veri öğelerinin</strong> (data item) bir topluluğu olarak düşünülür. Bir veri öğesi bir kayıt, bir disk bloğu ya da bir kaydın tek bir öznitelik değeri olabilir; öğenin boyutuna <strong>granülerlik</strong> denir. Buradaki kavramlar granülerlikten bağımsızdır.</p>
 <p>Bir transaction veritabanına iki temel işlemle erişir:</p>
 <ul>
   <li><strong>read_item(X)</strong>: X adlı veri öğesini X adlı bir program değişkenine okur. X'i içeren disk bloğunun adresi bulunur, blok (henüz değilse) bir tampona kopyalanır ve X tampondan değişkene kopyalanır.</li>
   <li><strong>write_item(X)</strong>: X program değişkeninin değerini X veri öğesine yazar. Blok bulunup tampona kopyalanır, X değişkeni tampondaki doğru yere yazılır ve güncellenen blok (hemen ya da daha sonra) diske geri yazılır.</li>
 </ul>
+<div id="rw-item"></div>
 <p>Bir transaction'ın okuduğu bütün öğeler <strong>okuma kümesini</strong> (read set), yazdığı bütün öğeler <strong>yazma kümesini</strong> (write set) oluşturur. Kitaptaki Figure 20.2'nin iki transaction'ı aşağıda kullanılacak: T1, X uçağından N koltuğu Y uçağına aktarır (read_item(X); X := X − N; write_item(X); read_item(Y); Y := Y + N; write_item(Y)); T2, X uçağına M koltuk rezerve eder (read_item(X); X := X + M; write_item(X)). DBMS, veritabanı önbelleğinde birkaç tampon tutar; tamponlar doluyken hangisinin değiştirileceğine LRU gibi bir <a href="ch16-files.html">tampon değiştirme stratejisi</a> karar verir.</p>
 
 <h2>Eşzamanlılık kontrolü neden gerekli?</h2>
@@ -117,6 +119,7 @@ SELECT * FROM demo.ACCOUNT;
   <li><strong>Cascadeless</strong>: her transaction yalnızca commit olmuş transaction'ların yazdığı öğeleri okur; bu yüzden basamaklı geri alma olmaz.</li>
   <li><strong>Strict</strong>: X'i en son yazan transaction commit ya da abort olana kadar hiçbir transaction X'i ne okuyabilir ne yazabilir. Kurtarma çok basitleşir: abort olan bir transaction'ın yazdıklarını geri almak için öğelerin <strong>önceki görüntüsü</strong> (before image) geri yüklenir.</li>
 </ul>
+<div id="rec-sets"></div>
 <p>Kitabın örneklerinde S<sub>c</sub>: r1(X); w1(X); r2(X); r1(Y); w2(X); c2; a1 kurtarılamaz, çünkü T2, T1'in yazdığı X'i okuyup T1'den önce commit oluyor; T1 abort olunca T2'nin okuduğu değer geçersiz kalıyor ama T2 artık geri alınamıyor. Commit'leri yer değiştiren S<sub>d</sub> kurtarılabilir; ama cascadeless değildir. Çizelge analizcisi bu sınıfları her çizelge için gerekçesiyle söyler.</p>
 
 <h2>Serileştirilebilirliğe göre çizelgeler</h2>

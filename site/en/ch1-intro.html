@@ -8,7 +8,7 @@
 <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../css/style.css">
 <script src="../js/theme-init.js"></script>
-<script type="module" src="../js/pages/concept-decide.js"></script>
+<script type="module" src="../js/pages/ch1-intro.js"></script>
 </head>
 <body data-page="ch1-intro">
 <main><div class="content">
@@ -73,6 +73,7 @@ ORDER BY TABLE_NAME;
 
 <h2>Characteristics of the database approach</h2>
 <p>In the <em>file processing</em> approach every application defines and manages its own files; the same data is repeated in several places. In the database approach a single repository of data is defined once and everyone accesses it. The book lists four characteristics:</p>
+<div id="file-vs-db"></div>
 <ol>
   <li><strong>Self-describing nature</strong>: the database contains not only the data but also a complete definition of its structure (meta-data, the catalog). The DBMS software can work with any database, because it reads the structure from the catalog.</li>
   <li><strong>Insulation between programs and data, data abstraction</strong>:
@@ -90,6 +91,7 @@ ORDER BY TABLE_NAME;
 </div>
 
 <h2>Actors: who does what?</h2>
+<div id="actors"></div>
 <div class="two-col">
   <div>
     <h3>Actors on the scene</h3>

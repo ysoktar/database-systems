@@ -58,3 +58,6 @@ $("#tiers").innerHTML = `
 </svg>
 <figcaption>${tl("Üç katmanlı (three-tier) mimari. İki katmanlıda ortadaki katman yoktur: uygulama istemcide çalışır.", "Three-tier architecture. Two-tier has no middle tier: the application runs on the client.")}</figcaption>
 </figure>`;
+
+import { dbmsComponents } from "../lib/figs.js";
+dbmsComponents($("#dbms-comp"));

@@ -121,3 +121,7 @@ put("ternary", erFigure({
 }, tl("Üçlü ilişki SUPPLY (Figure 3.17): s tedarikçisi j projesine p parçasını sağlıyor.", "The ternary relationship SUPPLY (Figure 3.17): supplier s supplies part p to project j."), { small: true }));
 
 mountExercise($("#draw-hospital"), "hospital");
+
+import { designFlow, weakEntity } from "../lib/figs.js";
+designFlow(document.querySelector("#design-flow"));
+weakEntity(document.querySelector("#weak-dep"));

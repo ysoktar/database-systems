@@ -41,12 +41,7 @@
 </dl>
 
 <h2>Veritabanı tasarım süreci</h2>
-<ol>
-  <li><strong>Requirements collection and analysis</strong>: veri gereksinimleri ve fonksiyonel gereksinimler (kullanıcı işlemleri).</li>
-  <li><strong>Conceptual design</strong>: yüksek düzey bir modelle (ER) kavramsal şema. DBMS'ten bağımsızdır; kullanıcılarla iletişim için kullanılır.</li>
-  <li><strong>Logical design</strong> (<em>data model mapping</em>): kavramsal şemanın DBMS'in modeline (ör. ilişkisel) çevrilmesi. ER→ilişkisel eşleme kitapta Ch 9'dadır.</li>
-  <li><strong>Physical design</strong>: iç depolama yapıları, index'ler, erişim yolları.</li>
-</ol>
+<div id="design-flow"></div>
 <p>Bu sayfa 2. adımı anlatır: gereksinim metnini okuyup bir ER diyagramı çizmek. Sınavda tipik soru budur: bir paragraf verilir, varlıkları, öznitelikleri, ilişkileri ve kısıtlarını diyagramla göstermeniz istenir. Sayfanın sonunda bunu bir hastane örneğiyle kendiniz yapacaksınız.</p>
 
 <h2>Gösterim</h2>
@@ -161,6 +156,7 @@
   <li>Her existence dependency zayıf varlık üretmez: DRIVER_LICENSE, PERSON'a total katılımla bağlıdır ama kendi anahtarı (lisans numarası) olduğu için zayıf değildir.</li>
   <li>Zayıf varlık bazen bir <em>complex (composite, multivalued)</em> öznitelik olarak da modellenebilir; bağımsız ilişkilere katılıyorsa varlık yapmak gerekir.</li>
 </ul>
+<div id="weak-dep"></div>
 
 <h2>Daha yüksek dereceli ilişkiler</h2>
 <div id="ternary"></div>

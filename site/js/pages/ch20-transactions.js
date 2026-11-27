@@ -331,3 +331,8 @@ const TD = [
   };
   show();
 }
+
+import { interleave, rwItem, recSets } from "../lib/figs.js";
+interleave(document.querySelector("#interleave"));
+rwItem(document.querySelector("#rw-item"));
+recSets(document.querySelector("#rec-sets"));
