@@ -270,6 +270,46 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
   <div class="explain">The NJB test: R1 ∩ R2 must determine R1 − R2 or R2 − R1. In D3 the common attribute is Instructor, and since Instructor → Course holds, it determines the rest of the part {Instructor, Course}. In D1 the common part is Student, in D2 Course, and neither determines anything.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: key, normal form and decomposition</h4>
+<p>COURSE_SECTION(Course_no, Section, Instructor, Office, Room, Time) with F = { {Course_no, Section} → {Instructor, Room, Time}; Instructor → Office; {Room, Time} → {Course_no, Section} }.</p>
+<ol type="a">
+  <li>Find the candidate keys. Which attributes are prime?
+    <div class="hint" data-label="Show the answer"><p>{Course_no, Section}⁺ = all attributes (Instructor, Room, Time first, then Office). {Room, Time}⁺ is all attributes too (Course_no, Section first). There are two candidate keys: <strong>{Course_no, Section}</strong> and <strong>{Room, Time}</strong>. The prime attributes are Course_no, Section, Room, Time; Instructor and Office are not prime.</p></div></li>
+  <li>What is the highest normal form of the relation?
+    <div class="hint" data-label="Show the answer"><p><strong>2NF</strong>. There is no partial dependency (no nonprime attribute depends on part of a key). But Instructor → Office is transitive: Instructor is not a key and Office is not prime. This breaks 3NF (and BCNF).</p></div></li>
+  <li>Decompose the relation into BCNF. Is the decomposition lossless, and are the dependencies preserved?
+    <div class="hint" data-label="Show the answer"><p>For the violating Instructor → Office: R1(Instructor, Office) and R2(Course_no, Section, Instructor, Room, Time). The common attribute Instructor is R1's key, so by the NJB test it is <strong>lossless</strong>. R2 has both candidate keys and the left side of every arrow is a key, so R2 is in BCNF too. All three dependencies lie inside R1 or R2: <strong>all are preserved</strong>.</p></div></li>
+</ol>
+<h4>Problem 2: closures and candidate keys</h4>
+<p>R(A, B, C, D, E, F) and F = { A → BC, CD → E, B → D, E → A }.</p>
+<ol type="a">
+  <li>Compute A⁺, B⁺, (CD)⁺ and E⁺.
+    <div class="hint" data-label="Show the answer"><p>A⁺ = ABCDE (A → BC, then B → D, then CD → E). B⁺ = BD. (CD)⁺ = ABCDE (CD → E, E → A, A → BC). E⁺ = ABCDE (E → A, then A's closure).</p></div></li>
+  <li>Find the candidate keys.
+    <div class="hint" data-label="Show the answer"><p>F is on the right of no arrow, so it must be in every key. The minimal sets that give all attributes with F: <strong>AF, EF, BCF and CDF</strong>. (Since B⁺ = BD, BF is not enough; BC is needed.)</p></div></li>
+  <li>Is the relation in 3NF? In BCNF?
+    <div class="hint" data-label="Show the answer"><p>Every attribute is part of a key, so all are prime: the 3NF exception covers every arrow and the relation <strong>is in 3NF</strong>. But arrows like A → BC have a left side that is not a superkey (F is missing), so it <strong>is not in BCNF</strong>.</p></div></li>
+</ol>
+<h4>Problem 3: a 2NF violation</h4>
+<p>SHIPMENT(Supplier, Part, City, Qty): each supplier is in one city; the quantity a supplier ships of a part is unique.</p>
+<ol type="a">
+  <li>Write the FDs and the key; which normal form is broken?
+    <div class="hint" data-label="Show the answer"><p>Supplier → City and {Supplier, Part} → Qty. The key is {Supplier, Part}. City depends on part of the key (Supplier): a <strong>partial dependency</strong>, so 2NF is broken. As a result a supplier's city is repeated in every shipment, and a change of city means updating all those rows.</p></div></li>
+  <li>Decompose it so that 2NF holds.
+    <div class="hint" data-label="Show the answer"><p>SUPPLIER(Supplier, City) and SHIPMENT(Supplier, Part, Qty). The common attribute Supplier is the key of the first table: lossless. Both tables are in BCNF.</p></div></li>
+</ol>
+<h4>Problem 4: lossless or not?</h4>
+<p>R(A, B, C) and F = { A → B }.</p>
+<ol type="a">
+  <li>Is the decomposition R1(A, B), R2(A, C) lossless?
+    <div class="hint" data-label="Show the answer"><p>Yes. The common attribute is A and A → B, so the common part determines all of R1 (the NJB test). The join produces no spurious rows.</p></div></li>
+  <li>Is the decomposition R1(A, B), R2(B, C) lossless?
+    <div class="hint" data-label="Show the answer"><p>No. The common attribute is B, and B determines neither A nor C. Example: R = {(1, x, p), (2, x, q)}. Splitting and joining on B also produces the spurious rows (1, x, q) and (2, x, p).</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

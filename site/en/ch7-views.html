@@ -317,6 +317,33 @@ DROP TABLE DEPARTMENT RESTRICT;</pre>
 
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them yourself first, then open the answer; the SQL answers run on the MySQL in this page.</p>
+<h4>Problem 1: views and updatability</h4>
+<ol type="a">
+  <li>Define the view DEPT_SUMMARY that shows each department's name, number of employees and total salary.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">CREATE VIEW DEPT_SUMMARY (Dname, Emp_count, Total_salary) AS
+  SELECT D.Dname, COUNT(*), SUM(E.Salary)
+  FROM   DEPARTMENT D, EMPLOYEE E
+  WHERE  D.Dnumber = E.Dno
+  GROUP BY D.Dname;
+SELECT * FROM DEPT_SUMMARY;
+DROP VIEW DEPT_SUMMARY;</pre><p>The box creates the view, queries it and drops it.</p></div></li>
+  <li>Can <code>UPDATE DEPT_SUMMARY SET Total_salary = 100000 WHERE Dname = 'Research'</code> work?
+    <div class="hint" data-label="Show the answer"><p>No. Total_salary is the result of an aggregate; there is no single update of the base rows that gives this value (whose salary changes, and by how much?). Views with aggregates or GROUP BY are not updatable.</p></div></li>
+</ol>
+<h4>Problem 2: triggers and assertions</h4>
+<ol type="a">
+  <li>Write the three parts (event, condition, action) of a trigger that informs the supervisor when an employee's salary is inserted or updated so that it exceeds the supervisor's.
+    <div class="hint" data-label="Show the answer"><p><strong>Event</strong>: an INSERT on EMPLOYEE, or an UPDATE of Salary or Super_ssn. <strong>Condition</strong>: NEW.Salary &gt; (SELECT Salary FROM EMPLOYEE WHERE Ssn = NEW.Super_ssn). <strong>Action</strong>: call a procedure that informs the supervisor (INFORM_SUPERVISOR in the book). This is the structure of the book's Figure 7.5.</p></div></li>
+  <li>Write the rule "no department's total salary may exceed 200 000" as an assertion.
+    <div class="hint" data-label="Show the answer"><pre class="sql">CREATE ASSERTION DEPT_BUDGET CHECK (
+  NOT EXISTS (SELECT Dno FROM EMPLOYEE
+              GROUP BY Dno
+              HAVING SUM(Salary) > 200000));</pre><p>The assertion pattern: write a query that finds the rows breaking the rule and put it inside NOT EXISTS. MySQL has no assertions; there the same rule is enforced with triggers.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

@@ -200,6 +200,45 @@
   <div class="explain">RAID 4 and 5 use block-level striping and parity. In RAID 4 parity is on one disk, so every write loads that disk; RAID 5 removes the bottleneck by spreading parity over all disks. Against two disks failing at once, RAID 6 is needed.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: blocking factor and number of blocks</h4>
+<p>r = 20 000 records, record size R = 150 bytes, block B = 2048 bytes.</p>
+<ol type="a">
+  <li>With unspanned organization, what are bfr, the number of blocks b and the unused space in each block?
+    <div class="hint" data-label="Show the answer"><p>bfr = ⌊2048 / 150⌋ = 13 records. b = ⌈20 000 / 13⌉ = 1539 blocks. Each block leaves 2048 − 13 · 150 = 98 bytes unused.</p></div></li>
+  <li>How many blocks are needed with spanned organization?
+    <div class="hint" data-label="Show the answer"><p>Records may cross block boundaries, so no space is wasted: b = ⌈20 000 · 150 / 2048⌉ = ⌈1464.8⌉ = 1465 blocks, 74 fewer.</p></div></li>
+</ol>
+<h4>Problem 2: disk access time</h4>
+<p>The file of Problem 1 (1539 blocks) is on a 7200 rpm disk. The average seek time is s = 8 ms; a track holds 40 blocks.</p>
+<ol type="a">
+  <li>What are the average rotational delay rd and the block transfer time btt?
+    <div class="hint" data-label="Show the answer"><p>One turn takes 60 000 / 7200 = 8.33 ms. rd is half a turn: 4.17 ms. btt = turn time / blocks per track = 8.33 / 40 ≈ 0.21 ms.</p></div></li>
+  <li>How long does reading a random block take?
+    <div class="hint" data-label="Show the answer"><p>s + rd + btt = 8 + 4.17 + 0.21 ≈ 12.38 ms.</p></div></li>
+  <li>How long does reading the whole file take (a) with the blocks scattered randomly, (b) with the blocks consecutive?
+    <div class="hint" data-label="Show the answer"><p>(a) 1539 · 12.38 ms ≈ 19.0 seconds. (b) One seek and one rotational delay, then block after block: 8 + 4.17 + 1539 · 0.21 ≈ 333 ms (track switches ignored). Consecutive placement is about 57 times faster: the seek and rotation are paid only once.</p></div></li>
+</ol>
+<h4>Problem 3: static hashing</h4>
+<p>M = 7 buckets, h(K) = K mod 7, 2 records fit in a bucket, overflowing records go to an overflow area by chaining. 3, 10, 17, 24, 5, 12, 19 are inserted in this order.</p>
+<ol type="a">
+  <li>What do the buckets hold after the insertions?
+    <div class="hint" data-label="Show the answer"><p>3, 10, 17, 24 all fall into bucket 3 (mod 7 = 3): the bucket holds [3, 10], the overflow chain 17 → 24. 5, 12, 19 fall into bucket 5: the bucket holds [5, 12], the chain 19. The other five buckets are empty.</p></div></li>
+  <li>How many blocks does a search for 24 read? What is the problem?
+    <div class="hint" data-label="Show the answer"><p>Bucket 3 and the overflow chain: at least 2 blocks (3 if the chained records are in separate blocks). The problem is that the keys differ by multiples of 7: h(K) fills two buckets and leaves five empty. A better hash function is needed; dynamic hashing (extendible, linear) grows the number of buckets.</p></div></li>
+</ol>
+<h4>Problem 4: which RAID level?</h4>
+<ol type="a">
+  <li>A large, mostly read data warehouse: cost matters, and it must survive one disk failing.
+    <div class="hint" data-label="Show the answer"><p><strong>RAID 5</strong>: block-level striping with distributed parity. Reads are parallel; only one disk's worth of space out of n goes to parity.</p></div></li>
+  <li>A frequently written transaction log: every write must be stored safely.
+    <div class="hint" data-label="Show the answer"><p><strong>RAID 1</strong> (mirroring): every write goes to two disks with no parity to compute, so there is no small-write penalty as in RAID 5.</p></div></li>
+  <li>Temporary sort files: only speed matters.
+    <div class="hint" data-label="Show the answer"><p><strong>RAID 0</strong>: striping without redundancy. The fastest, but a failed disk loses the data, which is acceptable for temporary data.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

@@ -298,6 +298,39 @@ INSERT INTO WORKS_ON VALUES (NULL, 10, 5.0);</pre>
   <div class="explain">Essn, DEPENDENT'ın PK'sının (Essn, Dependent_name) parçasıdır; NULL yapılamaz. Zayıf bir varlığın sahibi silinince bağımlılar için en doğal seçim CASCADE'dir.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kendiniz çözün, sonra cevabı açın; SQL cevapları sayfadaki MySQL'de çalışır.</p>
+<h4>Problem 1: hangi işlem hangi kısıtı ihlal eder?</h4>
+<p>Aşağıdaki işlemleri COMPANY'nin Figure 5.6 durumuna uygulayın. Her biri için hangi kısıtın ihlal edildiğini (varsa) ve DBMS'in ne yapabileceğini yazın.</p>
+<ol type="a">
+  <li><code>INSERT INTO EMPLOYEE VALUES ('Ali','K','Demir','123456789','1990-01-01','Ankara','M',30000,NULL,5)</code>
+    <div class="hint" data-label="Cevabı göster"><p><strong>Anahtar kısıtı</strong>: Ssn = 123456789 zaten John Smith'in. Ekleme reddedilir.</p><pre class="sql run" data-expect-error data-title="Kontrol edin">INSERT INTO EMPLOYEE VALUES ('Ali','K','Demir','123456789','1990-01-01','Ankara','M',30000,NULL,5);</pre></div></li>
+  <li><code>INSERT INTO WORKS_ON VALUES ('999887777', 50, 10)</code>
+    <div class="hint" data-label="Cevabı göster"><p><strong>Referans bütünlüğü</strong>: Pno = 50 olan bir proje yok. Ekleme reddedilir (ya da önce proje 50 eklenir).</p><pre class="sql run" data-expect-error data-title="Kontrol edin">INSERT INTO WORKS_ON VALUES ('999887777', 50, 10);</pre></div></li>
+  <li><code>DELETE FROM DEPARTMENT WHERE Dnumber = 4</code>
+    <div class="hint" data-label="Cevabı göster"><p><strong>Referans bütünlüğü</strong>: EMPLOYEE.Dno, PROJECT.Dnum ve DEPT_LOCATIONS.Dnumber departman 4'ü gösteriyor. Seçenekler: silmeyi reddetmek (RESTRICT, MySQL'in varsayılanı), gösteren satırları da silmek (CASCADE) ya da onlardaki foreign key'i NULL yapmak (SET NULL; Dno NULL olabiliyorsa).</p><pre class="sql run" data-expect-error data-title="Kontrol edin">DELETE FROM DEPARTMENT WHERE Dnumber = 4;</pre></div></li>
+  <li><code>UPDATE EMPLOYEE SET Super_ssn = '111111111' WHERE Ssn = '999887777'</code>
+    <div class="hint" data-label="Cevabı göster"><p><strong>Referans bütünlüğü</strong>: Super_ssn, EMPLOYEE.Ssn'i gösteren bir foreign key ve 111111111 diye bir çalışan yok. Güncelleme reddedilir.</p><pre class="sql run" data-expect-error data-title="Kontrol edin">UPDATE EMPLOYEE SET Super_ssn = '111111111' WHERE Ssn = '999887777';</pre></div></li>
+  <li><code>INSERT INTO DEPENDENT VALUES (NULL, 'Ayse', 'F', '2010-05-05', 'Daughter')</code>
+    <div class="hint" data-label="Cevabı göster"><p><strong>Varlık bütünlüğü</strong>: Essn, DEPENDENT'ın primary key'inin (Essn, Dependent_name) parçası ve NULL olamaz.</p><pre class="sql run" data-expect-error data-title="Kontrol edin">INSERT INTO DEPENDENT VALUES (NULL, 'Ayse', 'F', '2010-05-05', 'Daughter');</pre></div></li>
+  <li><code>UPDATE PROJECT SET Dnum = 1 WHERE Pnumber = 30</code>
+    <div class="hint" data-label="Cevabı göster"><p>Hiçbir kısıt ihlal edilmez: departman 1 var. Kutudaki komut bir transaction içinde çalışır ve sonunda geri alınır.</p><pre class="sql run" data-title="Kontrol edin">START TRANSACTION;
+UPDATE PROJECT SET Dnum = 1 WHERE Pnumber = 30;
+SELECT * FROM PROJECT WHERE Pnumber = 30;
+ROLLBACK;</pre></div></li>
+</ol>
+<h4>Problem 2: süper anahtar ve aday anahtar</h4>
+<p>COURSE_OFFER(Course_no, Section, Semester, Instructor, Room, Time) ilişkisinde şu kurallar geçerli: bir dersin bir dönemde her şubesi bir kez açılır; bir oda aynı dönemde aynı saatte tek bir şubeye verilir; bir hoca aynı dönemde aynı saatte tek bir yerde olabilir.</p>
+<ol type="a">
+  <li>Bu kurallara göre aday anahtarları yazın.
+    <div class="hint" data-label="Cevabı göster"><p>Üç aday anahtar var: {Course_no, Section, Semester}, {Semester, Room, Time} ve {Semester, Instructor, Time}. Her biri bütün satırı tek başına belirler ve hiçbir alt kümesi belirlemez (örneğin {Room, Time} yetmez, çünkü aynı oda başka dönemlerde de aynı saatte kullanılır).</p></div></li>
+  <li>{Course_no, Section, Semester, Room} bir süper anahtar mıdır? Aday anahtar mıdır?
+    <div class="hint" data-label="Cevabı göster"><p>Süper anahtardır, çünkü içinde {Course_no, Section, Semester} aday anahtarı var. Aday anahtar değildir, çünkü minimal değil: Room çıkarılınca kalan küme hâlâ anahtardır.</p></div></li>
+  <li>Primary key olarak hangisini seçersiniz?
+    <div class="hint" data-label="Cevabı göster"><p>{Course_no, Section, Semester}: değerleri değişmez ve kayıt açılırken hep bilinir. Diğer iki aday anahtar UNIQUE kısıtıyla korunur.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

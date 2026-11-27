@@ -256,6 +256,14 @@ function analysisList(ops) {
   const endB = button(tl("Sonuca git", "Go to result"), () => { i = total(); show(); });
   const load = () => { ta.value = BOOK_SCHEDULES[sel.value]; if (build()) show(); };
   sel.addEventListener("change", load);
+  // "Check in the analyzer" buttons in the exercises: data-sched="r1(X); …"
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.("[data-sched]");
+    if (!b) return;
+    ta.value = b.dataset.sched;
+    if (build()) show();
+    host.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   ta.addEventListener("input", () => { if (build()) show(); });
   host.append(h("div", { class: "player" }, h("div", { class: "pl-bar" }, field(tl("Kitap çizelgesi: ", "Book schedule: "), sel)), h("label", { class: "small" }, tl("Çizelge (r = okuma, w = yazma, c = commit, a = abort):", "Schedule (r = read, w = write, c = commit, a = abort):"), ta),
     h("div", { class: "pl-bar" }, prevB, nextB, endB, counter), body));

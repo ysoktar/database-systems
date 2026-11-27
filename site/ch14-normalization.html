@@ -270,6 +270,46 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber, Dlocation;
   <div class="explain">NJB testi: R1 ∩ R2, R1 − R2'yi ya da R2 − R1'i belirlemelidir. D3'te ortak öznitelik Instructor'dır ve Instructor → Course sağlandığı için {Instructor, Course} parçasının geri kalanını belirler. D1'de ortak kısım Student, D2'de Course'tur ve ikisi de bir şey belirlemez.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: anahtar, normal form ve ayrıştırma</h4>
+<p>COURSE_SECTION(Course_no, Section, Instructor, Office, Room, Time) ilişkisinde F = { {Course_no, Section} → {Instructor, Room, Time}; Instructor → Office; {Room, Time} → {Course_no, Section} }.</p>
+<ol type="a">
+  <li>Aday anahtarları bulun. Hangi öznitelikler asaldır?
+    <div class="hint" data-label="Cevabı göster"><p>{Course_no, Section}⁺ = bütün öznitelikler (önce Instructor, Room, Time, sonra Office). {Room, Time}⁺ de bütün öznitelikler (önce Course_no, Section). İki aday anahtar var: <strong>{Course_no, Section}</strong> ve <strong>{Room, Time}</strong>. Asal öznitelikler Course_no, Section, Room, Time; asal olmayanlar Instructor ve Office.</p></div></li>
+  <li>İlişki en yüksek hangi normal formdadır?
+    <div class="hint" data-label="Cevabı göster"><p><strong>2NF</strong>. Kısmi bağımlılık yok (asal olmayan hiçbir öznitelik bir anahtarın parçasına bağlı değil). Ama Instructor → Office geçişlidir: Instructor anahtar değil, Office asal değil. Bu 3NF'i (ve BCNF'i) bozar.</p></div></li>
+  <li>İlişkiyi BCNF'e ayrıştırın. Ayrıştırma kayıpsız mı, bağımlılıklar korunuyor mu?
+    <div class="hint" data-label="Cevabı göster"><p>Bozan Instructor → Office için: R1(Instructor, Office) ve R2(Course_no, Section, Instructor, Room, Time). Ortak öznitelik Instructor, R1'in anahtarı; NJB testine göre <strong>kayıpsız</strong>. R2'de iki aday anahtar da var ve her okun solu bir anahtar, yani R2 de BCNF'te. Üç bağımlılık da R1 ya da R2'nin içinde kalıyor: <strong>hepsi korunur</strong>.</p></div></li>
+</ol>
+<h4>Problem 2: kapanış ve aday anahtarlar</h4>
+<p>R(A, B, C, D, E, F) ve F = { A → BC, CD → E, B → D, E → A }.</p>
+<ol type="a">
+  <li>A⁺, B⁺, (CD)⁺ ve E⁺'yı hesaplayın.
+    <div class="hint" data-label="Cevabı göster"><p>A⁺ = ABCDE (A → BC, sonra B → D, sonra CD → E). B⁺ = BD. (CD)⁺ = ABCDE (CD → E, E → A, A → BC). E⁺ = ABCDE (E → A, sonra A'nın kapanışı).</p></div></li>
+  <li>Aday anahtarları bulun.
+    <div class="hint" data-label="Cevabı göster"><p>F hiçbir okun sağında yok, bu yüzden her anahtarda olmalı. F'ye eklenince bütün öznitelikleri veren minimal kümeler: <strong>AF, EF, BCF ve CDF</strong>. (B⁺ = BD olduğu için BF yetmez; BC gerekir.)</p></div></li>
+  <li>İlişki 3NF'te midir? BCNF'te midir?
+    <div class="hint" data-label="Cevabı göster"><p>Bütün öznitelikler bir anahtarın parçası, yani hepsi asal: 3NF'in istisnası her oka uyar, ilişki <strong>3NF'tedir</strong>. Ama A → BC gibi okların solu süper anahtar değil (F yok), bu yüzden <strong>BCNF'te değildir</strong>.</p></div></li>
+</ol>
+<h4>Problem 3: 2NF ihlali</h4>
+<p>SHIPMENT(Supplier, Part, City, Qty): her tedarikçi tek bir şehirdedir; bir tedarikçinin bir parçadan gönderdiği miktar tektir.</p>
+<ol type="a">
+  <li>FD'leri ve anahtarı yazın; hangi normal form bozuluyor?
+    <div class="hint" data-label="Cevabı göster"><p>Supplier → City ve {Supplier, Part} → Qty. Anahtar {Supplier, Part}. City, anahtarın bir parçasına (Supplier) bağlı: <strong>kısmi bağımlılık</strong>, 2NF bozulur. Sonuç: bir tedarikçinin şehri her gönderide tekrar yazılır; şehri değişince bütün satırları güncellemek gerekir.</p></div></li>
+  <li>2NF'i sağlayacak biçimde ayrıştırın.
+    <div class="hint" data-label="Cevabı göster"><p>SUPPLIER(Supplier, City) ve SHIPMENT(Supplier, Part, Qty). Ortak öznitelik Supplier, ilk tablonun anahtarı: kayıpsız. İki tablo da BCNF'te.</p></div></li>
+</ol>
+<h4>Problem 4: kayıpsız mı?</h4>
+<p>R(A, B, C) ve F = { A → B }.</p>
+<ol type="a">
+  <li>R1(A, B) ve R2(A, C) ayrıştırması kayıpsız mı?
+    <div class="hint" data-label="Cevabı göster"><p>Evet. Ortak öznitelik A ve A → B, yani ortak kısım R1'in bütün özniteliklerini belirler (NJB testi). Join sahte satır üretmez.</p></div></li>
+  <li>R1(A, B) ve R2(B, C) ayrıştırması kayıpsız mı?
+    <div class="hint" data-label="Cevabı göster"><p>Hayır. Ortak öznitelik B ve B ne A'yı ne C'yi belirler. Örnek: R = {(1, x, p), (2, x, q)}. Ayrıştırıp B üzerinden birleştirince (1, x, q) ve (2, x, p) sahte satırları da çıkar.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

@@ -409,6 +409,38 @@ SELECT DISTINCT Salary FROM EMPLOYEE;</pre>
 </div>
 
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them yourself first, then open the answer; the SQL answers run on the MySQL in this page.</p>
+<h4>Problem 1: queries on COMPANY</h4>
+<p>Write each query on paper first, then open the answer and run it.</p>
+<ol type="a">
+  <li>The first and last names of employees who work on a project located in Houston (each employee once).
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT DISTINCT E.Fname, E.Lname
+FROM   EMPLOYEE E, WORKS_ON W, PROJECT P
+WHERE  W.Essn = E.Ssn AND P.Pnumber = W.Pno
+  AND  P.Plocation = 'Houston';</pre><p>The three tables are linked by two join conditions; DISTINCT keeps someone who works on several Houston projects (Wong) from appearing twice.</p></div></li>
+  <li>Employees earning between 30 000 and 40 000 who were born before 1960.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT Fname, Lname, Salary, Bdate
+FROM   EMPLOYEE
+WHERE  Salary BETWEEN 30000 AND 40000
+  AND  Bdate < '1960-01-01';</pre><p>BETWEEN includes both ends (Wong's 40 000 is in the result).</p></div></li>
+  <li>Each employee's name with the name of their supervisor (employees without one are left out).
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT E.Fname, E.Lname, S.Fname AS Sup_fname, S.Lname AS Sup_lname
+FROM   EMPLOYEE E, EMPLOYEE S
+WHERE  E.Super_ssn = S.Ssn;</pre><p>The same table is used twice under two aliases. Borg's supervisor is NULL, so the join condition leaves him out.</p></div></li>
+</ol>
+<h4>Problem 2: an update</h4>
+<ol type="a">
+  <li>Write the command that gives everyone in the Research department a 5% raise. Do not hard-code the department number.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer (rolled back)">START TRANSACTION;
+UPDATE EMPLOYEE
+SET    Salary = Salary * 1.05
+WHERE  Dno = (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research');
+SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
+ROLLBACK;</pre><p>The subquery finds the number from the name. The box shows the change inside a transaction and rolls it back.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

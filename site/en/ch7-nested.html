@@ -326,6 +326,32 @@ SELECT Lname, Dno, Salary FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) 
 
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them yourself first, then open the answer; the SQL answers run on the MySQL in this page.</p>
+<h4>Problem 1: nested queries and EXISTS</h4>
+<ol type="a">
+  <li>The names of employees who have no dependents.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT Fname, Lname
+FROM   EMPLOYEE E
+WHERE  NOT EXISTS (SELECT * FROM DEPENDENT D WHERE D.Essn = E.Ssn);</pre><p>The correlated subquery is evaluated again for each employee. <code>Ssn NOT IN (SELECT Essn FROM DEPENDENT)</code> gives the same result; NOT IN is safe here because Essn cannot be NULL.</p></div></li>
+  <li>Employees who earn more than everyone in department 5.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT Fname, Lname, Salary
+FROM   EMPLOYEE
+WHERE  Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5);</pre><p>The highest salary in department 5 is 40 000; Borg and Wallace earn more. <code>&gt; (SELECT MAX(Salary) …)</code> gives the same result.</p></div></li>
+</ol>
+<h4>Problem 2: division ("for every …")</h4>
+<ol type="a">
+  <li>The other employees who work on <em>every</em> project John Smith (Ssn 123456789) works on.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT Fname, Lname
+FROM   EMPLOYEE E
+WHERE  E.Ssn <> '123456789'
+  AND  NOT EXISTS (SELECT W1.Pno FROM WORKS_ON W1
+                   WHERE W1.Essn = '123456789'
+                     AND NOT EXISTS (SELECT * FROM WORKS_ON W2
+                                     WHERE W2.Essn = E.Ssn AND W2.Pno = W1.Pno));</pre><p>Read the double NOT EXISTS as: "there is no project of Smith's that E does not work on." Smith works on 1 and 2; the only other person on both is Joyce English.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

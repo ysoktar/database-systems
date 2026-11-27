@@ -157,42 +157,6 @@ INSERT INTO demo.EMP_IDX VALUES ('999999999', 'Ann', 'Smith', 5);
 </ul>
 <p>The design decisions about indexing are: whether to index an attribute (yes if it is a key or a query uses it); which attribute or attributes to index on (single or multiple); whether to set up a clustered index (there can be only one per table); whether to use a hash index instead of a tree index (hash indexes do not support range queries); whether to use dynamic hashing (it suits very volatile files).</p>
 
-<h2>Book-style exercises</h2>
-<p>The question types are those of the book's Ch 17 exercises; the numbers are ours. Solve on paper first, then open the answer; the button next to a question loads its numbers into the tool on this page.</p>
-<h3>Problem 1: every index type on one file</h3>
-<p>A STUDENT file has r = 40 000 records. Fields: Ssn (9 bytes, key), Name (30), Address (40), Phone (10), Birth_date (8), Sex (1), Major_code (4), Dept_code (4), Class (4). Block B = 1024 bytes, block pointer P = 6 bytes, record pointer P<sub>r</sub> = 7 bytes; unspanned organization.</p>
-<ol type="a">
-  <li>What are the record size R, bfr and the number of blocks b? If the file is sorted on Ssn, how many blocks does a binary search read?
-    <div class="hint" data-label="Show the answer"><p>R = 9 + 30 + 40 + 10 + 8 + 1 + 4 + 4 + 4 = 110 bytes. bfr = ⌊1024 / 110⌋ = 9, b = ⌈40 000 / 9⌉ = 4445 blocks. A binary search reads ⌈log<sub>2</sub> 4445⌉ = 13 blocks.</p></div></li>
-  <li>The file is sorted on Ssn (Ssn is the ordering key field). What are the fan-out, the number of entries and the number of blocks of the primary index on Ssn? How many blocks does a search read with the single-level and the multilevel index?
-    <div class="hint" data-label="Show the answer"><p>An entry is V + P = 9 + 6 = 15 bytes, fo = ⌊1024 / 15⌋ = 68. A primary index has one entry per data block: 4445 entries, ⌈4445 / 68⌉ = 66 blocks. Single-level: ⌈log<sub>2</sub> 66⌉ + 1 = 7 + 1 = 8 blocks. Multilevel: levels 66 → ⌈66 / 68⌉ = 1 block, t = 2, 67 blocks in total; a search reads t + 1 = 3 blocks.</p>
-    <button type="button" class="btn small" data-calc="40000 110 1024 9 6 7">Check in the calculator</button></div></li>
-  <li>If the file is not sorted on Ssn (Ssn is a nonordering field), answer the same questions for a dense secondary index on Ssn.
-    <div class="hint" data-label="Show the answer"><p>One entry per record: 40 000 entries, ⌈40 000 / 68⌉ = 589 blocks. Single-level: ⌈log<sub>2</sub> 589⌉ + 1 = 10 + 1 = 11 blocks. Multilevel: 589 → ⌈589 / 68⌉ = 9 → 1 block, t = 3, 599 blocks in total; a search reads 4 blocks. Without the index a search would read b / 2 ≈ 2223 blocks on average.</p></div></li>
-  <li>Now let the file be sorted on Major_code. Major_code has 500 distinct values, 80 records each, and each value's records start in a new block. What is Major_code's role in this file and which index goes on it? How many blocks does the index take, and how many block reads bring all records with "Major_code = X" (with a multilevel index)?
-    <div class="hint" data-label="Show the answer"><p>The file is sorted on Major_code and Major_code is not a key: it is this file's <strong>clustering field</strong>, and a <strong>clustering index</strong> goes on it. One entry per distinct value: 500 entries, an entry is 4 + 6 = 10 bytes, fo = ⌊1024 / 10⌋ = 102, ⌈500 / 102⌉ = 5 blocks. Multilevel: 5 → 1, t = 2. The 80 records of a value take ⌈80 / 9⌉ = 9 blocks. In total 2 + 9 = 11 blocks are read.</p></div></li>
-  <li>If a B+-tree is built on Ssn, what are the internal node order p and the leaf order p<sub>leaf</sub>?
-    <div class="hint" data-label="Show the answer"><p>Internal node: p·P + (p − 1)·V ≤ B → 6p + 9(p − 1) ≤ 1024 → 15p ≤ 1033 → p = 68. Leaf: p<sub>leaf</sub>·(V + P<sub>r</sub>) + P ≤ B → 16·p<sub>leaf</sub> + 6 ≤ 1024 → p<sub>leaf</sub> = 63.</p></div></li>
-  <li>If nodes are 69% full on average, how many levels does this B+-tree have, how many blocks does it take, and how many blocks does finding a record read?
-    <div class="hint" data-label="Show the answer"><p>A leaf holds ⌊0.69 · 63⌋ = 43 entries on average, an internal node ⌊0.69 · 68⌋ = 46 pointers. Leaves: ⌈40 000 / 43⌉ = 931; the level above ⌈931 / 46⌉ = 21; the root ⌈21 / 46⌉ = 1. Three levels (root, one internal level, leaves), 931 + 21 + 1 = 953 blocks in total. A search reads one node per level and the record's block: 3 + 1 = 4 blocks.</p></div></li>
-</ol>
-<h3>Problem 2: the capacity of a B+-tree</h3>
-<p>For the tree of Problem 1 (p = 68, p<sub>leaf</sub> = 63), how many records can a tree with a root, one internal level and leaves point to at most? How many if the nodes are 69% full?</p>
-<div class="hint" data-label="Show the answer"><p>Full: the root points to 68 internal nodes, each pointing to 68 leaves; 68 · 68 = 4624 leaves of 63 records: 68 · 68 · 63 = 291 312 records. 69% full: 46 · 46 = 2116 leaves of 43 records: 90 988 records. That is why the 40 000 records of Problem 1 fit in three levels.</p></div>
-<h3>Problem 3: inserting into a B+-tree</h3>
-<p>Insert 40, 15, 72, 33, 58, 9, 81, 27, 64, 50 in this order into an empty B+-tree with p = 3 and p<sub>leaf</sub> = 2. At each split, write which value is copied or moved up.</p>
-<div class="hint" data-label="Show the answer"><p>Final tree: root [33, 64]; internal nodes [15], [40, 58], [72]; leaves [9, 15] → [27, 33] → [40] → [50, 58] → [64] → [72] → [81]. The tree is balanced: all leaves are on the same level. The last insertion (50) overflows the leaf [50, 58, 64]; 58 is copied up and the internal node [40] becomes [40, 58].</p>
-<button type="button" class="btn small" data-bptree="40 15 72 33 58 9 81 27 64 50" data-p="3" data-pl="2">See it step by step in the player</button></div>
-<h3>Problem 4: which field, which index?</h3>
-<ol>
-  <li>An EMPLOYEE file is sorted on Dno. What roles do Ssn, Dno and Lname have in this file, and which index can go on each?
-    <div class="hint" data-label="Show the answer"><p>Dno: clustering field (the ordering field, but not a key) → clustering index. Ssn: a key the file is not sorted on, a nonordering key field → secondary index (dense). Lname: nonordering field → secondary index. Because the file is sorted on Dno, no primary index can be built on Ssn.</p></div></li>
-  <li>Can a file have both a primary and a clustering index at the same time?
-    <div class="hint" data-label="Show the answer"><p>No. Both are built on the field the file is sorted on, and a file can be sorted on only one field. If that field is a key the index is primary, otherwise clustering. A file can have as many secondary indexes as needed.</p></div></li>
-  <li>Why is the number of entries of a primary index the number of blocks and not the number of records?
-    <div class="hint" data-label="Show the answer"><p>The file is sorted on the ordering key field, so knowing the key of each block's first record (the block anchor) is enough to tell which block a value falls in. That is why a primary index is sparse.</p></div></li>
-</ol>
-
 <h2>You decide</h2>
 <p>In these questions you decide the index type, the index cost and B+-tree insertion. After each answer the explanations of the options and a worked solution appear; for the B+-tree questions the tree before and after the insertion is drawn. Use "Reset answer" to try a question again.</p>
 <div id="index-decide"></div>
@@ -248,6 +212,43 @@ INSERT INTO demo.EMP_IDX VALUES ('999999999', 'Ann', 'Smith', 5);
   </ol>
   <div class="explain">A bitmap index keeps as many bits as rows for each distinct value; two values need only two bit arrays. Conditions such as "Sex = 'F' AND Dno = 5" are found directly by ANDing two bitmaps. You can try this in the bitmap example on the page.</div>
 </div>
+
+
+<h3>Open-ended exercises</h3>
+<p>The question types are those of the book's Ch 17 exercises; the numbers are ours. Solve on paper first, then open the answer; the button next to a question loads its numbers into the tool on this page.</p>
+<h4>Problem 1: every index type on one file</h4>
+<p>A STUDENT file has r = 40 000 records. Fields: Ssn (9 bytes, key), Name (30), Address (40), Phone (10), Birth_date (8), Sex (1), Major_code (4), Dept_code (4), Class (4). Block B = 1024 bytes, block pointer P = 6 bytes, record pointer P<sub>r</sub> = 7 bytes; unspanned organization.</p>
+<ol type="a">
+  <li>What are the record size R, bfr and the number of blocks b? If the file is sorted on Ssn, how many blocks does a binary search read?
+    <div class="hint" data-label="Show the answer"><p>R = 9 + 30 + 40 + 10 + 8 + 1 + 4 + 4 + 4 = 110 bytes. bfr = ⌊1024 / 110⌋ = 9, b = ⌈40 000 / 9⌉ = 4445 blocks. A binary search reads ⌈log<sub>2</sub> 4445⌉ = 13 blocks.</p></div></li>
+  <li>The file is sorted on Ssn (Ssn is the ordering key field). What are the fan-out, the number of entries and the number of blocks of the primary index on Ssn? How many blocks does a search read with the single-level and the multilevel index?
+    <div class="hint" data-label="Show the answer"><p>An entry is V + P = 9 + 6 = 15 bytes, fo = ⌊1024 / 15⌋ = 68. A primary index has one entry per data block: 4445 entries, ⌈4445 / 68⌉ = 66 blocks. Single-level: ⌈log<sub>2</sub> 66⌉ + 1 = 7 + 1 = 8 blocks. Multilevel: levels 66 → ⌈66 / 68⌉ = 1 block, t = 2, 67 blocks in total; a search reads t + 1 = 3 blocks.</p>
+    <button type="button" class="btn small" data-calc="40000 110 1024 9 6 7">Check in the calculator</button></div></li>
+  <li>If the file is not sorted on Ssn (Ssn is a nonordering field), answer the same questions for a dense secondary index on Ssn.
+    <div class="hint" data-label="Show the answer"><p>One entry per record: 40 000 entries, ⌈40 000 / 68⌉ = 589 blocks. Single-level: ⌈log<sub>2</sub> 589⌉ + 1 = 10 + 1 = 11 blocks. Multilevel: 589 → ⌈589 / 68⌉ = 9 → 1 block, t = 3, 599 blocks in total; a search reads 4 blocks. Without the index a search would read b / 2 ≈ 2223 blocks on average.</p></div></li>
+  <li>Now let the file be sorted on Major_code. Major_code has 500 distinct values, 80 records each, and each value's records start in a new block. What is Major_code's role in this file and which index goes on it? How many blocks does the index take, and how many block reads bring all records with "Major_code = X" (with a multilevel index)?
+    <div class="hint" data-label="Show the answer"><p>The file is sorted on Major_code and Major_code is not a key: it is this file's <strong>clustering field</strong>, and a <strong>clustering index</strong> goes on it. One entry per distinct value: 500 entries, an entry is 4 + 6 = 10 bytes, fo = ⌊1024 / 10⌋ = 102, ⌈500 / 102⌉ = 5 blocks. Multilevel: 5 → 1, t = 2. The 80 records of a value take ⌈80 / 9⌉ = 9 blocks. In total 2 + 9 = 11 blocks are read.</p></div></li>
+  <li>If a B+-tree is built on Ssn, what are the internal node order p and the leaf order p<sub>leaf</sub>?
+    <div class="hint" data-label="Show the answer"><p>Internal node: p·P + (p − 1)·V ≤ B → 6p + 9(p − 1) ≤ 1024 → 15p ≤ 1033 → p = 68. Leaf: p<sub>leaf</sub>·(V + P<sub>r</sub>) + P ≤ B → 16·p<sub>leaf</sub> + 6 ≤ 1024 → p<sub>leaf</sub> = 63.</p></div></li>
+  <li>If nodes are 69% full on average, how many levels does this B+-tree have, how many blocks does it take, and how many blocks does finding a record read?
+    <div class="hint" data-label="Show the answer"><p>A leaf holds ⌊0.69 · 63⌋ = 43 entries on average, an internal node ⌊0.69 · 68⌋ = 46 pointers. Leaves: ⌈40 000 / 43⌉ = 931; the level above ⌈931 / 46⌉ = 21; the root ⌈21 / 46⌉ = 1. Three levels (root, one internal level, leaves), 931 + 21 + 1 = 953 blocks in total. A search reads one node per level and the record's block: 3 + 1 = 4 blocks.</p></div></li>
+</ol>
+<h4>Problem 2: the capacity of a B+-tree</h4>
+<p>For the tree of Problem 1 (p = 68, p<sub>leaf</sub> = 63), how many records can a tree with a root, one internal level and leaves point to at most? How many if the nodes are 69% full?</p>
+<div class="hint" data-label="Show the answer"><p>Full: the root points to 68 internal nodes, each pointing to 68 leaves; 68 · 68 = 4624 leaves of 63 records: 68 · 68 · 63 = 291 312 records. 69% full: 46 · 46 = 2116 leaves of 43 records: 90 988 records. That is why the 40 000 records of Problem 1 fit in three levels.</p></div>
+<h4>Problem 3: inserting into a B+-tree</h4>
+<p>Insert 40, 15, 72, 33, 58, 9, 81, 27, 64, 50 in this order into an empty B+-tree with p = 3 and p<sub>leaf</sub> = 2. At each split, write which value is copied or moved up.</p>
+<div class="hint" data-label="Show the answer"><p>Final tree: root [33, 64]; internal nodes [15], [40, 58], [72]; leaves [9, 15] → [27, 33] → [40] → [50, 58] → [64] → [72] → [81]. The tree is balanced: all leaves are on the same level. The last insertion (50) overflows the leaf [50, 58, 64]; 58 is copied up and the internal node [40] becomes [40, 58].</p>
+<button type="button" class="btn small" data-bptree="40 15 72 33 58 9 81 27 64 50" data-p="3" data-pl="2">See it step by step in the player</button></div>
+<h4>Problem 4: which field, which index?</h4>
+<ol>
+  <li>An EMPLOYEE file is sorted on Dno. What roles do Ssn, Dno and Lname have in this file, and which index can go on each?
+    <div class="hint" data-label="Show the answer"><p>Dno: clustering field (the ordering field, but not a key) → clustering index. Ssn: a key the file is not sorted on, a nonordering key field → secondary index (dense). Lname: nonordering field → secondary index. Because the file is sorted on Dno, no primary index can be built on Ssn.</p></div></li>
+  <li>Can a file have both a primary and a clustering index at the same time?
+    <div class="hint" data-label="Show the answer"><p>No. Both are built on the field the file is sorted on, and a file can be sorted on only one field. If that field is a key the index is primary, otherwise clustering. A file can have as many secondary indexes as needed.</p></div></li>
+  <li>Why is the number of entries of a primary index the number of blocks and not the number of records?
+    <div class="hint" data-label="Show the answer"><p>The file is sorted on the ordering key field, so knowing the key of each block's first record (the block anchor) is enough to tell which block a value falls in. That is why a primary index is sparse.</p></div></li>
+</ol>
 
 </div></main>
 </body>

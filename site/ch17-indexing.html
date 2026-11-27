@@ -157,42 +157,6 @@ INSERT INTO demo.EMP_IDX VALUES ('999999999', 'Ann', 'Smith', 5);
 </ul>
 <p>İndekslemeyle ilgili tasarım kararları şunlardır: bir öznitelik indekslenmeli mi (anahtarsa ya da bir sorgu onu kullanıyorsa evet); hangi öznitelik ya da öznitelikler üzerinde indeks kurulmalı (tek ya da çok öznitelikli); kümeleme indeksi kurulmalı mı (tablo başına yalnızca bir tane olabilir); ağaç yerine hash indeksi mi kullanılmalı (hash indeksi aralık sorgularını desteklemez); dinamik hashing kullanılmalı mı (çok sık değişen dosyalar için uygundur).</p>
 
-<h2>Kitap tarzı alıştırmalar</h2>
-<p>Soru tipleri kitabın Ch 17 alıştırmalarıyla aynı, sayılar bizim. Önce kâğıtta çözün, sonra cevabı açın; her sorunun yanındaki düğme sayıları sayfadaki araca yükler.</p>
-<h3>Problem 1: bir dosyada bütün indeks türleri</h3>
-<p>STUDENT dosyasında r = 40 000 kayıt var. Alanlar: Ssn (9 byte, anahtar), Name (30), Address (40), Phone (10), Birth_date (8), Sex (1), Major_code (4), Dept_code (4), Class (4). Blok B = 1024 byte, blok işaretçisi P = 6 byte, kayıt işaretçisi P<sub>r</sub> = 7 byte; yerleşim unspanned.</p>
-<ol type="a">
-  <li>Kayıt boyutu R, bfr ve dosyanın blok sayısı b nedir? Dosya Ssn'e göre sıralıysa ikili arama kaç blok okur?
-    <div class="hint" data-label="Cevabı göster"><p>R = 9 + 30 + 40 + 10 + 8 + 1 + 4 + 4 + 4 = 110 byte. bfr = ⌊1024 / 110⌋ = 9, b = ⌈40 000 / 9⌉ = 4445 blok. İkili arama ⌈log<sub>2</sub> 4445⌉ = 13 blok okur.</p></div></li>
-  <li>Dosya Ssn'e göre sıralı (Ssn ordering key field). Ssn üzerindeki birincil indeksin fan-out'u, giriş sayısı ve blok sayısı nedir? Tek seviyeli ve çok seviyeli hâliyle arama kaç blok okur?
-    <div class="hint" data-label="Cevabı göster"><p>Giriş V + P = 9 + 6 = 15 byte, fo = ⌊1024 / 15⌋ = 68. Birincil indekste her veri bloğu için bir giriş: 4445 giriş, ⌈4445 / 68⌉ = 66 blok. Tek seviyeli: ⌈log<sub>2</sub> 66⌉ + 1 = 7 + 1 = 8 blok. Çok seviyeli: seviyeler 66 → ⌈66 / 68⌉ = 1 blok, t = 2, toplam 67 blok; arama t + 1 = 3 blok okur.</p>
-    <button type="button" class="btn small" data-calc="40000 110 1024 9 6 7">Hesap makinesinde kontrol et</button></div></li>
-  <li>Dosya Ssn'e göre sıralı değilse (Ssn bir nonordering field), Ssn üzerindeki yoğun ikincil indeks için aynı soruları cevaplayın.
-    <div class="hint" data-label="Cevabı göster"><p>Her kayıt için bir giriş: 40 000 giriş, ⌈40 000 / 68⌉ = 589 blok. Tek seviyeli: ⌈log<sub>2</sub> 589⌉ + 1 = 10 + 1 = 11 blok. Çok seviyeli: 589 → ⌈589 / 68⌉ = 9 → 1 blok, t = 3, toplam 599 blok; arama 4 blok okur. İndeks olmasaydı ortalama b / 2 ≈ 2223 blok okunurdu.</p></div></li>
-  <li>Bu kez dosya Major_code'a göre sıralı olsun. Major_code'un 500 farklı değeri var, her değerde 80 kayıt var ve her değerin kayıtları yeni bir blokta başlıyor. Major_code bu dosyada hangi roldedir, üzerine hangi indeks kurulur? İndeks kaç blok tutar ve "Major_code = X" olan bütün kayıtlar kaç blok okumayla gelir (çok seviyeli indeksle)?
-    <div class="hint" data-label="Cevabı göster"><p>Dosya Major_code'a göre sıralı ve Major_code anahtar değil: Major_code bu dosyanın <strong>clustering field</strong>'ı, üzerine <strong>kümeleme indeksi</strong> kurulur. Her farklı değer için bir giriş: 500 giriş, giriş 4 + 6 = 10 byte, fo = ⌊1024 / 10⌋ = 102, ⌈500 / 102⌉ = 5 blok. Çok seviyeli: 5 → 1, t = 2. Bir değerin 80 kaydı ⌈80 / 9⌉ = 9 blok tutar. Toplam 2 + 9 = 11 blok okunur.</p></div></li>
-  <li>Ssn üzerine bir B+-ağacı kurulursa iç düğümün mertebesi p ve yaprağın mertebesi p<sub>leaf</sub> nedir?
-    <div class="hint" data-label="Cevabı göster"><p>İç düğüm: p·P + (p − 1)·V ≤ B → 6p + 9(p − 1) ≤ 1024 → 15p ≤ 1033 → p = 68. Yaprak: p<sub>leaf</sub>·(V + P<sub>r</sub>) + P ≤ B → 16·p<sub>leaf</sub> + 6 ≤ 1024 → p<sub>leaf</sub> = 63.</p></div></li>
-  <li>Düğümler ortalama %69 doluysa bu B+-ağacının kaç seviyesi olur, kaç blok tutar ve bir kaydı bulmak kaç blok okur?
-    <div class="hint" data-label="Cevabı göster"><p>Yaprakta ortalama ⌊0,69 · 63⌋ = 43 giriş, iç düğümde ⌊0,69 · 68⌋ = 46 işaretçi. Yapraklar: ⌈40 000 / 43⌉ = 931; üstündeki seviye ⌈931 / 46⌉ = 21; kök ⌈21 / 46⌉ = 1. Üç seviye (kök, bir iç seviye, yapraklar), toplam 931 + 21 + 1 = 953 blok. Arama her seviyeden bir düğüm ve kaydın bloğunu okur: 3 + 1 = 4 blok.</p></div></li>
-</ol>
-<h3>Problem 2: bir B+-ağacının kapasitesi</h3>
-<p>Problem 1'in ağacında (p = 68, p<sub>leaf</sub> = 63) kök, bir iç seviye ve yapraklardan oluşan bir ağaç en fazla kaç kaydı gösterebilir? Düğümler %69 doluysa kaç kayıt gösterir?</p>
-<div class="hint" data-label="Cevabı göster"><p>Tam dolu: kök 68 iç düğümü, her iç düğüm 68 yaprağı gösterir; 68 · 68 = 4624 yaprak, her biri 63 kayıt: 68 · 68 · 63 = 291 312 kayıt. %69 dolu: 46 · 46 = 2116 yaprak, her biri 43 kayıt: 90 988 kayıt. Problem 1'in 40 000 kaydı bu yüzden üç seviyeye sığar.</p></div>
-<h3>Problem 3: B+-ağacına ekleme</h3>
-<p>p = 3 ve p<sub>leaf</sub> = 2 olan boş bir B+-ağacına sırasıyla 40, 15, 72, 33, 58, 9, 81, 27, 64, 50 ekleyin. Her bölünmede hangi değerin yukarı kopyalandığını ya da taşındığını yazın.</p>
-<div class="hint" data-label="Cevabı göster"><p>Son ağaç: kök [33, 64]; iç düğümler [15], [40, 58], [72]; yapraklar [9, 15] → [27, 33] → [40] → [50, 58] → [64] → [72] → [81]. Ağaç dengeli: bütün yapraklar aynı seviyede. Son ekleme (50), [50, 58, 64] yaprağını taşırır; 58 ebeveyne kopyalanır ve [40] iç düğümü [40, 58] olur.</p>
-<button type="button" class="btn small" data-bptree="40 15 72 33 58 9 81 27 64 50" data-p="3" data-pl="2">Oynatıcıda adım adım gör</button></div>
-<h3>Problem 4: hangi alan, hangi indeks?</h3>
-<ol>
-  <li>EMPLOYEE dosyası Dno'ya göre sıralı. Ssn, Dno ve Lname bu dosyada hangi rollerdedir ve her biri üzerine hangi indeks kurulabilir?
-    <div class="hint" data-label="Cevabı göster"><p>Dno: clustering field (sıralama alanı ama anahtar değil) → kümeleme indeksi. Ssn: anahtar ama dosya ona göre sıralı değil, yani nonordering key field → ikincil indeks (yoğun). Lname: nonordering field → ikincil indeks. Dosya Dno'ya göre sıralı olduğu için Ssn üzerinde birincil indeks kurulamaz.</p></div></li>
-  <li>Bir dosyanın aynı anda hem birincil hem kümeleme indeksi olabilir mi?
-    <div class="hint" data-label="Cevabı göster"><p>Hayır. İkisi de dosyanın sıralandığı alan üzerine kurulur ve dosya yalnızca bir alana göre sıralı olabilir. O alan anahtarsa birincil, değilse kümeleme indeksi olur. İkincil indeks ise istendiği kadar olabilir.</p></div></li>
-  <li>Birincil indeksin giriş sayısı neden kayıt sayısı değil de blok sayısıdır?
-    <div class="hint" data-label="Cevabı göster"><p>Dosya ordering key field'a göre sıralı olduğu için her bloğun ilk kaydının anahtarını (blok çapası) bilmek, aranan değerin hangi bloğa düştüğünü söylemeye yeter. Bu yüzden birincil indeks seyrektir.</p></div></li>
-</ol>
-
 <h2>Sen karar ver</h2>
 <p>Bu sorularda indeks türünü, indeks maliyetini ve B+-ağacına eklemeyi siz belirliyorsunuz. Her cevaptan sonra seçeneklerin açıklaması ve adım adım çözüm görünür; B+-ağacı sorularında ağacın eklemeden önceki ve sonraki hâli çizilir. "Cevabı sıfırla" ile soruyu yeniden deneyebilirsiniz.</p>
 <div id="index-decide"></div>
@@ -248,6 +212,43 @@ INSERT INTO demo.EMP_IDX VALUES ('999999999', 'Ann', 'Smith', 5);
   </ol>
   <div class="explain">Bitmap indeksi her farklı değer için satır sayısı kadar bit tutar; iki değer için yalnızca iki bit dizisi gerekir. "Sex = 'F' AND Dno = 5" gibi koşullar, iki bitmap'in AND'lenmesiyle doğrudan bulunur. Sayfadaki bitmap örneğinde bunu deneyebilirsiniz.</div>
 </div>
+
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın Ch 17 alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular; sayılar bizim. Önce kâğıtta çözün, sonra cevabı açın; her sorunun yanındaki düğme sayıları sayfadaki araca yükler.</p>
+<h4>Problem 1: bir dosyada bütün indeks türleri</h4>
+<p>STUDENT dosyasında r = 40 000 kayıt var. Alanlar: Ssn (9 byte, anahtar), Name (30), Address (40), Phone (10), Birth_date (8), Sex (1), Major_code (4), Dept_code (4), Class (4). Blok B = 1024 byte, blok işaretçisi P = 6 byte, kayıt işaretçisi P<sub>r</sub> = 7 byte; yerleşim unspanned.</p>
+<ol type="a">
+  <li>Kayıt boyutu R, bfr ve dosyanın blok sayısı b nedir? Dosya Ssn'e göre sıralıysa ikili arama kaç blok okur?
+    <div class="hint" data-label="Cevabı göster"><p>R = 9 + 30 + 40 + 10 + 8 + 1 + 4 + 4 + 4 = 110 byte. bfr = ⌊1024 / 110⌋ = 9, b = ⌈40 000 / 9⌉ = 4445 blok. İkili arama ⌈log<sub>2</sub> 4445⌉ = 13 blok okur.</p></div></li>
+  <li>Dosya Ssn'e göre sıralı (Ssn ordering key field). Ssn üzerindeki birincil indeksin fan-out'u, giriş sayısı ve blok sayısı nedir? Tek seviyeli ve çok seviyeli hâliyle arama kaç blok okur?
+    <div class="hint" data-label="Cevabı göster"><p>Giriş V + P = 9 + 6 = 15 byte, fo = ⌊1024 / 15⌋ = 68. Birincil indekste her veri bloğu için bir giriş: 4445 giriş, ⌈4445 / 68⌉ = 66 blok. Tek seviyeli: ⌈log<sub>2</sub> 66⌉ + 1 = 7 + 1 = 8 blok. Çok seviyeli: seviyeler 66 → ⌈66 / 68⌉ = 1 blok, t = 2, toplam 67 blok; arama t + 1 = 3 blok okur.</p>
+    <button type="button" class="btn small" data-calc="40000 110 1024 9 6 7">Hesap makinesinde kontrol et</button></div></li>
+  <li>Dosya Ssn'e göre sıralı değilse (Ssn bir nonordering field), Ssn üzerindeki yoğun ikincil indeks için aynı soruları cevaplayın.
+    <div class="hint" data-label="Cevabı göster"><p>Her kayıt için bir giriş: 40 000 giriş, ⌈40 000 / 68⌉ = 589 blok. Tek seviyeli: ⌈log<sub>2</sub> 589⌉ + 1 = 10 + 1 = 11 blok. Çok seviyeli: 589 → ⌈589 / 68⌉ = 9 → 1 blok, t = 3, toplam 599 blok; arama 4 blok okur. İndeks olmasaydı ortalama b / 2 ≈ 2223 blok okunurdu.</p></div></li>
+  <li>Bu kez dosya Major_code'a göre sıralı olsun. Major_code'un 500 farklı değeri var, her değerde 80 kayıt var ve her değerin kayıtları yeni bir blokta başlıyor. Major_code bu dosyada hangi roldedir, üzerine hangi indeks kurulur? İndeks kaç blok tutar ve "Major_code = X" olan bütün kayıtlar kaç blok okumayla gelir (çok seviyeli indeksle)?
+    <div class="hint" data-label="Cevabı göster"><p>Dosya Major_code'a göre sıralı ve Major_code anahtar değil: Major_code bu dosyanın <strong>clustering field</strong>'ı, üzerine <strong>kümeleme indeksi</strong> kurulur. Her farklı değer için bir giriş: 500 giriş, giriş 4 + 6 = 10 byte, fo = ⌊1024 / 10⌋ = 102, ⌈500 / 102⌉ = 5 blok. Çok seviyeli: 5 → 1, t = 2. Bir değerin 80 kaydı ⌈80 / 9⌉ = 9 blok tutar. Toplam 2 + 9 = 11 blok okunur.</p></div></li>
+  <li>Ssn üzerine bir B+-ağacı kurulursa iç düğümün mertebesi p ve yaprağın mertebesi p<sub>leaf</sub> nedir?
+    <div class="hint" data-label="Cevabı göster"><p>İç düğüm: p·P + (p − 1)·V ≤ B → 6p + 9(p − 1) ≤ 1024 → 15p ≤ 1033 → p = 68. Yaprak: p<sub>leaf</sub>·(V + P<sub>r</sub>) + P ≤ B → 16·p<sub>leaf</sub> + 6 ≤ 1024 → p<sub>leaf</sub> = 63.</p></div></li>
+  <li>Düğümler ortalama %69 doluysa bu B+-ağacının kaç seviyesi olur, kaç blok tutar ve bir kaydı bulmak kaç blok okur?
+    <div class="hint" data-label="Cevabı göster"><p>Yaprakta ortalama ⌊0,69 · 63⌋ = 43 giriş, iç düğümde ⌊0,69 · 68⌋ = 46 işaretçi. Yapraklar: ⌈40 000 / 43⌉ = 931; üstündeki seviye ⌈931 / 46⌉ = 21; kök ⌈21 / 46⌉ = 1. Üç seviye (kök, bir iç seviye, yapraklar), toplam 931 + 21 + 1 = 953 blok. Arama her seviyeden bir düğüm ve kaydın bloğunu okur: 3 + 1 = 4 blok.</p></div></li>
+</ol>
+<h4>Problem 2: bir B+-ağacının kapasitesi</h4>
+<p>Problem 1'in ağacında (p = 68, p<sub>leaf</sub> = 63) kök, bir iç seviye ve yapraklardan oluşan bir ağaç en fazla kaç kaydı gösterebilir? Düğümler %69 doluysa kaç kayıt gösterir?</p>
+<div class="hint" data-label="Cevabı göster"><p>Tam dolu: kök 68 iç düğümü, her iç düğüm 68 yaprağı gösterir; 68 · 68 = 4624 yaprak, her biri 63 kayıt: 68 · 68 · 63 = 291 312 kayıt. %69 dolu: 46 · 46 = 2116 yaprak, her biri 43 kayıt: 90 988 kayıt. Problem 1'in 40 000 kaydı bu yüzden üç seviyeye sığar.</p></div>
+<h4>Problem 3: B+-ağacına ekleme</h4>
+<p>p = 3 ve p<sub>leaf</sub> = 2 olan boş bir B+-ağacına sırasıyla 40, 15, 72, 33, 58, 9, 81, 27, 64, 50 ekleyin. Her bölünmede hangi değerin yukarı kopyalandığını ya da taşındığını yazın.</p>
+<div class="hint" data-label="Cevabı göster"><p>Son ağaç: kök [33, 64]; iç düğümler [15], [40, 58], [72]; yapraklar [9, 15] → [27, 33] → [40] → [50, 58] → [64] → [72] → [81]. Ağaç dengeli: bütün yapraklar aynı seviyede. Son ekleme (50), [50, 58, 64] yaprağını taşırır; 58 ebeveyne kopyalanır ve [40] iç düğümü [40, 58] olur.</p>
+<button type="button" class="btn small" data-bptree="40 15 72 33 58 9 81 27 64 50" data-p="3" data-pl="2">Oynatıcıda adım adım gör</button></div>
+<h4>Problem 4: hangi alan, hangi indeks?</h4>
+<ol>
+  <li>EMPLOYEE dosyası Dno'ya göre sıralı. Ssn, Dno ve Lname bu dosyada hangi rollerdedir ve her biri üzerine hangi indeks kurulabilir?
+    <div class="hint" data-label="Cevabı göster"><p>Dno: clustering field (sıralama alanı ama anahtar değil) → kümeleme indeksi. Ssn: anahtar ama dosya ona göre sıralı değil, yani nonordering key field → ikincil indeks (yoğun). Lname: nonordering field → ikincil indeks. Dosya Dno'ya göre sıralı olduğu için Ssn üzerinde birincil indeks kurulamaz.</p></div></li>
+  <li>Bir dosyanın aynı anda hem birincil hem kümeleme indeksi olabilir mi?
+    <div class="hint" data-label="Cevabı göster"><p>Hayır. İkisi de dosyanın sıralandığı alan üzerine kurulur ve dosya yalnızca bir alana göre sıralı olabilir. O alan anahtarsa birincil, değilse kümeleme indeksi olur. İkincil indeks ise istendiği kadar olabilir.</p></div></li>
+  <li>Birincil indeksin giriş sayısı neden kayıt sayısı değil de blok sayısıdır?
+    <div class="hint" data-label="Cevabı göster"><p>Dosya ordering key field'a göre sıralı olduğu için her bloğun ilk kaydının anahtarını (blok çapası) bilmek, aranan değerin hangi bloğa düştüğünü söylemeye yeter. Bu yüzden birincil indeks seyrektir.</p></div></li>
+</ol>
 
 </div></main>
 </body>

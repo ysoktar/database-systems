@@ -409,6 +409,38 @@ SELECT DISTINCT Salary FROM EMPLOYEE;</pre>
 </div>
 
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kendiniz çözün, sonra cevabı açın; SQL cevapları sayfadaki MySQL'de çalışır.</p>
+<h4>Problem 1: COMPANY üzerinde sorgular</h4>
+<p>Her sorguyu önce kâğıtta yazın, sonra cevabı açıp çalıştırın.</p>
+<ol type="a">
+  <li>Houston'daki bir projede çalışan çalışanların adı ve soyadı (her çalışan bir kez).
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT DISTINCT E.Fname, E.Lname
+FROM   EMPLOYEE E, WORKS_ON W, PROJECT P
+WHERE  W.Essn = E.Ssn AND P.Pnumber = W.Pno
+  AND  P.Plocation = 'Houston';</pre><p>Üç tablo iki join koşuluyla bağlanır; DISTINCT, birden çok Houston projesinde çalışan biri (Wong) iki kez çıkmasın diye.</p></div></li>
+  <li>Maaşı 30 000 ile 40 000 arasında olan ve 1960'tan önce doğmuş çalışanlar.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT Fname, Lname, Salary, Bdate
+FROM   EMPLOYEE
+WHERE  Salary BETWEEN 30000 AND 40000
+  AND  Bdate < '1960-01-01';</pre><p>BETWEEN uçları dahil eder (Wong'un 40 000'i sonuçta).</p></div></li>
+  <li>Her çalışanın adı ve yöneticisinin adı (yöneticisi olmayanlar hariç).
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT E.Fname, E.Lname, S.Fname AS Sup_fname, S.Lname AS Sup_lname
+FROM   EMPLOYEE E, EMPLOYEE S
+WHERE  E.Super_ssn = S.Ssn;</pre><p>Aynı tablo iki takma adla iki kez kullanılır. Borg'un yöneticisi NULL olduğu için join koşulu onu dışarıda bırakır.</p></div></li>
+</ol>
+<h4>Problem 2: güncelleme</h4>
+<ol type="a">
+  <li>Research departmanındaki herkese %5 zam yapan komutu yazın. Departman numarasını sabit yazmayın.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap (geri alınır)">START TRANSACTION;
+UPDATE EMPLOYEE
+SET    Salary = Salary * 1.05
+WHERE  Dno = (SELECT Dnumber FROM DEPARTMENT WHERE Dname = 'Research');
+SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5;
+ROLLBACK;</pre><p>Alt sorgu numarayı adından bulur. Kutu değişikliği bir transaction içinde gösterir ve geri alır.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>
