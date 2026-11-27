@@ -1,5 +1,5 @@
 // Example ER / EER schemas in the ER studio's language. COMPANY, BANK and the EER examples follow Elmasri & Navathe
-// (Figures 3.2, 3.21, 4.1/4.4, 4.8); UNIVERSITY is the worked problem of the Ch 1–7 guide.
+// (Figures 3.2, 3.21, 4.1/4.4, 4.8); UNIVERSITY is the worked problem of the midterm guide.
 export const ER_EXAMPLES = [
   {
     id: "company", title: "COMPANY", kind: "ER", source: "Figure 3.2",
@@ -44,7 +44,7 @@ identifying relationship DEPENDENTS_OF: EMPLOYEE 1, DEPENDENT N total
 `,
   },
   {
-    id: "university", title: "UNIVERSITY", kind: "ER", source: "Ch 1–7 rehberi", source_en: "Ch 1–7 guide",
+    id: "university", title: "UNIVERSITY", kind: "ER", source: "Arasınav rehberi", source_en: "Midterm guide",
     layout: { "E:STUDENT": { x: 120, y: 220 }, "E:SECTION": { x: 470, y: 220 }, "E:COURSE": { x: 790, y: 220 }, "E:INSTRUCTOR": { x: 470, y: 390 },
       "E:DEPARTMENT": { x: 790, y: 390 }, "R:ENROLLS": { x: 295, y: 220 }, "R:OFFERING_OF": { x: 630, y: 220 }, "R:TEACHES": { x: 470, y: 305 },
       "R:OFFERS": { x: 790, y: 305 }, "R:WORKS_IN": { x: 630, y: 390 }, "R:PREREQ": { x: 790, y: 90 } },

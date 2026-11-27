@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Study guide: the whole course · Database Systems</title>
+<title>Final exam study guide · Database Systems</title>
 <meta name="description" content="A final exam study guide covering all topics (Elmasri &amp; Navathe Ch 1–9, 11, 14, 16, 17, 20): a scope map, a study plan, the approach to question types, what to know for Ch 8–20, concept questions, worked problems, an end-to-end problem from requirements to transactions, and practice questions.">
 <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../css/style.css">
@@ -13,8 +13,8 @@
 <body data-page="exam-final">
 <main><div class="content">
 
-<h1>Study guide: the whole course</h1>
-<p class="lead">The course covers Ch 1–7 and the chapters after them (Ch 8, 9, 11, 14, 16, 17, 20). This page shows where each topic is explained, an order in which to study, and how the topics come together in a single problem. What to know for Ch 8–20, the question types, concept questions, worked problems and practice questions are on this page too; the detailed lists and problems for Ch 1–7 are in the <a href="exam-midterm.html">Ch 1–7 guide</a>.</p>
+<h1>Final exam study guide</h1>
+<p class="lead">The final covers all the topics of the course: the midterm topics (Ch 1–7) and those after it (Ch 8, 9, 11, 14, 16, 17, 20). This page shows where each topic is explained, an order in which to study, and how the topics come together in a single problem. What to know for Ch 8–20, the question types, concept questions, worked problems and practice questions are on this page too; the detailed lists and problems for Ch 1–7 are in the <a href="exam-midterm.html">midterm guide</a>.</p>
 
 <div class="callout key">
   <p>In the final, topics often come together in one scenario: drawing an ER diagram from a requirements text and mapping it to tables, checking the normal form of the tables, writing queries in SQL and relational algebra, deciding which index fits, and discussing the correctness of concurrent operations. The <a href="#end-to-end">end-to-end problem</a> below is exactly such a question.</p>
@@ -24,10 +24,10 @@
 <table class="simple">
   <thead><tr><th>Topic</th><th>Chapters</th><th>Pages</th><th>Guide</th></tr></thead>
   <tbody>
-    <tr><td>Basic concepts and architecture</td><td>Ch 1–2</td><td><a href="ch1-intro.html">Databases and DBMSs</a>, <a href="ch2-architecture.html">Architecture</a></td><td><a href="exam-midterm.html">Ch 1–7 guide</a></td></tr>
-    <tr><td>Conceptual modelling</td><td>Ch 3–4</td><td><a href="ch3-er.html">The ER model</a>, <a href="ch4-eer.html">The EER model</a>, <a href="er-studio.html">ER studio</a></td><td><a href="exam-midterm.html">Ch 1–7 guide</a></td></tr>
-    <tr><td>The relational model and constraints</td><td>Ch 5</td><td><a href="ch5-relational.html">The relational model</a></td><td><a href="exam-midterm.html">Ch 1–7 guide</a></td></tr>
-    <tr><td>SQL</td><td>Ch 6–7</td><td><a href="ch6-sql.html">Basic SQL</a>, <a href="ch7-nested.html">NULLs and nesting</a>, <a href="ch7-joins.html">Joins and grouping</a>, <a href="ch7-views.html">Triggers and views</a>, <a href="notebook.html">Notebook</a></td><td><a href="exam-midterm.html">Ch 1–7 guide</a></td></tr>
+    <tr><td>Basic concepts and architecture</td><td>Ch 1–2</td><td><a href="ch1-intro.html">Databases and DBMSs</a>, <a href="ch2-architecture.html">Architecture</a></td><td><a href="exam-midterm.html">Midterm guide</a></td></tr>
+    <tr><td>Conceptual modelling</td><td>Ch 3–4</td><td><a href="ch3-er.html">The ER model</a>, <a href="ch4-eer.html">The EER model</a>, <a href="er-studio.html">ER studio</a></td><td><a href="exam-midterm.html">Midterm guide</a></td></tr>
+    <tr><td>The relational model and constraints</td><td>Ch 5</td><td><a href="ch5-relational.html">The relational model</a></td><td><a href="exam-midterm.html">Midterm guide</a></td></tr>
+    <tr><td>SQL</td><td>Ch 6–7</td><td><a href="ch6-sql.html">Basic SQL</a>, <a href="ch7-nested.html">NULLs and nesting</a>, <a href="ch7-joins.html">Joins and grouping</a>, <a href="ch7-views.html">Triggers and views</a>, <a href="notebook.html">Notebook</a></td><td><a href="exam-midterm.html">Midterm guide</a></td></tr>
     <tr><td>Relational algebra</td><td>Ch 8</td><td><a href="ch8-algebra.html">Relational algebra</a></td><td><a href="#approach">This page</a></td></tr>
     <tr><td>Design: mapping and normalization</td><td>Ch 9, 14</td><td><a href="ch9-mapping.html">ER-to-relational mapping</a>, <a href="ch14-normalization.html">Normalization</a></td><td><a href="#approach">This page</a></td></tr>
     <tr><td>Storage and indexing</td><td>Ch 16–17</td><td><a href="ch16-files.html">Disk storage and files</a>, <a href="ch17-indexing.html">Indexing structures</a></td><td><a href="#approach">This page</a></td></tr>
@@ -38,7 +38,7 @@
 <h2>Study plan</h2>
 <p>The topics build on one another, so the order below is recommended. At each step first read the page, then use its player or SQL boxes yourself, and finally solve the page's quizzes.</p>
 <ol>
-  <li><strong>Concepts (Ch 1–2):</strong> definitions, the three-schema architecture, data independence. To prepare for short-answer questions, answer the concept questions of the Ch 1–7 guide.</li>
+  <li><strong>Concepts (Ch 1–2):</strong> definitions, the three-schema architecture, data independence. To prepare for short-answer questions, answer the concept questions of the midterm guide.</li>
   <li><strong>ER and EER (Ch 3–4):</strong> practise drawing diagrams from requirements with at least two exercises in the <a href="er-studio.html">ER studio</a>.</li>
   <li><strong>Mapping (Ch 9):</strong> right after that, turn the diagrams you drew into tables. The <a href="ch9-mapping.html">step-by-step player</a> shows Steps 1–9 on one schema.</li>
   <li><strong>The relational model and constraints (Ch 5):</strong> keys and which operation violates which constraint.</li>
@@ -51,7 +51,7 @@
 </ol>
 
 <h2 id="approach">Approach to question types</h2>
-<p>The four question types of Ch 1–7 (drawing ER/EER from requirements, which constraint an operation violates, finding keys from requirements, and writing SQL) are explained step by step in the <a href="exam-midterm.html#approach">Ch 1–7 guide</a>. The question types of Ch 8–20 are below; each row links to the page that shows the pattern step by step.</p>
+<p>The four question types of Ch 1–7 (drawing ER/EER from requirements, which constraint an operation violates, finding keys from requirements, and writing SQL) are explained step by step in the <a href="exam-midterm.html#approach">midterm guide</a>. The question types of Ch 8–20 are below; each row links to the page that shows the pattern step by step.</p>
 <table class="simple">
   <thead><tr><th>Question type</th><th>Steps</th><th>To study</th></tr></thead>
   <tbody>
@@ -80,7 +80,7 @@
 </table>
 
 <h2>Ch 8–20: what to know, chapter by chapter</h2>
-<p>The same table for Ch 1–7 is in the <a href="exam-midterm.html">Ch 1–7 guide</a>.</p>
+<p>The same table for Ch 1–7 is in the <a href="exam-midterm.html">midterm guide</a>.</p>
 <table class="simple">
   <thead><tr><th>Chapter</th><th>What to know</th><th>Page</th></tr></thead>
   <tbody>
@@ -322,10 +322,10 @@ RESULT ← π<sub>Lname, Fname</sub>(SSNS * EMPLOYEE)</pre>
   <li><strong>Confusing serializable with serial.</strong> A serializable schedule may be interleaved; what matters is that it is equivalent to a serial schedule.</li>
   <li><strong>Counting two reads as a conflict.</strong> A conflict needs at least one write.</li>
 </ul>
-<p>The detailed list for Ch 1–7 is in the <a href="exam-midterm.html#mistakes">Ch 1–7 guide</a>.</p>
+<p>The detailed list for Ch 1–7 is in the <a href="exam-midterm.html#mistakes">midterm guide</a>.</p>
 
 <h2 id="practice">Mixed practice set</h2>
-<p>The questions come from all chapters in mixed order, as in the final. Eight more questions specific to Ch 8–20 follow. For a set on Ch 1–7 see the <a href="exam-midterm.html#practice">Ch 1–7 guide's practice set</a>.</p>
+<p>The questions come from all chapters in mixed order, as in the final. Eight more questions specific to Ch 8–20 follow. For a set on Ch 1–7 see the <a href="exam-midterm.html#practice">midterm guide's practice set</a>.</p>
 <div class="quiz" data-answer="2">
   <p>(Ch 2) When a new column is added to a table and the application programs that do not use it need no change, which independence is achieved?</p>
   <ol>

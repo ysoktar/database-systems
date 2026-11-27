@@ -54,8 +54,8 @@ export const NAV = [
     { id: "lab", title: "SQL laboratuvarı", title_en: "SQL lab", desc_en: "A free query console on COMPANY and a schema browser.", desc: "COMPANY üzerinde serbest sorgu konsolu ve şema tarayıcı." },
   ] },
   { part: "Sınav", part_en: "Exam", items: [
-    { id: "exam-midterm", title: "Ch 1–7 çalışma rehberi", title_en: "Study guide: Ch 1–7", desc_en: "What to know chapter by chapter, worked problems, a practice set.", desc: "Bölüm bölüm bilinmesi gerekenler, çözümlü sorular, deneme seti." },
-    { id: "exam-final", title: "Bütün ders: çalışma rehberi", title_en: "Study guide: the whole course", desc_en: "All topics: a scope map, a study plan, an end-to-end worked problem from requirements to transactions, a mixed practice set.", desc: "Bütün konular: kapsam haritası, çalışma planı, gereksinimden transaction'a uçtan uca çözümlü problem, karışık deneme seti." },
+    { id: "exam-midterm", title: "Arasınav çalışma rehberi", title_en: "Midterm study guide", desc_en: "What to know chapter by chapter, worked problems, a practice set.", desc: "Bölüm bölüm bilinmesi gerekenler, çözümlü sorular, deneme seti." },
+    { id: "exam-final", title: "Final çalışma rehberi", title_en: "Final exam study guide", desc_en: "All topics: a scope map, a study plan, an end-to-end worked problem from requirements to transactions, a mixed practice set.", desc: "Bütün konular: kapsam haritası, çalışma planı, gereksinimden transaction'a uçtan uca çözümlü problem, karışık deneme seti." },
     { id: "cheatsheet", title: "Özet kâğıdı ve sözlük", title_en: "Cheat sheet and glossary", desc_en: "SQL syntax, ER notation, algebra, normal forms, file and index formulas, transactions, Turkish–English terms.", desc: "SQL sözdizimi, ER gösterimi, cebir, normal formlar, dosya ve indeks formülleri, transaction'lar, Türkçe–İngilizce terimler." },
   ] },
 ];

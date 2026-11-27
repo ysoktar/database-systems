@@ -1,4 +1,4 @@
-// Study guide: Ch 1–7: exam-style SQL problems checked against a model solution, a worked ER design problem,
+// Midterm study guide: exam-style SQL problems checked against a model solution, a worked ER design problem,
 // and a practice set dealt from the guide's own question bank plus the quizzes of every chapter page.
 import { enhanceQuizzes, enhanceCallouts, PAGES } from "../layout.js";
 import { h, $, $$, button } from "../lib/ui.js";
@@ -64,7 +64,7 @@ async function deal() {
   list.replaceChildren(...pick.map((q) => {
     const box = h("div", { html: q.html });
     const info = PAGES.find((p) => p.id === q.topic);
-    box.append(h("div", { class: "quiz-src" }, info ? h("a", { href: `${info.id}.html` }, `${info.title} · ${info.ch}`) : tl("Ch 1–7 rehberi", "Ch 1–7 guide")));
+    box.append(h("div", { class: "quiz-src" }, info ? h("a", { href: `${info.id}.html` }, `${info.title} · ${info.ch}`) : tl("Arasınav rehberi", "Midterm guide")));
     return box;
   }));
   if (!pick.length) list.append(h("p", { class: "muted" }, tl("Soru seçilmedi: yukarıdan en az bir konu işaretleyin.", "No questions selected: tick at least one topic above.")));

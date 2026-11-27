@@ -1,4 +1,4 @@
-// Exam-style SQL problems on COMPANY for the Ch 1–7 guide. The expected answer of each is its model solution run on
+// Exam-style SQL problems on COMPANY for the midterm guide. The expected answer of each is its model solution run on
 // the same database; test/exam.test.mjs checks that every solution returns `rows` rows on the Figure 5.6 state.
 export const SQL_PROBLEMS = [
   {

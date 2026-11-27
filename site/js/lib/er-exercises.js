@@ -110,8 +110,8 @@ relationship TREATS: DOCTOR M, PATIENT N total
 `,
   },
   {
-    id: "university", title: "Üniversite (Ch 1–7 rehberi)", level: 2,
-    title_en: "University (Ch 1–7 guide)",
+    id: "university", title: "Üniversite (arasınav rehberi)", level: 2,
+    title_en: "University (midterm guide)",
     text_en: `<ul>
       <li>The university's <strong>students</strong> are kept with a student number (unique), a name, one or more phones and a grade point average (computed from their grades).</li>
       <li>Every <strong>course</strong> has a unique code, a title and credits. A course's prerequisites are other courses.</li>
