@@ -41,12 +41,7 @@
 </dl>
 
 <h2>The database design process</h2>
-<ol>
-  <li><strong>Requirements collection and analysis</strong>: data requirements and functional requirements (user operations).</li>
-  <li><strong>Conceptual design</strong>: a conceptual schema in a high-level model (ER). Independent of the DBMS; used to communicate with users.</li>
-  <li><strong>Logical design</strong> (<em>data model mapping</em>): translating the conceptual schema into the DBMS's model (e.g. relational). The ER→relational mapping is in Ch 9 of the book.</li>
-  <li><strong>Physical design</strong>: internal storage structures, indexes, access paths.</li>
-</ol>
+<div id="design-flow"></div>
 <p>This page covers step 2: reading a requirements text and drawing an ER diagram. This is the typical exam question: you are given a paragraph and asked to show its entities, attributes, relationships and constraints in a diagram. At the end of the page you will do it yourself with a hospital example.</p>
 
 <h2>Notation</h2>
@@ -161,6 +156,7 @@
   <li>Not every existence dependency produces a weak entity: DRIVER_LICENSE is related to PERSON with total participation, but it is not weak because it has its own key (the licence number).</li>
   <li>A weak entity can sometimes be modelled as a <em>complex (composite, multivalued)</em> attribute instead; if it takes part in independent relationships, it has to be an entity.</li>
 </ul>
+<div id="weak-dep"></div>
 
 <h2>Relationships of higher degree</h2>
 <div id="ternary"></div>

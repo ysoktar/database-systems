@@ -48,12 +48,14 @@
 <h2>Introduction to transaction processing</h2>
 <p>A <strong>transaction</strong> is an executing program that forms a logical unit of database processing. Transaction processing systems are systems with large databases and hundreds of concurrent users that require high availability and fast response, such as airline reservations, banking and stock markets. A <strong>single-user</strong> DBMS is used by at most one user at a time (for example a home computer); a <strong>multiuser</strong> DBMS is accessed by many users concurrently.</p>
 <p><strong>Multiprogramming</strong> means the operating system executes several processes concurrently: it runs commands of one process, suspends it, and runs commands of another. On a single CPU this means <strong>interleaved processing</strong>; with several CPUs processes can run truly in <strong>parallel</strong> (the book's Figure 20.1). The theory on this page assumes interleaved execution.</p>
+<div id="interleave"></div>
 <p>The boundaries of a transaction are given by <code>begin transaction</code> and <code>end transaction</code> statements. A transaction that does not change the database is <strong>read-only</strong>, one that does is <strong>read-write</strong>. The database is seen as a collection of named <strong>data items</strong>. A data item can be a record, a disk block or a single attribute value of a record; the size of an item is its <strong>granularity</strong>. The concepts here do not depend on granularity.</p>
 <p>A transaction accesses the database with two basic operations:</p>
 <ul>
   <li><strong>read_item(X)</strong>: reads the data item named X into a program variable named X. The address of the disk block containing X is found, the block is copied into a buffer (if it is not there yet), and X is copied from the buffer into the variable.</li>
   <li><strong>write_item(X)</strong>: writes the value of the program variable X into the data item X. The block is found and copied into a buffer, the variable X is written into the right place in the buffer, and the updated block is written back to disk (immediately or later).</li>
 </ul>
+<div id="rw-item"></div>
 <p>All items a transaction reads form its <strong>read set</strong>, all items it writes its <strong>write set</strong>. The two transactions of the book's Figure 20.2 are used below: T1 transfers N seats from flight X to flight Y (read_item(X); X := X − N; write_item(X); read_item(Y); Y := Y + N; write_item(Y)); T2 reserves M seats on flight X (read_item(X); X := X + M; write_item(X)). The DBMS keeps several buffers in the database cache; when they are full, a <a href="ch16-files.html">buffer replacement policy</a> such as LRU decides which one is replaced.</p>
 
 <h2>Why concurrency control is needed</h2>
@@ -117,6 +119,7 @@ SELECT * FROM demo.ACCOUNT;
   <li><strong>Cascadeless</strong>: every transaction reads only items written by committed transactions; so there is no cascading rollback.</li>
   <li><strong>Strict</strong>: no transaction can read or write an item X until the last transaction that wrote X has committed or aborted. Recovery becomes very simple: to undo the writes of an aborted transaction, the <strong>before image</strong> of the items is restored.</li>
 </ul>
+<div id="rec-sets"></div>
 <p>In the book's examples S<sub>c</sub>: r1(X); w1(X); r2(X); r1(Y); w2(X); c2; a1 is not recoverable, because T2 reads the X written by T1 and commits before T1; when T1 aborts, the value T2 read becomes invalid but T2 can no longer be undone. S<sub>d</sub>, with the commits swapped, is recoverable; but it is not cascadeless. The schedule analyzer states these classes with the reason for every schedule.</p>
 
 <h2>Characterizing schedules by serializability</h2>

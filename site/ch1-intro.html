@@ -8,7 +8,7 @@
 <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/style.css">
 <script src="js/theme-init.js"></script>
-<script type="module" src="js/pages/concept-decide.js"></script>
+<script type="module" src="js/pages/ch1-intro.js"></script>
 </head>
 <body data-page="ch1-intro">
 <main><div class="content">
@@ -73,6 +73,7 @@ ORDER BY TABLE_NAME;
 
 <h2>Veritabanı yaklaşımının özellikleri</h2>
 <p>Dosya işleme (<em>file processing</em>) yaklaşımında her uygulama kendi dosyalarını tanımlar ve yönetir; aynı veri birden çok yerde tekrar eder. Veritabanı yaklaşımında ise tek bir veri deposu bir kez tanımlanır ve herkes ona erişir. Kitap dört özellik sayar:</p>
+<div id="file-vs-db"></div>
 <ol>
   <li><strong>Self-describing nature</strong> (kendini tanımlama): veritabanı sadece veriyi değil, yapısının tam tanımını da (meta-data, katalog) içerir. DBMS yazılımı herhangi bir veritabanıyla çalışabilir, çünkü yapıyı katalogdan okur.</li>
   <li><strong>Insulation between programs and data, data abstraction</strong> (program ile verinin yalıtımı, veri soyutlaması):
@@ -90,6 +91,7 @@ ORDER BY TABLE_NAME;
 </div>
 
 <h2>Aktörler: kim, ne yapar?</h2>
+<div id="actors"></div>
 <div class="two-col">
   <div>
     <h3>"Sahnedeki" aktörler (actors on the scene)</h3>

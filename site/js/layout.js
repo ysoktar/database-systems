@@ -294,7 +294,7 @@ function init() {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.body.classList.remove("nav-open"); });
 
   foldIntro(content);
-  enhanceTerms(content);
+  linkTerms(content, enhanceTerms(content));
   enhanceCallouts(content);
   enhanceQuizzes(content);
   enhanceSQL(content);
@@ -317,6 +317,7 @@ function init() {
  *  example; dt[data-sec] = the start of the heading where the term is explained) becomes a filterable list. Clicking a
  *  term with a section jumps there and briefly marks the heading. Without JavaScript the plain list still reads well. */
 function enhanceTerms(content) {
+  const entries = [];
   for (const dl of content.querySelectorAll("dl.term-glance")) {
     const heads = [...content.querySelectorAll("h2, h3")];
     const rows = [...dl.querySelectorAll("dt")].map((dt) => {
@@ -328,6 +329,7 @@ function enhanceTerms(content) {
       } }, tl("bölüme git →", "go to section →")) : "";
       const r = h("div", { class: "term-row static" }, h("span", { class: "term-name" }, dt.textContent), h("span", { class: "term-def" }, ...[...dd.childNodes].map((n) => n.cloneNode(true)), go ? " " : "", go));
       r.dataset.q = (dt.textContent + " " + dd.textContent).toLocaleLowerCase();
+      entries.push({ name: dt.textContent, dd: dd.cloneNode(true) });
       return r;
     });
     const list = h("div", { class: "term-list" }, ...rows);
@@ -339,6 +341,80 @@ function enhanceTerms(content) {
     } });
     dl.replaceWith(h("div", { class: "stepper term-box" }, q, list, none));
   }
+  return entries;
+}
+
+/** Marks the first use of each "terms at a glance" entry on the page with a dotted underline; hovering,
+ *  focusing or tapping it shows the plain definition. Only prose is touched (p, li, td, callouts), never code,
+ *  headings, links, buttons or the widgets. */
+function linkTerms(content, entries) {
+  if (!entries.length) return;
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const forms = [];
+  for (const e of entries) {
+    // "Meta-data (katalog)" → "Meta-data", "katalog"; "A / B" → "A", "B"
+    const parts = e.name.split(/\s*[()\/]\s*|\s+vs\.?\s+/).map((x) => x.trim()).filter((x) => x.length >= 2);
+    for (const f of new Set([e.name, ...parts])) forms.push({ f, e });
+  }
+  forms.sort((a, b) => b.f.length - a.f.length);
+  // Turkish words take suffixes (DBMS'in, veritabanının); English takes plurals.
+  const tail = EN ? "(?:'s|s|es)?(?![\\p{L}\\d])" : "(?:['’][\\p{L}]*|[\\p{L}]{0,3})?(?![\\p{L}\\d])";
+  const re = new RegExp(`(?<![\\p{L}\\d])(?:${forms.map((x) => esc(x.f)).join("|")})${tail}`, "giu");
+  const byForm = new Map(forms.map((x) => [x.f.toLocaleLowerCase(EN ? "en" : "tr"), x]));
+  const SKIP = "pre, code, a, button, label, h1, h2, h3, h4, summary, select, textarea, .term-box, .term, .sqlbox, .stepper, figure, svg, .quiz, .bank, .decide, div[id]";
+  const OK = "p, li, td, dd, .callout";
+  const seen = new Set(); // each term once per page: its first use
+  const walker = document.createTreeWalker(content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  const jobs = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeType === 1) continue;
+    const el = n.parentElement;
+    if (!el || !el.closest(OK) || el.closest(SKIP) || !n.data.trim()) continue;
+    const hits = [];
+    re.lastIndex = 0;
+    for (let m; (m = re.exec(n.data)); ) {
+      const word = m[0];
+      const key = [...byForm.keys()].find((k) => word.toLocaleLowerCase(EN ? "en" : "tr").startsWith(k));
+      const form = key && byForm.get(key), e = form?.e;
+      // SQL keywords and acronyms (IN, LEFT, DBA) match only in capitals, so "in" or "left" in prose stay plain
+      if (!e || seen.has(e) || (/^[^a-zçğıöşü]+$/.test(form.f) && !word.startsWith(form.f))) continue;
+      seen.add(e);
+      hits.push([m.index, word, e]);
+    }
+    if (hits.length) jobs.push([n, hits]);
+  }
+  for (const [n, hits] of jobs) {
+    const frag = document.createDocumentFragment();
+    let at = 0;
+    for (const [i, word, e] of hits) {
+      frag.append(n.data.slice(at, i), h("span", { class: "term", tabindex: "0", dataset: { term: entries.indexOf(e) } }, word));
+      at = i + word.length;
+    }
+    frag.append(n.data.slice(at));
+    n.replaceWith(frag);
+  }
+  const pop = h("div", { class: "term-pop", role: "tooltip", hidden: true });
+  document.body.append(pop);
+  let cur = null;
+  const show = (t) => {
+    const e = entries[+t.dataset.term];
+    cur = t;
+    pop.replaceChildren(h("strong", {}, e.name), " ", ...[...e.dd.childNodes].map((x) => x.cloneNode(true)));
+    pop.hidden = false;
+    const r = t.getBoundingClientRect(), w = Math.min(340, window.innerWidth - 24);
+    pop.style.maxWidth = w + "px";
+    const left = Math.max(12, Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - w - 12));
+    pop.style.left = left + "px";
+    pop.style.top = window.scrollY + r.bottom + 6 + "px";
+  };
+  const hide = () => { pop.hidden = true; cur = null; };
+  content.addEventListener("mouseover", (ev) => { const t = ev.target.closest?.(".term[data-term]"); if (t) show(t); });
+  content.addEventListener("mouseout", (ev) => { const t = ev.target.closest?.(".term[data-term]"); if (t && !t.contains(ev.relatedTarget)) hide(); });
+  content.addEventListener("focusin", (ev) => { const t = ev.target.closest?.(".term[data-term]"); if (t) show(t); });
+  content.addEventListener("focusout", (ev) => { if (ev.target.closest?.(".term[data-term]")) hide(); });
+  content.addEventListener("click", (ev) => { const t = ev.target.closest?.(".term[data-term]"); if (t) (cur === t && !pop.hidden ? hide() : show(t)); });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") hide(); });
+  window.addEventListener("scroll", () => cur && !pop.hidden && show(cur), { passive: true });
 }
 
 function foldIntro(content) {
