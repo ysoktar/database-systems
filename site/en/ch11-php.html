@@ -258,6 +258,29 @@ foreach ($allresult as $r) {
   <div class="explain">sort orders the values and gives the array numeric indexes from 0; the keys of the associative array are lost. To keep the keys, asort is used; to sort by keys, ksort. In the array player you can see the sort step before and after.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: a query from a form</h4>
+<p>PHP code (PEAR DB) that lists the names of the employees in the department whose number comes from a form.</p>
+<ol type="a">
+  <li>Write the code using a placeholder.
+    <div class="hint" data-label="Show the answer"><pre class="code-block"><code>$d = DB::connect('mysql://user:pass@localhost/company');
+if (DB::isError($d)) { die('Connection error: ' . $d->getMessage()); }
+$q = $d->query('SELECT Fname, Lname FROM EMPLOYEE WHERE Dno = ?',
+               array($_POST['dno']));
+while ($r = $q->fetchRow()) {
+  print "$r[0] $r[1]&lt;br&gt;";
+}</code></pre><p>The value from the form is not pasted into the SQL text; the driver puts it in place of ? safely.</p></div></li>
+  <li>What would happen if the query text were built as <code>"... WHERE Dno = " . $_POST['dno']</code>?
+    <div class="hint" data-label="Show the answer"><p><strong>SQL injection</strong>: if the user types <code>5 OR 1=1</code> into the form, the condition is true for every row and all employees are listed; worse input could delete data. A placeholder makes sure the input is always treated as a <em>value</em>, never as SQL code.</p></div></li>
+</ol>
+<h4>Problem 2: fetchRow or getAll?</h4>
+<ol type="a">
+  <li>What is the difference between a fetchRow loop and getAll when printing a 10 000-row result?
+    <div class="hint" data-label="Show the answer"><p>fetchRow brings the rows <strong>one at a time</strong>; only one row is in memory at once. getAll loads the whole result <strong>into an array</strong>: shorter code, but all 10 000 rows are in memory at once. For large results the fetchRow loop is preferred.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

@@ -207,6 +207,27 @@ ORDER BY TABLE_NAME;
   <div class="explain">Limited storage, a single user, simple and unchanging requirements: the overhead a DBMS brings (generality, security, concurrency, recovery) does not pay off here.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: from file processing to a database</h4>
+<p>At a hospital, the outpatient clinic, the laboratory and accounting keep patient data in their own files.</p>
+<ol type="a">
+  <li>Write three problems of this arrangement and the database feature that solves each.
+    <div class="hint" data-label="Show the answer"><p>(1) A patient's address is repeated in three files and when one is updated the others go stale → <strong>controlled redundancy</strong>, one copy. (2) When the laboratory adds a field its programs change and the other units' file formats no longer match → <strong>program-data independence</strong> and the catalog (self-description). (3) Accounting should see billing data but not test results → <strong>multiple views</strong> and authorization. Also, two units may write the same patient's record at the same time → <strong>concurrency control</strong>.</p></div></li>
+</ol>
+<h4>Problem 2: actors</h4>
+<p>Which kind of actor is each person?</p>
+<ol type="a">
+  <li>(a) The clerk who uses the patient admission screen all day, (b) a data scientist writing their own analyses in SQL, (c) the person who manages user accounts and backups, (d) the person who interviews users and designs the tables and views, (e) an engineer writing a DBMS's query optimizer.
+    <div class="hint" data-label="Show the answer"><p>(a) <strong>Naive/parametric end user</strong> (canned transactions), (b) <strong>sophisticated end user</strong>, (c) <strong>DBA</strong>, (d) <strong>database designer</strong>, (e) <strong>DBMS designer and implementer</strong>: behind the scene, not concerned with the database's content.</p></div></li>
+</ol>
+<h4>Problem 3: when a DBMS is not needed</h4>
+<ol type="a">
+  <li>Write two situations where using a DBMS can be unnecessary or harmful, and explain why.
+    <div class="hint" data-label="Show the answer"><p>(1) An embedded device with little memory (e.g. a thermostat's settings): the DBMS's overhead (memory, processor) cannot be afforded. (2) Hard deadlines of a real-time system: transaction processing and recovery add delay. Other examples: simple, single-user data that never changes; very special data that does not fit the DBMS's general model.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

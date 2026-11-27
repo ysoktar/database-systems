@@ -218,6 +218,26 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber;
   <div class="explain">Adım 9: üst sınıfların anahtarları farklıysa kategori tablosuna bir yapay anahtar (surrogate key) verilir. Her üst sınıf tablosuna bu anahtara referans veren bir foreign key eklenir; kategoriye ait olmayan satırlarda bu sütun NULL'dur.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: ER'den tablolara</h4>
+<p>Ch 3'ün araç kiralama şeması: BRANCH(Branch_no, Address, Phones çok değerli), CAR(Plate, Model, Year), CUSTOMER(License_no, Name, Birth_date, Age türetilmiş), zayıf SERVICE_RECORD(Service_no, Date, Cost); CAR N:1 BRANCH (REGISTERED_AT), CUSTOMER M:N CAR (RENTS: Start_date, End_date), CAR 1:N SERVICE_RECORD (tanımlayıcı).</p>
+<ol type="a">
+  <li>Eşleme algoritmasını uygulayıp tabloları, primary key'leri ve foreign key'leri yazın.
+    <div class="hint" data-label="Cevabı göster"><p>Adım 1: BRANCH(<u>Branch_no</u>, Address), CAR(<u>Plate</u>, Model, Year), CUSTOMER(<u>License_no</u>, Name, Birth_date); türetilmiş Age saklanmaz. Adım 2: SERVICE_RECORD(<u>Plate</u>, <u>Service_no</u>, Date, Cost), Plate → CAR. Adım 4 (1:N): CAR'a Branch_no eklenir (→ BRANCH); CAR total katıldığı için NOT NULL. Adım 5 (M:N): RENTS(<u>License_no</u>, <u>Plate</u>, Start_date, End_date), iki foreign key. Adım 6 (çok değerli): BRANCH_PHONE(<u>Branch_no</u>, <u>Phone</u>).</p></div></li>
+  <li>Aynı müşteri aynı aracı farklı tarihlerde tekrar kiralayabiliyorsa RENTS'in primary key'i yeterli mi?
+    <div class="hint" data-label="Cevabı göster"><p>Hayır: (License_no, Plate) ikinci kiralamada tekrar eder. Anahtara Start_date eklenir: (<u>License_no</u>, <u>Plate</u>, <u>Start_date</u>). Kavramsal olarak bu, RENTS'in bir RENTAL varlığı olması gerektiğini gösterir.</p></div></li>
+</ol>
+<h4>Problem 2: özelleştirme seçenekleri (Adım 8)</h4>
+<p>VEHICLE(Vehicle_id, Price) → {CAR(Max_speed), TRUCK(Tonnage)}, disjoint ve total.</p>
+<ol type="a">
+  <li>8A, 8B, 8C ve 8D seçeneklerinin her birinde hangi tablolar çıkar?
+    <div class="hint" data-label="Cevabı göster"><p><strong>8A</strong>: VEHICLE(<u>Vehicle_id</u>, Price), CAR(<u>Vehicle_id</u>, Max_speed), TRUCK(<u>Vehicle_id</u>, Tonnage). <strong>8B</strong>: CAR(<u>Vehicle_id</u>, Price, Max_speed), TRUCK(<u>Vehicle_id</u>, Price, Tonnage); üst sınıf tablosu yok. <strong>8C</strong>: VEHICLE(<u>Vehicle_id</u>, Price, Max_speed, Tonnage, Vehicle_type). <strong>8D</strong>: VEHICLE(<u>Vehicle_id</u>, Price, Max_speed, Tonnage, Car_flag, Truck_flag).</p></div></li>
+  <li>Özelleştirme overlapping ve partial olsaydı hangi seçenekler uygun olmazdı?
+    <div class="hint" data-label="Cevabı göster"><p><strong>8B</strong> uygun olmaz: partial'da alt sınıfı olmayan araçlar hiçbir tabloda yer almaz, overlapping'de ortak öznitelikler iki tabloda tekrar eder. <strong>8C</strong> de olmaz: tek bir tür özniteliği bir aracın iki alt sınıfta birden olduğunu gösteremez. 8A ve 8D uygundur.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

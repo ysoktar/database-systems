@@ -201,6 +201,26 @@
   <div class="explain">Total: VEHICLE = CAR ∪ TRUCK (every vehicle in at least one). Disjoint: CAR ∩ TRUCK = ∅ (in at most one). Together: in exactly one. Inheritance is always there.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: specialization constraints</h4>
+<p>At a university each PERSON may be an EMPLOYEE, a STUDENT or an ALUMNUS; a person can be an employee and a student at the same time, and some people are none of these (e.g. visitors). Each EMPLOYEE is either FACULTY or STAFF. STUDENTs are GRAD or UNDERGRAD by their Degree_program attribute.</p>
+<ol type="a">
+  <li>Write the constraints (disjoint/overlapping, total/partial) of each specialization and how membership is determined.
+    <div class="hint" data-label="Show the answer"><p>PERSON → {EMPLOYEE, STUDENT, ALUMNUS}: <strong>overlapping, partial</strong> (one person can be in several subclasses; some are in none). EMPLOYEE → {FACULTY, STAFF}: <strong>disjoint, total</strong>. STUDENT → {GRAD, UNDERGRAD}: <strong>disjoint, total</strong> and <strong>attribute-defined</strong> (by Degree_program).</p></div></li>
+</ol>
+<h4>Problem 2: category or shared subclass?</h4>
+<ol type="a">
+  <li>(a) The owner of a vehicle can be a PERSON, a BANK or a COMPANY. (b) A STUDENT_ASSISTANT is both a STUDENT and an EMPLOYEE.
+    <div class="hint" data-label="Show the answer"><p>(a) A <strong>category</strong> (union type): OWNER is a subset of the union of three different superclasses; each owner comes from <em>exactly one</em> of them and inherits only its attributes. (b) A <strong>shared subclass</strong>: STUDENT_ASSISTANT is in the <em>intersection</em> of two superclasses and inherits the attributes of both (multiple inheritance).</p></div></li>
+</ol>
+<h4>Problem 3: why a subclass?</h4>
+<ol type="a">
+  <li>For EMPLOYEE, Typing_speed only makes sense for secretaries. What are two benefits of modelling it with a SECRETARY subclass instead of an EMPLOYEE attribute?
+    <div class="hint" data-label="Show the answer"><p>(1) The attribute does not stay NULL for the other employees. (2) Relationships that belong only to secretaries (e.g. assignment to a typing pool) can be attached to SECRETARY directly. A subclass makes "who does this information belong to?" visible in the schema.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

@@ -243,6 +243,30 @@ DROP VIEW EMP_DEPT;
   <div class="explain">Ara katman (application/web server) iş kurallarını çalıştırır ve veritabanına istemci adına erişir. İki katmanlıda ise istemci, ODBC/JDBC ile doğrudan veritabanı sunucusuna bağlanır.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: hangi veri bağımsızlığı?</h4>
+<p>Her değişiklik için: hangi düzeydeki şema değişir, hangi bağımsızlık sayesinde programlar etkilenmez?</p>
+<ol type="a">
+  <li>EMPLOYEE.Lname üzerine bir indeks eklemek.
+    <div class="hint" data-label="Cevabı göster"><p>İç şema değişir. <strong>Fiziksel veri bağımsızlığı</strong>: kavramsal şema ve programlar aynı kalır, yalnızca erişim hızlanır.</p></div></li>
+  <li>EMPLOYEE'yi EMP_PERSONAL ve EMP_JOB olarak ikiye bölmek; uygulamalar eski EMPLOYEE görünümünü kullanmaya devam ediyor.
+    <div class="hint" data-label="Cevabı göster"><p>Kavramsal şema değişir. <strong>Mantıksal veri bağımsızlığı</strong>: dış şema (EMPLOYEE view'ı) iki tablonun join'iyle yeniden tanımlanır, programlar değişmez.</p></div></li>
+  <li>Veritabanı dosyalarını manyetik diskten SSD'ye taşımak.
+    <div class="hint" data-label="Cevabı göster"><p>Yalnızca iç düzey (depolama) değişir: <strong>fiziksel veri bağımsızlığı</strong>.</p></div></li>
+</ol>
+<h4>Problem 2: dilleri sınıflandırın</h4>
+<ol type="a">
+  <li>CREATE TABLE, CREATE VIEW, CREATE INDEX, SELECT ve UPDATE hangi dil kategorisindedir?
+    <div class="hint" data-label="Cevabı göster"><p>CREATE TABLE: <strong>DDL</strong> (kavramsal şema). CREATE VIEW: <strong>VDL</strong> (dış şema; SQL'de DDL'in parçası). CREATE INDEX: <strong>SDL</strong> (iç şema; SQL standardında yok, DBMS'lere özgü). SELECT ve UPDATE: <strong>DML</strong>; SQL'inki yüksek düzeyli ve küme odaklıdır (set-at-a-time).</p></div></li>
+</ol>
+<h4>Problem 3: şema mı durum mu?</h4>
+<ol type="a">
+  <li>Şunlardan hangileri veritabanı durumunu, hangileri şemayı değiştirir: INSERT INTO EMPLOYEE …, ALTER TABLE EMPLOYEE ADD Email …, DELETE FROM PROJECT WHERE …, DROP VIEW …?
+    <div class="hint" data-label="Cevabı göster"><p>INSERT ve DELETE <strong>durumu</strong> (extension) değiştirir; bu sık olur. ALTER TABLE ve DROP VIEW <strong>şemayı</strong> (intension) değiştirir: <em>şema evrimi</em>; nadir olur ve katalogda kaydedilir.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

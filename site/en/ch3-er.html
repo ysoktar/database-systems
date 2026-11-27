@@ -263,6 +263,28 @@
   <div class="explain">Each patient is in exactly 1 room → on the PATIENT side max 1, min 1 (total). A room has 0–2 patients → ROOM (0,2), partial. The ratio is N:1 (many patients, one room). The (min,max) notation can express more than the cardinality (at most 2).</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: from requirements to ER</h4>
+<p>A car rental company: each <em>branch</em> has a number, an address and several phones. Each <em>car</em> is identified by its plate; its model and year are kept; each car is registered at one branch. For <em>customers</em> the licence number, name and birth date are kept; their age is computed from the birth date. A customer rents a car between given dates; the same car is rented to many customers at different times. Each car's <em>service records</em> are numbered (the car's 1st, 2nd, … service) with the service date and cost.</p>
+<ol type="a">
+  <li>Write the entity types, their keys and any special attributes.
+    <div class="hint" data-label="Show the answer"><p>BRANCH (key Branch_no; Address; Phones <strong>multivalued</strong>). CAR (key Plate; Model, Year). CUSTOMER (key License_no; Name, Birth_date; Age <strong>derived</strong>). SERVICE_RECORD is a <strong>weak entity</strong>: partial key Service_no; Date, Cost.</p></div></li>
+  <li>Write the relationships, cardinality ratios and participation constraints.
+    <div class="hint" data-label="Show the answer"><p>REGISTERED_AT: CAR N : 1 BRANCH; total on the CAR side (every car is registered at a branch). RENTS: CUSTOMER M : N CAR with attributes Start_date, End_date; both sides partial. HAS_SERVICE (identifying relationship): CAR 1 : N SERVICE_RECORD, total on the SERVICE_RECORD side. Note: if the same customer can rent the same car again on different dates, RENTS must become a RENTAL entity.</p></div></li>
+</ol>
+<h4>Problem 2: (min, max) and cardinality ratio</h4>
+<ol type="a">
+  <li>If EMPLOYEE (1,1) WORKS_FOR (4,N) DEPARTMENT is written, what are the cardinality ratio and the participations?
+    <div class="hint" data-label="Show the answer"><p>Each employee is in exactly one department (1,1), each department has at least 4 employees (4,N): the ratio is <strong>N : 1</strong> (EMPLOYEE : DEPARTMENT). Both sides are <strong>total</strong>, since both minimums are above 0. (min,max) writes each pair next to its own entity; the 1/N notation writes the numbers on the opposite side.</p></div></li>
+</ol>
+<h4>Problem 3: a ternary relationship</h4>
+<ol type="a">
+  <li>Can the ternary relationship SUPPLY(Supplier, Part, Project) be replaced by three binary ones (SUPPLIES Supplier–Part, CAN_SUPPLY Supplier–Project, USES Project–Part)?
+    <div class="hint" data-label="Show the answer"><p>In general, no. Three binary relationships do not carry the fact "s supplies part p to project j". Example: s1 supplies p1, s1 supplies j1, j1 uses p1; yet j1's p1 may come from s2, not s1. The binary relationships would wrongly suggest (s1, p1, j1). A ternary relationship also naturally holds attributes that belong to all three, such as Quantity.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

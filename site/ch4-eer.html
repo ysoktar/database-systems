@@ -201,6 +201,26 @@
   <div class="explain">Total: VEHICLE = CAR ∪ TRUCK (her araç en az birinde). Disjoint: CAR ∩ TRUCK = ∅ (en fazla birinde). Birlikte: tam olarak birinde. Kalıtım her zaman vardır.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: özelleştirme kısıtları</h4>
+<p>Bir üniversitede her PERSON bir EMPLOYEE, bir STUDENT ya da bir ALUMNUS olabilir; bir kişi aynı anda hem çalışan hem öğrenci olabilir ve bazı kişiler hiçbiri değildir (ör. ziyaretçiler). Her EMPLOYEE ya FACULTY ya STAFF'tır. STUDENT'lar Degree_program özniteliğine göre GRAD ya da UNDERGRAD olur.</p>
+<ol type="a">
+  <li>Her özelleştirmenin kısıtlarını (disjoint/overlapping, total/partial) ve üyeliğin nasıl belirlendiğini yazın.
+    <div class="hint" data-label="Cevabı göster"><p>PERSON → {EMPLOYEE, STUDENT, ALUMNUS}: <strong>overlapping, partial</strong> (aynı kişi birden çok alt sınıfta olabilir; bazıları hiçbirinde değil). EMPLOYEE → {FACULTY, STAFF}: <strong>disjoint, total</strong>. STUDENT → {GRAD, UNDERGRAD}: <strong>disjoint, total</strong> ve <strong>öznitelik tanımlı</strong> (Degree_program'a göre).</p></div></li>
+</ol>
+<h4>Problem 2: kategori mi, paylaşılan alt sınıf mı?</h4>
+<ol type="a">
+  <li>(a) Bir aracın sahibi bir PERSON, bir BANK ya da bir COMPANY olabilir. (b) Bir STUDENT_ASSISTANT hem STUDENT hem EMPLOYEE'dir.
+    <div class="hint" data-label="Cevabı göster"><p>(a) <strong>Kategori</strong> (union type): OWNER, üç farklı üst sınıfın birleşiminin alt kümesidir; her sahip bunlardan <em>yalnızca birinden</em> gelir ve yalnızca onun özniteliklerini miras alır. (b) <strong>Paylaşılan alt sınıf</strong>: STUDENT_ASSISTANT iki üst sınıfın <em>kesişimindedir</em> ve ikisinin de özniteliklerini miras alır (çoklu kalıtım).</p></div></li>
+</ol>
+<h4>Problem 3: neden alt sınıf?</h4>
+<ol type="a">
+  <li>EMPLOYEE için Typing_speed yalnızca sekreterlerde anlamlı. Bunu bir EMPLOYEE özniteliği yerine SECRETARY alt sınıfıyla modellemenin iki faydası nedir?
+    <div class="hint" data-label="Cevabı göster"><p>(1) Diğer çalışanlarda bu öznitelik NULL kalmaz. (2) Yalnızca sekreterlere ait ilişkiler (ör. bir yazı birimine atanma) doğrudan SECRETARY'ye bağlanabilir. Alt sınıf, "bu bilgi kimlere ait?" sorusunu şemada görünür yapar.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>
