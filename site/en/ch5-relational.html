@@ -298,6 +298,39 @@ INSERT INTO WORKS_ON VALUES (NULL, 10, 5.0);</pre>
   <div class="explain">Essn is part of DEPENDENT's PK (Essn, Dependent_name); it cannot be set to NULL. When the owner of a weak entity is deleted, the most natural choice for its dependents is CASCADE.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them yourself first, then open the answer; the SQL answers run on the MySQL in this page.</p>
+<h4>Problem 1: which operation violates which constraint?</h4>
+<p>Apply the operations below to the Figure 5.6 state of COMPANY. For each, say which constraint is violated (if any) and what the DBMS can do.</p>
+<ol type="a">
+  <li><code>INSERT INTO EMPLOYEE VALUES ('Ali','K','Demir','123456789','1990-01-01','Ankara','M',30000,NULL,5)</code>
+    <div class="hint" data-label="Show the answer"><p><strong>Key constraint</strong>: Ssn = 123456789 already belongs to John Smith. The insertion is rejected.</p><pre class="sql run" data-expect-error data-title="Check">INSERT INTO EMPLOYEE VALUES ('Ali','K','Demir','123456789','1990-01-01','Ankara','M',30000,NULL,5);</pre></div></li>
+  <li><code>INSERT INTO WORKS_ON VALUES ('999887777', 50, 10)</code>
+    <div class="hint" data-label="Show the answer"><p><strong>Referential integrity</strong>: there is no project with Pno = 50. The insertion is rejected (or project 50 is inserted first).</p><pre class="sql run" data-expect-error data-title="Check">INSERT INTO WORKS_ON VALUES ('999887777', 50, 10);</pre></div></li>
+  <li><code>DELETE FROM DEPARTMENT WHERE Dnumber = 4</code>
+    <div class="hint" data-label="Show the answer"><p><strong>Referential integrity</strong>: EMPLOYEE.Dno, PROJECT.Dnum and DEPT_LOCATIONS.Dnumber refer to department 4. Options: reject the deletion (RESTRICT, MySQL's default), delete the referring rows too (CASCADE), or set their foreign key to NULL (SET NULL, if Dno may be NULL).</p><pre class="sql run" data-expect-error data-title="Check">DELETE FROM DEPARTMENT WHERE Dnumber = 4;</pre></div></li>
+  <li><code>UPDATE EMPLOYEE SET Super_ssn = '111111111' WHERE Ssn = '999887777'</code>
+    <div class="hint" data-label="Show the answer"><p><strong>Referential integrity</strong>: Super_ssn is a foreign key to EMPLOYEE.Ssn and there is no employee 111111111. The update is rejected.</p><pre class="sql run" data-expect-error data-title="Check">UPDATE EMPLOYEE SET Super_ssn = '111111111' WHERE Ssn = '999887777';</pre></div></li>
+  <li><code>INSERT INTO DEPENDENT VALUES (NULL, 'Ayse', 'F', '2010-05-05', 'Daughter')</code>
+    <div class="hint" data-label="Show the answer"><p><strong>Entity integrity</strong>: Essn is part of DEPENDENT's primary key (Essn, Dependent_name) and cannot be NULL.</p><pre class="sql run" data-expect-error data-title="Check">INSERT INTO DEPENDENT VALUES (NULL, 'Ayse', 'F', '2010-05-05', 'Daughter');</pre></div></li>
+  <li><code>UPDATE PROJECT SET Dnum = 1 WHERE Pnumber = 30</code>
+    <div class="hint" data-label="Show the answer"><p>No constraint is violated: department 1 exists. The box runs the command inside a transaction and rolls it back at the end.</p><pre class="sql run" data-title="Check">START TRANSACTION;
+UPDATE PROJECT SET Dnum = 1 WHERE Pnumber = 30;
+SELECT * FROM PROJECT WHERE Pnumber = 30;
+ROLLBACK;</pre></div></li>
+</ol>
+<h4>Problem 2: superkeys and candidate keys</h4>
+<p>In COURSE_OFFER(Course_no, Section, Semester, Instructor, Room, Time) these rules hold: each section of a course is offered once in a semester; a room is given to a single section at a given time in a semester; an instructor can be in only one place at a given time in a semester.</p>
+<ol type="a">
+  <li>Write the candidate keys under these rules.
+    <div class="hint" data-label="Show the answer"><p>There are three candidate keys: {Course_no, Section, Semester}, {Semester, Room, Time} and {Semester, Instructor, Time}. Each determines the whole row on its own and no subset of it does (for example {Room, Time} is not enough, since the same room is used at the same time in other semesters).</p></div></li>
+  <li>Is {Course_no, Section, Semester, Room} a superkey? A candidate key?
+    <div class="hint" data-label="Show the answer"><p>It is a superkey, because it contains the candidate key {Course_no, Section, Semester}. It is not a candidate key, because it is not minimal: without Room the rest is still a key.</p></div></li>
+  <li>Which one would you choose as the primary key?
+    <div class="hint" data-label="Show the answer"><p>{Course_no, Section, Semester}: its values do not change and are always known when the offering is created. The other two candidate keys are protected with UNIQUE constraints.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

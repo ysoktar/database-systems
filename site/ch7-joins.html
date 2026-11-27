@@ -314,6 +314,29 @@ FROM   WORKS_ON;</pre>
   <div class="explain">Sıra: FROM → WHERE (satırlar) → GROUP BY → HAVING (gruplar) → SELECT → ORDER BY. Bir satır WHERE'de atılırsa hiçbir grubun aggregate'ine katılmaz (Q28 tuzağı).</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kendiniz çözün, sonra cevabı açın; SQL cevapları sayfadaki MySQL'de çalışır.</p>
+<h4>Problem 1: gruplama</h4>
+<ol type="a">
+  <li>Her proje için çalışan sayısı ve toplam saat; yalnızca toplam saati 40'tan fazla olan projeler.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT P.Pname, COUNT(*) AS Emp_count, SUM(W.Hours) AS Total_hours
+FROM   PROJECT P JOIN WORKS_ON W ON W.Pno = P.Pnumber
+GROUP BY P.Pname
+HAVING SUM(W.Hours) > 40;</pre><p>Grup üzerindeki koşul HAVING'e yazılır; WHERE gruplamadan önce tek tek satırlara uygulanır.</p></div></li>
+  <li>Her departmanın adı, çalışan sayısı ve ortalama maaşı; çalışanı olmayan bir departman da 0 ile görünsün.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT D.Dname, COUNT(E.Ssn) AS Emp_count, AVG(E.Salary) AS Avg_salary
+FROM   DEPARTMENT D LEFT JOIN EMPLOYEE E ON E.Dno = D.Dnumber
+GROUP BY D.Dname;</pre><p>LEFT JOIN çalışansız departmanı NULL'larla tutar; COUNT(E.Ssn) NULL'ları saymadığı için 0 verir. COUNT(*) yazılsaydı 1 olurdu.</p></div></li>
+</ol>
+<h4>Problem 2: grubun ortalamasıyla karşılaştırma</h4>
+<ol type="a">
+  <li>Kendi departmanının ortalama maaşından fazla kazanan çalışanlar.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT E.Fname, E.Lname, E.Salary, E.Dno
+FROM   EMPLOYEE E
+WHERE  E.Salary > (SELECT AVG(X.Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno);</pre><p>Correlated alt sorgu her çalışanın kendi departmanının ortalamasını hesaplar. Aynı sorgu WITH ile önce departman ortalamaları bir tabloya alınarak da yazılabilir.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

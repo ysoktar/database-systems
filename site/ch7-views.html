@@ -317,6 +317,33 @@ DROP TABLE DEPARTMENT RESTRICT;</pre>
 
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kendiniz çözün, sonra cevabı açın; SQL cevapları sayfadaki MySQL'de çalışır.</p>
+<h4>Problem 1: view ve güncellenebilirlik</h4>
+<ol type="a">
+  <li>Her departmanın adını, çalışan sayısını ve toplam maaşını gösteren DEPT_SUMMARY view'ını tanımlayın.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">CREATE VIEW DEPT_SUMMARY (Dname, Emp_count, Total_salary) AS
+  SELECT D.Dname, COUNT(*), SUM(E.Salary)
+  FROM   DEPARTMENT D, EMPLOYEE E
+  WHERE  D.Dnumber = E.Dno
+  GROUP BY D.Dname;
+SELECT * FROM DEPT_SUMMARY;
+DROP VIEW DEPT_SUMMARY;</pre><p>Kutu view'ı oluşturur, sorgular ve siler.</p></div></li>
+  <li><code>UPDATE DEPT_SUMMARY SET Total_salary = 100000 WHERE Dname = 'Research'</code> çalışabilir mi?
+    <div class="hint" data-label="Cevabı göster"><p>Hayır. Total_salary bir aggregate'in sonucudur; bu değeri verecek tek bir taban satır güncellemesi yoktur (hangi çalışanın maaşı ne kadar değişecek?). Aggregate ya da GROUP BY içeren view'lar güncellenemez.</p></div></li>
+</ol>
+<h4>Problem 2: trigger ve assertion</h4>
+<ol type="a">
+  <li>Bir çalışanın maaşı, yöneticisininkinden yüksek olacak biçimde eklenir ya da güncellenirse yöneticiyi bilgilendiren bir trigger'ın üç parçasını (olay, koşul, eylem) yazın.
+    <div class="hint" data-label="Cevabı göster"><p><strong>Olay</strong>: EMPLOYEE'de INSERT ya da Salary/Super_ssn üzerinde UPDATE. <strong>Koşul</strong>: NEW.Salary &gt; (SELECT Salary FROM EMPLOYEE WHERE Ssn = NEW.Super_ssn). <strong>Eylem</strong>: yöneticiyi bilgilendiren bir prosedürü çağırmak (kitaptaki INFORM_SUPERVISOR). Bu, kitaptaki Figure 7.5'in yapısıdır.</p></div></li>
+  <li>"Hiçbir departmanın toplam maaşı 200 000'i geçemez" kuralını bir assertion olarak yazın.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql">CREATE ASSERTION DEPT_BUDGET CHECK (
+  NOT EXISTS (SELECT Dno FROM EMPLOYEE
+              GROUP BY Dno
+              HAVING SUM(Salary) > 200000));</pre><p>Assertion kalıbı: kuralı bozan satırları bulan bir sorgu yaz ve NOT EXISTS içine koy. MySQL assertion desteklemez; aynı kural orada trigger'larla uygulanır.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

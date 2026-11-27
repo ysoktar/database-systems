@@ -200,6 +200,45 @@
   <div class="explain">RAID 4 ve 5 blok düzeyinde şeritleme ve eşlik kullanır. RAID 4'te eşlik tek diskte olduğu için her yazma o diske yük bindirir; RAID 5 eşliği bütün disklere dağıtarak bu darboğazı kaldırır. İki diskin aynı anda bozulmasına karşı RAID 6 gerekir.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: blocking factor ve blok sayısı</h4>
+<p>r = 20 000 kayıt, kayıt boyutu R = 150 byte, blok B = 2048 byte.</p>
+<ol type="a">
+  <li>Unspanned yerleşimde bfr, blok sayısı b ve her blokta boş kalan alan nedir?
+    <div class="hint" data-label="Cevabı göster"><p>bfr = ⌊2048 / 150⌋ = 13 kayıt. b = ⌈20 000 / 13⌉ = 1539 blok. Her blokta 2048 − 13 · 150 = 98 byte boş kalır.</p></div></li>
+  <li>Spanned yerleşimde kaç blok gerekir?
+    <div class="hint" data-label="Cevabı göster"><p>Kayıtlar blok sınırlarını aşabildiği için boşluk kalmaz: b = ⌈20 000 · 150 / 2048⌉ = ⌈1464,8⌉ = 1465 blok, yani 74 blok daha az.</p></div></li>
+</ol>
+<h4>Problem 2: disk erişim süresi</h4>
+<p>Problem 1'in dosyası (1539 blok) 7200 rpm'lik bir diskte. Ortalama arama süresi s = 8 ms; bir izde 40 blok var.</p>
+<ol type="a">
+  <li>Ortalama dönme gecikmesi rd ve blok aktarım süresi btt nedir?
+    <div class="hint" data-label="Cevabı göster"><p>Bir tur 60 000 / 7200 = 8,33 ms. rd yarım tur: 4,17 ms. btt = tur süresi / izdeki blok sayısı = 8,33 / 40 ≈ 0,21 ms.</p></div></li>
+  <li>Rastgele bir bloğu okumak ne kadar sürer?
+    <div class="hint" data-label="Cevabı göster"><p>s + rd + btt = 8 + 4,17 + 0,21 ≈ 12,38 ms.</p></div></li>
+  <li>Bütün dosya (a) bloklar rastgele dağılmışken, (b) ardışık bloklarda dururken kaç sürede okunur?
+    <div class="hint" data-label="Cevabı göster"><p>(a) 1539 · 12,38 ms ≈ 19,0 saniye. (b) Bir arama ve bir dönme gecikmesi, sonra blok blok aktarım: 8 + 4,17 + 1539 · 0,21 ≈ 333 ms (iz değiştirmeler ihmal edildi). Ardışık yerleşim yaklaşık 57 kat hızlı: arama ve dönme süresine yalnızca bir kez katlanılır.</p></div></li>
+</ol>
+<h4>Problem 3: statik hashing</h4>
+<p>M = 7 kova, h(K) = K mod 7, her kovaya 2 kayıt sığar, taşan kayıtlar zincirle bir taşma alanına gider. Sırasıyla 3, 10, 17, 24, 5, 12, 19 eklenir.</p>
+<ol type="a">
+  <li>Eklemelerden sonra kovaların içeriği nedir?
+    <div class="hint" data-label="Cevabı göster"><p>3, 10, 17, 24'ün hepsi 3. kovaya düşer (mod 7 = 3): kovada [3, 10], taşma zincirinde 17 → 24. 5, 12, 19 5. kovaya düşer: kovada [5, 12], zincirde 19. Diğer beş kova boş.</p></div></li>
+  <li>24'ü aramak kaç blok okur? Sorun nedir?
+    <div class="hint" data-label="Cevabı göster"><p>Kova 3 ve taşma zinciri: en az 2 blok (zincir kayıtları ayrı bloklardaysa 3). Sorun anahtarların hepsinin 7'nin katı farkla gelmesi: h(K) iki kovayı doldurur, beşini boş bırakır. Daha iyi bir hash fonksiyonu gerekir; dinamik hashing (extendible, linear) kova sayısını büyütür.</p></div></li>
+</ol>
+<h4>Problem 4: hangi RAID seviyesi?</h4>
+<ol type="a">
+  <li>Çoğunlukla okunan büyük bir veri ambarı: maliyet önemli, bir diskin bozulmasına dayanmalı.
+    <div class="hint" data-label="Cevabı göster"><p><strong>RAID 5</strong>: blok düzeyinde şeritleme ve dağıtılmış eşlik. Okuma paraleldir; n diskin yalnızca bir diski kadar alan eşliğe gider.</p></div></li>
+  <li>Sık yazılan bir transaction log'u: her yazma güvenle saklanmalı.
+    <div class="hint" data-label="Cevabı göster"><p><strong>RAID 1</strong> (aynalama): her yazma iki diske gider, eşlik hesabı yoktur; RAID 5'in küçük yazma cezası olmaz.</p></div></li>
+  <li>Geçici sıralama dosyaları: yalnızca hız önemli.
+    <div class="hint" data-label="Cevabı göster"><p><strong>RAID 0</strong>: şeritleme, artıklık yok. En hızlısı, ama bir disk bozulunca veri gider; geçici veride kabul edilebilir.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

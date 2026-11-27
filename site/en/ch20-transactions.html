@@ -209,6 +209,31 @@ SELECT @@transaction_isolation;
   <div class="explain">Atomicity and durability are the responsibility of the recovery subsystem, isolation of concurrency control, and consistency of the programmer who writes the transaction and of the integrity constraints.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: classify the schedules</h4>
+<p>For each schedule: the conflicting pairs, the precedence graph, whether it is conflict serializable (and if so an equivalent serial order), and whether it is recoverable, cascadeless and strict.</p>
+<ol type="a">
+  <li><code>r1(X); r2(X); w1(X); w2(X); c1; c2</code>
+    <div class="hint" data-label="Show the answer"><p>Conflicts: r1(X)–w2(X) (T1 → T2), r2(X)–w1(X) (T2 → T1), w1(X)–w2(X) (T1 → T2). The graph has the cycle T1 → T2 → T1: <strong>not serializable</strong>. This is the lost update pattern: T2 writes over the X that T1 wrote. Nobody reads an uncommitted value, so it is recoverable and cascadeless; but T2 writes X before T1 ends, so it is not strict.</p><button type="button" class="btn small" data-sched="r1(X); r2(X); w1(X); w2(X); c1; c2">Open in the schedule analyzer</button></div></li>
+  <li><code>r1(X); w1(X); r2(X); w2(X); r1(Y); w1(Y); c1; c2</code>
+    <div class="hint" data-label="Show the answer"><p>All conflicts go from T1 to T2: one edge T1 → T2, no cycle, <strong>equivalent to the serial order T1, T2</strong>. T2 reads T1's uncommitted X: not cascadeless. T1 commits before T2, so it is recoverable.</p><button type="button" class="btn small" data-sched="r1(X); w1(X); r2(X); w2(X); r1(Y); w1(Y); c1; c2">Open in the schedule analyzer</button></div></li>
+  <li><code>r1(X); r2(Y); w1(X); r3(X); w2(Y); r3(Y); w3(Y); c1; c2; c3</code>
+    <div class="hint" data-label="Show the answer"><p>Edges: T1 → T3 (w1(X) before r3(X)) and T2 → T3 (r2(Y) and w2(Y) before r3(Y) and w3(Y)). No cycle: equivalent to the serial order <strong>T1, T2, T3</strong> (or T2, T1, T3). T3 reads uncommitted values but commits after T1 and T2: recoverable, not cascadeless.</p><button type="button" class="btn small" data-sched="r1(X); r2(Y); w1(X); r3(X); w2(Y); r3(Y); w3(Y); c1; c2; c3">Open in the schedule analyzer</button></div></li>
+  <li><code>r1(X); w1(X); r2(X); c2; a1</code>
+    <div class="hint" data-label="Show the answer"><p>T2 reads the X that T1 wrote and commits before T1; then T1 aborts. The value T2 read never existed, but T2 can no longer be undone: <strong>not recoverable</strong>. The DBMS must not allow this schedule (T2's commit must wait until T1 ends).</p><button type="button" class="btn small" data-sched="r1(X); w1(X); r2(X); c2; a1">Open in the schedule analyzer</button></div></li>
+</ol>
+<h4>Problem 2: which problem?</h4>
+<ol type="a">
+  <li>Two ticket counters read the seat count of the same flight, each sells a seat and writes it back; one sale is lost.
+    <div class="hint" data-label="Show the answer"><p><strong>Lost update</strong>: two transactions read the same value and both write; the second write erases the effect of the first.</p></div></li>
+  <li>A report sums all account balances while another transaction moves money from one account to another; the report gives a wrong total.
+    <div class="hint" data-label="Show the answer"><p><strong>Incorrect summary</strong>: the report read some values before the change and some after it.</p></div></li>
+  <li>Which isolation level prevents dirty reads but allows nonrepeatable reads?
+    <div class="hint" data-label="Show the answer"><p><strong>READ COMMITTED</strong>: only committed values are read; but if a transaction reads the same row twice it may see a change another transaction committed in between.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

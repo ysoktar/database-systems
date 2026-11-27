@@ -209,6 +209,31 @@ SELECT @@transaction_isolation;
   <div class="explain">Atomicity ve durability kurtarma alt sisteminin, isolation eşzamanlılık kontrolünün, consistency ise transaction'ı yazan programcının ve bütünlük kısıtlarının sorumluluğudur.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: çizelgeleri sınıflandırın</h4>
+<p>Her çizelge için: çakışan işlem çiftleri, öncelik grafı, çakışma serileştirilebilir mi (öyleyse eşdeğer seri sıra), kurtarılabilir mi, cascadeless mı, strict mi?</p>
+<ol type="a">
+  <li><code>r1(X); r2(X); w1(X); w2(X); c1; c2</code>
+    <div class="hint" data-label="Cevabı göster"><p>Çakışmalar: r1(X)–w2(X) (T1 → T2), r2(X)–w1(X) (T2 → T1), w1(X)–w2(X) (T1 → T2). Grafta T1 → T2 → T1 döngüsü var: <strong>serileştirilebilir değil</strong>. Bu kayıp güncelleme kalıbıdır: T1'in yazdığı X'in üzerine T2 yazar. Kimse commit olmamış bir değeri okumadığı için kurtarılabilir ve cascadeless; ama T2, T1 bitmeden X'e yazdığı için strict değil.</p><button type="button" class="btn small" data-sched="r1(X); r2(X); w1(X); w2(X); c1; c2">Çizelge analizcisinde aç</button></div></li>
+  <li><code>r1(X); w1(X); r2(X); w2(X); r1(Y); w1(Y); c1; c2</code>
+    <div class="hint" data-label="Cevabı göster"><p>Bütün çakışmalar T1'den T2'ye: tek kenar T1 → T2, döngü yok, <strong>T1, T2 seri sırasına eşdeğer</strong>. T2, T1'in commit olmamış X'ini okuyor: cascadeless değil. T1, T2'den önce commit olduğu için kurtarılabilir.</p><button type="button" class="btn small" data-sched="r1(X); w1(X); r2(X); w2(X); r1(Y); w1(Y); c1; c2">Çizelge analizcisinde aç</button></div></li>
+  <li><code>r1(X); r2(Y); w1(X); r3(X); w2(Y); r3(Y); w3(Y); c1; c2; c3</code>
+    <div class="hint" data-label="Cevabı göster"><p>Kenarlar: T1 → T3 (w1(X), r3(X)'ten önce) ve T2 → T3 (r2(Y) ve w2(Y), r3(Y) ve w3(Y)'den önce). Döngü yok: <strong>T1, T2, T3</strong> (ya da T2, T1, T3) seri sırasına eşdeğer. T3 commit olmamış değerler okuyor, ama T1 ve T2'den sonra commit oluyor: kurtarılabilir, cascadeless değil.</p><button type="button" class="btn small" data-sched="r1(X); r2(Y); w1(X); r3(X); w2(Y); r3(Y); w3(Y); c1; c2; c3">Çizelge analizcisinde aç</button></div></li>
+  <li><code>r1(X); w1(X); r2(X); c2; a1</code>
+    <div class="hint" data-label="Cevabı göster"><p>T2, T1'in yazdığı X'i okuyup T1'den önce commit oluyor; sonra T1 abort ediyor. T2'nin okuduğu değer hiç var olmamış sayılır ama T2 artık geri alınamaz: <strong>kurtarılamaz</strong>. DBMS bu çizelgeye izin vermemeli (T2'nin commit'i T1 bitene kadar bekletilmeli).</p><button type="button" class="btn small" data-sched="r1(X); w1(X); r2(X); c2; a1">Çizelge analizcisinde aç</button></div></li>
+</ol>
+<h4>Problem 2: hangi sorun?</h4>
+<ol type="a">
+  <li>İki gişe aynı uçağın koltuk sayısını okuyup birer koltuk satıyor ve yazıyor; sonuçta bir satış kayboluyor.
+    <div class="hint" data-label="Cevabı göster"><p><strong>Kayıp güncelleme</strong> (lost update): iki transaction aynı değeri okur, ikisi de yazar; ikinci yazma birincinin etkisini siler.</p></div></li>
+  <li>Bir rapor bütün hesapların toplamını hesaplarken başka bir transaction bir hesaptan para çekip diğerine yatırıyor; rapor yanlış bir toplam veriyor.
+    <div class="hint" data-label="Cevabı göster"><p><strong>Yanlış özet</strong> (incorrect summary): rapor bazı değerleri değişiklikten önce, bazılarını sonra okudu.</p></div></li>
+  <li>Hangi izolasyon seviyesi kirli okumayı engeller ama tekrarlanamayan okumaya izin verir?
+    <div class="hint" data-label="Cevabı göster"><p><strong>READ COMMITTED</strong>: yalnızca commit olmuş değerler okunur; ama aynı transaction aynı satırı iki kez okursa arada başka bir transaction'ın commit ettiği değişikliği görebilir.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

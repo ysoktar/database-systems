@@ -303,6 +303,31 @@ As a single expression:
 FROM   EMPLOYEE E LEFT OUTER JOIN DEPARTMENT D ON E.Ssn = D.Mgr_ssn;</pre>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them yourself first, then open the answer; the SQL answers run on the MySQL in this page.</p>
+<h4>Problem 1: relational algebra expressions</h4>
+<p>Write each query in relational algebra. The equivalent SQL in the answer can be run.</p>
+<ol type="a">
+  <li>The names of departments that have a project in Houston.
+    <div class="hint" data-label="Show the answer"><pre class="algebra">HOUSTON_PROJS ← σ<sub>Plocation='Houston'</sub>(PROJECT)
+RESULT        ← π<sub>Dname</sub>(DEPARTMENT ⋈<sub>Dnumber=Dnum</sub> HOUSTON_PROJS)</pre><pre class="sql run" data-title="Equivalent SQL">SELECT DISTINCT D.Dname
+FROM   DEPARTMENT D JOIN PROJECT P ON D.Dnumber = P.Dnum
+WHERE  P.Plocation = 'Houston';</pre><p>Select first, then join: fewer rows enter the join. π removes duplicates by itself; SQL needs DISTINCT.</p></div></li>
+  <li>The names of employees who have no dependents.
+    <div class="hint" data-label="Show the answer"><pre class="algebra">ALL_EMPS   ← π<sub>Ssn</sub>(EMPLOYEE)
+WITH_DEPS  ← ρ<sub>(Ssn)</sub>(π<sub>Essn</sub>(DEPENDENT))
+NO_DEPS    ← ALL_EMPS − WITH_DEPS
+RESULT     ← π<sub>Fname, Lname</sub>(NO_DEPS * EMPLOYEE)</pre><pre class="sql run" data-title="Equivalent SQL">SELECT Fname, Lname FROM EMPLOYEE
+WHERE  Ssn NOT IN (SELECT Essn FROM DEPENDENT);</pre><p>Difference needs union-compatible relations, which is why Essn is renamed to Ssn.</p></div></li>
+  <li>The Ssns of employees who work on every project Franklin Wong (Ssn 333445555) works on.
+    <div class="hint" data-label="Show the answer"><pre class="algebra">WONG_PNOS ← π<sub>Pno</sub>(σ<sub>Essn='333445555'</sub>(WORKS_ON))
+SSN_PNOS  ← π<sub>Essn, Pno</sub>(WORKS_ON)
+RESULT    ← SSN_PNOS ÷ WONG_PNOS</pre><p>Division gives the Essns that appear in SSN_PNOS together with every row of WONG_PNOS. Wong works on 2, 3, 10 and 20; the only person on all four is Wong himself, so the result is {333445555}.</p></div></li>
+  <li>Each department's number, number of employees and average salary.
+    <div class="hint" data-label="Show the answer"><pre class="algebra">RESULT ← <sub>Dno</sub>ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE)</pre><pre class="sql run" data-title="Equivalent SQL">SELECT Dno, COUNT(Ssn), AVG(Salary) FROM EMPLOYEE GROUP BY Dno;</pre></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

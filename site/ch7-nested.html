@@ -326,6 +326,32 @@ SELECT Lname, Dno, Salary FROM EMPLOYEE E WHERE Salary &gt; (SELECT AVG(Salary) 
 
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kendiniz çözün, sonra cevabı açın; SQL cevapları sayfadaki MySQL'de çalışır.</p>
+<h4>Problem 1: iç içe sorgular ve EXISTS</h4>
+<ol type="a">
+  <li>Hiç bağımlısı olmayan çalışanların adları.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT Fname, Lname
+FROM   EMPLOYEE E
+WHERE  NOT EXISTS (SELECT * FROM DEPENDENT D WHERE D.Essn = E.Ssn);</pre><p>Correlated alt sorgu her çalışan için yeniden değerlendirilir. Aynı sonuç <code>Ssn NOT IN (SELECT Essn FROM DEPENDENT)</code> ile de alınır; Essn NULL olamadığı için burada NOT IN güvenlidir.</p></div></li>
+  <li>5 numaralı departmandaki herkesten daha fazla kazanan çalışanlar.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT Fname, Lname, Salary
+FROM   EMPLOYEE
+WHERE  Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5);</pre><p>Departman 5'in en yüksek maaşı 40 000; ondan fazlası Borg ve Wallace. <code>&gt; (SELECT MAX(Salary) …)</code> da aynı sonucu verir.</p></div></li>
+</ol>
+<h4>Problem 2: bölme ("her … için")</h4>
+<ol type="a">
+  <li>John Smith'in (Ssn 123456789) çalıştığı <em>bütün</em> projelerde çalışan diğer çalışanlar.
+    <div class="hint" data-label="Cevabı göster"><pre class="sql run" data-title="Cevap">SELECT Fname, Lname
+FROM   EMPLOYEE E
+WHERE  E.Ssn <> '123456789'
+  AND  NOT EXISTS (SELECT W1.Pno FROM WORKS_ON W1
+                   WHERE W1.Essn = '123456789'
+                     AND NOT EXISTS (SELECT * FROM WORKS_ON W2
+                                     WHERE W2.Essn = E.Ssn AND W2.Pno = W1.Pno));</pre><p>Çift NOT EXISTS şöyle okunur: "Smith'in projeleri arasında E'nin çalışmadığı bir proje yoksa." Smith 1 ve 2'de çalışıyor; ikisinde de çalışan tek kişi Joyce English.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

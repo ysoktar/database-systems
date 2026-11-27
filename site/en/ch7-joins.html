@@ -314,6 +314,29 @@ FROM   WORKS_ON;</pre>
   <div class="explain">The order: FROM → WHERE (rows) → GROUP BY → HAVING (groups) → SELECT → ORDER BY. A row discarded in WHERE takes part in no group's aggregate (the Q28 trap).</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them yourself first, then open the answer; the SQL answers run on the MySQL in this page.</p>
+<h4>Problem 1: grouping</h4>
+<ol type="a">
+  <li>For each project, the number of employees and the total hours; only projects with more than 40 hours in total.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT P.Pname, COUNT(*) AS Emp_count, SUM(W.Hours) AS Total_hours
+FROM   PROJECT P JOIN WORKS_ON W ON W.Pno = P.Pnumber
+GROUP BY P.Pname
+HAVING SUM(W.Hours) > 40;</pre><p>A condition on a group goes into HAVING; WHERE is applied to single rows before grouping.</p></div></li>
+  <li>Each department's name, number of employees and average salary; a department without employees should appear with 0.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT D.Dname, COUNT(E.Ssn) AS Emp_count, AVG(E.Salary) AS Avg_salary
+FROM   DEPARTMENT D LEFT JOIN EMPLOYEE E ON E.Dno = D.Dnumber
+GROUP BY D.Dname;</pre><p>LEFT JOIN keeps a department without employees with NULLs; COUNT(E.Ssn) does not count NULLs, so it gives 0. COUNT(*) would give 1.</p></div></li>
+</ol>
+<h4>Problem 2: comparing with the group's average</h4>
+<ol type="a">
+  <li>Employees who earn more than the average salary of their own department.
+    <div class="hint" data-label="Show the answer"><pre class="sql run" data-title="Answer">SELECT E.Fname, E.Lname, E.Salary, E.Dno
+FROM   EMPLOYEE E
+WHERE  E.Salary > (SELECT AVG(X.Salary) FROM EMPLOYEE X WHERE X.Dno = E.Dno);</pre><p>The correlated subquery computes the average of each employee's own department. The query can also be written with WITH, computing the department averages into a table first.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

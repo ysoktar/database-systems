@@ -303,6 +303,31 @@ Tek ifade olarak:
 FROM   EMPLOYEE E LEFT OUTER JOIN DEPARTMENT D ON E.Ssn = D.Mgr_ssn;</pre>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kendiniz çözün, sonra cevabı açın; SQL cevapları sayfadaki MySQL'de çalışır.</p>
+<h4>Problem 1: ilişkisel cebir ifadeleri</h4>
+<p>Her sorguyu ilişkisel cebirle yazın. Cevapta eşdeğer SQL de çalıştırılabilir.</p>
+<ol type="a">
+  <li>Houston'da projesi olan departmanların adları.
+    <div class="hint" data-label="Cevabı göster"><pre class="algebra">HOUSTON_PROJS ← σ<sub>Plocation='Houston'</sub>(PROJECT)
+RESULT        ← π<sub>Dname</sub>(DEPARTMENT ⋈<sub>Dnumber=Dnum</sub> HOUSTON_PROJS)</pre><pre class="sql run" data-title="Eşdeğer SQL">SELECT DISTINCT D.Dname
+FROM   DEPARTMENT D JOIN PROJECT P ON D.Dnumber = P.Dnum
+WHERE  P.Plocation = 'Houston';</pre><p>Önce seçim, sonra join: join'e daha az satır girer. π tekrarları kendiliğinden atar; SQL'de DISTINCT gerekir.</p></div></li>
+  <li>Hiç bağımlısı olmayan çalışanların adları.
+    <div class="hint" data-label="Cevabı göster"><pre class="algebra">ALL_EMPS   ← π<sub>Ssn</sub>(EMPLOYEE)
+WITH_DEPS  ← ρ<sub>(Ssn)</sub>(π<sub>Essn</sub>(DEPENDENT))
+NO_DEPS    ← ALL_EMPS − WITH_DEPS
+RESULT     ← π<sub>Fname, Lname</sub>(NO_DEPS * EMPLOYEE)</pre><pre class="sql run" data-title="Eşdeğer SQL">SELECT Fname, Lname FROM EMPLOYEE
+WHERE  Ssn NOT IN (SELECT Essn FROM DEPENDENT);</pre><p>Fark işlemi iki ilişkinin uyumlu olmasını ister; bu yüzden Essn, Ssn olarak yeniden adlandırılır.</p></div></li>
+  <li>Franklin Wong'un (Ssn 333445555) çalıştığı bütün projelerde çalışan çalışanların Ssn'leri.
+    <div class="hint" data-label="Cevabı göster"><pre class="algebra">WONG_PNOS ← π<sub>Pno</sub>(σ<sub>Essn='333445555'</sub>(WORKS_ON))
+SSN_PNOS  ← π<sub>Essn, Pno</sub>(WORKS_ON)
+RESULT    ← SSN_PNOS ÷ WONG_PNOS</pre><p>Bölme, WONG_PNOS'un her satırıyla birlikte SSN_PNOS'ta görünen Essn'leri verir. Wong 2, 3, 10 ve 20'de çalışıyor; bu dördünde birden çalışan tek kişi kendisi, yani sonuç {333445555}.</p></div></li>
+  <li>Her departmanın numarası, çalışan sayısı ve ortalama maaşı.
+    <div class="hint" data-label="Cevabı göster"><pre class="algebra">RESULT ← <sub>Dno</sub>ℑ<sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE)</pre><pre class="sql run" data-title="Eşdeğer SQL">SELECT Dno, COUNT(Ssn), AVG(Salary) FROM EMPLOYEE GROUP BY Dno;</pre></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>
