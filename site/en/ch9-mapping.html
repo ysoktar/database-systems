@@ -158,13 +158,13 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber;
 <p>When mapping a category whose superclasses have different keys, the table for the category gets a new key column. This is called a <strong>surrogate key</strong>. In the book's example an OWNER table is created for the OWNER category, and its primary key is the surrogate key Owner_id. The table of each superclass that forms the category (PERSON, BANK, COMPANY) gets an Owner_id foreign key that refers to this key; for those who own no vehicle this column stays NULL. The superclasses of the REGISTERED_VEHICLE category (CAR and TRUCK), on the other hand, share the same key (Vehicle_id), so no surrogate key is needed.</p>
 <div id="category-map"></div>
 
-<h2>You decide</h2>
-<p>Apply the algorithm yourself: each question has a small ER fragment and one decision (where the foreign key goes, what the primary key is, which Step 8 option). After you answer, the reason and the tables the algorithm produces appear; most wrong options are common mistakes in real designs.</p>
-<div id="decide"></div>
-
 <h2>Try it yourself</h2>
 <p>Choose an example and a specialization option; the diagram and the mapping update. If the option does not fit (such as 8B for a partial specialization), the algorithm falls back to one that does and says why. You can draw the exercise schemas of slides 36–37 in the <a href="er-studio.html">ER studio</a> and map them the same way.</p>
 <div id="explorer"></div>
+
+<h2>You decide</h2>
+<p>Apply the algorithm yourself: each question has a small ER fragment and one decision (where the foreign key goes, what the primary key is, which Step 8 option). After you answer, the reason and the tables the algorithm produces appear; most wrong options are common mistakes in real designs.</p>
+<div id="decide"></div>
 
 <h2>Test yourself</h2>
 <div class="quiz" data-answer="2">

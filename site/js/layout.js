@@ -9,8 +9,7 @@ export const REPO = "https://github.com/ysoktar/database-systems";
 export const NOTEBOOK_URL = "https://colab.research.google.com/drive/1ArUuenMYSnN0ZNk_1Gsmn-CvnUnUeS30?usp=sharing";
 
 /**
- * Site map. `ch` = chapter of Elmasri & Navathe (7th ed.). `scope`: "midterm" (Ch 1–7, on the midterm) or
- * "none" (no scope label). `slides`: the slide range of the course's slide deck that the page
+ * Site map. `ch` = chapter of Elmasri & Navathe (7th ed.). `slides`: the slide range of the course's slide deck that the page
  * covers (the syllabus limits some chapters, e.g. Ch 8 slides 1–67).
  */
 export const NAV = [
@@ -35,19 +34,19 @@ export const NAV = [
     { id: "ch7-views", title: "Kısıtlar, trigger, view, ALTER", title_en: "Constraints, triggers, views, ALTER", desc_en: "ASSERTION, triggers, views and updatability, schema change.", ch: "Ch 7.2–7.4", desc: "ASSERTION, trigger, view ve güncellenebilirlik, şema değişikliği." },
   ] },
   { part: "Bölüm V · İlişkisel cebir", part_en: "Part V · Relational algebra", short: "Ch 8", items: [
-    { id: "ch8-algebra", title: "İlişkisel cebir", title_en: "Relational algebra", desc_en: "σ, π, ρ, set operations, joins, division, query trees, aggregates, outer joins.", ch: "Ch 8", slides: "1–67", scope: "none", desc: "σ, π, ρ, küme işlemleri, join'ler, bölme, sorgu ağaçları, aggregate, outer join." },
+    { id: "ch8-algebra", title: "İlişkisel cebir", title_en: "Relational algebra", desc_en: "σ, π, ρ, set operations, joins, division, query trees, aggregates, outer joins.", ch: "Ch 8", slides: "1–67", desc: "σ, π, ρ, küme işlemleri, join'ler, bölme, sorgu ağaçları, aggregate, outer join." },
   ] },
   { part: "Bölüm VI · Veritabanı tasarımı", part_en: "Part VI · Database design", short: "Ch 9, 14", items: [
-    { id: "ch9-mapping", title: "ER'den tablolara eşleme", title_en: "ER-to-relational mapping", desc_en: "The mapping algorithm: Steps 1–7 for ER, 8A–8D for specializations, 9 for categories.", ch: "Ch 9", slides: "1–38", scope: "none", desc: "Eşleme algoritması: ER için Adım 1–7, özelleştirme için 8A–8D, kategoriler için Adım 9." },
-    { id: "ch14-normalization", title: "Fonksiyonel bağımlılık ve normalizasyon", title_en: "Functional dependencies and normalization", desc_en: "Design guidelines and anomalies, FDs, keys, 1NF, 2NF, 3NF, BCNF, lossless decomposition.", ch: "Ch 14", slides: "1–55", scope: "none", desc: "Tasarım kuralları ve anomaliler, FD'ler, anahtarlar, 1NF, 2NF, 3NF, BCNF, kayıpsız ayrıştırma." },
+    { id: "ch9-mapping", title: "ER'den tablolara eşleme", title_en: "ER-to-relational mapping", desc_en: "The mapping algorithm: Steps 1–7 for ER, 8A–8D for specializations, 9 for categories.", ch: "Ch 9", slides: "1–38", desc: "Eşleme algoritması: ER için Adım 1–7, özelleştirme için 8A–8D, kategoriler için Adım 9." },
+    { id: "ch14-normalization", title: "Fonksiyonel bağımlılık ve normalizasyon", title_en: "Functional dependencies and normalization", desc_en: "Design guidelines and anomalies, FDs, keys, 1NF, 2NF, 3NF, BCNF, lossless decomposition.", ch: "Ch 14", slides: "1–55", desc: "Tasarım kuralları ve anomaliler, FD'ler, anahtarlar, 1NF, 2NF, 3NF, BCNF, kayıpsız ayrıştırma." },
   ] },
   { part: "Bölüm VII · Depolama ve indeksleme", part_en: "Part VII · Storage and indexing", short: "Ch 16, 17", items: [
-    { id: "ch16-files", title: "Disk depolama, dosyalar ve hashing", title_en: "Disk storage, files and hashing", desc_en: "Storage hierarchy, disks, buffer management, blocking, heap and sorted files, hashing, RAID.", ch: "Ch 16", slides: "1–41", scope: "none", desc: "Depolama hiyerarşisi, diskler, tampon yönetimi, bloklama, heap ve sıralı dosyalar, hashing, RAID." },
-    { id: "ch17-indexing", title: "İndeks yapıları", title_en: "Indexing structures", desc_en: "Primary, clustering and secondary indexes, multilevel indexes, B-trees and B+-trees.", ch: "Ch 17", slides: "1–41", scope: "none", desc: "Birincil, kümeleme ve ikincil indeksler, çok seviyeli indeksler, B-ağaçları ve B+-ağaçları." },
+    { id: "ch16-files", title: "Disk depolama, dosyalar ve hashing", title_en: "Disk storage, files and hashing", desc_en: "Storage hierarchy, disks, buffer management, blocking, heap and sorted files, hashing, RAID.", ch: "Ch 16", slides: "1–41", desc: "Depolama hiyerarşisi, diskler, tampon yönetimi, bloklama, heap ve sıralı dosyalar, hashing, RAID." },
+    { id: "ch17-indexing", title: "İndeks yapıları", title_en: "Indexing structures", desc_en: "Primary, clustering and secondary indexes, multilevel indexes, B-trees and B+-trees.", ch: "Ch 17", slides: "1–41", desc: "Birincil, kümeleme ve ikincil indeksler, çok seviyeli indeksler, B-ağaçları ve B+-ağaçları." },
   ] },
   { part: "Bölüm VIII · Transaction'lar ve programlama", part_en: "Part VIII · Transactions and programming", short: "Ch 11, 20", items: [
-    { id: "ch11-php", title: "PHP ile web veritabanı programlama", title_en: "Web database programming with PHP", desc_en: "Three-tier web architecture, PHP basics, arrays, forms, PEAR DB, placeholders, fetchRow and getAll.", ch: "Ch 11", slides: "1–35", scope: "none", desc: "Üç katmanlı web mimarisi, PHP temelleri, diziler, formlar, PEAR DB, placeholder'lar, fetchRow ve getAll." },
-    { id: "ch20-transactions", title: "Transaction işleme", title_en: "Transaction processing", desc_en: "Concurrency problems, transaction states and the log, ACID, recoverable and serializable schedules, isolation levels.", ch: "Ch 20", slides: "1–44", scope: "none", desc: "Eşzamanlılık sorunları, transaction durumları ve log, ACID, kurtarılabilir ve serileştirilebilir çizelgeler, izolasyon seviyeleri." },
+    { id: "ch11-php", title: "PHP ile web veritabanı programlama", title_en: "Web database programming with PHP", desc_en: "Three-tier web architecture, PHP basics, arrays, forms, PEAR DB, placeholders, fetchRow and getAll.", ch: "Ch 11", slides: "1–35", desc: "Üç katmanlı web mimarisi, PHP temelleri, diziler, formlar, PEAR DB, placeholder'lar, fetchRow ve getAll." },
+    { id: "ch20-transactions", title: "Transaction işleme", title_en: "Transaction processing", desc_en: "Concurrency problems, transaction states and the log, ACID, recoverable and serializable schedules, isolation levels.", ch: "Ch 20", slides: "1–44", desc: "Eşzamanlılık sorunları, transaction durumları ve log, ACID, kurtarılabilir ve serileştirilebilir çizelgeler, izolasyon seviyeleri." },
   ] },
   { part: "Uygulama", part_en: "Practice", items: [
     { id: "er-studio", title: "ER stüdyosu", title_en: "ER studio", desc_en: "Draw ER/EER, map to tables, turn tables back into ER; design exercises.", desc: "ER/EER çiz, tablolara dönüştür, tablolardan ER'e geri dön; tasarım alıştırmaları." },
@@ -55,17 +54,13 @@ export const NAV = [
     { id: "lab", title: "SQL laboratuvarı", title_en: "SQL lab", desc_en: "A free query console on COMPANY and a schema browser.", desc: "COMPANY üzerinde serbest sorgu konsolu ve şema tarayıcı." },
   ] },
   { part: "Sınav", part_en: "Exam", items: [
-    { id: "exam-midterm", title: "Arasınav çalışma rehberi", title_en: "Midterm study guide", desc_en: "What to know chapter by chapter, worked problems, a practice set.", desc: "Bölüm bölüm bilinmesi gerekenler, çözümlü sorular, deneme seti." },
-    { id: "exam-final", title: "Final çalışma rehberi", title_en: "Final exam study guide", desc_en: "All topics: a scope map, a study plan, an end-to-end worked problem from requirements to transactions, a mixed practice set.", desc: "Bütün konular: kapsam haritası, çalışma planı, gereksinimden transaction'a uçtan uca çözümlü problem, karışık deneme seti." },
+    { id: "exam-midterm", title: "Ch 1–7 çalışma rehberi", title_en: "Study guide: Ch 1–7", desc_en: "What to know chapter by chapter, worked problems, a practice set.", desc: "Bölüm bölüm bilinmesi gerekenler, çözümlü sorular, deneme seti." },
+    { id: "exam-final", title: "Bütün ders: çalışma rehberi", title_en: "Study guide: the whole course", desc_en: "All topics: a scope map, a study plan, an end-to-end worked problem from requirements to transactions, a mixed practice set.", desc: "Bütün konular: kapsam haritası, çalışma planı, gereksinimden transaction'a uçtan uca çözümlü problem, karışık deneme seti." },
     { id: "cheatsheet", title: "Özet kâğıdı ve sözlük", title_en: "Cheat sheet and glossary", desc_en: "SQL syntax, ER notation, algebra, normal forms, file and index formulas, transactions, Turkish–English terms.", desc: "SQL sözdizimi, ER gösterimi, cebir, normal formlar, dosya ve indeks formülleri, transaction'lar, Türkçe–İngilizce terimler." },
   ] },
 ];
 
 const ALL = NAV.flatMap((p) => p.items.map((it) => ({ ...it, title: tx(it, "title"), desc: tx(it, "desc"), part: tx(p, "part"), short: p.short })));
-for (const it of ALL) it.scope ??= it.ch ? "midterm" : "none";
-export const SCOPES = {
-  midterm: { label: tl("Arasınavda", "On the midterm"), tip: tl("Arasınav kapsamında: Elmasri & Navathe Ch 1–7.", "Covered by the midterm: Elmasri & Navathe Ch 1–7.") },
-};
 export const pageInfo = (id) => ALL.find((p) => p.id === id);
 export const PAGES = ALL;
 const href = (id) => (id === "index" ? "index.html" : `${id}.html`);
@@ -260,13 +255,11 @@ export function enhanceQuizzes(root = document) {
   }
 }
 
-/** Kicker above the H1: part, book chapter, scope. */
+/** Kicker above the H1: part and book chapter. */
 function buildKicker(info) {
   if (!info || info.id === "index") return null;
   const k = h("div", { class: "kicker" }, h("span", {}, info.part));
   if (info.ch) k.append(h("span", { class: "chip", title: tl("Elmasri & Navathe, 7. baskı", "Elmasri & Navathe, 7th edition") }, tl("Kitap ", "Book ") + info.ch));
-  const sc = SCOPES[info.scope];
-  if (sc) k.append(h("span", { class: "chip scope slides", title: sc.tip }, h("span", { class: "dot" }), sc.label));
   if (info.slides) k.append(h("span", { class: "chip", title: tl("Ders slaytlarında bu sayfanın kapsadığı aralık (müfredattaki gibi)", "The range of the course slides this page covers (as in the syllabus)") }, tl(`Slaytlar ${info.slides}`, `Slides ${info.slides}`)));
   return k;
 }

@@ -158,13 +158,13 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber;
 <p>Üst sınıflarının anahtarları farklı olan bir kategori eşlenirken, kategoriye karşılık gelen tabloya yeni bir anahtar sütunu verilir. Buna <strong>yapay anahtar</strong> (surrogate key) denir. Kitaptaki örnekte OWNER kategorisi için bir OWNER tablosu oluşturulur ve primary key'i yapay anahtar Owner_id olur. Kategoriyi oluşturan her üst sınıfın tablosuna (PERSON, BANK, COMPANY) bu anahtara referans veren bir Owner_id foreign key'i eklenir; bir araç sahibi olmayanlar için bu sütun NULL kalır. REGISTERED_VEHICLE kategorisinin üst sınıfları (CAR ve TRUCK) ise aynı anahtarı (Vehicle_id) paylaştığı için yapay anahtara gerek yoktur.</p>
 <div id="category-map"></div>
 
-<h2>Sen karar ver</h2>
-<p>Algoritmayı siz uygulayın: her soruda küçük bir ER parçası ve bir karar var (foreign key nereye, primary key ne, hangi Adım 8 seçeneği). Cevaptan sonra gerekçe ve algoritmanın ürettiği tablolar görünür; yanlış seçeneklerin çoğu gerçek tasarımlarda sık yapılan hatalardır.</p>
-<div id="decide"></div>
-
 <h2>Kendiniz deneyin</h2>
 <p>Bir örnek ve bir özelleştirme seçeneği seçin; diyagram ve eşleme güncellenir. Seçenek uygun değilse (partial özelleştirme için 8B gibi) algoritma uygun olana döner ve nedenini yazar. Slayt 36–37'deki alıştırma şemalarını <a href="er-studio.html">ER stüdyosunda</a> çizip aynı şekilde eşleyebilirsiniz.</p>
 <div id="explorer"></div>
+
+<h2>Sen karar ver</h2>
+<p>Algoritmayı siz uygulayın: her soruda küçük bir ER parçası ve bir karar var (foreign key nereye, primary key ne, hangi Adım 8 seçeneği). Cevaptan sonra gerekçe ve algoritmanın ürettiği tablolar görünür; yanlış seçeneklerin çoğu gerçek tasarımlarda sık yapılan hatalardır.</p>
+<div id="decide"></div>
 
 <h2>Kendinizi sınayın</h2>
 <div class="quiz" data-answer="2">

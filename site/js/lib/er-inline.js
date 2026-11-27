@@ -1,5 +1,5 @@
 // An ER design exercise placed in a page: requirements, an editor to draw in, a check against the model solution,
-// and the solution with its reasons (collapsible). Used by the chapter pages and the midterm guide.
+// and the solution with its reasons (collapsible). Used by the chapter pages and the Ch 1–7 guide.
 import { h, button } from "./ui.js";
 import { createEditor } from "./ereditor.js";
 import { ER_EXERCISES, compareER, solutionModel } from "./er-exercises.js";
