@@ -207,6 +207,27 @@ ORDER BY TABLE_NAME;
   <div class="explain">Sınırlı depolama, tek kullanıcı, basit ve değişmeyen gereksinimler: DBMS'in getirdiği ek yük (genellik, güvenlik, concurrency, recovery) burada karşılığını vermez.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: dosya işlemeden veritabanına</h4>
+<p>Bir hastanede poliklinik, laboratuvar ve muhasebe birimleri hasta bilgilerini kendi dosyalarında tutuyor.</p>
+<ol type="a">
+  <li>Bu düzenin üç sorununu ve her birini çözen veritabanı özelliğini yazın.
+    <div class="hint" data-label="Cevabı göster"><p>(1) Hastanın adresi üç dosyada tekrar eder ve biri güncellenince diğerleri eski kalır → <strong>kontrollü tekrar</strong>, tek kopya. (2) Laboratuvar bir alan eklediğinde onun programları değişir, diğer birimlerin dosya biçimi uyuşmaz → <strong>program-veri bağımsızlığı</strong> ve katalog (kendini tanımlama). (3) Muhasebe yalnızca fatura bilgisini görmeli, tahlil sonuçlarını görmemeli → <strong>birden çok görünüm (view)</strong> ve yetkilendirme. Ayrıca aynı hastanın kaydına iki birim aynı anda yazabilir → <strong>eşzamanlılık kontrolü</strong>.</p></div></li>
+</ol>
+<h4>Problem 2: aktörler</h4>
+<p>Her kişi hangi aktör türüdür?</p>
+<ol type="a">
+  <li>(a) Hasta kabul ekranını gün boyu kullanan görevli, (b) SQL ile kendi analizlerini yazan veri bilimci, (c) kullanıcı hesaplarını ve yedeklemeyi yöneten kişi, (d) kullanıcılarla görüşüp tabloları ve view'ları tasarlayan kişi, (e) bir DBMS'in sorgu optimizer'ını yazan mühendis.
+    <div class="hint" data-label="Cevabı göster"><p>(a) <strong>Naive/parametric son kullanıcı</strong> (hazır transaction'lar), (b) <strong>sophisticated son kullanıcı</strong>, (c) <strong>DBA</strong>, (d) <strong>veritabanı tasarımcısı</strong>, (e) <strong>DBMS tasarımcısı ve geliştiricisi</strong>: perde arkasındadır, veritabanının içeriğiyle ilgilenmez.</p></div></li>
+</ol>
+<h4>Problem 3: DBMS gerekmeyen durumlar</h4>
+<ol type="a">
+  <li>Bir DBMS kullanmanın gereksiz ya da zararlı olabileceği iki durum yazın ve nedenini açıklayın.
+    <div class="hint" data-label="Cevabı göster"><p>(1) Küçük bellekli gömülü bir cihaz (ör. bir termostatın ayarları): DBMS'in ek yükü (bellek, işlemci) karşılanamaz. (2) Gerçek zamanlı bir sistemin katı süre sınırları: transaction işleme ve kurtarma ek gecikme getirir. Diğer örnekler: hiç değişmeyen, basit ve tek kullanıcılı veri; DBMS'in genel modeline sığmayan çok özel veri.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

@@ -218,6 +218,26 @@ SELECT Dnumber, Dlocation FROM DEPT_LOCATIONS ORDER BY Dnumber;
   <div class="explain">Step 9: if the superclasses have different keys, the category table gets a surrogate key. Each superclass table gets a foreign key that refers to this key; in rows that do not belong to the category this column is NULL.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: from ER to tables</h4>
+<p>The car rental schema of Ch 3: BRANCH(Branch_no, Address, Phones multivalued), CAR(Plate, Model, Year), CUSTOMER(License_no, Name, Birth_date, Age derived), weak SERVICE_RECORD(Service_no, Date, Cost); CAR N:1 BRANCH (REGISTERED_AT), CUSTOMER M:N CAR (RENTS: Start_date, End_date), CAR 1:N SERVICE_RECORD (identifying).</p>
+<ol type="a">
+  <li>Apply the mapping algorithm and write the tables, primary keys and foreign keys.
+    <div class="hint" data-label="Show the answer"><p>Step 1: BRANCH(<u>Branch_no</u>, Address), CAR(<u>Plate</u>, Model, Year), CUSTOMER(<u>License_no</u>, Name, Birth_date); the derived Age is not stored. Step 2: SERVICE_RECORD(<u>Plate</u>, <u>Service_no</u>, Date, Cost), Plate → CAR. Step 4 (1:N): Branch_no goes into CAR (→ BRANCH); NOT NULL, since CAR participates totally. Step 5 (M:N): RENTS(<u>License_no</u>, <u>Plate</u>, Start_date, End_date) with two foreign keys. Step 6 (multivalued): BRANCH_PHONE(<u>Branch_no</u>, <u>Phone</u>).</p></div></li>
+  <li>If the same customer can rent the same car again on different dates, is RENTS's primary key enough?
+    <div class="hint" data-label="Show the answer"><p>No: (License_no, Plate) repeats on the second rental. Start_date is added to the key: (<u>License_no</u>, <u>Plate</u>, <u>Start_date</u>). Conceptually this shows that RENTS should be a RENTAL entity.</p></div></li>
+</ol>
+<h4>Problem 2: specialization options (Step 8)</h4>
+<p>VEHICLE(Vehicle_id, Price) → {CAR(Max_speed), TRUCK(Tonnage)}, disjoint and total.</p>
+<ol type="a">
+  <li>Which tables result from each of the options 8A, 8B, 8C and 8D?
+    <div class="hint" data-label="Show the answer"><p><strong>8A</strong>: VEHICLE(<u>Vehicle_id</u>, Price), CAR(<u>Vehicle_id</u>, Max_speed), TRUCK(<u>Vehicle_id</u>, Tonnage). <strong>8B</strong>: CAR(<u>Vehicle_id</u>, Price, Max_speed), TRUCK(<u>Vehicle_id</u>, Price, Tonnage); no superclass table. <strong>8C</strong>: VEHICLE(<u>Vehicle_id</u>, Price, Max_speed, Tonnage, Vehicle_type). <strong>8D</strong>: VEHICLE(<u>Vehicle_id</u>, Price, Max_speed, Tonnage, Car_flag, Truck_flag).</p></div></li>
+  <li>Which options would not fit if the specialization were overlapping and partial?
+    <div class="hint" data-label="Show the answer"><p><strong>8B</strong> would not fit: with partial, vehicles without a subclass are in no table; with overlapping, the shared attributes repeat in two tables. Neither would <strong>8C</strong>: a single type attribute cannot show a vehicle in two subclasses. 8A and 8D fit.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

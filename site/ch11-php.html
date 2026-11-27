@@ -256,6 +256,29 @@ foreach ($allresult as $r) {
   <div class="explain">sort, değerleri sıralar ve diziye 0'dan başlayan sayısal indeksler verir; ilişkisel dizinin anahtarları kaybolur. Anahtarları korumak için asort, anahtarlara göre sıralamak için ksort kullanılır. Dizi oynatıcısında sort adımının önceki ve sonraki hâlini görebilirsiniz.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: formdan sorgu</h4>
+<p>Bir formdan gelen departman numarasıyla o departmandaki çalışanların adlarını listeleyen PHP kodu (PEAR DB).</p>
+<ol type="a">
+  <li>Kodu placeholder kullanarak yazın.
+    <div class="hint" data-label="Cevabı göster"><pre class="code-block"><code>$d = DB::connect('mysql://user:pass@localhost/company');
+if (DB::isError($d)) { die('Bağlantı hatası: ' . $d->getMessage()); }
+$q = $d->query('SELECT Fname, Lname FROM EMPLOYEE WHERE Dno = ?',
+               array($_POST['dno']));
+while ($r = $q->fetchRow()) {
+  print "$r[0] $r[1]&lt;br&gt;";
+}</code></pre><p>Formdan gelen değer SQL metnine yapıştırılmaz; ? yerine sürücü tarafından güvenle yerleştirilir.</p></div></li>
+  <li>Sorgu metni <code>"... WHERE Dno = " . $_POST['dno']</code> biçiminde kurulsaydı ne olurdu?
+    <div class="hint" data-label="Cevabı göster"><p><strong>SQL injection</strong>: kullanıcı forma <code>5 OR 1=1</code> yazarsa koşul her satırda doğru olur ve bütün çalışanlar listelenir; daha kötü girdilerle veri silinebilir. Placeholder, girdinin her zaman bir <em>değer</em> olarak, asla SQL kodu olarak işlenmemesini sağlar.</p></div></li>
+</ol>
+<h4>Problem 2: fetchRow mu, getAll mı?</h4>
+<ol type="a">
+  <li>10 000 satırlık bir sonucu sayfaya yazdırırken fetchRow döngüsü ile getAll arasındaki fark nedir?
+    <div class="hint" data-label="Cevabı göster"><p>fetchRow satırları <strong>tek tek</strong> getirir; bellekte bir anda tek satır durur. getAll bütün sonucu <strong>bir diziye</strong> yükler: kod kısalır ama 10 000 satır birden belleğe alınır. Büyük sonuçlarda fetchRow döngüsü tercih edilir.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

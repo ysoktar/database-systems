@@ -263,6 +263,28 @@
   <div class="explain">Her hasta tam 1 odada → HASTA tarafında max 1, min 1 (total). Bir odada 0–2 hasta → ODA (0,2), partial. Oran N:1 (çok hasta, bir oda). (min,max) gösterimi, kardinaliteden daha fazlasını (en çok 2) ifade edebilir.</div>
 </div>
 
+
+<h3>Açık uçlu alıştırmalar</h3>
+<p>Kitabın bu bölümdeki alıştırmalarıyla aynı tipte, cevabı açık uçlu sorular. Önce kâğıtta çözün, sonra cevabı açın.</p>
+<h4>Problem 1: gereksinimden ER'e</h4>
+<p>Bir araç kiralama şirketi: her <em>şubenin</em> numarası, adresi ve birden çok telefonu var. Her <em>araç</em> plakasıyla tanınır; modeli ve yılı tutulur; her araç tek bir şubeye kayıtlıdır. <em>Müşterilerin</em> ehliyet numarası, adı ve doğum tarihi tutulur; yaşları doğum tarihinden hesaplanır. Bir müşteri bir aracı belirli tarihler arasında kiralar; aynı araç farklı zamanlarda birçok müşteriye kiralanır. Her aracın <em>bakım kayıtları</em> numaralanır (aracın 1., 2., … bakımı) ve bakım tarihi ile tutarı tutulur.</p>
+<ol type="a">
+  <li>Varlık tiplerini, anahtarlarını ve özel öznitelikleri yazın.
+    <div class="hint" data-label="Cevabı göster"><p>BRANCH (anahtar Branch_no; Address; Phones <strong>çok değerli</strong>). CAR (anahtar Plate; Model, Year). CUSTOMER (anahtar License_no; Name, Birth_date; Age <strong>türetilmiş</strong>). SERVICE_RECORD <strong>zayıf varlık</strong>: partial key Service_no; Date, Cost.</p></div></li>
+  <li>İlişkileri, kardinalite oranlarını ve katılım kısıtlarını yazın.
+    <div class="hint" data-label="Cevabı göster"><p>REGISTERED_AT: CAR N : 1 BRANCH; CAR tarafı total (her araç bir şubeye kayıtlı). RENTS: CUSTOMER M : N CAR, öznitelikleri Start_date, End_date; iki taraf partial. HAS_SERVICE (tanımlayıcı ilişki): CAR 1 : N SERVICE_RECORD, SERVICE_RECORD tarafı total. Not: aynı müşteri aynı aracı farklı tarihlerde tekrar kiralayabiliyorsa RENTS'i bir RENTAL varlığına çevirmek gerekir.</p></div></li>
+</ol>
+<h4>Problem 2: (min, max) ile kardinalite oranı</h4>
+<ol type="a">
+  <li>EMPLOYEE (1,1) WORKS_FOR (4,N) DEPARTMENT yazılmışsa kardinalite oranı ve katılımlar nedir?
+    <div class="hint" data-label="Cevabı göster"><p>Her çalışan tam bir departmanda (1,1), her departmanda en az 4 çalışan (4,N): oran <strong>N : 1</strong> (EMPLOYEE : DEPARTMENT). İki taraf da <strong>total</strong>, çünkü iki min değer de 0'dan büyük. (min,max) her çifti kendi varlığının yanına yazar; 1/N gösteriminde ise sayılar karşı tarafa yazılır.</p></div></li>
+</ol>
+<h4>Problem 3: üçlü ilişki</h4>
+<ol type="a">
+  <li>SUPPLY(Supplier, Part, Project) üçlü ilişkisi yerine üç ikili ilişki (SUPPLIES Supplier–Part, CAN_SUPPLY Supplier–Project, USES Project–Part) kullanılabilir mi?
+    <div class="hint" data-label="Cevabı göster"><p>Genel olarak hayır. Üç ikili ilişki "s, j projesine p parçasını sağlıyor" bilgisini taşımaz. Örnek: s1 p1'i sağlıyor, s1 j1'e sağlıyor, j1 p1'i kullanıyor; ama j1'in p1'ini s1 değil s2 sağlıyor olabilir. İkili ilişkilerden (s1, p1, j1) yanlışlıkla çıkarılır. Üçlü ilişkide Quantity gibi üçüne birden ait öznitelikler de doğal olarak yer alır.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>

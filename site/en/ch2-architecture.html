@@ -243,6 +243,30 @@ DROP VIEW EMP_DEPT;
   <div class="explain">The middle tier (application/web server) runs the business rules and accesses the database on behalf of the client. In two-tier the client connects directly to the database server with ODBC/JDBC.</div>
 </div>
 
+
+<h3>Open-ended exercises</h3>
+<p>Open-ended questions of the same types as the book's exercises for this chapter. Solve them on paper first, then open the answer.</p>
+<h4>Problem 1: which data independence?</h4>
+<p>For each change: which level's schema changes, and which independence keeps the programs unaffected?</p>
+<ol type="a">
+  <li>Adding an index on EMPLOYEE.Lname.
+    <div class="hint" data-label="Show the answer"><p>The internal schema changes. <strong>Physical data independence</strong>: the conceptual schema and the programs stay the same; only access gets faster.</p></div></li>
+  <li>Splitting EMPLOYEE into EMP_PERSONAL and EMP_JOB, while the applications keep using the old EMPLOYEE view.
+    <div class="hint" data-label="Show the answer"><p>The conceptual schema changes. <strong>Logical data independence</strong>: the external schema (the EMPLOYEE view) is redefined as a join of the two tables, and the programs do not change.</p></div></li>
+  <li>Moving the database files from a magnetic disk to an SSD.
+    <div class="hint" data-label="Show the answer"><p>Only the internal (storage) level changes: <strong>physical data independence</strong>.</p></div></li>
+</ol>
+<h4>Problem 2: classify the languages</h4>
+<ol type="a">
+  <li>Which language category do CREATE TABLE, CREATE VIEW, CREATE INDEX, SELECT and UPDATE belong to?
+    <div class="hint" data-label="Show the answer"><p>CREATE TABLE: <strong>DDL</strong> (conceptual schema). CREATE VIEW: <strong>VDL</strong> (external schema; part of the DDL in SQL). CREATE INDEX: <strong>SDL</strong> (internal schema; not in the SQL standard, DBMS-specific). SELECT and UPDATE: <strong>DML</strong>; SQL's is high-level and set-at-a-time.</p></div></li>
+</ol>
+<h4>Problem 3: schema or state?</h4>
+<ol type="a">
+  <li>Which of these change the database state and which change the schema: INSERT INTO EMPLOYEE …, ALTER TABLE EMPLOYEE ADD Email …, DELETE FROM PROJECT WHERE …, DROP VIEW …?
+    <div class="hint" data-label="Show the answer"><p>INSERT and DELETE change the <strong>state</strong> (extension), which happens often. ALTER TABLE and DROP VIEW change the <strong>schema</strong> (intension): <em>schema evolution</em>, which is rare and recorded in the catalog.</p></div></li>
+</ol>
+
 </div></main>
 </body>
 </html>
