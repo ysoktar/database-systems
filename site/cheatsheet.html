@@ -280,7 +280,8 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
     <tr><td>catalog</td><td>katalog</td><td>meta-data'nın saklandığı yer (data dictionary)</td></tr>
     <tr><td>category (union type)</td><td>kategori</td><td>farklı üst sınıfların birleşiminin alt kümesi olan alt sınıf</td></tr>
     <tr><td>closure (X⁺)</td><td>kapanış</td><td>X'in FD'ler aracılığıyla belirlediği bütün öznitelikler</td></tr>
-    <tr><td>clustering index</td><td>kümeleme indeksi</td><td>dosyanın sıralı olduğu anahtar olmayan alan üzerindeki indeks</td></tr>
+    <tr><td>clustering field</td><td>kümeleme alanı</td><td>dosyanın sıralandığı ama anahtar olmayan alan (aynı değer tekrar eder)</td></tr>
+    <tr><td>clustering index</td><td>kümeleme indeksi</td><td>clustering field üzerindeki indeks; her farklı değer için bir giriş</td></tr>
     <tr><td>conflict serializable</td><td>çakışma serileştirilebilir</td><td>bir seri çizelgeye çakışma eşdeğer olan çizelge</td></tr>
     <tr><td>correlated nested query</td><td>ilintili iç içe sorgu</td><td>dış sorgunun sütununa referans veren iç sorgu</td></tr>
     <tr><td>dense / sparse index</td><td>yoğun / seyrek indeks</td><td>her değer için / yalnızca bazı değerler için giriş içeren indeks</td></tr>
@@ -300,7 +301,9 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
     <tr><td>multilevel index</td><td>çok seviyeli indeks</td><td>indeksin indeksi; her seviye fan-out kadar küçülür</td></tr>
     <tr><td>multivalued attribute</td><td>çok değerli öznitelik</td><td>bir varlık için birden çok değer alabilen öznitelik</td></tr>
     <tr><td>natural join</td><td>doğal birleştirme</td><td>aynı adlı öznitelikler üzerinde equijoin, tekrarlanan sütun atılır</td></tr>
+    <tr><td>nonordering field</td><td>sırasız alan</td><td>dosyanın sıralı olmadığı alan; üzerine ikincil indeks kurulur</td></tr>
     <tr><td>normal form</td><td>normal form</td><td>bir ilişki şemasının tekrar ve anomaliye karşı düzeyini gösteren koşul</td></tr>
+    <tr><td>ordering field / ordering key field</td><td>sıralama alanı / sıralama anahtarı alanı</td><td>dosyanın fiziksel olarak sıralandığı alan; anahtarsa ordering key field (birincil indeks), değilse clustering field</td></tr>
     <tr><td>partial / transitive dependency</td><td>kısmi / geçişli bağımlılık</td><td>anahtarın parçasına / anahtar olmayan bir özniteliğe bağlılık</td></tr>
     <tr><td>partial key (discriminator)</td><td>kısmi anahtar</td><td>aynı sahibe bağlı zayıf varlıkları ayıran öznitelik</td></tr>
     <tr><td>participation constraint</td><td>katılım kısıtı</td><td>total (zorunlu) ya da partial (isteğe bağlı) katılım</td></tr>

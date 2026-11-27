@@ -17,11 +17,11 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
   const hashOf = (name) => name.length % 4; // the hash index's h(K): the number of letters mod 4
   const TYPES = {
     primary: { label: tl("Birincil (Ssn)", "Primary (Ssn)"), order: 0, field: 0, def: "666884444",
-      note: tl("Dosya Ssn'e göre sıralı ve Ssn bir anahtar. Her giriş ⟨K(i), P(i)⟩: K(i), i. bloğun ilk kaydının Ssn'i (blok çapası); P(i), o bloğun adresi. Her blok için bir giriş olduğundan indeks seyrektir: 8 kayıt, 3 giriş.", "The file is sorted on Ssn, a key. Each entry is ⟨K(i), P(i)⟩: K(i) is the Ssn of block i's first record (the block anchor); P(i) is that block's address. One entry per block makes the index sparse: 8 records, 3 entries.") },
+      note: tl("Dosya Ssn'e göre sıralı ve Ssn bir anahtar: Ssn bu dosyanın ordering key field'ı. Her giriş ⟨K(i), P(i)⟩: K(i), i. bloğun ilk kaydının Ssn'i (blok çapası); P(i), o bloğun adresi. Her blok için bir giriş olduğundan indeks seyrektir: 8 kayıt, 3 giriş.", "The file is sorted on Ssn, a key: Ssn is this file's ordering key field. Each entry is ⟨K(i), P(i)⟩: K(i) is the Ssn of block i's first record (the block anchor); P(i) is that block's address. One entry per block makes the index sparse: 8 records, 3 entries.") },
     clustering: { label: tl("Kümeleme (Dno)", "Clustering (Dno)"), order: 2, field: 2, def: "4",
-      note: tl("Dosya Dno'ya göre sıralı ama Dno bir anahtar değil: aynı değer birçok kayıtta var. Her farklı Dno için bir giriş var: K(i) bir Dno değeri, P(i) o değerin ilk göründüğü blok.", "The file is sorted on Dno, which is not a key: a value repeats in many records. There is one entry per distinct Dno: K(i) is a Dno value, P(i) the first block where it appears.") },
+      note: tl("Dosya Dno'ya göre sıralı ama Dno bir anahtar değil: aynı değer birçok kayıtta var, yani Dno bu dosyanın clustering field'ı. Her farklı Dno için bir giriş var: K(i) bir Dno değeri, P(i) o değerin ilk göründüğü blok.", "The file is sorted on Dno, which is not a key: a value repeats in many records, so Dno is this file's clustering field. There is one entry per distinct Dno: K(i) is a Dno value, P(i) the first block where it appears.") },
     secondary: { label: tl("İkincil (Lname)", "Secondary (Lname)"), order: 0, field: 1, def: "Wallace",
-      note: tl("Dosya Ssn'e göre sıralı; Lname'e göre değil. Lname'ler bloklara dağınık olduğu için her kayıt için bir giriş gerekir: K(i) bir Lname, P(i) kaydın bulunduğu blok (blok işaretçisi, Figure 17.4; kayıt işaretçisi de olabilir). İndeks yoğun: 8 kayıt, 8 giriş.", "The file is sorted on Ssn, not on Lname. Last names are scattered over the blocks, so every record needs an entry: K(i) is a Lname, P(i) the block holding the record (a block pointer, Figure 17.4; it could also be a record pointer). The index is dense: 8 records, 8 entries.") },
+      note: tl("Dosya Ssn'e göre sıralı; Lname'e göre değil, yani Lname bir nonordering field. Lname'ler bloklara dağınık olduğu için her kayıt için bir giriş gerekir: K(i) bir Lname, P(i) kaydın bulunduğu blok (blok işaretçisi, Figure 17.4; kayıt işaretçisi de olabilir). İndeks yoğun: 8 kayıt, 8 giriş.", "The file is sorted on Ssn, not on Lname, so Lname is a nonordering field. Last names are scattered over the blocks, so every record needs an entry: K(i) is a Lname, P(i) the block holding the record (a block pointer, Figure 17.4; it could also be a record pointer). The index is dense: 8 records, 8 entries.") },
     hash: { label: tl("Hash indeks (Lname)", "Hash index (Lname)"), order: 0, field: 1, def: "Wallace",
       note: tl("Dosya Ssn'e göre düzenli; indeks Lname üzerinde hashing kullanır (Figure 17.15). Girişler ⟨K, P⟩ biçiminde, h(K) = harf sayısı mod 4 ile seçilen kovalarda durur. Arama: h(K) hesaplanır, o kova okunur, girişin P'si izlenir. İndeks sıralı değildir; yalnızca eşitlik araması içindir.", "The file is organized on Ssn; the index uses hashing on Lname (Figure 17.15). The ⟨K, P⟩ entries sit in buckets chosen by h(K) = number of letters mod 4. Search: compute h(K), read that bucket, follow the entry's P. The index is not ordered; it serves equality searches only.") },
   };
@@ -152,6 +152,14 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
   const bar = h("div", { class: "pl-bar" });
   for (const [k, [label, v]] of Object.entries(ins)) { el[k] = h("input", { type: "number", value: v, min: 1, style: { width: "6.5em" } }); bar.append(field(`${label}: `, el[k])); }
   const out = h("div");
+  // "Check in the calculator" buttons in the exercises: data-calc="r R B V P Pr"
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.("[data-calc]");
+    if (!b) return;
+    b.dataset.calc.split(/\s+/).forEach((v, k) => { el[Object.keys(ins)[k]].value = v; });
+    run();
+    host.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   const L2 = (x) => Math.max(0, Math.ceil(Math.log2(x)));
   const run = () => {
     const g = Object.fromEntries(Object.keys(ins).map((k) => [k, Math.max(1, num(el[k].value, ins[k][1]))]));
@@ -168,7 +176,7 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
         h("li", {}, tl(`Veri dosyası: bfr = ⌊${g.B} / ${g.R}⌋ = ${bfr}, b = ⌈${g.r} / ${bfr}⌉ = ${b} blok.`, `Data file: bfr = ⌊${g.B} / ${g.R}⌋ = ${bfr}, b = ⌈${g.r} / ${bfr}⌉ = ${b} blocks.`)),
         h("li", {}, tl(`İndeks girişi V + P = ${g.V + g.P} byte; bir indeks bloğuna fo = bfrᵢ = ⌊${g.B} / ${g.V + g.P}⌋ = ${fo} giriş sığar.`, `An index entry is V + P = ${g.V + g.P} bytes; an index block holds fo = bfrᵢ = ⌊${g.B} / ${g.V + g.P}⌋ = ${fo} entries.`)),
         h("li", {}, tl(`Birincil indeks: ${b} giriş (her blok için bir), ⌈${b} / ${fo}⌉ = ${prim} blok. Yoğun ikincil indeks: ${g.r} giriş, ⌈${g.r} / ${fo}⌉ = ${sec} blok.`, `Primary index: ${b} entries (one per block), ⌈${b} / ${fo}⌉ = ${prim} blocks. Dense secondary index: ${g.r} entries, ⌈${g.r} / ${fo}⌉ = ${sec} blocks.`)),
-        h("li", {}, tl(`Çok seviyeli (ikincil indeksten): seviyelerin blok sayıları ${ml.slice(0).join(" → ")}; t = ${ml.length - 1} seviye.`, `Multilevel (from the secondary index): block counts per level ${ml.join(" → ")}; t = ${ml.length - 1} levels.`))),
+        h("li", {}, tl(`Çok seviyeli (ikincil indeksten): seviyelerin blok sayıları ${ml.slice(0).join(" → ")}; t = ${ml.length} seviye.`, `Multilevel (from the secondary index): block counts per level ${ml.join(" → ")}; t = ${ml.length} levels.`))),
       h("div", { class: "table-wrap" }, h("table", { class: "simple" },
         h("thead", {}, h("tr", {}, h("th", {}, tl("Erişim yolu", "Access path")), h("th", {}, tl("Okunan blok", "Blocks read")), h("th", {}, tl("Neden?", "Why?")))),
         h("tbody", {},
@@ -176,7 +184,7 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
           row(tl("Sıralı dosyada ikili arama", "Binary search on the sorted file"), L2(b), `⌈log₂ ${b}⌉`),
           row(tl("Birincil indeks + 1 veri bloğu", "Primary index + 1 data block"), L2(prim) + 1, `⌈log₂ ${prim}⌉ + 1`),
           row(tl("Yoğun ikincil indeks + 1 veri bloğu", "Dense secondary index + 1 data block"), L2(sec) + 1, `⌈log₂ ${sec}⌉ + 1`),
-          row(tl("Çok seviyeli indeks + 1 veri bloğu", "Multilevel index + 1 data block"), ml.length, tl(`t + 1 = ${ml.length - 1} + 1: her seviyeden bir blok.`, `t + 1 = ${ml.length - 1} + 1: one block per level.`))))),
+          row(tl("Çok seviyeli indeks + 1 veri bloğu", "Multilevel index + 1 data block"), ml.length + 1, tl(`t + 1 = ${ml.length} + 1: her seviyeden bir blok, sonra veri bloğu.`, `t + 1 = ${ml.length} + 1: one block per level, then the data block.`))))),
       h("p", { class: "small" }, tl(`B+-ağacı mertebeleri: iç düğüm (p − 1)·V + p·P ≤ B koşulundan p = ⌊(${g.B} + ${g.V}) / (${g.V} + ${g.P})⌋ = ${p}; yaprak p_leaf·(V + Pr) + P ≤ B koşulundan p_leaf = ⌊(${g.B} − ${g.P}) / (${g.V} + ${g.Pr})⌋ = ${pleaf}.`,
         `B+-tree orders: internal node from (p − 1)·V + p·P ≤ B gives p = ⌊(${g.B} + ${g.V}) / (${g.V} + ${g.P})⌋ = ${p}; leaf from p_leaf·(V + Pr) + P ≤ B gives p_leaf = ⌊(${g.B} − ${g.P}) / (${g.V} + ${g.Pr})⌋ = ${pleaf}.`)));
   };
@@ -408,6 +416,14 @@ function drawTree(root, { bplus, kind = bplus ? "bplus" : "btree", hl = new Set(
     body,
     h("h4", {}, tl("Arama", "Search")), h("div", { class: "pl-bar" }, field(tl("Aranan değer: ", "Find: "), findIn)), findOut));
   build(); show();
+  // "Load into the player" buttons in the exercises: data-bptree="values", data-p, data-pl
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.("[data-bptree]");
+    if (!b) return;
+    kind.value = "bplus"; valsIn.value = b.dataset.bptree; pIn.value = b.dataset.p || 3; plIn.value = b.dataset.pl || 2;
+    reset(); i = vals.length; show();
+    host.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 // ---------------------------------------------------------------- bitmap index

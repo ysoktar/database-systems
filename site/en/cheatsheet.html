@@ -281,7 +281,8 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
     <tr><td>catalog</td><td>katalog</td><td>where the meta-data is stored (data dictionary)</td></tr>
     <tr><td>category (union type)</td><td>kategori</td><td>a subclass that is a subset of the union of different superclasses</td></tr>
     <tr><td>closure (X⁺)</td><td>kapanış</td><td>all the attributes X determines through the FDs</td></tr>
-    <tr><td>clustering index</td><td>kümeleme indeksi</td><td>an index on the non-key field the file is sorted on</td></tr>
+    <tr><td>clustering field</td><td>kümeleme alanı</td><td>the field the file is sorted on that is not a key (values repeat)</td></tr>
+    <tr><td>clustering index</td><td>kümeleme indeksi</td><td>an index on the clustering field; one entry per distinct value</td></tr>
     <tr><td>conflict serializable</td><td>çakışma serileştirilebilir</td><td>conflict equivalent to some serial schedule</td></tr>
     <tr><td>correlated nested query</td><td>ilintili iç içe sorgu</td><td>an inner query that refers to a column of the outer query</td></tr>
     <tr><td>dense / sparse index</td><td>yoğun / seyrek indeks</td><td>an index with an entry for every value / for only some values</td></tr>
@@ -301,7 +302,9 @@ CREATE TRIGGER N {BEFORE | AFTER} {INSERT | UPDATE [OF cols] | DELETE} ON T
     <tr><td>multilevel index</td><td>çok seviyeli indeks</td><td>an index on the index; each level shrinks by the fan-out</td></tr>
     <tr><td>multivalued attribute</td><td>çok değerli öznitelik</td><td>an attribute that can take several values for one entity</td></tr>
     <tr><td>natural join</td><td>doğal birleştirme</td><td>an equijoin on attributes with the same name, dropping the repeated column</td></tr>
+    <tr><td>nonordering field</td><td>sırasız alan</td><td>a field the file is not sorted on; a secondary index goes on it</td></tr>
     <tr><td>normal form</td><td>normal form</td><td>a condition showing how far a schema is from redundancy and anomalies</td></tr>
+    <tr><td>ordering field / ordering key field</td><td>sıralama alanı / sıralama anahtarı alanı</td><td>the field the file is physically sorted on; a key: ordering key field (primary index), otherwise the clustering field</td></tr>
     <tr><td>partial / transitive dependency</td><td>kısmi / geçişli bağımlılık</td><td>a dependency on part of a key / on a non-key attribute</td></tr>
     <tr><td>partial key (discriminator)</td><td>kısmi anahtar</td><td>the attribute that distinguishes weak entities with the same owner</td></tr>
     <tr><td>participation constraint</td><td>katılım kısıtı</td><td>total (mandatory) or partial (optional) participation</td></tr>

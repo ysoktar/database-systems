@@ -3,6 +3,7 @@
 import { h, $, $$, CALLOUT_ICONS } from "./lib/ui.js";
 import { enhanceSQL, tableContext } from "./lib/sqlbox.js";
 import { t as tl, tx, EN } from "./lib/i18n.js";
+import { GLOSSARY } from "./lib/glossary.js";
 
 export const REPO = "https://github.com/ysoktar/database-systems";
 export const NOTEBOOK_URL = "https://colab.research.google.com/drive/1ArUuenMYSnN0ZNk_1Gsmn-CvnUnUeS30?usp=sharing";
@@ -344,40 +345,59 @@ function enhanceTerms(content) {
   return entries;
 }
 
-/** Marks the first use of each "terms at a glance" entry on the page with a dotted underline; hovering,
- *  focusing or tapping it shows the plain definition. Only prose is touched (p, li, td, callouts), never code,
- *  headings, links, buttons or the widgets. */
-function linkTerms(content, entries) {
-  if (!entries.length) return;
+/** Underlines glossary terms in the prose: this page's "terms at a glance" plus the site glossary (glossary.js). Each
+ *  term is marked once per paragraph, list item or cell; hovering, focusing or tapping it shows the definition. Code,
+ *  headings, links, buttons and the widgets are left alone. */
+function linkTerms(content, pageEntries) {
+  if (document.body.dataset.page === "cheatsheet" || $("#glossary")) return;
+  const lc = (x) => x.toLocaleLowerCase(EN ? "en" : "tr");
+  const entries = [...pageEntries];
+  const have = new Set(entries.map((e) => lc(e.name)));
+  for (const g of GLOSSARY) {
+    const name = EN ? g.en : g.tr;
+    if (have.has(lc(name)) || have.has(lc(g.en))) continue;
+    have.add(lc(name));
+    // Turkish pages often use the English term, so both names match there
+    entries.push({ name, def: EN ? g.d_en : g.d, alias: EN ? [] : [g.en] });
+  }
   const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // everyday words that are also glossary forms; underlining them on every line is noise, not help
+  const STOP = new Set(EN ? ["project", "state", "client", "instance", "array", "field", "operation", "record", "data", "system", "select", "server", "block", "file"]
+    : ["project", "örnek", "işlem", "satır", "durum", "dizi", "alan", "ilişki", "tekrar", "kayıt", "veri", "sistem", "istemci", "sunucu", "blok", "dosya"]);
   const forms = [];
   for (const e of entries) {
     // "Meta-data (katalog)" → "Meta-data", "katalog"; "A / B" → "A", "B"
-    const parts = e.name.split(/\s*[()\/]\s*|\s+vs\.?\s+/).map((x) => x.trim()).filter((x) => x.length >= 2);
-    for (const f of new Set([e.name, ...parts])) forms.push({ f, e });
+    const all = [e.name, ...(e.alias || [])];
+    const parts = all.flatMap((n) => n.split(/\s*[()\/·,]\s*|\s+vs\.?\s+/)).map((x) => x.trim()).filter((x) => x.length >= 2 && !/^\d+$/.test(x));
+    for (const f of new Set([...all, ...parts])) if (f.length >= 2 && !STOP.has(lc(f))) forms.push({ f, e });
   }
   forms.sort((a, b) => b.f.length - a.f.length);
-  // Turkish words take suffixes (DBMS'in, veritabanının); English takes plurals.
-  const tail = EN ? "(?:'s|s|es)?(?![\\p{L}\\d])" : "(?:['’][\\p{L}]*|[\\p{L}]{0,3})?(?![\\p{L}\\d])";
-  const re = new RegExp(`(?<![\\p{L}\\d])(?:${forms.map((x) => esc(x.f)).join("|")})${tail}`, "giu");
-  const byForm = new Map(forms.map((x) => [x.f.toLocaleLowerCase(EN ? "en" : "tr"), x]));
-  const SKIP = "pre, code, a, button, label, h1, h2, h3, h4, summary, select, textarea, .term-box, .term, .sqlbox, .stepper, figure, svg, .quiz, .bank, .decide, div[id]";
+  const byForm = new Map();
+  for (const x of forms) if (!byForm.has(lc(x.f))) byForm.set(lc(x.f), x);
+  const keys = [...byForm.keys()];
+  // Turkish words take suffixes (DBMS'in, veritabanlarının); English takes plurals.
+  const tail = EN ? "(?:'s|s|es)?(?![\\p{L}\\d])" : "(?:['’][\\p{L}]*|[\\p{L}]{0,7})?(?![\\p{L}\\d])";
+  const re = new RegExp(`(?<![\\p{L}\\d])(?:${[...byForm.values()].map((x) => esc(x.f)).join("|")})${tail}`, "giu");
+  const SKIP = "pre, code, a, button, label, h1, h2, h3, h4, summary, select, textarea, .term-box, .term, .sqlbox, .stepper, figure, svg, .decide, div[id], table.bcmp, .kicker";
   const OK = "p, li, td, dd, .callout";
-  const seen = new Set(); // each term once per page: its first use
-  const walker = document.createTreeWalker(content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  const marked = new WeakMap();
+  const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
   const jobs = [];
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-    if (n.nodeType === 1) continue;
-    const el = n.parentElement;
-    if (!el || !el.closest(OK) || el.closest(SKIP) || !n.data.trim()) continue;
+    const el = n.parentElement, block = el?.closest(OK);
+    if (!block || el.closest(SKIP) || !n.data.trim()) continue;
+    const seen = marked.get(block) || new Set();
+    marked.set(block, seen);
     const hits = [];
     re.lastIndex = 0;
     for (let m; (m = re.exec(n.data)); ) {
-      const word = m[0];
-      const key = [...byForm.keys()].find((k) => word.toLocaleLowerCase(EN ? "en" : "tr").startsWith(k));
+      const word = m[0], w = lc(word);
+      const key = keys.filter((k) => w.startsWith(k)).sort((a, b) => b.length - a.length)[0];
       const form = key && byForm.get(key), e = form?.e;
-      // SQL keywords and acronyms (IN, LEFT, DBA) match only in capitals, so "in" or "left" in prose stay plain
-      if (!e || seen.has(e) || (/^[^a-zçğıöşü]+$/.test(form.f) && !word.startsWith(form.f))) continue;
+      if (!e || seen.has(e)) continue;
+      // acronyms and SQL keywords (IN, LEFT, DBA) only in capitals; short Turkish forms take no bare suffix
+      if (/^[^a-zçğıöşü]+$/.test(form.f) && !word.startsWith(form.f)) continue;
+      if (!EN && form.f.length < 4 && word.length > form.f.length && !/['’]/.test(word[form.f.length])) continue;
       seen.add(e);
       hits.push([m.index, word, e]);
     }
@@ -399,20 +419,20 @@ function linkTerms(content, entries) {
   const show = (t) => {
     const e = entries[+t.dataset.term];
     cur = t;
-    pop.replaceChildren(h("strong", {}, e.name), " ", ...[...e.dd.childNodes].map((x) => x.cloneNode(true)));
+    pop.replaceChildren(h("strong", {}, e.name), " ", ...(e.dd ? [...e.dd.childNodes].map((x) => x.cloneNode(true)) : [e.def]));
     pop.hidden = false;
     const r = t.getBoundingClientRect(), w = Math.min(340, window.innerWidth - 24);
     pop.style.maxWidth = w + "px";
-    const left = Math.max(12, Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - w - 12));
-    pop.style.left = left + "px";
+    pop.style.left = Math.max(12, Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - w - 12)) + "px";
     pop.style.top = window.scrollY + r.bottom + 6 + "px";
   };
   const hide = () => { pop.hidden = true; cur = null; };
-  content.addEventListener("mouseover", (ev) => { const t = ev.target.closest?.(".term[data-term]"); if (t) show(t); });
-  content.addEventListener("mouseout", (ev) => { const t = ev.target.closest?.(".term[data-term]"); if (t && !t.contains(ev.relatedTarget)) hide(); });
-  content.addEventListener("focusin", (ev) => { const t = ev.target.closest?.(".term[data-term]"); if (t) show(t); });
-  content.addEventListener("focusout", (ev) => { if (ev.target.closest?.(".term[data-term]")) hide(); });
-  content.addEventListener("click", (ev) => { const t = ev.target.closest?.(".term[data-term]"); if (t) (cur === t && !pop.hidden ? hide() : show(t)); });
+  const term = (ev) => ev.target.closest?.(".term[data-term]");
+  content.addEventListener("mouseover", (ev) => { const t = term(ev); if (t) show(t); });
+  content.addEventListener("mouseout", (ev) => { const t = term(ev); if (t && !t.contains(ev.relatedTarget)) hide(); });
+  content.addEventListener("focusin", (ev) => { const t = term(ev); if (t) show(t); });
+  content.addEventListener("focusout", (ev) => { if (term(ev)) hide(); });
+  content.addEventListener("click", (ev) => { const t = term(ev); if (t) (cur === t && !pop.hidden ? hide() : show(t)); });
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") hide(); });
   window.addEventListener("scroll", () => cur && !pop.hidden && show(cur), { passive: true });
 }
