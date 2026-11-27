@@ -283,7 +283,7 @@ import { decidePlayer, calcSteps } from "../lib/decide.js";
       cylinder: tl("Silindir: bütün yüzeylerde aynı yarıçaptaki izler. Aynı silindirdeki bloklar kol hareket etmeden okunur.", "Cylinder: the tracks with the same radius on every surface. Blocks in one cylinder are read without moving the arm."),
     };
     let sel = "block", step = -1, timer = null;
-    const top = S("svg", { viewBox: "0 0 260 260", width: 260, height: 260, class: "disk-svg", role: "img" });
+    const top = S("svg", { viewBox: "0 0 290 260", width: 290, height: 260, class: "disk-svg", role: "img" });
     const side = S("svg", { viewBox: "0 0 220 260", width: 220, height: 260, class: "disk-svg", role: "img" });
     const cap = h("p", { class: "small disk-cap" });
     const steps = h("ol", { class: "small disk-steps" });
@@ -296,7 +296,8 @@ import { decidePlayer, calcSteps } from "../lib/decide.js";
       top.replaceChildren(); side.replaceChildren();
       const hlTrack = TR - 2, hlSec = 2;
       // the head sits over track 0 until a read moves it (seek), then the block turns under it (rotation)
-      const under = -((hlSec + 0.5) / SEC) * 2 * Math.PI; // the rotation that brings the block under the head (top)
+      // the head sits on the right of the spindle (angle 0); this rotation brings the block's centre under it
+      const under = Math.PI / 2 - ((hlSec + 0.5) / SEC) * 2 * Math.PI;
       const armTrack = step >= 1 ? hlTrack : 0, rot = step >= 2 ? under : under + 2.2;
       for (let t = 0; t < TR; t++) for (let s = 0; s < SEC; s++) {
         const a1 = (s / SEC) * 2 * Math.PI + rot - Math.PI / 2, a2 = a1 + (2 * Math.PI) / SEC - 0.03;
@@ -306,15 +307,20 @@ import { decidePlayer, calcSteps } from "../lib/decide.js";
       }
       top.append(S("circle", { cx, cy, r: R0 - 4, class: "dk-spindle" }));
       const hr = R0 + armTrack * DR + DR / 2;
-      top.append(S("line", { x1: 250, y1: 250, x2: cx, y2: cy - hr, class: "dk-arm" }), S("circle", { cx, cy: cy - hr, r: 5, class: "dk-head" }));
+      // the actuator is outside the platter; the arm reaches in along a radius and stops at the head
+      top.append(S("line", { x1: 278, y1: cy, x2: cx + hr, y2: cy, class: "dk-arm" }), S("circle", { cx: 278, cy, r: 7, class: "dk-spindle" }), S("circle", { cx: cx + hr, cy, r: 5, class: "dk-head" }));
       // side view: three platters, the cylinder is the same track on every surface
+      // platters are centred on the spindle (x = 100); the arms come from the actuator on the right, one above and one
+      // below each platter, and end at the head over the current track (same radius on every surface = a cylinder)
+      const sx = 100, half = 85, rx = (t) => ((R0 + t * DR + DR / 2) / (R0 + TR * DR)) * half;
+      const hx = sx + rx(armTrack);
       for (let p = 0; p < 3; p++) {
         const y = 50 + p * 70;
-        side.append(S("rect", { x: 20, y, width: 180, height: 8, rx: 3, class: "dk-platter" }));
-        if (sel === "cylinder") for (const x of [20 + 18, 200 - 18 - 14]) side.append(S("rect", { x, y: y - 3, width: 14, height: 14, class: "dk-cyl" }));
-        side.append(S("line", { x1: 210, y1: y - 10, x2: 60, y2: y - 10, class: "dk-arm" }), S("line", { x1: 210, y1: y + 18, x2: 60, y2: y + 18, class: "dk-arm" }));
+        side.append(S("rect", { x: sx - half, y, width: 2 * half, height: 8, rx: 3, class: "dk-platter" }));
+        if (sel === "cylinder") for (const x of [sx - rx(hlTrack), sx + rx(hlTrack)]) side.append(S("rect", { x: x - 6, y: y - 3, width: 12, height: 14, class: "dk-cyl" }));
+        for (const ay of [y - 8, y + 16]) side.append(S("line", { x1: 208, y1: ay, x2: hx, y2: ay, class: "dk-arm" }), S("rect", { x: hx - 4, y: ay - 2, width: 8, height: 4, class: "dk-head" }));
       }
-      side.append(S("rect", { x: 106, y: 30, width: 8, height: 200, class: "dk-spindle" }));
+      side.append(S("rect", { x: sx - 4, y: 30, width: 8, height: 200, class: "dk-spindle" }), S("rect", { x: 206, y: 36, width: 8, height: 188, rx: 3, class: "dk-spindle" }));
       cap.textContent = parts[sel];
       const ST = [
         [tl("İstek", "Request"), tl("DBMS bloğun donanım adresini verir: yüzey, iz, blok.", "The DBMS gives the block's hardware address: surface, track, block.")],

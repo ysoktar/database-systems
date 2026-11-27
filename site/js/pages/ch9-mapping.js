@@ -258,12 +258,13 @@ relationship SUPPLY: SUPPLIER M, PART N, PROJECT P
 specialization VEHICLE -> CAR, TRUCK disjoint total
 category OWNER = EMPLOYEE | BANK partial
 `;
+// positions chosen so no shapes overlap and no line crosses another or runs through a shape (layoutScore = 0)
 const ALL_STEPS_LAYOUT = {
-  "E:EMPLOYEE": { x: 470, y: 380 }, "E:DEPARTMENT": { x: 900, y: 170 }, "R:MANAGES": { x: 690, y: 80 }, "R:WORKS_FOR": { x: 690, y: 260 },
-  "E:PROJECT": { x: 900, y: 560 }, "R:WORKS_ON": { x: 690, y: 470 }, "R:SUPPLY": { x: 930, y: 740 }, "E:SUPPLIER": { x: 780, y: 900 }, "E:PART": { x: 1120, y: 880 },
-  "R:DEPENDENTS_OF": { x: 470, y: 580 }, "E:DEPENDENT": { x: 470, y: 760 },
-  "E:VEHICLE": { x: 210, y: 70 }, "S:0": { x: 210, y: 180 }, "E:CAR": { x: 80, y: 270 }, "E:TRUCK": { x: 330, y: 250 },
-  "E:BANK": { x: 90, y: 420 }, "U:OWNER": { x: 250, y: 500 }, "E:OWNER": { x: 230, y: 650 },
+  "E:EMPLOYEE": { x: 504, y: 437 }, "E:DEPARTMENT": { x: 1080, y: 195 }, "R:MANAGES": { x: 828, y: 92 }, "R:WORKS_FOR": { x: 828, y: 299 },
+  "E:PROJECT": { x: 1080, y: 644 }, "R:WORKS_ON": { x: 828, y: 541 }, "R:SUPPLY": { x: 1116, y: 851 }, "E:SUPPLIER": { x: 936, y: 1035 },
+  "E:PART": { x: 1344, y: 1012 }, "R:DEPENDENTS_OF": { x: 564, y: 667 }, "E:DEPENDENT": { x: 564, y: 874 }, "E:VEHICLE": { x: 312, y: 81 },
+  "S:0": { x: 252, y: 207 }, "E:CAR": { x: 72, y: 345 }, "E:TRUCK": { x: 432, y: 345 }, "E:BANK": { x: 72, y: 690 },
+  "U:OWNER": { x: 276, y: 782 }, "E:OWNER": { x: 276, y: 943 },
 };
 const PLAYER_EXAMPLES = [
   ["all", tl("Baştan sona: Adım 1–9 tek şemada (8A–8D hepsi uygulanır)", "Start to finish: Steps 1–9 in one schema (8A–8D all apply)")],
@@ -288,7 +289,9 @@ function stepPlayer(host, exId = "all", spec = "8A", predictInit = false) {
   const fallbackNote = hasSpec && fellBack.length ? h("div", { class: "res-msg warn", style: { fontFamily: "inherit", marginBottom: "8px" } },
     tl(`Seçtiğiniz ${spec}, bu örnekteki ${fellBack.length} özelleştirmeden ${fellBack.length > 1 ? "bazılarına" : "birine"} uygulanamıyor; algoritma orada geçerli bir seçeneğe dönüyor. Nedeni, ilgili Adım 8 kutusunda yazıyor (numarası 8 olan düğmeler).`,
       `The chosen ${spec} cannot be applied to ${fellBack.length > 1 ? `${fellBack.length} of the specializations` : "one specialization"} in this example; the algorithm falls back to a valid option there. The reason is given in the Step 8 box (the buttons numbered 8).`)) : null;
-  const pos = { ...autoLayout(model), ...(ex.layout || {}) };
+  // a hand-made layout is used only when it places every entity; mixing it with automatic positions makes shapes collide
+  const fullLayout = ex.layout && model.entities.every((e) => ex.layout[`E:${e.name.toUpperCase()}`]);
+  const pos = fullLayout ? { ...autoLayout(model), ...ex.layout } : autoLayout(model);
   let i = -1, predict = predictInit, asked = -1;
   const dots = h("div", { class: "pl-dots" }, ...steps.map((s, k) => h("button", { type: "button", class: `pl-dot s${s.step}`, title: s.title, "aria-label": s.title, onclick: () => go(k, true) }, s.step)));
   const counter = h("span", { class: "pl-count" });

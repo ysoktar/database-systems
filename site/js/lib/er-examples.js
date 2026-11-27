@@ -3,7 +3,7 @@
 export const ER_EXAMPLES = [
   {
     id: "company", title: "COMPANY", kind: "ER", source: "Figure 3.2",
-    layout: { "E:EMPLOYEE": { x: 330, y: 330 }, "E:DEPARTMENT": { x: 760, y: 190 }, "E:PROJECT": { x: 760, y: 530 }, "E:DEPENDENT": { x: 330, y: 660 },
+    layout: { "E:EMPLOYEE": { x: 360, y: 270 }, "E:DEPARTMENT": { x: 820, y: 130 }, "E:PROJECT": { x: 760, y: 530 }, "E:DEPENDENT": { x: 330, y: 660 },
       "R:MANAGES": { x: 560, y: 80 }, "R:WORKS_FOR": { x: 560, y: 245 }, "R:CONTROLS": { x: 760, y: 360 }, "R:WORKS_ON": { x: 560, y: 450 },
       "R:DEPENDENTS_OF": { x: 330, y: 530 }, "R:SUPERVISION": { x: 110, y: 470 } },
     desc: "Kitabın ana örneği: çalışanlar, departmanlar, projeler, bağımlılar. Bütün ER kavramları burada: bileşik, çok değerli, türetilmiş öznitelik, zayıf varlık, recursive ilişki, M:N.",

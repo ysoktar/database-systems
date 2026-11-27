@@ -25,7 +25,7 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
     hash: { label: tl("Hash indeks (Lname)", "Hash index (Lname)"), order: 0, field: 1, def: "Wallace",
       note: tl("Dosya Ssn'e göre düzenli; indeks Lname üzerinde hashing kullanır (Figure 17.15). Girişler ⟨K, P⟩ biçiminde, h(K) = harf sayısı mod 4 ile seçilen kovalarda durur. Arama: h(K) hesaplanır, o kova okunur, girişin P'si izlenir. İndeks sıralı değildir; yalnızca eşitlik araması içindir.", "The file is organized on Ssn; the index uses hashing on Lname (Figure 17.15). The ⟨K, P⟩ entries sit in buckets chosen by h(K) = number of letters mod 4. Search: compute h(K), read that bucket, follow the entry's P. The index is not ordered; it serves equality searches only.") },
   };
-  let type = "primary";
+  let type = "primary", linkObs = null;
   const seg = h("div", { class: "stepper-steps", role: "group" });
   const q = h("input", { type: "text", size: 12, "aria-label": tl("Aranan değer", "Value to find") });
   const foSel = h("select", { "aria-label": "fo", onchange: () => draw() }, ...[2, 3, 4].map((v) => h("option", { value: v, selected: v === 4 ? true : null }, String(v))));
@@ -123,7 +123,8 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
       h("div", { class: "ix-col" }, h("div", { class: "ba-label" }, tl("Veri dosyası (Ssn, Lname, Dno; blok başına 3 kayıt)", "Data file (Ssn, Lname, Dno; 3 records per block)")), h("div", { class: "ix-blocks" }, ...blockEls)), svg);
     out.replaceChildren(h("p", { class: "small" }, T.note), levelInfo ? h("p", { class: "small ix-levels" }, levelInfo) : "", grid,
       msg ? h("div", { class: `res-msg ${hit >= 0 ? "ok" : "warn"}`, style: { fontFamily: "inherit" } }, msg) : "");
-    requestAnimationFrame(() => {
+    // the arrows follow the boxes: redrawn whenever the grid's size changes (fonts, scrollbars, side panels)
+    const drawLinks = () => {
       const g = grid.getBoundingClientRect();
       svg.setAttribute("width", g.width); svg.setAttribute("height", g.height); svg.replaceChildren();
       for (const [dot, target, on] of links) {
@@ -135,7 +136,11 @@ const EMP = [["123456789", "Smith", 5], ["333445555", "Wong", 5], ["453453453", 
         if (on) path.setAttribute("class", "on");
         svg.append(path);
       }
-    });
+    };
+    requestAnimationFrame(drawLinks);
+    linkObs?.disconnect();
+    linkObs = new ResizeObserver(() => drawLinks());
+    linkObs.observe(grid);
   };
   for (const [k, T] of Object.entries(TYPES)) seg.append(h("button", { type: "button", "data-t": k, onclick: () => { type = k; q.value = T.def; draw(); } }, T.label));
   q.addEventListener("input", draw);

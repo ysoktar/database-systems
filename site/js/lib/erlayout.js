@@ -39,8 +39,62 @@ function majorEdges(model) {
   return edges;
 }
 
-/** Force-directed layout of the major nodes, then attributes around their owners. Returns a fresh positions map. */
+/** Force-directed layout of the major nodes, then attributes around their owners. Several starts are tried and the
+ *  one with the fewest overlapping shapes and crossing lines wins. Returns a fresh positions map. */
 export function autoLayout(model, { seed = 1 } = {}) {
+  let best = null, bestScore = Infinity;
+  for (const rest of [230, 270]) for (let k = 0; k < 6; k++) {
+    const pos = layoutOnce(model, { seed: seed + k * 7919, rest });
+    const sc = layoutScore(model, pos);
+    if (sc < bestScore) { bestScore = sc; best = pos; }
+    if (sc === 0) return best;
+  }
+  // refinement: swapping two nodes of the same kind often removes a crossing the forces could not
+  const { major } = diagramNodes(model);
+  if (major.length <= 14) {
+    for (let improved = true, rounds = 0; improved && bestScore > 0 && rounds < 3; rounds++) {
+      improved = false;
+      for (let i = 0; i < major.length; i++) for (let j = i + 1; j < major.length; j++) {
+        if (major[i].kind !== major[j].kind) continue;
+        const pos = Object.fromEntries(Object.entries(best).filter(([, v]) => v.x !== undefined));
+        [pos[major[i].id], pos[major[j].id]] = [pos[major[j].id], pos[major[i].id]];
+        placeAttributes(model, pos, { reset: true });
+        const sc = layoutScore(model, pos);
+        if (sc < bestScore) { bestScore = sc; best = pos; improved = true; }
+      }
+    }
+  }
+  return best;
+}
+
+/** Badness of a layout: overlapping shapes cost most, then lines that cross each other or run through a shape. */
+export function layoutScore(model, pos) {
+  const { major, attrs } = diagramNodes(model);
+  const label = (n) => (n.kind === "entity" || n.kind === "rel" ? n.ref.name : "o");
+  const abs = new Map(), boxes = [];
+  for (const n of major) if (pos[n.id]) { abs.set(n.id, pos[n.id]); boxes.push({ id: n.id, ...nodeBox(n.kind, label(n), pos[n.id].x, pos[n.id].y) }); }
+  const absOf = (a) => {
+    if (abs.has(a.id)) return abs.get(a.id);
+    const base = a.owner.startsWith("A:") ? absOf(attrs.find((x) => x.id === a.owner)) : abs.get(a.owner);
+    if (!base || !pos[a.id] || pos[a.id].dx === undefined) return null;
+    const p = { x: base.x + pos[a.id].dx, y: base.y + pos[a.id].dy };
+    abs.set(a.id, p); return p;
+  };
+  const lines = [];
+  for (const a of attrs) { const p = absOf(a); if (!p) continue; boxes.push({ id: a.id, ...nodeBox("attr", a.attr.name, p.x, p.y) }); const o = abs.get(a.owner) || absOf(attrs.find((x) => x.id === a.owner)); if (o) lines.push({ a: a.id, b: a.owner, p: o, q: p, w: 4 }); }
+  for (const [a, b] of majorEdges(model)) if (a !== b && abs.get(a) && abs.get(b)) lines.push({ a, b, p: abs.get(a), q: abs.get(b), w: 12 });
+  let score = 0;
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (overlap(boxes[i], boxes[j], 4)) score += 100;
+  for (let i = 0; i < lines.length; i++) for (let j = i + 1; j < lines.length; j++) {
+    const A = lines[i], B = lines[j];
+    if (A.a === B.a || A.a === B.b || A.b === B.a || A.b === B.b) continue;
+    if (segCross(A.p, A.q, B.p, B.q)) score += Math.min(A.w, B.w);
+  }
+  for (const L of lines) for (const b of boxes) if (b.id !== L.a && b.id !== L.b && segHitsBox(L.p, L.q, b)) score += 30;
+  return score;
+}
+
+function layoutOnce(model, { seed = 1, rest = 230 } = {}) {
   const { major } = diagramNodes(model);
   const edges = majorEdges(model).filter(([a, b]) => a !== b);
   let rnd = seed;
@@ -59,7 +113,7 @@ export function autoLayout(model, { seed = 1 } = {}) {
   // attribute counts make nodes "bigger" (more repulsion)
   const weight = new Map(major.map((n) => [n.id, 1 + ((n.ref.attrs || []).length) * 0.35]));
   const ids = major.map((n) => n.id);
-  const REST = 230;
+  const REST = rest;
   for (let it = 0, temp = 40; it < 500; it++, temp *= 0.992) {
     const F = new Map(ids.map((id) => [id, { x: 0, y: 0 }]));
     for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
@@ -96,7 +150,7 @@ export function autoLayout(model, { seed = 1 } = {}) {
 const labelW = (t) => [...String(t)].length * 6.9;
 function nodeBox(kind, label, x, y) {
   if (kind === "entity") return { x, y, w: Math.max(84, labelW(label) + 26), h: 36 };
-  if (kind === "rel") return { x, y, w: Math.max(80, labelW(label) + 44), h: 46 };
+  if (kind === "rel") return { x, y, w: Math.max(80, labelW(label) * 1.5 + 24), h: 46 };
   if (kind === "attr") return { x, y, w: Math.max(46, labelW(label) + 22), h: 28 };
   return { x, y, w: 26, h: 26 };
 }
@@ -272,7 +326,7 @@ export function toDiagram(model, pos, { notation = "ratio", selected = null, pad
         const pr = at(relId(r.name)), pe = at(eid);
         const mx = (pr.x + pe.x) / 2, my = (pr.y + pe.y) / 2;
         const nx = -(pe.y - pr.y), ny = pe.x - pr.x, len = Math.hypot(nx, ny) || 1;
-        const off = (k === 0 ? -1 : 1) * 45;
+        const off = (k === 0 ? -1 : 1) * 16; // two close, almost parallel lines: attributes placed beside the straight line stay clear of both
         link.via = [[mx + (nx / len) * off, my + (ny / len) * off]];
       }
       links.push(link);
