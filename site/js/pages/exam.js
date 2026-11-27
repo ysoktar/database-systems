@@ -36,7 +36,7 @@ enhanceCallouts(host);
 // ---- practice set
 const bank = $("#bank");
 const own = $$(".quiz", $("#exam-questions").content).map((q) => ({ topic: q.dataset.topic || "Rehber", html: q.outerHTML }));
-const chapterPages = PAGES.filter((p) => p.scope === "midterm");
+const chapterPages = PAGES.filter((p) => p.ch && parseInt(p.ch.slice(3), 10) <= 7); // Ch 1–7
 const list = h("div");
 const score = h("span", { class: "bank-score", "aria-live": "polite" });
 let pool = null, size = 10, answered = 0, correct = 0;
