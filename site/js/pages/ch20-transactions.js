@@ -126,12 +126,14 @@ const PROBLEMS = {
     const last = hist[hist.length - 1];
     for (const [a, b, label] of E) {
       const on = last && last[0] === a && last[1] === b;
-      const [x1, y1] = a === "start" ? [20, 90] : [S[a][1], S[a][2]], [x2, y2] = [S[b][1], S[b][2]];
+      const [x1, y1] = a === "start" ? [-40, 90] : [S[a][1], S[a][2]], [x2, y2] = [S[b][1], S[b][2]];
       if (a === b) { svg.append(sv("path", { d: `M${x1 - 30},${y1 - 22} C${x1 - 60},${y1 - 80} ${x1 + 60},${y1 - 80} ${x1 + 30},${y1 - 22}`, class: "st-edge" + (on ? " on" : ""), "marker-end": "url(#st-ar)" })); svg.append(sv("text", { x: x1, y: y1 - 70, class: "st-lbl" }, label)); continue; }
       const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
       const sx = x1 + ux * (a === "start" ? 0 : 62), sy = y1 + uy * 24, ex = x2 - ux * 66, ey = y2 - uy * 24;
       svg.append(sv("line", { x1: sx, y1: sy, x2: ex, y2: ey, class: "st-edge" + (on ? " on" : ""), "marker-end": "url(#st-ar)" }));
-      if (label) svg.append(sv("text", { x: (sx + ex) / 2, y: (sy + ey) / 2 - 6, class: "st-lbl" }, label));
+      // the label sits beside the line (on its upper side), never across it
+      let nx = -uy, ny = ux; if (ny > 0 || (ny === 0 && nx > 0)) { nx = -nx; ny = -ny; }
+      if (label) svg.append(sv("text", { x: (sx + ex) / 2 + nx * 9, y: (sy + ey) / 2 + ny * 9, class: "st-lbl", style: `text-anchor:${nx < -0.3 ? "end" : nx > 0.3 ? "start" : "middle"}` }, label));
     }
     for (const [k, [name, x, y]] of Object.entries(S)) {
       const g = sv("g", { class: "st-node" + (k === cur ? " cur" : "") + (hist.some((e) => e[1] === k) ? " seen" : "") });

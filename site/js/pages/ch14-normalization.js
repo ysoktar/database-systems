@@ -195,7 +195,9 @@ preset("teach", "nf-teach");
 // arrow up to every right-side attribute. The highlighted FD is drawn in the accent colour, a violating one in red.
 const SVGNS = "http://www.w3.org/2000/svg";
 const sv = (tag, attrs = {}, text) => { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v); if (text != null) e.textContent = text; return e; };
+let fdUid = 0;
 function fdDiagram(name, R, F, { hl = null, bad = false, keys = null } = {}) {
+  const uid = ++fdUid;
   const key = (keys || analyze(R, F).keys)[0] || [];
   const fds = F.filter((f) => f.lhs.every((a) => R.includes(a))).map((f) => ({ ...f, rhs: f.rhs.filter((a) => R.includes(a)) })).filter((f) => f.rhs.length);
   const cw = (t) => Math.max(54, t.length * 8.4 + 18);
@@ -217,15 +219,24 @@ function fdDiagram(name, R, F, { hl = null, bad = false, keys = null } = {}) {
     const t = sv("text", { x: b.cx, y: top + bh / 2 + 1, class: "fd-attr" + (key.includes(a) ? " key" : "") }, a);
     svg.append(t);
   }
+  // every FD gets its own lane (y) and, inside every box it touches, its own port (x), so no two lines share a
+  // segment; a dot marks where a drop joins its lane, and each FD has its own colour
+  const ports = new Map(R.map((a) => [a, []]));
+  fds.forEach((f, i) => { for (const a of [...f.lhs, ...f.rhs]) ports.get(a).push(i); });
+  const portX = (a, i) => { const b = box.get(a), list = ports.get(a), k = list.indexOf(i), step = Math.min(10, (b.w - 16) / Math.max(1, list.length - 1)); return b.cx + (k - (list.length - 1) / 2) * step; };
+  const anyHl = !!hl;
   fds.forEach((f, i) => {
     const isHl = hl && fmtFD(hl) === fmtFD(f) || (hl && hl.lhs.join() === f.lhs.join() && hl.rhs.every((a) => f.rhs.includes(a)));
-    const cls = isHl ? (bad ? "bad" : "hl") : "";
+    const cls = isHl ? (bad ? "bad" : "hl") : anyHl ? "dim" : "";
+    const col = isHl ? (bad ? "var(--critical)" : "var(--accent)") : `var(--s${(i % 8) + 1})`;
     const y = top + bh + gap * (i + 1);
-    const xs = [...f.lhs, ...f.rhs].map((a) => box.get(a).cx);
-    const g = sv("g", { class: "fd-line " + cls });
+    const xs = [...f.lhs.map((a) => portX(a, i)), ...f.rhs.map((a) => portX(a, i))];
+    const g = sv("g", { class: "fd-line " + cls, style: `--fd:${col}` });
     g.append(sv("line", { x1: Math.min(...xs), x2: Math.max(...xs), y1: y, y2: y }));
-    for (const a of f.lhs) g.append(sv("line", { x1: box.get(a).cx - 4, x2: box.get(a).cx - 4, y1: top + bh, y2: y }));
-    for (const a of f.rhs) g.append(sv("line", { x1: box.get(a).cx + 4, x2: box.get(a).cx + 4, y1: y, y2: top + bh + 3, "marker-end": `url(#${isHl ? (bad ? "fd-ar-bad" : "fd-ar-hl") : "fd-ar"})` }));
+    for (const a of f.lhs) { const px = portX(a, i); g.append(sv("line", { x1: px, x2: px, y1: top + bh, y2: y }), sv("circle", { cx: px, cy: y, r: 2.6, class: "fd-dot" })); }
+    for (const a of f.rhs) { const px = portX(a, i); g.append(sv("line", { x1: px, x2: px, y1: y, y2: top + bh + 3, "marker-end": `url(#fd-ar-${uid}-${i})` })); }
+    const m = sv("marker", { id: `fd-ar-${uid}-${i}`, viewBox: "0 0 10 10", refX: 5, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" });
+    m.append(sv("path", { d: "M0,0 L10,5 L0,10 z", style: `fill:${col}` })); defs.append(m);
     g.append(sv("title", {}, fmtFD(f)));
     svg.append(g);
   });

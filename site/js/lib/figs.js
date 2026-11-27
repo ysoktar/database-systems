@@ -88,7 +88,7 @@ export function dbmsComponents(host) {
     ddl: [80, 82, "DDL statements"], iq: [235, 82, "Interactive query"], app: [405, 82, "Application program"],
     ddlc: [80, 142, "DDL compiler"], qc: [235, 142, "Query compiler"], pre: [405, 142, "Precompiler"],
     cat: [80, 262, "System catalog"], qo: [235, 202, "Query optimizer"], dmlc: [405, 202, "DML compiler"],
-    canned: [500, 262, "Canned transactions"], rt: [320, 322, "Runtime DB processor"], cc: [545, 322, "Concurrency / recovery"],
+    canned: [500, 262, "Canned transactions"], rt: [320, 322, "Runtime DB processor"], cc: [545, 322, "Concurrency/recovery"],
     sdm: [320, 382, "Stored data manager"],
   };
   const P = {
@@ -105,14 +105,16 @@ export function dbmsComponents(host) {
   for (const [a, b, d] of E) {
     const [x1, y1] = N[a], [x2, y2] = N[b];
     const up = y2 < y1, side = y1 === y2;
-    const p = side ? [x1 + (x2 > x1 ? W / 2 : -W / 2), y1, x2 + (x2 > x1 ? -W / 2 : W / 2), y2] : [x1, y1 + (up ? -H / 2 : H / 2), x2, y2 + (up ? H / 2 : -H / 2)];
+    const wa = Math.max(W, N[a][2].length * 7 + 16) / 2, wb = Math.max(W, N[b][2].length * 7 + 16) / 2;
+    const p = side ? [x1 + (x2 > x1 ? wa : -wa), y1, x2 + (x2 > x1 ? -wb : wb), y2] : [x1, y1 + (up ? -H / 2 : H / 2), x2, y2 + (up ? H / 2 : -H / 2)];
     const l = s("line", { x1: p[0], y1: p[1], x2: p[2], y2: p[3], class: "vz-e" + (d ? " dash" : ""), "marker-end": "url(#vzc-a)" });
     l.dataset.a = a; l.dataset.b = b;
     edgeEl.push(l); svg.append(l);
   }
   for (const [k, [x, y, t]] of Object.entries(N)) {
     const g = s("g", { class: "vz-n" + (["dba", "casual", "prog", "param"].includes(k) ? " user" : "") });
-    g.append(s("rect", { x: x - W / 2, y: y - H / 2, width: W, height: H, rx: 5 }), s("text", { x, y }, t));
+    const w = Math.max(W, t.length * 7 + 16);
+    g.append(s("rect", { x: x - w / 2, y: y - H / 2, width: w, height: H, rx: 5 }), s("text", { x, y }, t));
     nodeEl[k] = g; svg.append(g);
   }
   // the stored database

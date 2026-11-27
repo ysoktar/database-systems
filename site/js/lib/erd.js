@@ -18,7 +18,7 @@ const textW = (s) => [...String(s)].length * 6.9 * K;
 
 function size(n) {
   if (n.type === "entity") return { w: Math.max(84 * K, textW(n.label) + 26 * K), h: 36 * K };
-  if (n.type === "rel") return { w: Math.max(80 * K, textW(n.label) + 44 * K), h: 46 * K };
+  if (n.type === "rel") return { w: Math.max(80 * K, textW(n.label) * 1.5 + 24 * K), h: 46 * K }; // a rhombus is narrower above and below the centre line, so the label needs ~1.5× its width (an identifying inner diamond too)
   if (n.type === "attr") return { w: Math.max(46 * K, textW(n.label) + 22 * K), h: 28 * K };
   return { w: 26 * K, h: 26 * K };
 }
@@ -152,7 +152,7 @@ export const COMPANY_ER = {
     { id: "CON", type: "rel", x: 760, y: 360, label: "CONTROLS" },
     { id: "WO", type: "rel", x: 560, y: 450, label: "WORKS_ON" },
     { id: "DOF", type: "rel", x: 330, y: 530, label: "DEPENDENTS_OF", ident: true },
-    { id: "SUP", type: "rel", x: 120, y: 500, label: "SUPERVISION" },
+    { id: "SUP", type: "rel", x: 150, y: 520, label: "SUPERVISION" },
     // EMPLOYEE attributes
     { id: "eName", type: "attr", x: 250, y: 200, label: "Name", of: "EMP" },
     { id: "eF", type: "attr", x: 120, y: 150, label: "Fname", of: "eName" },
@@ -162,7 +162,7 @@ export const COMPANY_ER = {
     { id: "eB", type: "attr", x: 110, y: 315, label: "Bdate", of: "EMP" },
     { id: "eA", type: "attr", x: 130, y: 370, label: "Address", of: "EMP" },
     { id: "eSal", type: "attr", x: 400, y: 215, label: "Salary", of: "EMP" },
-    { id: "eSex", type: "attr", x: 230, y: 420, label: "Sex", of: "EMP" },
+    { id: "eSex", type: "attr", x: 445, y: 262, label: "Sex", of: "EMP" },
     // DEPARTMENT attributes
     { id: "dN", type: "attr", x: 920, y: 120, label: "Name", key: true, of: "DEPT" },
     { id: "dNo", type: "attr", x: 935, y: 175, label: "Number", key: true, of: "DEPT" },
@@ -191,7 +191,7 @@ export const COMPANY_ER = {
     { a: "WO", b: "PROJ", card: "N", total: true },
     { a: "DOF", b: "EMP", card: "1", cardSide: -10 },
     { a: "DOF", b: "DEP", card: "N", total: true, cardSide: -10 },
-    { a: "SUP", b: "EMP", via: [[120, 400], [270, 400]], card: "1", role: "supervisor", cardSide: -10, roleSide: 12 },
-    { a: "SUP", b: "EMP", via: [[260, 500], [300, 450]], card: "N", role: "supervisee", cardSide: -10, roleSide: 12 },
+    { a: "SUP", b: "EMP", via: [[150, 410]], card: "1", role: "supervisor", cardSide: -10, roleSide: 12 },
+    { a: "SUP", b: "EMP", via: [[280, 470]], card: "N", role: "supervisee", cardSide: -10, roleSide: 12 },
   ],
 };

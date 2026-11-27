@@ -997,9 +997,11 @@ figure.er.zoomable::backdrop { background: var(--surface); }
 .fd-svg .fd-box.key { stroke: var(--pk); stroke-width: 1.8; }
 .fd-svg .fd-attr { font-family: var(--mono); font-size: 12.5px; fill: var(--text); text-anchor: middle; dominant-baseline: middle; }
 .fd-svg .fd-attr.key { fill: var(--pk); font-weight: 700; text-decoration: underline; }
-.fd-svg .fd-line line { stroke: var(--text-2); stroke-width: 1.4; }
-.fd-svg .fd-line.hl line { stroke: var(--accent); stroke-width: 2.4; }
-.fd-svg .fd-line.bad line { stroke: var(--critical); stroke-width: 2.6; }
+.fd-svg .fd-line line { stroke: var(--fd, var(--text-2)); stroke-width: 1.6; }
+.fd-svg .fd-line .fd-dot { fill: var(--fd, var(--text-2)); }
+.fd-svg .fd-line.dim { opacity: .35; }
+.fd-svg .fd-line.hl line { stroke-width: 2.4; }
+.fd-svg .fd-line.bad line { stroke-width: 2.6; }
 .set-chips { font-family: var(--mono); font-size: 0.86rem; }
 .set-chips .new { background: var(--accent); color: var(--accent-ink); border-radius: 4px; padding: 0 3px; font-weight: 700; }
 .nf-stack { display: grid; gap: 6px; }
@@ -1078,7 +1080,7 @@ table.bitmap tr.result td.b1 { background: var(--ok-wash); color: var(--good-tex
 .st-edge { stroke: var(--text-2); stroke-width: 1.4; fill: none; }
 .st-edge.on { stroke: var(--accent); stroke-width: 2.8; }
 .st-head { fill: var(--text-2); }
-.st-lbl { font-size: 11px; fill: var(--muted); text-anchor: middle; font-family: var(--font); }
+.st-lbl { font-size: 11px; fill: var(--muted); text-anchor: middle; font-family: var(--font); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
 
 /* ---- Ch 11: code blocks, tiers, PHP output */
 pre.code-block { font-family: var(--mono); font-size: 0.82rem; line-height: 1.5; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; overflow-x: auto; margin: 0.6rem 0 1rem; white-space: pre; }
@@ -1337,7 +1339,7 @@ svg.vz-comp { width: 100%; height: auto; }
 .vz-dep.hit { border-color: var(--good); background: var(--ok-wash); font-weight: 700; }
 svg.vz-gantt { width: 100%; height: auto; }
 .vz-glbl { fill: var(--text-2); font-size: 11px; font-weight: 600; }
-.vz-gcap { fill: var(--muted); font-size: 10.5px; }
+.vz-gcap { fill: var(--muted); font-size: 10.5px; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
 .vz-grid { stroke: var(--grid); }
 .vz-rw { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
 .vz-mem { flex: 1; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px; text-align: center; background: var(--surface); transition: background .3s; }

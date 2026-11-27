@@ -22,7 +22,7 @@ $("#three-schema").innerHTML = `
   <rect class="ts-box" x="250" y="12" width="110" height="34" rx="4"/><text class="ts-t" x="305" y="29">External view 2</text>
   <text class="ts-t" x="395" y="29">…</text>
   <rect class="ts-box" x="430" y="12" width="110" height="34" rx="4"/><text class="ts-t" x="485" y="29">External view n</text>
-  <text class="ts-t" x="330" y="64" style="font-size:10.5px;fill:var(--text-2)">${tl("son kullanıcılar ve programlar", "end users and programs")}</text>
+  <text class="ts-t" x="12" y="66" style="font-size:10.5px;fill:var(--text-2);text-anchor:start">${tl("son kullanıcılar ve programlar", "end users and programs")}</text>
   <path class="ts-a" d="M175,50 L300,124"/><path class="ts-a" d="M305,50 L320,124"/><path class="ts-a" d="M485,50 L340,124"/>
   <text class="ts-m" x="408" y="100">external/conceptual mapping</text>
   <rect class="ts-band" x="0" y="118" width="560" height="60" rx="8"/>
